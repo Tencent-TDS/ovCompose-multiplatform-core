@@ -14,52 +14,81 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
-import androidx.build.RunApiTasks
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
-    id("org.jetbrains.kotlin.android")
-    id("kotlin-android")
 }
 
-dependencies {
-    constraints {
-        // this syntax mirrors the temp workaround in paging-common dependencies constraint
-        // which allows paging-common to have project constraint on compose even though
-        // compose is not within the `MAIN` project-set.
-        // update syntax when b/239979823 is fixed
-        implementation("androidx.paging:paging-common:${androidx.LibraryVersions.PAGING}")
+androidXMultiplatform {
+    androidTarget()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlinStdlib)
+                api("androidx.compose.foundation:foundation:1.5.0")
+                api(project(":paging:paging-common"))
+                api("androidx.compose.runtime:runtime:1.5.0")
+            }
+        }
+
+        jvmMain {
+            dependsOn(commonMain)
+        }
+
+        androidMain {
+            dependsOn(jvmMain)
+        }
+
+        commonTest {
+            dependencies {
+                implementation(project(":compose:ui:ui-tooling"))
+                implementation(project(":compose:test-utils"))
+                implementation(project(":internal-testutils-paging"))
+            }
+        }
+
+        jvmTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(project(":compose:ui:ui-test-junit4"))
+            }
+        }
+
+        androidInstrumentedTest {
+            dependsOn(jvmTest)
+            dependencies {
+                implementation(libs.testRunner)
+                implementation(libs.junit)
+                implementation(libs.truth)
+            }
+        }
     }
-
-    implementation(libs.kotlinStdlib)
-    api("androidx.compose.foundation:foundation:1.0.5")
-    api(project(":paging:paging-common"))
-    api("androidx.compose.runtime:runtime:1.0.5")
-
-    androidTestImplementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
-    androidTestImplementation(project(":compose:test-utils"))
-    androidTestImplementation(projectOrArtifact(":internal-testutils-paging"))
-    androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.truth)
-    androidTestImplementation(project(":internal-testutils-ktx"))
-
-    samples(projectOrArtifact(":paging:paging-compose:paging-compose-samples"))
 }
 
 androidx {
-    name = "Android Paging-Compose"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.PAGING_COMPOSE
+    name = "Paging-Compose"
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Compose integration with Paging"
-    runApiTasks = new RunApiTasks.Yes()
     legacyDisableKotlinStrictApiMode = true
+    samples(project(":paging:paging-compose:paging-compose-samples"))
 }
 
 android {
-    namespace "androidx.paging.compose"
+    compileSdk = 35
+    namespace = "androidx.paging.compose"
+    // TODO(b/313699418): need to update compose.runtime version to 1.6.0+
+    experimentalProperties["android.lint.useK2Uast"] = false
 }

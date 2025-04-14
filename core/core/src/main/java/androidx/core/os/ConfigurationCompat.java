@@ -19,10 +19,13 @@ package androidx.core.os;
 import static android.os.Build.VERSION.SDK_INT;
 
 import android.content.res.Configuration;
+import android.os.LocaleList;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+
+import java.util.Locale;
 
 /**
  * Helper class which allows access to properties of {@link Configuration} in
@@ -38,12 +41,25 @@ public final class ConfigurationCompat {
      * @return The locale list.
      */
     @SuppressWarnings("deprecation")
-    @NonNull
-    public static LocaleListCompat getLocales(@NonNull Configuration configuration) {
+    public static @NonNull LocaleListCompat getLocales(@NonNull Configuration configuration) {
         if (SDK_INT >= 24) {
             return LocaleListCompat.wrap(Api24Impl.getLocales(configuration));
         } else {
             return LocaleListCompat.create(configuration.locale);
+        }
+    }
+
+    /**
+     * Set the {@link Locale} into {@link Configuration}. This API is no-op on API 16 and earlier.
+     */
+    public static void setLocales(
+            @NonNull Configuration configuration, @NonNull LocaleListCompat locales) {
+        if (SDK_INT >= 24) {
+            Api24Impl.setLocales(configuration, locales);
+        } else {
+            if (!locales.isEmpty()) {
+                configuration.setLocale(locales.get(0));
+            }
         }
     }
 
@@ -53,9 +69,13 @@ public final class ConfigurationCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static android.os.LocaleList getLocales(Configuration configuration) {
             return configuration.getLocales();
+        }
+
+        static void setLocales(
+                @NonNull Configuration configuration, @NonNull LocaleListCompat locales) {
+            configuration.setLocales((LocaleList) locales.unwrap());
         }
     }
 }

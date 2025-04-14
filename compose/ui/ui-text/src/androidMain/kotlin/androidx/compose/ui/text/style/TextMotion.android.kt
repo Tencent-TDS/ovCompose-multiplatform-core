@@ -17,14 +17,11 @@
 package androidx.compose.ui.text.style
 
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.text.ExperimentalTextApi
 
-/**
- * Implementation of possible TextMotion configurations on Android.
- */
-@ExperimentalTextApi
+/** Implementation of possible TextMotion configurations on Android. */
 @Immutable
-actual class TextMotion internal constructor(
+actual class TextMotion
+internal constructor(
     internal val linearity: Linearity,
     internal val subpixelTextPositioning: Boolean
 ) {
@@ -36,10 +33,8 @@ actual class TextMotion internal constructor(
     internal fun copy(
         linearity: Linearity = this.linearity,
         subpixelTextPositioning: Boolean = this.subpixelTextPositioning
-    ): TextMotion = TextMotion(
-        linearity = linearity,
-        subpixelTextPositioning = subpixelTextPositioning
-    )
+    ): TextMotion =
+        TextMotion(linearity = linearity, subpixelTextPositioning = subpixelTextPositioning)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -89,11 +84,12 @@ actual class TextMotion internal constructor(
             val None = Linearity(3)
         }
 
-        override fun toString(): String = when (this) {
-            Linear -> "Linearity.Linear"
-            FontHinting -> "Linearity.FontHinting"
-            None -> "Linearity.None"
-            else -> "Invalid"
-        }
+        override fun toString(): String =
+            when (this) {
+                Linear -> "Linearity.Linear"
+                FontHinting -> "Linearity.FontHinting"
+                None -> "Linearity.None"
+                else -> "Invalid"
+            }
     }
 }

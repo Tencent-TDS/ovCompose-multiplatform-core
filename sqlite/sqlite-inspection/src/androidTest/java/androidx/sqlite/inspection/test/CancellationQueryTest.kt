@@ -22,6 +22,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors.newCachedThreadPool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -32,18 +34,14 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors.newCachedThreadPool
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class CancellationQueryTest {
     private val countingExecutorService = CountingDelegatingExecutorService(newCachedThreadPool())
-    @get:Rule
-    val environment = SqliteInspectorTestEnvironment(countingExecutorService)
+    @get:Rule val environment = SqliteInspectorTestEnvironment(countingExecutorService)
 
-    @get:Rule
-    val temporaryFolder = TemporaryFolder(getInstrumentation().context.cacheDir)
+    @get:Rule val temporaryFolder = TemporaryFolder(getInstrumentation().context.cacheDir)
 
     @Test
     fun test_query_cancellations() = runBlocking {
@@ -51,9 +49,8 @@ class CancellationQueryTest {
         db.enableWriteAheadLogging()
         val databaseId = environment.inspectDatabase(db)
         // very long-running query
-        val job = launch(Dispatchers.IO) {
-            environment.issueQuery(databaseId, mandelbrotQuery(10000000))
-        }
+        val job =
+            launch(Dispatchers.IO) { environment.issueQuery(databaseId, mandelbrotQuery(10000000)) }
         // check that task with the query is actually started, but there is still no hard guarantee
         // that next query still won't win the race and execute query first.
         assertThat(countingExecutorService.events.receive()).isEqualTo(STARTED)
@@ -95,7 +92,8 @@ class CountingDelegatingExecutorService(val executor: Executor) : Executor {
 
 // https://sqlite.org/lang_with.html see "Outlandish Recursive Query"
 // language=SQLite
-private fun mandelbrotQuery(iterations: Int) = """
+private fun mandelbrotQuery(iterations: Int) =
+    """
     WITH RECURSIVE
       xaxis(x) AS (VALUES(-2.0) UNION ALL SELECT x+0.05 FROM xaxis WHERE x<1.2),
       yaxis(y) AS (VALUES(-1.0) UNION ALL SELECT y+0.1 FROM yaxis WHERE y<1.0),

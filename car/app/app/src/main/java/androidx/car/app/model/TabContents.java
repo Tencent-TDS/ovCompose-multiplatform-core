@@ -18,23 +18,22 @@ package androidx.car.app.model;
 
 import static java.util.Objects.requireNonNull;
 
-import android.annotation.SuppressLint;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
+import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.model.constraints.TabContentsConstraints;
-import androidx.car.app.annotations.KeepFields;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
 /**
- * Represents the contents to display for a selected tab in a {@link TabTemplate}.
+ * Represents the contents to display for a selected tab in a {@link TabTemplate}. Only certain
+ * templates may be used as content. See {@link Builder#Builder(Template)} for more details.
  */
 @CarProtocol
-@ExperimentalCarApi
 @RequiresCarApi(6)
 @KeepFields
 public class TabContents implements Content {
@@ -45,8 +44,7 @@ public class TabContents implements Content {
      */
     public static final String CONTENT_ID = "TAB_CONTENTS_CONTENT_ID";
 
-    @Nullable
-    private final Template mTemplate;
+    private final @Nullable Template mTemplate;
 
     /**
      * Returns the static content ID associated with TabContents.
@@ -54,21 +52,18 @@ public class TabContents implements Content {
      * @see TabContents#CONTENT_ID
      */
 
-    @NonNull
     @Override
-    public String getContentId() {
+    public @NonNull String getContentId() {
         return CONTENT_ID;
     }
 
     /** Returns the wrapped {@link Template} to display as the contents. */
-    @NonNull
-    public Template getTemplate() {
+    public @NonNull Template getTemplate() {
         return requireNonNull(mTemplate);
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return "[template: " + mTemplate + "]";
     }
 
@@ -101,14 +96,12 @@ public class TabContents implements Content {
 
     /** A builder of {@link TabContents}. */
     public static final class Builder {
-        @NonNull
-        Template mTemplate;
+        @NonNull Template mTemplate;
 
         /**
          * Constructs the {@link TabContents} defined by this builder.
          */
-        @NonNull
-        public TabContents build() {
+        public @NonNull TabContents build() {
             return new TabContents(this);
         }
 
@@ -116,18 +109,70 @@ public class TabContents implements Content {
          * Creates a {@link TabContents.Builder} instance using the given {@link Template} to
          * display as contents.
          *
-         * <h4>Requirements</h4>
+         * <p>There should be no title, Header {@link Action} or {@link ActionStrip} set on the
+         * template. The host will ignore these.
          *
-         * There should be no title, Header{@link Action} or {@link ActionStrip} set on the
-         * template.
-         * The host will ignore these.
+         * <p>From Car API 6 onward, the following template types are supported as content:
+         * <ul>
+         *     <li>{@code ListTemplate}
+         *     <li>{@code PaneTemplate}
+         *     <li>{@code GridTemplate}
+         *     <li>{@code MessageTemplate}
+         *     <li>{@code SearchTemplate}
+         * </ul>
+         *
+         * <p>From Car API 7 onward, the following template type is supported as content in
+         * addition to all previously supported template types:
+         * <ul>
+         *     <li>{@code NavigationTemplate}
+         * </ul>
          *
          * @throws NullPointerException     if {@code template} is null
          * @throws IllegalArgumentException if {@code template} does not meet the requirements
          */
-        @SuppressLint("ExecutorRegistration")
         public Builder(@NonNull Template template) {
-            TabContentsConstraints.DEFAULT.validateOrThrow(requireNonNull(template));
+            TabContentsConstraints.API_7.validateOrThrow(requireNonNull(template));
+            mTemplate = template;
+        }
+
+        /**
+         * Creates a {@link TabContents.Builder} instance using the given {@link Template} to
+         * display as contents. Additional template types are enabled if enableApi8 is set to true.
+         *
+         * <p>There should be no title, Header {@link Action} or {@link ActionStrip} set on the
+         * template. The host will ignore these.
+         *
+         * <p>From Car API 6 onward, the following template types are supported as content:
+         * <ul>
+         *     <li>{@code ListTemplate}
+         *     <li>{@code PaneTemplate}
+         *     <li>{@code GridTemplate}
+         *     <li>{@code MessageTemplate}
+         *     <li>{@code SearchTemplate}
+         * </ul>
+         *
+         * <p>From Car API 7 onward, the following template type is supported as content in
+         * addition to all previously supported template types:
+         * <ul>
+         *     <li>{@code NavigationTemplate}
+         * </ul>
+         *
+         * <p>From Car API 8 onward, the following template type is supported as content in
+         * addition to all previously supported template types:
+         * <ul>
+         *     <li>{@code SectionedItemTemplate}
+         * </ul>
+         *
+         * @throws NullPointerException     if {@code template} is null
+         * @throws IllegalArgumentException if {@code template} does not meet the requirements
+         */
+        @ExperimentalCarApi
+        public Builder(@NonNull Template template, boolean enableApi8) {
+            if (enableApi8) {
+                TabContentsConstraints.API_8.validateOrThrow(requireNonNull(template));
+            } else {
+                TabContentsConstraints.API_7.validateOrThrow(requireNonNull(template));
+            }
             mTemplate = template;
         }
     }

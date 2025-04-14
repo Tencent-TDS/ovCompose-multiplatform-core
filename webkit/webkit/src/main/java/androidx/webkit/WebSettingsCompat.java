@@ -16,23 +16,28 @@
 
 package androidx.webkit;
 
+import android.os.Build;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresFeature;
+import androidx.annotation.RequiresOptIn;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.UiThread;
 import androidx.webkit.internal.ApiFeature;
 import androidx.webkit.internal.ApiHelperForM;
 import androidx.webkit.internal.ApiHelperForN;
 import androidx.webkit.internal.ApiHelperForO;
 import androidx.webkit.internal.ApiHelperForQ;
 import androidx.webkit.internal.WebSettingsAdapter;
+import androidx.webkit.internal.WebSettingsNoOpAdapter;
 import androidx.webkit.internal.WebViewFeatureInternal;
 import androidx.webkit.internal.WebViewGlueCommunicator;
 
 import org.chromium.support_lib_boundary.WebSettingsBoundaryInterface;
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -44,6 +49,9 @@ import java.util.Set;
  * Compatibility version of {@link android.webkit.WebSettings}
  */
 public class WebSettingsCompat {
+
+    private static final String TAG = "WebSettingsCompat";
+
     private WebSettingsCompat() {}
 
     /**
@@ -119,6 +127,7 @@ public class WebSettingsCompat {
      * {@link WebViewFeature#isFeatureSupported(String)}
      * returns true for {@link WebViewFeature#SAFE_BROWSING_ENABLE}.
      *
+     * @param settings The WebSettings object to update.
      * @param enabled Whether Safe Browsing is enabled.
      */
     @RequiresFeature(name = WebViewFeature.SAFE_BROWSING_ENABLE,
@@ -179,6 +188,7 @@ public class WebSettingsCompat {
      * {@link WebViewFeature#isFeatureSupported(String)}
      * returns true for {@link WebViewFeature#DISABLED_ACTION_MODE_MENU_ITEMS}.
      *
+     * @param settings The WebSettings object to update.
      * @param menuItems an integer field flag for the menu items to be disabled.
      */
     @RequiresFeature(name = WebViewFeature.DISABLED_ACTION_MODE_MENU_ITEMS,
@@ -214,60 +224,6 @@ public class WebSettingsCompat {
             return ApiHelperForN.getDisabledActionModeMenuItems(settings);
         } else if (feature.isSupportedByWebView()) {
             return getAdapter(settings).getDisabledActionModeMenuItems();
-        } else {
-            throw WebViewFeatureInternal.getUnsupportedOperationException();
-        }
-    }
-
-    /**
-     * Sets whether the WebView’s internal error page should be suppressed or displayed
-     * for bad navigations. True means suppressed (not shown), false means it will be
-     * displayed.
-     * The default value is false.
-     *
-     * <p>
-     * This method should only be called if
-     * {@link WebViewFeature#isFeatureSupported(String)}
-     * returns true for {@link WebViewFeature#SUPPRESS_ERROR_PAGE}.
-     *
-     * @param suppressed whether the WebView should suppress its internal error page
-     *
-     * TODO(cricke): unhide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @RequiresFeature(name = WebViewFeature.SUPPRESS_ERROR_PAGE,
-            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    public static void setWillSuppressErrorPage(@NonNull WebSettings settings,
-            boolean suppressed) {
-        ApiFeature.NoFramework feature = WebViewFeatureInternal.SUPPRESS_ERROR_PAGE;
-        if (feature.isSupportedByWebView()) {
-            getAdapter(settings).setWillSuppressErrorPage(suppressed);
-        } else {
-            throw WebViewFeatureInternal.getUnsupportedOperationException();
-        }
-    }
-
-
-    /**
-     * Gets whether the WebView’s internal error page will be suppressed or displayed
-     *
-     * <p>
-     * This method should only be called if
-     * {@link WebViewFeature#isFeatureSupported(String)}
-     * returns true for {@link WebViewFeature#SUPPRESS_ERROR_PAGE}.
-     *
-     * @return true if the WebView will suppress its internal error page
-     * @see #setWillSuppressErrorPage
-     *
-     * TODO(cricke): unhide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @RequiresFeature(name = WebViewFeature.SUPPRESS_ERROR_PAGE,
-            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    public static boolean willSuppressErrorPage(@NonNull WebSettings settings) {
-        ApiFeature.NoFramework feature = WebViewFeatureInternal.SUPPRESS_ERROR_PAGE;
-        if (feature.isSupportedByWebView()) {
-            return getAdapter(settings).willSuppressErrorPage();
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }
@@ -479,6 +435,7 @@ public class WebSettingsCompat {
      * is created.
      *
      * <p>
+     * @param settings The WebSettings object to update.
      * @param allow allow algorithmic darkening or not.
      *
      */
@@ -647,6 +604,7 @@ public class WebSettingsCompat {
      * {@link WebViewFeature#isFeatureSupported(String)}
      * returns true for {@link WebViewFeature#ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY}.
      *
+     * @param settings The WebSettings object to update.
      * @param enabled Whether EnterpriseAuthenticationAppLinkPolicy should be enabled.
      */
     @RequiresFeature(name = WebViewFeature.ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY,
@@ -707,8 +665,8 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @NonNull
-    public static Set<String> getRequestedWithHeaderOriginAllowList(@NonNull WebSettings settings) {
+    public static @NonNull Set<String> getRequestedWithHeaderOriginAllowList(
+            @NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.REQUESTED_WITH_HEADER_ALLOW_LIST;
         if (feature.isSupportedByWebView()) {
@@ -728,7 +686,7 @@ public class WebSettingsCompat {
      * discontinued.
      * <p>
      * Apps can use this method to restore the legacy behavior for servers that still rely on
-     * the deprecated header, but it should not be used to identify the webview to first-party
+     * the deprecated header, but it should not be used to identify the WebView to first-party
      * servers under the control of the app developer.
      * <p>
      * The format of the strings in the allow-list follows the origin rules of
@@ -751,8 +709,604 @@ public class WebSettingsCompat {
         }
     }
 
+    /**
+     * Sets the WebView's user-agent metadata to generate user-agent client hints.
+     * <p>
+     * UserAgentMetadata in WebView is used to populate user-agent client hints, they can provide
+     * the client’s branding and version information, the underlying operating system’s branding
+     * and major version, as well as details about the underlying device.
+     * <p>
+     * The user-agent string can be set with {@link WebSettings#setUserAgentString(String)}, here
+     * are the details on how this API interacts it to generate user-agent client hints.
+     * <p>
+     * If the UserAgentMetadata is null and the overridden user-agent contains the system default
+     * user-agent, the system default value will be used.
+     * <p>
+     * If the UserAgentMetadata is null but the overridden user-agent doesn't contain the system
+     * default user-agent, only the
+     * <a href="https://wicg.github.io/client-hints-infrastructure/#low-entropy-hint-table">low-entry user-agent client hints</a> will be generated.
+     *
+     * <p> See <a href="https://wicg.github.io/ua-client-hints/">
+     * this</a> for more information about User-Agent Client Hints.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)}
+     * returns true for {@link WebViewFeature#USER_AGENT_METADATA}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param metadata the WebView's user-agent metadata.
+     */
+    @RequiresFeature(name = WebViewFeature.USER_AGENT_METADATA,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static void setUserAgentMetadata(@NonNull WebSettings settings,
+            @NonNull UserAgentMetadata metadata) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.USER_AGENT_METADATA;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setUserAgentMetadata(metadata);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Get the WebView's user-agent metadata which used to generate user-agent client hints.
+     *
+     * <p> See <a href="https://wicg.github.io/ua-client-hints/"> this</a> for more information
+     * about User-Agent Client Hints.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)}
+     * returns true for {@link WebViewFeature#USER_AGENT_METADATA}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     */
+    @RequiresFeature(name = WebViewFeature.USER_AGENT_METADATA,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static @NonNull UserAgentMetadata getUserAgentMetadata(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.USER_AGENT_METADATA;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getUserAgentMetadata();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    @IntDef({ATTRIBUTION_BEHAVIOR_DISABLED,
+            ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER,
+            ATTRIBUTION_BEHAVIOR_WEB_SOURCE_AND_WEB_TRIGGER,
+            ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_APP_TRIGGER})
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Retention(RetentionPolicy.SOURCE)
+    @interface AttributionRegistrationBehavior {
+    }
+
+    /**
+     * AttributionRegistrationBehavior that disables source and trigger registration from WebView.
+     * <p>
+     * Note that the initial network call to the Attribution Source or Trigger URIs may still
+     * happen depending on the installed version of WebView, but any response is discarded and
+     * nothing will be stored on the device.
+     */
+    public static final int ATTRIBUTION_BEHAVIOR_DISABLED =
+            WebSettingsBoundaryInterface.AttributionBehavior.DISABLED;
+    /**
+     * AttributionRegistrationBehavior that allows apps to register app sources (sources
+     * associated with the app package name) and web triggers (triggers associated with the
+     * eTLD+1) from WebView.
+     * <p>
+     * This is the default behavior.
+     */
+    public static final int ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER =
+            WebSettingsBoundaryInterface.AttributionBehavior.APP_SOURCE_AND_WEB_TRIGGER;
+    /**
+     * AttributionRegistrationBehavior that allows apps to register web sources and web triggers
+     * from WebView.
+     * <p>
+     * This option should only be used after applying to
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/attribution-app-to-web#register-attribution">
+     *     use web sources</a>.
+     */
+    public static final int ATTRIBUTION_BEHAVIOR_WEB_SOURCE_AND_WEB_TRIGGER =
+            WebSettingsBoundaryInterface.AttributionBehavior.WEB_SOURCE_AND_WEB_TRIGGER;
+    /**
+     * AttributionRegistrationBehavior that allows apps to register app sources and app triggers
+     * from WebView.
+     */
+    public static final int ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_APP_TRIGGER =
+            WebSettingsBoundaryInterface.AttributionBehavior.APP_SOURCE_AND_APP_TRIGGER;
+
+    /**
+     * Control how WebView interacts with
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/attribution">Attribution Reporting</a>.
+     * <p>
+     * WebView supports
+     * <a href="https://github.com/WICG/attribution-reporting-api">Attribution Reporting</a> across
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/attribution-app-to-web">apps and web pages</a>
+     * by enabling the web content to register sources and triggers.
+     * <p>
+     * By default, attribution sources will be registered as attributed to the app, while
+     * triggers are attributed to the loaded web content
+     * ({@link #ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER}). Apps should only need to
+     * change this default if they have a specific semantic for how they use WebView. In
+     * particular, in-app browsers should follow the steps to apply to the
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/attribution-app-to-web#register-attribution">
+     * allowlist for registering web sources</a> and then set the
+     * {@link #ATTRIBUTION_BEHAVIOR_WEB_SOURCE_AND_WEB_TRIGGER} behavior.
+     *
+     * @see
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/attribution-app-to-web#register-attribution">How to apply to use web source</a>
+     * @see #ATTRIBUTION_BEHAVIOR_DISABLED
+     * @see #ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER
+     * @see #ATTRIBUTION_BEHAVIOR_WEB_SOURCE_AND_WEB_TRIGGER
+     * @see #ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_APP_TRIGGER
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param behavior New behavior to use.
+     */
+    @RequiresFeature(name = WebViewFeature.ATTRIBUTION_REGISTRATION_BEHAVIOR,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static void setAttributionRegistrationBehavior(@NonNull WebSettings settings,
+            @AttributionRegistrationBehavior int behavior) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.ATTRIBUTION_REGISTRATION_BEHAVIOR;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setAttributionRegistrationBehavior(behavior);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Read the current behavior for attribution registration.
+     *
+     * @see #setAttributionRegistrationBehavior(WebSettings, int)
+     * @see #ATTRIBUTION_BEHAVIOR_DISABLED
+     * @see #ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER
+     * @see #ATTRIBUTION_BEHAVIOR_WEB_SOURCE_AND_WEB_TRIGGER
+     * @see #ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_APP_TRIGGER
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     */
+    @RequiresFeature(name = WebViewFeature.ATTRIBUTION_REGISTRATION_BEHAVIOR,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @AttributionRegistrationBehavior
+    public static int getAttributionRegistrationBehavior(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.ATTRIBUTION_REGISTRATION_BEHAVIOR;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getAttributionRegistrationBehavior();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Sets permissions provided through
+     * {@link WebViewMediaIntegrityApiStatusConfig} for using the
+     * WebView Integrity API.
+     */
+    @RequiresFeature(name = WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static void setWebViewMediaIntegrityApiStatus(
+            @NonNull WebSettings settings,
+            @NonNull WebViewMediaIntegrityApiStatusConfig permissionConfig) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.WEBVIEW_MEDIA_INTEGRITY_API_STATUS;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setWebViewMediaIntegrityApiStatus(permissionConfig);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Returns the {@link WebViewMediaIntegrityApiStatusConfig} currently in use.
+     */
+    @RequiresFeature(name = WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static @NonNull WebViewMediaIntegrityApiStatusConfig getWebViewMediaIntegrityApiStatus(
+            @NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.WEBVIEW_MEDIA_INTEGRITY_API_STATUS;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getWebViewMediaIntegrityApiStatus();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    @IntDef({WEB_AUTHENTICATION_SUPPORT_NONE,
+            WEB_AUTHENTICATION_SUPPORT_FOR_APP,
+            WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER})
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Retention(RetentionPolicy.SOURCE)
+    @interface WebAuthenticationSupport {
+    }
+
+    /**
+     * The support level that disables WebAuthn requests from WebView.
+     * <p>
+     * This is the default behavior.
+     */
+    public static final int WEB_AUTHENTICATION_SUPPORT_NONE =
+            WebSettingsBoundaryInterface.WebauthnSupport.NONE;
+    /**
+     * The support level that allows WebAuthn requests for the app in which the WebView is embedded.
+     * See
+     * <a href="https://developers.google.com/digital-asset-links">Digital Asset Links</a>
+     * to learn how to associate an app with a website.
+     */
+    public static final int WEB_AUTHENTICATION_SUPPORT_FOR_APP =
+            WebSettingsBoundaryInterface.WebauthnSupport.APP;
+
+    /**
+     * The support level that allows apps to make WebAuthn calls for any website. See
+     * <a href="https://developer.android.com/training/sign-in/privileged-apps">Privileged apps</a>
+     * to learn how to make WebAuthn calls for any website.
+     */
+    public static final int WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER =
+            WebSettingsBoundaryInterface.WebauthnSupport.BROWSER;
+
+    /**
+     * Sets the support level for the given {@link WebSettings}.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#WEB_AUTHENTICATION}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param support  The new support level which this WebView will use.
+     * @see #WEB_AUTHENTICATION_SUPPORT_NONE
+     * @see #WEB_AUTHENTICATION_SUPPORT_FOR_APP
+     * @see #WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER
+     */
+    @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @UiThread
+    public static void setWebAuthenticationSupport(@NonNull WebSettings settings,
+            @WebAuthenticationSupport int support) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.WEB_AUTHENTICATION;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setWebAuthenticationSupport(support);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Returns the support level for the given {@link WebSettings}
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#WEB_AUTHENTICATION}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @return the current support level.
+     * @see #setWebAuthenticationSupport(WebSettings, int)
+     * @see #WEB_AUTHENTICATION_SUPPORT_NONE
+     * @see #WEB_AUTHENTICATION_SUPPORT_FOR_APP
+     * @see #WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER
+     */
+    @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @WebAuthenticationSupport
+    @UiThread
+    public static int getWebAuthenticationSupport(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.WEB_AUTHENTICATION;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getWebAuthenticationSupport();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    @IntDef({SPECULATIVE_LOADING_DISABLED,
+            SPECULATIVE_LOADING_PRERENDER_ENABLED})
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Retention(RetentionPolicy.SOURCE)
+    @ExperimentalSpeculativeLoading
+    @interface SpeculativeLoadingStatus {
+    }
+
+    /**
+     * Disables all speculative loading tech. See <a href="https://developer.mozilla.org/en-US/docs/Web/Performance/Speculative_loading">this</a> to learn more.
+     * <p>
+     * This is the default behavior.
+     */
+    @ExperimentalSpeculativeLoading
+    public static final int SPECULATIVE_LOADING_DISABLED =
+            WebSettingsBoundaryInterface.SpeculativeLoadingStatus.DISABLED;
+
+    /**
+     * Enabled Prerender for this WebSettings, See
+     * <a href="https://developer.chrome.com/docs/web-platform/prerender-pages">Prerender</a> to learn more.
+     */
+    @ExperimentalSpeculativeLoading
+    public static final int SPECULATIVE_LOADING_PRERENDER_ENABLED =
+            WebSettingsBoundaryInterface.SpeculativeLoadingStatus.PRERENDER_ENABLED;
+
+    /**
+     * Denotes that the SpeculativeLoading API surface is experimental.
+     * It may change without warning.
+     */
+    @Retention(RetentionPolicy.CLASS)
+    @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE})
+    @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
+    public @interface ExperimentalSpeculativeLoading {}
+
+
+    /**
+     * Sets whether speculative loading status for this {@link WebSettings}.
+     * This API is experimental, it may change in the future without notice. Please use accordingly.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#SPECULATIVE_LOADING}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param speculativeLoadingStatus  The new status for the speculative loading.
+     *                                  It will to be one of {@link SpeculativeLoadingStatus}
+     */
+    @RequiresFeature(name = WebViewFeature.SPECULATIVE_LOADING,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @ExperimentalSpeculativeLoading
+    public static void setSpeculativeLoadingStatus(
+            @NonNull WebSettings settings, @SpeculativeLoadingStatus int speculativeLoadingStatus) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.SPECULATIVE_LOADING;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setSpeculativeLoadingStatus(speculativeLoadingStatus);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Gets speculative loading status for this {@link WebSettings}.
+     * This API is experimental, it may change in the future without notice. Please use accordingly.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#SPECULATIVE_LOADING}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @return The current status for the speculative loading.
+     * It will to be one of {@link SpeculativeLoadingStatus}.
+     */
+    @RequiresFeature(name = WebViewFeature.SPECULATIVE_LOADING,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @ExperimentalSpeculativeLoading
+    public static @SpeculativeLoadingStatus int getSpeculativeLoadingStatus(
+            @NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature =
+                WebViewFeatureInternal.SPECULATIVE_LOADING;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getSpeculativeLoadingStatus();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Denotes that the BackForwardCache API surface is experimental.
+     * It may change without warning.
+     */
+    @Retention(RetentionPolicy.CLASS)
+    @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE})
+    @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
+    public @interface ExperimentalBackForwardCache {}
+
+    /**
+     * Enables <a href="https://developer.chrome.com/blog/back-forward-cache">BackForwardCache</a>
+     * for the given {@link WebSettings}.
+     * This API is experimental, it may change in the future without notice. Please use accordingly.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#BACK_FORWARD_CACHE}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param backForwardCacheEnabled  whether BackForwardCache should be enabled for this
+     *                                  {@link WebSettings}
+     */
+    @RequiresFeature(name = WebViewFeature.BACK_FORWARD_CACHE,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @ExperimentalBackForwardCache
+    public static void setBackForwardCacheEnabled(@NonNull WebSettings settings,
+            boolean backForwardCacheEnabled) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.BACK_FORWARD_CACHE;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setBackForwardCacheEnabled(backForwardCacheEnabled);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Get the current status of BackForwardCache for this {@link WebSettings}.
+     * This API is experimental, it may change in the future without notice. Please use accordingly.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#BACK_FORWARD_CACHE}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @return Whether BackForwardCache is enabled or not.
+     */
+    @RequiresFeature(name = WebViewFeature.BACK_FORWARD_CACHE,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @ExperimentalBackForwardCache
+    public static boolean getBackForwardCacheEnabled(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.BACK_FORWARD_CACHE;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getBackForwardCacheEnabled();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Enables <a href="https://w3c.github.io/payment-request/">PaymentRequest</a> for the given
+     * {@link WebSettings}.
+     *
+     * <p>This feature requires adding the following snippet to the {@code AndroidManifest.xml}:
+     *
+     * <pre class="prettyprint">
+     *   &lt;queries&gt;
+     *       &lt;intent&gt;
+     *           &lt;action android:name="org.chromium.intent.action.PAY"/&gt;
+     *       &lt;/intent&gt;
+     *       &lt;intent&gt;
+     *           &lt;action android:name="org.chromium.intent.action.IS_READY_TO_PAY"/&gt;
+     *       &lt;/intent&gt;
+     *       &lt;intent&gt;
+     *           &lt;action android:name="org.chromium.intent.action.UPDATE_PAYMENT_DETAILS"/&gt;
+     *       &lt;/intent&gt;
+     *   &lt;/queries&gt;
+     * </pre>
+     *
+     * <p>This is needed to allow WebView to query the device for the user's payment applications
+     * that are implemented according to the <a
+     * href="https://web.dev/articles/android-payment-apps-developers-guide">Android payment app
+     * developers guide</a>.
+     *
+     * <ul>
+     * <li>The {@code org.chromium.intent.action.PAY} intent is necessary to let users <a
+     * href="https://web.dev/articles/android-payment-apps-developers-guide#step_3_let_a_customer_make_payment">make
+     * payments</a>.
+     *
+     * <li>The {@code org.chromium.intent.action.IS_READY_TO_PAY} intent is necessary to let the
+     * merchant website know if the user is <a
+     * href="https://web.dev/articles/android-payment-apps-developers-guide#step_2_let_a_merchant_know_if_a_customer_has_an_enrolled_instrument_that_is_ready_to_pay">ready
+     * to pay</a>.
+     *
+     * <li>The {@code org.chromium.intent.action.UPDATE_PAYMENT_DETAILS} intent is necessary for
+     * payment apps to support <a
+     * href="https://web.dev/articles/android-payment-apps-delegation#optional_support_dynamic_flow">updating
+     * the price dynamically</a> in response to the user selecting a different shipping address or
+     * option.
+     * </ul>
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#PAYMENT_REQUEST}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param enabled Whether PaymentRequest should be enabled for this {@link WebSettings}.
+     */
+    @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static void setPaymentRequestEnabled(@NonNull WebSettings settings, boolean enabled) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setPaymentRequestEnabled(enabled);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Get the current status of PaymentRequest for this {@link WebSettings}.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#PAYMENT_REQUEST}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @return Whether PaymentRequest is enabled.
+     */
+    @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static boolean getPaymentRequestEnabled(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getPaymentRequestEnabled();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Enables support for <code>hasEnrolledInstrument()</code> method in <a
+     * href="https://w3c.github.io/payment-request/">PaymentRequest</a> for the given {@link
+     * WebSettings}. This only has any effect if {@code setPaymentRequestEnabled(settings, true)}
+     * has been called.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#PAYMENT_REQUEST}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @param enabled Whether PaymentRequest.hasEnrolledInstrument() should be enabled for this
+     *     {@link WebSettings}.
+     */
+    @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static void setHasEnrolledInstrumentEnabled(@NonNull WebSettings settings,
+            boolean enabled) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
+        if (feature.isSupportedByWebView()) {
+            getAdapter(settings).setHasEnrolledInstrumentEnabled(enabled);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Get the current status of PaymentRequest.hasEnrolledInstrument() for this {@link
+     * WebSettings}.
+     *
+     * <p>
+     * This method should only be called if
+     * {@link WebViewFeature#isFeatureSupported(String)} returns true for
+     * {@link WebViewFeature#PAYMENT_REQUEST}.
+     *
+     * @param settings Settings retrieved from {@link WebView#getSettings()}.
+     * @return Whether PaymentRequest.hasEnrolledInstrument() is enabled.
+     */
+    @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public static boolean getHasEnrolledInstrumentEnabled(@NonNull WebSettings settings) {
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
+        if (feature.isSupportedByWebView()) {
+            return getAdapter(settings).getHasEnrolledInstrumentEnabled();
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
     private static WebSettingsAdapter getAdapter(WebSettings settings) {
-        return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        try {
+            return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        } catch (ClassCastException e) {
+            if (Build.VERSION.SDK_INT == 30
+                    && "android.webkit.WebSettingsWrapper"
+                    .equals(settings.getClass().getCanonicalName())) {
+                // This is a patch for a bug observed only on OnePlus devices running SDK version
+                // 30. See https://crbug.com/388824130.
+                Log.e(
+                        TAG,
+                        "Error converting WebSettings to Chrome implementation. All AndroidX method"
+                                + " calls on this WebSettings instance will be no-op calls. See"
+                                + " https://crbug.com/388824130 for more info.",
+                        e);
+                return new WebSettingsNoOpAdapter();
+            }
+            throw e;
+        }
     }
 }
 

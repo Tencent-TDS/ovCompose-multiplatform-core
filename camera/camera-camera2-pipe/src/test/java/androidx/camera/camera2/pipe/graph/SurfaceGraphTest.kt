@@ -19,6 +19,8 @@ package androidx.camera.camera2.pipe.graph
 import android.graphics.SurfaceTexture
 import android.os.Build
 import android.view.Surface
+import androidx.camera.camera2.pipe.CameraController
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraSurfaceManager
 import androidx.camera.camera2.pipe.testing.FakeCameraController
 import androidx.camera.camera2.pipe.testing.FakeGraphConfigs
@@ -41,13 +43,17 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class SurfaceGraphTest {
     private val config = FakeGraphConfigs
+    private val graphId = CameraGraphId.nextId()
+    private val fakeCameraController = FakeCameraController(graphId)
+    private val fakeCameraControllerProvider: () -> CameraController = { fakeCameraController }
 
-    private val streamMap = StreamGraphImpl(config.fakeMetadata, config.graphConfig)
-    private val controller = FakeCameraController()
+    private val streamMap = StreamGraphImpl(config.fakeMetadata, config.graphConfig, mock())
+
     private val fakeSurfaceListener: CameraSurfaceManager.SurfaceListener = mock()
     private val cameraSurfaceManager =
         CameraSurfaceManager().also { it.addListener(fakeSurfaceListener) }
-    private val surfaceGraph = SurfaceGraph(streamMap, controller, cameraSurfaceManager)
+    private val surfaceGraph =
+        SurfaceGraph(streamMap, fakeCameraControllerProvider, cameraSurfaceManager, emptyMap())
 
     private val stream1 = streamMap[config.streamConfig1]!!
     private val stream2 = streamMap[config.streamConfig2]!!
@@ -56,8 +62,9 @@ class SurfaceGraphTest {
     private val stream5 = streamMap[config.streamConfig5]!!
     private val stream6 = streamMap[config.streamConfig6]!!
     private val stream7 = streamMap[config.streamConfig7]!!
-    private val stream8 = streamMap[config.sharedStreamConfig1]!!
-    private val stream9 = streamMap[config.sharedStreamConfig2]!!
+    private val stream8 = streamMap[config.streamConfig8]!!
+    private val stream9 = streamMap[config.sharedStreamConfig1]!!
+    private val stream10 = streamMap[config.sharedStreamConfig2]!!
 
     private val fakeSurface1 = Surface(SurfaceTexture(1))
     private val fakeSurface2 = Surface(SurfaceTexture(2))
@@ -68,6 +75,7 @@ class SurfaceGraphTest {
     private val fakeSurface7 = Surface(SurfaceTexture(7))
     private val fakeSurface8 = Surface(SurfaceTexture(8))
     private val fakeSurface9 = Surface(SurfaceTexture(9))
+    private val fakeSurface10 = Surface(SurfaceTexture(10))
 
     @After
     fun teardown() {
@@ -80,6 +88,7 @@ class SurfaceGraphTest {
         fakeSurface7.release()
         fakeSurface8.release()
         fakeSurface9.release()
+        fakeSurface10.release()
     }
 
     @Test
@@ -93,20 +102,22 @@ class SurfaceGraphTest {
         surfaceGraph[stream7.id] = fakeSurface7
         surfaceGraph[stream8.id] = fakeSurface8
         surfaceGraph[stream9.id] = fakeSurface9
+        surfaceGraph[stream10.id] = fakeSurface10
 
-        assertThat(controller.surfaceMap).isNotNull()
-        assertThat(controller.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1)
-        assertThat(controller.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
-        assertThat(controller.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
-        assertThat(controller.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
-        assertThat(controller.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
-        assertThat(controller.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
-        assertThat(controller.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
+        assertThat(fakeCameraController.surfaceMap).isNotNull()
+        assertThat(fakeCameraController.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1)
+        assertThat(fakeCameraController.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
+        assertThat(fakeCameraController.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
+        assertThat(fakeCameraController.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
+        assertThat(fakeCameraController.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
+        assertThat(fakeCameraController.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
+        assertThat(fakeCameraController.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
+        assertThat(fakeCameraController.surfaceMap?.get(stream8.id)).isEqualTo(fakeSurface8)
     }
 
     @Test
     fun outputSurfacesArePassedToListenerWhenAvailable() {
-        assertThat(controller.surfaceMap).isNull()
+        assertThat(fakeCameraController.surfaceMap).isNull()
 
         surfaceGraph[stream1.id] = fakeSurface1
         surfaceGraph[stream2.id] = fakeSurface2
@@ -115,21 +126,23 @@ class SurfaceGraphTest {
         surfaceGraph[stream5.id] = fakeSurface5
         surfaceGraph[stream6.id] = fakeSurface6
         surfaceGraph[stream7.id] = fakeSurface7
-        assertThat(controller.surfaceMap).isNull()
-
         surfaceGraph[stream8.id] = fakeSurface8
-        surfaceGraph[stream9.id] = fakeSurface9
+        assertThat(fakeCameraController.surfaceMap).isNull()
 
-        assertThat(controller.surfaceMap).isNotNull()
-        assertThat(controller.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1)
-        assertThat(controller.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
-        assertThat(controller.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
-        assertThat(controller.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
-        assertThat(controller.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
-        assertThat(controller.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
-        assertThat(controller.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
-        assertThat(controller.surfaceMap?.get(stream8.id)).isEqualTo(fakeSurface8)
-        assertThat(controller.surfaceMap?.get(stream9.id)).isEqualTo(fakeSurface9)
+        surfaceGraph[stream9.id] = fakeSurface9
+        surfaceGraph[stream10.id] = fakeSurface10
+
+        assertThat(fakeCameraController.surfaceMap).isNotNull()
+        assertThat(fakeCameraController.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1)
+        assertThat(fakeCameraController.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
+        assertThat(fakeCameraController.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
+        assertThat(fakeCameraController.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
+        assertThat(fakeCameraController.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
+        assertThat(fakeCameraController.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
+        assertThat(fakeCameraController.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
+        assertThat(fakeCameraController.surfaceMap?.get(stream8.id)).isEqualTo(fakeSurface8)
+        assertThat(fakeCameraController.surfaceMap?.get(stream9.id)).isEqualTo(fakeSurface9)
+        assertThat(fakeCameraController.surfaceMap?.get(stream10.id)).isEqualTo(fakeSurface10)
     }
 
     @Test
@@ -139,7 +152,7 @@ class SurfaceGraphTest {
 
         surfaceGraph[stream1.id] = fakeSurface1A
         surfaceGraph[stream1.id] = fakeSurface1B
-        assertThat(controller.surfaceMap).isNull()
+        assertThat(fakeCameraController.surfaceMap).isNull()
 
         surfaceGraph[stream2.id] = fakeSurface2
         surfaceGraph[stream3.id] = fakeSurface3
@@ -149,17 +162,19 @@ class SurfaceGraphTest {
         surfaceGraph[stream7.id] = fakeSurface7
         surfaceGraph[stream8.id] = fakeSurface8
         surfaceGraph[stream9.id] = fakeSurface9
+        surfaceGraph[stream10.id] = fakeSurface10
 
-        assertThat(controller.surfaceMap).isNotNull()
-        assertThat(controller.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1B)
-        assertThat(controller.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
-        assertThat(controller.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
-        assertThat(controller.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
-        assertThat(controller.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
-        assertThat(controller.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
-        assertThat(controller.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
-        assertThat(controller.surfaceMap?.get(stream8.id)).isEqualTo(fakeSurface8)
-        assertThat(controller.surfaceMap?.get(stream9.id)).isEqualTo(fakeSurface9)
+        assertThat(fakeCameraController.surfaceMap).isNotNull()
+        assertThat(fakeCameraController.surfaceMap?.get(stream1.id)).isEqualTo(fakeSurface1B)
+        assertThat(fakeCameraController.surfaceMap?.get(stream2.id)).isEqualTo(fakeSurface2)
+        assertThat(fakeCameraController.surfaceMap?.get(stream3.id)).isEqualTo(fakeSurface3)
+        assertThat(fakeCameraController.surfaceMap?.get(stream4.id)).isEqualTo(fakeSurface4)
+        assertThat(fakeCameraController.surfaceMap?.get(stream5.id)).isEqualTo(fakeSurface5)
+        assertThat(fakeCameraController.surfaceMap?.get(stream6.id)).isEqualTo(fakeSurface6)
+        assertThat(fakeCameraController.surfaceMap?.get(stream7.id)).isEqualTo(fakeSurface7)
+        assertThat(fakeCameraController.surfaceMap?.get(stream8.id)).isEqualTo(fakeSurface8)
+        assertThat(fakeCameraController.surfaceMap?.get(stream9.id)).isEqualTo(fakeSurface9)
+        assertThat(fakeCameraController.surfaceMap?.get(stream10.id)).isEqualTo(fakeSurface10)
 
         fakeSurface1A.release()
         fakeSurface1B.release()
@@ -217,7 +232,7 @@ class SurfaceGraphTest {
     }
 
     @Test
-    fun settingSurfaceToNullThenPreviousSurfaceWillReaquireSurfaceToken() {
+    fun settingSurfaceToNullThenPreviousSurfaceWillReacquireSurfaceToken() {
         surfaceGraph[stream1.id] = fakeSurface1
         surfaceGraph[stream1.id] = null
         surfaceGraph[stream1.id] = fakeSurface1
@@ -234,5 +249,53 @@ class SurfaceGraphTest {
     fun surfaceGraphDoesNotAllowDuplicateSurfaces() {
         surfaceGraph[stream1.id] = fakeSurface1
         assertThrows<Exception> { surfaceGraph[stream2.id] = fakeSurface1 }
+    }
+
+    @Test
+    fun disconnectSurfaceGraphReleasesSurfaceTokens() {
+        surfaceGraph[stream1.id] = fakeSurface1
+        surfaceGraph[stream2.id] = fakeSurface2
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface2)
+
+        surfaceGraph.unregisterAllSurfaces()
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface2)
+    }
+
+    @Test
+    fun reconnectSurfaceGraphThenSurfaceWillReacquireSurfaceTokens() {
+        surfaceGraph[stream1.id] = fakeSurface1
+        surfaceGraph[stream2.id] = fakeSurface2
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface2)
+
+        surfaceGraph.unregisterAllSurfaces()
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface2)
+
+        surfaceGraph.registerAllSurfaces()
+        verify(fakeSurfaceListener, times(2)).onSurfaceActive(fakeSurface1)
+        verify(fakeSurfaceListener, times(2)).onSurfaceActive(fakeSurface2)
+    }
+
+    @Test
+    fun reconnectSurfaceGraphWhenSurfaceChangedThenOnlyNewSurfaceWillReacquireSurfaceTokens() {
+        surfaceGraph[stream1.id] = fakeSurface1
+        surfaceGraph[stream2.id] = fakeSurface2
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface2)
+
+        surfaceGraph.unregisterAllSurfaces()
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface2)
+
+        surfaceGraph[stream2.id] = fakeSurface3
+        verify(fakeSurfaceListener, times(1)).onSurfaceInactive(fakeSurface2)
+        verify(fakeSurfaceListener, never()).onSurfaceActive(fakeSurface3)
+
+        surfaceGraph.registerAllSurfaces()
+        verify(fakeSurfaceListener, times(2)).onSurfaceActive(fakeSurface1)
+        verify(fakeSurfaceListener, times(1)).onSurfaceActive(fakeSurface3)
     }
 }

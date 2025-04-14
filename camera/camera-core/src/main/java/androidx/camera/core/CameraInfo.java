@@ -17,29 +17,43 @@
 package androidx.camera.core;
 
 import android.graphics.ImageFormat;
+import android.hardware.camera2.CaptureRequest;
+import android.media.MediaActionSound;
+import android.util.Range;
 import android.view.Surface;
 
 import androidx.annotation.FloatRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.IntRange;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.StringDef;
+import androidx.camera.core.impl.DynamicRanges;
 import androidx.camera.core.impl.ImageOutputConfig;
+import androidx.camera.core.internal.compat.MediaActionSoundCompat;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * An interface for retrieving camera information.
  *
  * <p>Applications can retrieve an instance via {@link Camera#getCameraInfo()}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraInfo {
+
+    /**
+     * The torch strength level when the device doesn't have a flash unit or doesn't support
+     * adjusting torch strength.
+     */
+    int TORCH_STRENGTH_LEVEL_UNSUPPORTED = 0;
 
     /**
      * An unknown intrinsic zoom ratio. Usually to indicate the camera is unable to provide
@@ -54,8 +68,7 @@ public interface CameraInfo {
      *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @NonNull
-    String IMPLEMENTATION_TYPE_UNKNOWN = "<unknown>";
+    @NonNull String IMPLEMENTATION_TYPE_UNKNOWN = "<unknown>";
 
     /**
      * A Camera2 API implementation type where the camera support level is
@@ -68,8 +81,7 @@ public interface CameraInfo {
      *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @NonNull
-    String IMPLEMENTATION_TYPE_CAMERA2 = "androidx.camera.camera2";
+    @NonNull String IMPLEMENTATION_TYPE_CAMERA2 = "androidx.camera.camera2";
 
     /**
      * A Camera2 API implementation type where the camera support level is
@@ -77,16 +89,43 @@ public interface CameraInfo {
      *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @NonNull
-    String IMPLEMENTATION_TYPE_CAMERA2_LEGACY = IMPLEMENTATION_TYPE_CAMERA2 + ".legacy";
+    @NonNull String IMPLEMENTATION_TYPE_CAMERA2_LEGACY = IMPLEMENTATION_TYPE_CAMERA2 + ".legacy";
 
     /**
      * A fake camera implementation type.
      *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @NonNull
-    String IMPLEMENTATION_TYPE_FAKE = "androidx.camera.fake";
+    @NonNull String IMPLEMENTATION_TYPE_FAKE = "androidx.camera.fake";
+
+    /**
+     * Returns whether the shutter sound must be played in accordance to regional restrictions.
+     *
+     * <p>This method provides the general rule of playing shutter sounds. The exact
+     * requirements of playing shutter sounds may vary among regions.
+     *
+     * <p>For image capture, the shutter sound is recommended to be played when receiving
+     * {@link ImageCapture.OnImageCapturedCallback#onCaptureStarted()} or
+     * {@link ImageCapture.OnImageSavedCallback#onCaptureStarted()}. For video capture, it's
+     * recommended to play the start recording sound when receiving
+     * {@code VideoRecordEvent.Start} and the stop recording sound when receiving
+     * {@code VideoRecordEvent.Finalize}.
+     *
+     * <p>To play the system default sounds, it's recommended to use
+     * {@link MediaActionSound#play(int)}. For image capture, play
+     * {@link MediaActionSound#SHUTTER_CLICK}. For video capture, play
+     * {@link MediaActionSound#START_VIDEO_RECORDING} and
+     * {@link MediaActionSound#STOP_VIDEO_RECORDING}.
+     *
+     * <p>This method and {@link MediaActionSound#mustPlayShutterSound()} serve the same purpose,
+     * while this method is compatible on API level lower than
+     * {@link android.os.Build.VERSION_CODES#TIRAMISU}.
+     *
+     * @return {@code true} if shutter sound must be played, otherwise {@code false}.
+     */
+    static boolean mustPlayShutterSound() {
+        return MediaActionSoundCompat.mustPlayShutterSound();
+    }
 
     /**
      * Returns the sensor rotation in degrees, relative to the device's "natural" (default)
@@ -126,8 +165,7 @@ public interface CameraInfo {
      *
      * @return a {@link LiveData} containing current torch state.
      */
-    @NonNull
-    LiveData<Integer> getTorchState();
+    @NonNull LiveData<Integer> getTorchState();
 
     /**
      * Returns a {@link LiveData} of {@link ZoomState}.
@@ -137,16 +175,14 @@ public interface CameraInfo {
      * or {@link CameraControl#setLinearZoom(float)}. The zoom state can also change anytime a
      * camera starts up, for example when a {@link UseCase} is bound to it.
      */
-    @NonNull
-    LiveData<ZoomState> getZoomState();
+    @NonNull LiveData<ZoomState> getZoomState();
 
     /**
      * Returns a {@link ExposureState}.
      *
      * <p>The {@link ExposureState} contains the current exposure related information.
      */
-    @NonNull
-    ExposureState getExposureState();
+    @NonNull ExposureState getExposureState();
 
     /**
      * Returns a {@link LiveData} of the camera's state.
@@ -165,8 +201,7 @@ public interface CameraInfo {
      *
      * @return a {@link LiveData} of the camera's state.
      */
-    @NonNull
-    LiveData<CameraState> getCameraState();
+    @NonNull LiveData<CameraState> getCameraState();
 
     /**
      * Returns the implementation type of the camera, this depends on the {@link CameraXConfig}
@@ -176,18 +211,16 @@ public interface CameraInfo {
      * {@link #IMPLEMENTATION_TYPE_UNKNOWN}, {@link #IMPLEMENTATION_TYPE_CAMERA2_LEGACY},
      * {@link #IMPLEMENTATION_TYPE_CAMERA2}, {@link #IMPLEMENTATION_TYPE_FAKE}.
      */
-    @NonNull
     @RestrictTo(Scope.LIBRARY_GROUP)
     @ImplementationType
-    String getImplementationType();
+    @NonNull String getImplementationType();
 
     /**
      * Returns a {@link CameraSelector} unique to this camera.
      *
      * @return {@link CameraSelector} unique to this camera.
      */
-    @NonNull
-    CameraSelector getCameraSelector();
+    @NonNull CameraSelector getCameraSelector();
 
     /**
      * Returns the lens facing of this camera.
@@ -196,6 +229,9 @@ public interface CameraInfo {
      * {@link CameraSelector#LENS_FACING_BACK}, or {@link CameraSelector#LENS_FACING_EXTERNAL}.
      * If the lens facing of the camera can not be resolved, return
      * {@link CameraSelector#LENS_FACING_UNKNOWN}.
+     *
+     * @throws IllegalArgumentException If the device cannot return a valid lens facing value,
+     *                                  it will throw this exception.
      */
     @CameraSelector.LensFacing
     default int getLensFacing() {
@@ -268,6 +304,43 @@ public interface CameraInfo {
     }
 
     /**
+     * Returns an unordered set of the frame rate ranges, in frames per second, supported by this
+     * device's AE algorithm.
+     *
+     * <p>These are the frame rate ranges that the AE algorithm on the device can support. When
+     * CameraX is configured to run with the camera2 implementation, this list will be derived
+     * from {@link android.hardware.camera2.CameraCharacteristics
+     * #CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES}, though ranges may be added or removed for
+     * compatibility reasons.
+     *
+     * <p>There is no guarantee that these ranges can be used for every size surface or
+     * combination of use cases. If attempting to run the device using an unsupported range, there
+     * may be stability issues or the device may quietly choose another frame rate operating range.
+     *
+     * <p>The returned set does not have any ordering guarantees and frame rate ranges may overlap.
+     *
+     * @return The set of FPS ranges supported by the device's AE algorithm
+     * @see androidx.camera.video.VideoCapture.Builder#setTargetFrameRate(Range)
+     */
+    default @NonNull Set<Range<Integer>> getSupportedFrameRateRanges() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Returns if logical multi camera is supported on the device.
+     *
+     * <p>A logical camera is a grouping of two or more of those physical cameras.
+     * See <a href="https://developer.android.com/media/camera/camera2/multi-camera">Multi-camera API</a>
+     *
+     * @return true if supported, otherwise false.
+     * @see android.hardware.camera2.CameraMetadata
+     * #REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA
+     */
+    default boolean isLogicalMultiCameraSupported() {
+        return false;
+    }
+
+    /**
      * Returns if {@link ImageFormat#PRIVATE} reprocessing is supported on the device.
      *
      * @return true if supported, otherwise false.
@@ -279,11 +352,165 @@ public interface CameraInfo {
         return false;
     }
 
+    /**
+     * Returns the supported dynamic ranges of this camera from a set of candidate dynamic ranges.
+     *
+     * <p>Dynamic range specifies how the range of colors, highlights and shadows captured by
+     * the frame producer are represented on a display. Some dynamic ranges allow the preview
+     * surface to make full use of the extended range of brightness of the display.
+     *
+     * <p>The returned dynamic ranges are those which the camera can produce. However, because
+     * care usually needs to be taken to ensure the frames produced can be displayed correctly,
+     * the returned dynamic ranges will be limited to those passed in to {@code
+     * candidateDynamicRanges}. For example, if the device display supports HLG, HDR10 and
+     * HDR10+, and you're attempting to use a UI component to receive frames from those dynamic
+     * ranges that you know will be display correctly, you would use a {@code
+     * candidateDynamicRanges} set consisting of {@code {DynamicRange.HLG_10_BIT,
+     * DynamicRange.HDR10_10_BIT, DynamicRange.HDR10_PLUS_10_BIT}}. If the only 10-bit/HDR {@code
+     * DynamicRange} the camera can produce is {@code HLG_10_BIT}, then that will be the only
+     * dynamic range returned by this method given the above candidate list.
+     *
+     * <p>Consult the documentation of each use case to determine whether using the dynamic ranges
+     * published here are appropriate. Some use cases may have complex requirements that prohibit
+     * them from publishing a candidate list for use with this method, such as
+     * {@link androidx.camera.video.Recorder Recorder}. For those cases, alternative APIs may be
+     * present for querying the supported dynamic ranges that can be set on the use case.
+     *
+     * <p>The dynamic ranges published as return values by this method are fully-defined. That is,
+     * the resulting set will not contain dynamic ranges such as {@link DynamicRange#UNSPECIFIED} or
+     * {@link DynamicRange#HDR_UNSPECIFIED_10_BIT}. However, non-fully-defined dynamic ranges can
+     * be used in {@code candidateDynamicRanges}, and will resolve to fully-defined dynamic ranges
+     * in the resulting set. To query all dynamic ranges the camera can produce, {@code
+     * Collections.singleton(DynamicRange.UNSPECIFIED}} can be used as the candidate set.
+     *
+     * <p>Because SDR is always supported, including {@link DynamicRange#SDR} in {@code
+     * candidateDynamicRanges} will always result in {@code SDR} being present in the result set.
+     * If an empty candidate set is provided, an {@link IllegalArgumentException} will be thrown.
+     *
+     * @param candidateDynamicRanges a set of dynamic ranges representing the dynamic ranges the
+     *                               consumer of frames can support. Note that each use case may
+     *                               have its own requirements on which dynamic ranges it can
+     *                               consume based on how it is configured, and those dynamic
+     *                               ranges may not be published as a set of candidate dynamic
+     *                               ranges. In that case, this API may not be appropriate. An
+     *                               example of this is
+     *                               {@link androidx.camera.video.VideoCapture VideoCapture}'s
+     *                               {@link androidx.camera.video.Recorder Recorder} class, which
+     *                               must also take into account the dynamic ranges supported by
+     *                               the media codecs on the device, and the quality of the video
+     *                               being recorded. For that class, it is recommended to use
+     *            {@link androidx.camera.video.RecorderVideoCapabilities#getSupportedDynamicRanges()
+     *                               RecorderVideoCapabilities.getSupportedDynamicRanges()}
+     *                               instead.
+     * @return a set of dynamic ranges supported by the camera based on the candidate dynamic ranges
+     * @throws IllegalArgumentException if an empty candidate dynamic range set is provided.
+     *
+     * @see Preview.Builder#setDynamicRange(DynamicRange)
+     * @see androidx.camera.video.RecorderVideoCapabilities#getSupportedDynamicRanges()
+     */
+    default @NonNull Set<DynamicRange> querySupportedDynamicRanges(
+            @NonNull Set<DynamicRange> candidateDynamicRanges) {
+        // For the default implementation, only assume SDR is supported.
+        return DynamicRanges.findAllPossibleMatches(candidateDynamicRanges,
+                Collections.singleton(DynamicRange.SDR));
+    }
+
+    /**
+     * Returns a set of physical camera {@link CameraInfo}s.
+     *
+     * <p>A logical camera is a grouping of two or more of those physical cameras.
+     * See <a href="https://developer.android.com/media/camera/camera2/multi-camera">Multi-camera API</a>
+     *
+     * <p> Check {@link #isLogicalMultiCameraSupported()} to see if the device is supporting
+     * physical camera or not. If the device doesn't support physical camera, empty set will
+     * be returned.
+     *
+     * @return Set of physical camera {@link CameraInfo}s.
+     * @see #isLogicalMultiCameraSupported()
+     */
+    default @NonNull Set<CameraInfo> getPhysicalCameraInfos() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Returns the maximum torch strength level.
+     *
+     * @return The maximum strength level, or {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED} if the
+     * device doesn't have a flash unit or doesn't support configuring torch strength.
+     */
+    @IntRange(from = 0)
+    default int getMaxTorchStrengthLevel() {
+        return TORCH_STRENGTH_LEVEL_UNSUPPORTED;
+    }
+
+    /**
+     * Returns the {@link LiveData} of the torch strength level.
+     *
+     * <p>The value of the {@link LiveData} will be the default torch strength level of this
+     * device if {@link CameraControl#setTorchStrengthLevel(int)} hasn't been called.
+     *
+     * <p>The value of the {@link LiveData} will be {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED} if
+     * the device doesn't have a flash unit or doesn't support configuring torch strength.
+     */
+    default @NonNull LiveData<Integer> getTorchStrengthLevel() {
+        return new MutableLiveData<>(TORCH_STRENGTH_LEVEL_UNSUPPORTED);
+    }
+
+    /**
+     * Returns if configuring torch strength is supported on the device.
+     *
+     * <p>If supported, {@link CameraControl#setTorchStrengthLevel(int)} can be used to configure
+     * torch strength.
+     *
+     * <p>If not supported, {@link #getMaxTorchStrengthLevel()} and
+     * {@link #getTorchStrengthLevel()} will return {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED}
+     * when called.
+     *
+     * @return {@code true} if configuring torch strength is supported on the device, otherwise
+     * {@code false}.
+     * @see CameraControl#setTorchStrengthLevel(int)
+     */
+    default boolean isTorchStrengthSupported() {
+        return false;
+    }
+
     @StringDef(open = true, value = {IMPLEMENTATION_TYPE_UNKNOWN,
             IMPLEMENTATION_TYPE_CAMERA2_LEGACY, IMPLEMENTATION_TYPE_CAMERA2,
             IMPLEMENTATION_TYPE_FAKE})
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(Scope.LIBRARY_GROUP)
     @interface ImplementationType {
+    }
+
+    /**
+     * Returns if low-light boost is supported on the device. Low-light boost can be turned on via
+     * {@link CameraControl#enableLowLightBoostAsync(boolean)}.
+     *
+     * @return true if
+     * {@link CaptureRequest#CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY} is supported,
+     * otherwise false.
+     * @see CameraControl#enableLowLightBoostAsync(boolean)
+     * @see CaptureRequest#CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY
+     */
+    default boolean isLowLightBoostSupported() {
+        return false;
+    }
+
+    /**
+     * Returns a {@link LiveData} of current {@link LowLightBoostState}.
+     *
+     * <p>Low-light boost can be turned on via
+     * {@link CameraControl#enableLowLightBoostAsync(boolean)} which will trigger the change
+     * event to the returned {@link LiveData}. Apps can either get immediate value via
+     * {@link LiveData#getValue()} or observe it via
+     * {@link LiveData#observe(LifecycleOwner, Observer)} to update low-light boost UI accordingly.
+     *
+     * <p>If the camera doesn't support low-light boost, then the state will always be
+     * {@link LowLightBoostState#OFF}.
+     *
+     * @return a {@link LiveData} containing current low-light boost state.
+     */
+    default @NonNull LiveData<Integer> getLowLightBoostState() {
+        return new MutableLiveData<>(LowLightBoostState.OFF);
     }
 }

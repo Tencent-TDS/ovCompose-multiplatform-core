@@ -16,16 +16,15 @@
 
 package androidx.compose.foundation.selection
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selectableGroup
 import androidx.compose.ui.semantics.semantics
 
 /**
- * Use this modifier to group a list of [selectable] items
- * like Tabs or RadioButtons together for accessibility purpose.
+ * Use this modifier to group a list of [selectable] items like Tabs or RadioButtons together for
+ * accessibility purpose.
  *
  * @see selectableGroup
  */
-fun Modifier.selectableGroup() = this.semantics {
-    selectableGroup()
-}
+@Stable fun Modifier.selectableGroup() = this.semantics { selectableGroup() }

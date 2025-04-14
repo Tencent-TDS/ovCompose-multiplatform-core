@@ -18,11 +18,7 @@ package androidx.navigation.dynamicfeatures
 
 import androidx.annotation.RestrictTo
 
-/**
- * Internal constants for dynamic feature navigator.
- *
- * @hide
- */
+/** Internal constants for dynamic feature navigator. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public object Constants {
     public const val KEY_NAVIGATED: String = "dfn:navigated"

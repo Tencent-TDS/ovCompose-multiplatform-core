@@ -20,9 +20,9 @@ import androidx.annotation.Sampled
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
-import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,9 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 
-/**
- * Simple [awaitLongPressOrCancellation] demo.
- */
+/** Simple [awaitLongPressOrCancellation] demo. */
 @Composable
 @Sampled
 fun AwaitLongPressOrCancellationSample() {
@@ -58,9 +56,7 @@ fun AwaitLongPressOrCancellationSample() {
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        awaitLongPressOrCancellation(down.id)?.let {
-                            count++
-                        }
+                        awaitLongPressOrCancellation(down.id)?.let { count++ }
                     }
                 }
                 .clipToBounds()

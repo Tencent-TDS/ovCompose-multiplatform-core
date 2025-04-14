@@ -46,13 +46,13 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.core.view.AccessibilityDelegateCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -60,7 +60,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 /**
  * Includes tests for {@link LinearLayoutManager}.
@@ -565,12 +564,6 @@ public class LinearLayoutManagerTest extends BaseLinearLayoutManagerTest {
         }
     }
 
-    // Run this test on Jelly Bean and newer because clearFocus on API 15 will call
-    // requestFocus in ViewRootImpl when clearChildFocus is called. Whereas, in API 16 and above,
-    // this call is delayed until after onFocusChange callback is called. Thus on API 16+, there's a
-    // transient state of no child having focus during which onFocusChange is executed. This
-    // transient state does not exist on API 15-.
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.JELLY_BEAN)
     @Test
     public void unfocusableScrollingWhenFocusCleared() throws Throwable {
         // The maximum number of child views that can be visible at any time.
@@ -828,9 +821,21 @@ public class LinearLayoutManagerTest extends BaseLinearLayoutManagerTest {
         });
     }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.KITKAT)
     @Test
     public void hiddenNoneRemoveViewAccessibility() throws Throwable {
+        // TODO(b/263592347): remove the RecyclerView.setDebugAssertionsEnabled calls
+        //  and combine this into the impl method
+        // This is just a separate method to temporarily wrap the whole thing in a try/finally
+        // block without messing with git history too much.
+        RecyclerView.setDebugAssertionsEnabled(false);
+        try {
+            hiddenNoneRemoveViewAccessibilityImpl();
+        } finally {
+            RecyclerView.setDebugAssertionsEnabled(true);
+        }
+    }
+
+    public void hiddenNoneRemoveViewAccessibilityImpl() throws Throwable {
         final Config config = new Config();
         int adapterSize = 1000;
         final boolean[] firstItemSpecialSize = new boolean[] {false};
@@ -886,8 +891,8 @@ public class LinearLayoutManagerTest extends BaseLinearLayoutManagerTest {
                 .findViewHolderForAdapterPosition(childBeingPushOut);
         final int originalAccessibility = ViewCompat.getImportantForAccessibility(
                 itemViewHolder.itemView);
-        assertTrue(ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_AUTO == originalAccessibility
-                || ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES == originalAccessibility);
+        assertTrue(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO == originalAccessibility
+                || View.IMPORTANT_FOR_ACCESSIBILITY_YES == originalAccessibility);
 
         itemAnimator.expect(ItemAnimatorTestDouble.MOVE_START, 1);
         mActivityRule.runOnUiThread(new Runnable() {
@@ -902,8 +907,8 @@ public class LinearLayoutManagerTest extends BaseLinearLayoutManagerTest {
         // RV Changes accessiblity after onMoveStart, so wait one more cycle.
         waitOneCycle();
         assertTrue(itemAnimator.getMovesAnimations().contains(itemViewHolder));
-        assertEquals(ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
-                ViewCompat.getImportantForAccessibility(itemViewHolder.itemView));
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
+                itemViewHolder.itemView.getImportantForAccessibility());
 
         // notify Change again to run predictive animation.
         mLayoutManager.expectLayouts(2);
@@ -929,8 +934,8 @@ public class LinearLayoutManagerTest extends BaseLinearLayoutManagerTest {
         // the important for accessibility should be reset to YES/AUTO:
         final int newAccessibility = ViewCompat.getImportantForAccessibility(
                 itemViewHolder.itemView);
-        assertTrue(ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_AUTO == newAccessibility
-                || ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES == newAccessibility);
+        assertTrue(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO == newAccessibility
+                || View.IMPORTANT_FOR_ACCESSIBILITY_YES == newAccessibility);
     }
 
     @Test

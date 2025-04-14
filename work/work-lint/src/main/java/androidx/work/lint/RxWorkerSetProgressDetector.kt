@@ -28,8 +28,8 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.psi.PsiMethod
-import org.jetbrains.uast.UCallExpression
 import java.util.EnumSet
+import org.jetbrains.uast.UCallExpression
 
 class RxWorkerSetProgressDetector : Detector(), SourceCodeScanner {
     companion object {
@@ -38,33 +38,37 @@ class RxWorkerSetProgressDetector : Detector(), SourceCodeScanner {
         private const val DESCRIPTION =
             "`setProgress` is deprecated. Use `$SET_COMPLETABLE_PROGRESS` instead."
 
-        val ISSUE = Issue.create(
-            id = "UseRxSetProgress2",
-            briefDescription = DESCRIPTION,
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "UseRxSetProgress2",
+                briefDescription = DESCRIPTION,
+                explanation =
+                    """
                 Use `$SET_COMPLETABLE_PROGRESS(...)` instead of `setProgress(...) in `RxWorker`.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.FATAL,
-            implementation = Implementation(
-                RxWorkerSetProgressDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE)
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.FATAL,
+                implementation =
+                    Implementation(
+                        RxWorkerSetProgressDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE)
+                    )
             )
-        )
     }
 
     override fun getApplicableMethodNames(): List<String> = listOf("setProgress")
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
         if (context.evaluator.isMemberInClass(method, "androidx.work.RxWorker")) {
-            val lintFix = LintFix.create()
-                .name("Use $SET_COMPLETABLE_PROGRESS instead")
-                .replace()
-                .text(method.name)
-                .with(SET_COMPLETABLE_PROGRESS)
-                .independent(true)
-                .build()
+            val lintFix =
+                LintFix.create()
+                    .name("Use $SET_COMPLETABLE_PROGRESS instead")
+                    .replace()
+                    .text(method.name)
+                    .with(SET_COMPLETABLE_PROGRESS)
+                    .independent(true)
+                    .build()
 
             context.report(
                 issue = ISSUE,

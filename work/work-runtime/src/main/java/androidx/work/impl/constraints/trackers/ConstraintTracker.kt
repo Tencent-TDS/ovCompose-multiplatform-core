@@ -28,10 +28,8 @@ import java.util.LinkedHashSet
  * @param T the constraint data type observed by this tracker
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-abstract class ConstraintTracker<T> protected constructor(
-    context: Context,
-    private val taskExecutor: TaskExecutor
-) {
+abstract class ConstraintTracker<T>
+protected constructor(context: Context, private val taskExecutor: TaskExecutor) {
     protected val appContext: Context = context.applicationContext
     private val lock = Any()
     private val listeners = LinkedHashSet<ConstraintListener<T>>()
@@ -39,9 +37,8 @@ abstract class ConstraintTracker<T> protected constructor(
     private var currentState: T? = null
 
     /**
-     * Add the given listener for tracking.
-     * This may cause [.getInitialState] and [.startTracking] to be invoked.
-     * If a state is set, this will immediately notify the given listener.
+     * Add the given listener for tracking. This may cause [.getInitialState] and [.startTracking]
+     * to be invoked. If a state is set, this will immediately notify the given listener.
      *
      * @param listener The target listener to start notifying
      */
@@ -49,14 +46,12 @@ abstract class ConstraintTracker<T> protected constructor(
         synchronized(lock) {
             if (listeners.add(listener)) {
                 if (listeners.size == 1) {
-                    currentState = initialState
-                    Logger.get().debug(
-                        TAG, "${javaClass.simpleName}: initial state = $currentState"
-                    )
+                    currentState = readSystemState()
+                    Logger.get()
+                        .debug(TAG, "${javaClass.simpleName}: initial state = $currentState")
                     startTracking()
                 }
-                @Suppress("UNCHECKED_CAST")
-                listener.onConstraintChanged(currentState as T)
+                @Suppress("UNCHECKED_CAST") listener.onConstraintChanged(currentState as T)
             }
         }
     }
@@ -76,9 +71,8 @@ abstract class ConstraintTracker<T> protected constructor(
 
     var state: T
         get() {
-            return currentState ?: initialState
+            return currentState ?: readSystemState()
         }
-
         set(newState) {
             synchronized(lock) {
                 if (currentState != null && (currentState == newState)) {
@@ -95,26 +89,23 @@ abstract class ConstraintTracker<T> protected constructor(
                 taskExecutor.mainThreadExecutor.execute {
                     listenersList.forEach { listener ->
                         // currentState was initialized by now
-                        @Suppress("UNCHECKED_CAST")
-                        listener.onConstraintChanged(currentState as T)
+                        @Suppress("UNCHECKED_CAST") listener.onConstraintChanged(currentState as T)
                     }
                 }
             }
         }
 
     /**
-     * Determines the initial state of the constraint being tracked.
+     * Reads the state of the constraints from source of truth. (e.g. NetworkManager for
+     * NetworkTracker). It is always accurate unlike `state` that can be stale after stopTracking
+     * call.
      */
-    abstract val initialState: T
+    abstract fun readSystemState(): T
 
-    /**
-     * Start tracking for constraint state changes.
-     */
+    /** Start tracking for constraint state changes. */
     abstract fun startTracking()
 
-    /**
-     * Stop tracking for constraint state changes.
-     */
+    /** Stop tracking for constraint state changes. */
     abstract fun stopTracking()
 }
 

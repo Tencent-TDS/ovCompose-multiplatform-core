@@ -21,18 +21,19 @@ import static androidx.core.util.Preconditions.checkState;
 
 import static java.util.Objects.requireNonNull;
 
-import android.os.Build;
+import android.graphics.Bitmap;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A wrapper of a {@link TakePictureRequest} and its {@link TakePictureCallback}.
@@ -41,8 +42,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  * connection allows us to manipulate the propagation of the callback. For example, failures
  * might be retried before sent to the app.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-class RequestWithCallback implements TakePictureCallback {
+public class RequestWithCallback implements TakePictureCallback {
 
     private final TakePictureRequest mTakePictureRequest;
     private final TakePictureRequest.RetryControl mRetryControl;
@@ -50,14 +50,15 @@ class RequestWithCallback implements TakePictureCallback {
     private final ListenableFuture<Void> mCompleteFuture;
     private CallbackToFutureAdapter.Completer<Void> mCaptureCompleter;
     private CallbackToFutureAdapter.Completer<Void> mCompleteCompleter;
+
     // Flag tracks if the request has been aborted by the UseCase. Once aborted, this class stops
     // propagating callbacks to the app.
     private boolean mIsAborted = false;
-    @Nullable
-    private ListenableFuture<Void> mCaptureRequestFuture;
+    private boolean mIsStarted = false;
+    private @Nullable ListenableFuture<Void> mCaptureRequestFuture;
 
     RequestWithCallback(@NonNull TakePictureRequest takePictureRequest,
-            @NonNull TakePictureRequest.RetryControl retryControl) {
+            TakePictureRequest.@NonNull RetryControl retryControl) {
         mTakePictureRequest = takePictureRequest;
         mRetryControl = retryControl;
         mCaptureFuture = CallbackToFutureAdapter.getFuture(
@@ -86,19 +87,46 @@ class RequestWithCallback implements TakePictureCallback {
 
     @MainThread
     @Override
+    public void onCaptureStarted() {
+        checkMainThread();
+        if (mIsAborted || mIsStarted) {
+            // Ignore the event if the request has been aborted or started.
+            return;
+        }
+        mIsStarted = true;
+
+        ImageCapture.OnImageCapturedCallback inMemoryCallback =
+                mTakePictureRequest.getInMemoryCallback();
+        if (inMemoryCallback != null) {
+            inMemoryCallback.onCaptureStarted();
+        }
+
+        ImageCapture.OnImageSavedCallback onDiskCallback = mTakePictureRequest.getOnDiskCallback();
+        if (onDiskCallback != null) {
+            onDiskCallback.onCaptureStarted();
+        }
+    }
+
+    @MainThread
+    @Override
     public void onImageCaptured() {
         checkMainThread();
         if (mIsAborted) {
             // Ignore. mCaptureFuture should have been completed by the #abort() call.
             return;
         }
+        if (!mIsStarted) {
+            // Send the started event if the capture is completed but hasn't been started yet.
+            onCaptureStarted();
+        }
+
         mCaptureCompleter.set(null);
         // TODO: send early callback to app.
     }
 
     @MainThread
     @Override
-    public void onFinalResult(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+    public void onFinalResult(ImageCapture.@NonNull OutputFileResults outputFileResults) {
         checkMainThread();
         if (mIsAborted) {
             // Do not deliver result if the request has been aborted.
@@ -115,12 +143,34 @@ class RequestWithCallback implements TakePictureCallback {
     public void onFinalResult(@NonNull ImageProxy imageProxy) {
         checkMainThread();
         if (mIsAborted) {
+            imageProxy.close();
             // Do not deliver result if the request has been aborted.
             return;
         }
         checkOnImageCaptured();
         markComplete();
         mTakePictureRequest.onResult(imageProxy);
+    }
+
+    @Override
+    public void onCaptureProcessProgressed(int progress) {
+        checkMainThread();
+        if (mIsAborted) {
+            return;
+        }
+
+        mTakePictureRequest.onCaptureProcessProgressed(progress);
+    }
+
+    @Override
+    public void onPostviewBitmapAvailable(@NonNull Bitmap bitmap) {
+        checkMainThread();
+        if (mIsAborted) {
+            // Do not deliver result if the request has been aborted.
+            return;
+        }
+
+        mTakePictureRequest.onPostviewBitmapAvailable(bitmap);
     }
 
     @MainThread
@@ -149,13 +199,19 @@ class RequestWithCallback implements TakePictureCallback {
             // Fail silently if the request has been aborted.
             return;
         }
-        if (mTakePictureRequest.decrementRetryCounter()) {
-            mRetryControl.retryRequest(mTakePictureRequest);
-        } else {
+
+        boolean isRetryAllowed = mTakePictureRequest.decrementRetryCounter();
+        if (!isRetryAllowed) {
             onFailure(imageCaptureException);
         }
         markComplete();
         mCaptureCompleter.setException(imageCaptureException);
+
+        if (isRetryAllowed) {
+            // retry after all the cleaning up works are done via mCaptureCompleter.setException,
+            // e.g. removing previous request from CaptureNode, SingleBundlingNode etc.
+            mRetryControl.retryRequest(mTakePictureRequest);
+        }
     }
 
     @MainThread
@@ -197,8 +253,7 @@ class RequestWithCallback implements TakePictureCallback {
      * <p>Send the next request after this one completes.
      */
     @MainThread
-    @NonNull
-    ListenableFuture<Void> getCaptureFuture() {
+    @NonNull ListenableFuture<Void> getCaptureFuture() {
         checkMainThread();
         return mCaptureFuture;
     }
@@ -209,10 +264,14 @@ class RequestWithCallback implements TakePictureCallback {
      * <p>A request is completed when it gets either a result or an unrecoverable error.
      */
     @MainThread
-    @NonNull
-    ListenableFuture<Void> getCompleteFuture() {
+    @NonNull ListenableFuture<Void> getCompleteFuture() {
         checkMainThread();
         return mCompleteFuture;
+    }
+
+    @VisibleForTesting
+    public @NonNull TakePictureRequest getTakePictureRequest() {
+        return mTakePictureRequest;
     }
 
     private void checkOnImageCaptured() {
@@ -221,7 +280,13 @@ class RequestWithCallback implements TakePictureCallback {
     }
 
     private void markComplete() {
-        checkState(!mCompleteFuture.isDone(), "The callback can only complete once.");
+        if (mTakePictureRequest.isSimultaneousCapture()
+                && !mTakePictureRequest.isFormatProcessedInSimultaneousCapture()) {
+            return;
+        }
+        if (!mTakePictureRequest.isSimultaneousCapture()) {
+            checkState(!mCompleteFuture.isDone(), "The callback can only complete once.");
+        }
         mCompleteCompleter.set(null);
     }
 

@@ -20,13 +20,14 @@ import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.versionedparcelable.ParcelField;
 import androidx.versionedparcelable.ParcelUtils;
 import androidx.versionedparcelable.VersionedParcelable;
 import androidx.versionedparcelable.VersionedParcelize;
 import androidx.wear.watchface.complications.data.DefaultComplicationDataSourcePolicyWireFormat;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,20 +36,17 @@ import java.util.Map;
 @VersionedParcelize
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class UserStyleFlavorWireFormat implements VersionedParcelable, Parcelable {
-    @ParcelField(1)
-    @NonNull
     /** User style identifier. */
-    public String mId = "";
+    @ParcelField(1)
+    public @NonNull String mId = "";
 
-    @ParcelField(2)
-    @NonNull
     /** User style definition of the flavor. */
-    public UserStyleWireFormat mStyle = new UserStyleWireFormat();
+    @ParcelField(2)
+    public @NonNull UserStyleWireFormat mStyle = new UserStyleWireFormat();
 
-    @ParcelField(3)
-    @NonNull
     /** Map of ComplicationSlot id to complication's default for the flavor. */
-    public Map<Integer, DefaultComplicationDataSourcePolicyWireFormat> mComplications =
+    @ParcelField(3)
+    public @NonNull Map<Integer, DefaultComplicationDataSourcePolicyWireFormat> mComplications =
             new HashMap<>();
 
     UserStyleFlavorWireFormat() {}

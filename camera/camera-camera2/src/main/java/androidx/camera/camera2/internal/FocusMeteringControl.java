@@ -18,15 +18,15 @@ package androidx.camera.camera2.internal;
 
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.os.Build;
+import android.util.Log;
 import android.util.Rational;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
@@ -37,18 +37,25 @@ import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.Logger;
 import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureFailure;
 import androidx.camera.core.impl.CameraCaptureResult;
 import androidx.camera.core.impl.CameraControlInternal;
 import androidx.camera.core.impl.CaptureConfig;
+import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.Quirks;
 import androidx.camera.core.impl.annotation.ExecutedBy;
+import androidx.camera.core.impl.utils.futures.Futures;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.concurrent.futures.CallbackToFutureAdapter.Completer;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -78,9 +85,10 @@ import java.util.concurrent.TimeUnit;
  * {@link FocusMeteringControl#addFocusMeteringOptions} to construct the 3A regions and append
  * them to all repeating requests and single requests.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @OptIn(markerClass = ExperimentalCamera2Interop.class)
 class FocusMeteringControl {
+    private static final String TAG = "FocusMeteringControl";
+
     static final long AUTO_FOCUS_TIMEOUT_DURATION = 5000;
     private final Camera2CameraControlImpl mCameraControl;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -90,14 +98,12 @@ class FocusMeteringControl {
     private volatile boolean mIsActive = false;
     private volatile Rational mPreviewAspectRatio = null;
     private static final MeteringRectangle[] EMPTY_RECTANGLES = new MeteringRectangle[0];
-    @NonNull
-    private final MeteringRegionCorrection mMeteringRegionCorrection;
+    private final @NonNull MeteringRegionCorrection mMeteringRegionCorrection;
 
     //******************** Should only be accessed by executor (WorkThread) ****************//
     private boolean mIsInAfAutoMode = false;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    @NonNull
-    Integer mCurrentAfState = CaptureResult.CONTROL_AF_STATE_INACTIVE;
+    @NonNull Integer mCurrentAfState = CaptureResult.CONTROL_AF_STATE_INACTIVE;
     private ScheduledFuture<?> mAutoCancelHandle;
     private ScheduledFuture<?> mAutoFocusTimeoutHandle;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -115,6 +121,9 @@ class FocusMeteringControl {
     private MeteringRectangle[] mAwbRects = EMPTY_RECTANGLES;
     CallbackToFutureAdapter.Completer<FocusMeteringResult> mRunningActionCompleter = null;
     CallbackToFutureAdapter.Completer<Void> mRunningCancelCompleter = null;
+
+    private boolean mIsExternalFlashAeModeEnabled = false;
+    private Camera2CameraControlImpl.CaptureResultListener mSessionListenerForAeMode = null;
     //**************************************************************************************//
 
 
@@ -129,7 +138,7 @@ class FocusMeteringControl {
      */
     FocusMeteringControl(@NonNull Camera2CameraControlImpl cameraControl,
             @NonNull ScheduledExecutorService scheduler,
-            @NonNull @CameraExecutor Executor executor,
+            @CameraExecutor @NonNull Executor executor,
             @NonNull Quirks cameraQuirks) {
         mCameraControl = cameraControl;
         mExecutor = executor;
@@ -181,30 +190,30 @@ class FocusMeteringControl {
      * applies to all repeating requests and single requests.
      */
     @ExecutedBy("mExecutor")
-    void addFocusMeteringOptions(@NonNull Camera2ImplConfig.Builder configBuilder) {
+    void addFocusMeteringOptions(Camera2ImplConfig.@NonNull Builder configBuilder) {
 
         int afMode = mIsInAfAutoMode
                 ? CaptureRequest.CONTROL_AF_MODE_AUTO
                 : getDefaultAfMode();
 
-        configBuilder.setCaptureRequestOption(
-                CaptureRequest.CONTROL_AF_MODE, mCameraControl.getSupportedAfMode(afMode));
+        configBuilder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AF_MODE,
+                mCameraControl.getSupportedAfMode(afMode), Config.OptionPriority.REQUIRED);
 
         if (mAfRects.length != 0) {
-            configBuilder.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AF_REGIONS, mAfRects);
+            configBuilder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AF_REGIONS,
+                    mAfRects, Config.OptionPriority.REQUIRED);
         }
         if (mAeRects.length != 0) {
-            configBuilder.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AE_REGIONS, mAeRects);
+            configBuilder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AE_REGIONS,
+                    mAeRects, Config.OptionPriority.REQUIRED);
         }
         if (mAwbRects.length != 0) {
-            configBuilder.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_REGIONS, mAwbRects);
+            configBuilder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AWB_REGIONS,
+                    mAwbRects, Config.OptionPriority.REQUIRED);
         }
     }
 
-    private static boolean isValid(@NonNull final MeteringPoint pt) {
+    private static boolean isValid(final @NonNull MeteringPoint pt) {
         return pt.getX() >= 0f && pt.getX() <= 1f && pt.getY() >= 0f && pt.getY() <= 1f;
     }
 
@@ -265,15 +274,13 @@ class FocusMeteringControl {
         return Math.min(Math.max(val, min), max);
     }
 
-    @NonNull
-    ListenableFuture<FocusMeteringResult> startFocusAndMetering(
+    @NonNull ListenableFuture<FocusMeteringResult> startFocusAndMetering(
             @NonNull FocusMeteringAction action) {
         return startFocusAndMetering(action, AUTO_FOCUS_TIMEOUT_DURATION);
     }
 
     @VisibleForTesting
-    @NonNull
-    ListenableFuture<FocusMeteringResult> startFocusAndMetering(
+    @NonNull ListenableFuture<FocusMeteringResult> startFocusAndMetering(
             @NonNull FocusMeteringAction action, long timeoutDurationMs) {
         return CallbackToFutureAdapter.getFuture(completer -> {
             mExecutor.execute(
@@ -282,8 +289,7 @@ class FocusMeteringControl {
         });
     }
 
-    @NonNull
-    private List<MeteringRectangle> getMeteringRectangles(
+    private @NonNull List<MeteringRectangle> getMeteringRectangles(
             @NonNull List<MeteringPoint> meteringPoints,
             int maxRegionCount,
             @NonNull Rational defaultAspectRatio,
@@ -393,20 +399,23 @@ class FocusMeteringControl {
             // On many devices, triggering Af with CONTROL_AE_MODE_ON_ALWAYS_FLASH or
             // CONTROL_AE_MODE_ON_AUTO_FLASH will fire the flash when it's low light.
             // Override it to AE_MODE_ON to prevent from this issue.
-            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE,
-                    mCameraControl.getSupportedAeMode(CaptureRequest.CONTROL_AE_MODE_ON));
+            configBuilder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AE_MODE,
+                    mCameraControl.getSupportedAeMode(CaptureRequest.CONTROL_AE_MODE_ON),
+                    Config.OptionPriority.HIGH_PRIORITY_REQUIRED);
         }
         builder.addImplementationOptions(configBuilder.build());
         builder.addCameraCaptureCallback(new CameraCaptureCallback() {
             @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureResult cameraCaptureResult) {
+            public void onCaptureCompleted(int captureConfigId,
+                    @NonNull CameraCaptureResult cameraCaptureResult) {
                 if (completer != null) {
                     completer.set(cameraCaptureResult);
                 }
             }
 
             @Override
-            public void onCaptureFailed(@NonNull CameraCaptureFailure failure) {
+            public void onCaptureFailed(int captureConfigId,
+                    @NonNull CameraCaptureFailure failure) {
                 if (completer != null) {
                     completer.setException(
                             new CameraControlInternal.CameraControlException(failure));
@@ -414,7 +423,7 @@ class FocusMeteringControl {
             }
 
             @Override
-            public void onCaptureCancelled() {
+            public void onCaptureCancelled(int captureConfigId) {
                 if (completer != null) {
                     completer.setException(
                             new CameraControl.OperationCanceledException("Camera is closed"));
@@ -426,6 +435,18 @@ class FocusMeteringControl {
     }
 
     /**
+     * Returns a {@link ListenableFuture} as result after triggering AE precapture.
+     */
+    ListenableFuture<Void> triggerAePrecapture() {
+        return CallbackToFutureAdapter.getFuture(completer -> {
+            mExecutor.execute(() -> {
+                triggerAePrecapture(completer);
+            });
+            return "triggerAePrecapture";
+        });
+    }
+
+    /**
      * Trigger an AE precapture sequence.
      *
      * @param completer used to complete the associated {@link ListenableFuture} when the
@@ -433,6 +454,8 @@ class FocusMeteringControl {
      */
     @ExecutedBy("mExecutor")
     void triggerAePrecapture(@Nullable Completer<Void> completer) {
+        Logger.d(TAG, "triggerAePrecapture");
+
         if (!mIsActive) {
             if (completer != null) {
                 completer.setException(
@@ -450,14 +473,17 @@ class FocusMeteringControl {
         builder.addImplementationOptions(configBuilder.build());
         builder.addCameraCaptureCallback(new CameraCaptureCallback() {
             @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureResult cameraCaptureResult) {
+            public void onCaptureCompleted(int captureConfigId,
+                    @NonNull CameraCaptureResult cameraCaptureResult) {
                 if (completer != null) {
+                    Logger.d(TAG, "triggerAePrecapture: triggering capture request completed");
                     completer.set(null);
                 }
             }
 
             @Override
-            public void onCaptureFailed(@NonNull CameraCaptureFailure failure) {
+            public void onCaptureFailed(int captureConfigId,
+                    @NonNull CameraCaptureFailure failure) {
                 if (completer != null) {
                     completer.setException(
                             new CameraControlInternal.CameraControlException(failure));
@@ -465,7 +491,7 @@ class FocusMeteringControl {
             }
 
             @Override
-            public void onCaptureCancelled() {
+            public void onCaptureCancelled(int captureConfigId) {
                 if (completer != null) {
                     completer.setException(
                             new CameraControl.OperationCanceledException("Camera is closed"));
@@ -497,6 +523,106 @@ class FocusMeteringControl {
         }
         builder.addImplementationOptions(configBuilder.build());
         mCameraControl.submitCaptureRequestsInternal(Collections.singletonList(builder.build()));
+    }
+
+    /**
+     * Returns whether external flash AE mode is enabled.
+     *
+     * @see #enableExternalFlashAeMode
+     */
+    boolean isExternalFlashAeModeEnabled() {
+        return mIsExternalFlashAeModeEnabled;
+    }
+
+    /**
+     * Enables or disables AE_MODE_ON_EXTERNAL_FLASH.
+     *
+     * <p> It will be enabled only if the AE mode is supported i.e. API >= 28 and available in
+     * {@link CameraCharacteristics#CONTROL_AE_AVAILABLE_MODES}, and the flash mode is actually
+     * external (i.e. not the usual physical flash unit attached near camera) which is only
+     * {@link ImageCapture#FLASH_MODE_SCREEN} as of now. In case of other flash modes, the AE mode
+     * may get overwritten in {@link Camera2CameraControlImpl#getSessionOptions} and the future
+     * will never complete.
+     *
+     * @param enable Whether to enable or disable the AE mode.
+     * @return A {@link ListenableFuture} that is completed when the capture request to set the
+     *         AE mode has been processed in framework side.
+     */
+    ListenableFuture<Void> enableExternalFlashAeMode(boolean enable) {
+        if (Build.VERSION.SDK_INT < 28) {
+            Log.d(TAG, "CONTROL_AE_MODE_ON_EXTERNAL_FLASH is not supported in API "
+                    + Build.VERSION.SDK_INT);
+            return Futures.immediateFuture(null);
+        }
+
+        if (mCameraControl.getSupportedAeMode(CaptureRequest.CONTROL_AE_MODE_ON_EXTERNAL_FLASH)
+                != CaptureRequest.CONTROL_AE_MODE_ON_EXTERNAL_FLASH) {
+            Log.d(TAG, "CONTROL_AE_MODE_ON_EXTERNAL_FLASH is not supported in this device");
+            return Futures.immediateFuture(null);
+        }
+
+        Log.d(TAG, "enableExternalFlashAeMode: CONTROL_AE_MODE_ON_EXTERNAL_FLASH supported");
+
+        return CallbackToFutureAdapter.getFuture(completer -> {
+            mExecutor.execute(() -> {
+                mCameraControl.removeCaptureResultListener(mSessionListenerForAeMode);
+                mIsExternalFlashAeModeEnabled = enable;
+                enableExternalFlashAeMode(completer);
+            });
+            return "enableExternalFlashAeMode";
+        });
+    }
+
+    /**
+     * Enables or disables AE_MODE_ON_EXTERNAL_FLASH.
+     *
+     * @param completer used to complete the associated {@link ListenableFuture} when the
+     *                  operation succeeds or fails. Passing null to simply ignore the result.
+     *
+     * @see #enableExternalFlashAeMode
+     */
+    @RequiresApi(28)
+    @ExecutedBy("mExecutor")
+    private void enableExternalFlashAeMode(@Nullable Completer<Void> completer) {
+        if (!mIsActive) {
+            if (completer != null) {
+                completer.setException(
+                        new CameraControl.OperationCanceledException("Camera is not active."));
+            }
+            return;
+        }
+
+        long sessionUpdateId = mCameraControl.updateSessionConfigSynchronous();
+
+        // Will be called on mExecutor since mSessionCallback was created with mExecutor
+        mSessionListenerForAeMode =
+                result -> {
+                    boolean isAeModeExternalFlash = result.get(CaptureResult.CONTROL_AE_MODE)
+                            == CaptureRequest.CONTROL_AE_MODE_ON_EXTERNAL_FLASH;
+                    Logger.d(TAG, "enableExternalFlashAeMode: "
+                            + "isAeModeExternalFlash = " + isAeModeExternalFlash);
+
+                    // Check if the AE mode is as desired
+                    // TODO: Currently this check will never pass if AE mode request is overwritten
+                    //  due to other flash mode in Camera2CameraControlImpl#getSessionOptions. To
+                    //  handle this gracefully, we should have a central code controlling the AE
+                    //  mode value to set to capture requests and we can compare with that instead.
+                    if (isAeModeExternalFlash == mIsExternalFlashAeModeEnabled) {
+                        // Ensure the session is actually updated
+                        if (Camera2CameraControlImpl.isSessionUpdated(result, sessionUpdateId)) {
+                            Logger.d(TAG, "enableExternalFlashAeMode: session updated with "
+                                    + "isAeModeExternalFlash = " + isAeModeExternalFlash);
+                            if (completer != null) {
+                                completer.set(null);
+                            }
+                            return true; // remove this listener
+                        }
+                    }
+
+                    return false; // continue checking
+                };
+
+        mCameraControl.addCaptureResultListener(mSessionListenerForAeMode);
     }
 
     @ExecutedBy("mExecutor")
@@ -571,9 +697,9 @@ class FocusMeteringControl {
 
     @ExecutedBy("mExecutor")
     private void executeMeteringAction(
-            @NonNull MeteringRectangle[] afRects,
-            @NonNull MeteringRectangle[] aeRects,
-            @NonNull MeteringRectangle[] awbRects,
+            MeteringRectangle @NonNull [] afRects,
+            MeteringRectangle @NonNull [] aeRects,
+            MeteringRectangle @NonNull [] awbRects,
             FocusMeteringAction focusMeteringAction,
             long timeoutDurationMs) {
         mCameraControl.removeCaptureResultListener(mSessionListenerForFocus);
@@ -689,7 +815,7 @@ class FocusMeteringControl {
 
     @ExecutedBy("mExecutor")
     void cancelFocusAndMeteringInternal(
-            @Nullable CallbackToFutureAdapter.Completer<Void> completer) {
+            CallbackToFutureAdapter.@Nullable Completer<Void> completer) {
         failCancelFuture("Cancelled by another cancelFocusAndMetering()");
         failActionFuture("Cancelled by cancelFocusAndMetering()");
         mRunningCancelCompleter = completer;

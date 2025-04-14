@@ -21,23 +21,42 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.FrameLayout
+import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
-import androidx.wear.tiles.DeviceParametersBuilders
-import androidx.wear.tiles.LayoutElementBuilders
+import androidx.wear.protolayout.DeviceParametersBuilders
+import androidx.wear.protolayout.LayoutElementBuilders
+import androidx.wear.protolayout.StateBuilders
+import androidx.wear.protolayout.TimelineBuilders
+import androidx.wear.protolayout.expression.DynamicDataBuilders.DynamicDataValue
+import androidx.wear.protolayout.expression.PlatformDataValues
+import androidx.wear.protolayout.expression.PlatformHealthSources
+import androidx.wear.protolayout.expression.PlatformHealthSources.DynamicHeartRateAccuracy
+import androidx.wear.protolayout.expression.PlatformHealthSources.HEART_RATE_ACCURACY_MEDIUM
+import androidx.wear.protolayout.expression.VersionBuilders
+import androidx.wear.protolayout.expression.pipeline.DynamicTypeAnimator
 import androidx.wear.tiles.RequestBuilders
-import androidx.wear.tiles.ResourceBuilders
-import androidx.wear.tiles.StateBuilders
-import androidx.wear.tiles.TileBuilders
-import androidx.wear.tiles.TileService
-import androidx.wear.tiles.TimelineBuilders
+import androidx.wear.tiles.RequestBuilders.ResourcesRequest
 import androidx.wear.tiles.renderer.TileRenderer
 import androidx.wear.tiles.timeline.TilesTimelineCache
-import com.google.common.util.concurrent.ListenableFuture
+import androidx.wear.tiles.tooling.preview.TilePreviewData
 import java.lang.reflect.Method
-import java.util.concurrent.TimeUnit
+import java.lang.reflect.Modifier
 import kotlin.math.roundToInt
 
 private const val TOOLS_NS_URI = "http://schemas.android.com/tools"
+
+private val defaultPlatformDataValues =
+    PlatformDataValues.Builder()
+        .put(PlatformHealthSources.Keys.HEART_RATE_BPM, DynamicDataValue.fromFloat(80f))
+        .put(
+            PlatformHealthSources.Keys.HEART_RATE_ACCURACY,
+            DynamicHeartRateAccuracy.dynamicDataValueOf(HEART_RATE_ACCURACY_MEDIUM)
+        )
+        .put(PlatformHealthSources.Keys.DAILY_STEPS, DynamicDataValue.fromInt(4710))
+        .put(PlatformHealthSources.Keys.DAILY_FLOORS, DynamicDataValue.fromFloat(12.5f))
+        .put(PlatformHealthSources.Keys.DAILY_CALORIES, DynamicDataValue.fromFloat(245.3f))
+        .put(PlatformHealthSources.Keys.DAILY_DISTANCE_METERS, DynamicDataValue.fromFloat(3670.8f))
+        .build()
 
 /**
  * A method extending functionality of [Class.getDeclaredMethod] allowing to finding the methods
@@ -51,115 +70,160 @@ internal fun Class<out Any>.findMethod(
     while (currentClass != null) {
         try {
             return currentClass.getDeclaredMethod(name, *parameterTypes)
-        } catch (_: NoSuchMethodException) { }
+        } catch (_: NoSuchMethodException) {}
         currentClass = currentClass.superclass
     }
     val methodSignature = "$name(${parameterTypes.joinToString { ", " }})"
     throw NoSuchMethodException(
-        "Could not find method $methodSignature neither in $this nor in its superclasses.")
+        "Could not find method $methodSignature neither in $this nor in its superclasses."
+    )
 }
 
 /**
- * View adapter that renders a class inheriting [TileService]. The class is found by reading the
- * `tools:tileServiceName` attribute that contains the FQCN.
+ * View adapter that renders a tile preview from a [TilePreviewData]. The preview data is found by
+ * invoking the method whose FQN is set in the `tools:tilePreviewMethodFqn` attribute.
  */
-internal class TileServiceViewAdapter(context: Context, attrs: AttributeSet) :
-    FrameLayout(context, attrs) {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+class TileServiceViewAdapter(context: Context, attrs: AttributeSet) : FrameLayout(context, attrs) {
+
+    private val executor = ContextCompat.getMainExecutor(context)
+
+    private lateinit var tileRenderer: TileRenderer
+
     init {
         init(attrs)
     }
 
     private fun init(attrs: AttributeSet) {
-        val tileServiceName = attrs.getAttributeValue(TOOLS_NS_URI, "tileServiceName") ?: return
+        val tilePreviewMethodFqn =
+            attrs.getAttributeValue(TOOLS_NS_URI, "tilePreviewMethodFqn") ?: return
 
-        init(tileServiceName)
+        init(tilePreviewMethodFqn)
+    }
+
+    internal fun init(tilePreviewMethodFqn: String) {
+        val tilePreview = getTilePreview(tilePreviewMethodFqn) ?: return
+        val platformDataValues = getPlatformDataValues(tilePreview)
+
+        tileRenderer =
+            TileRenderer.Builder(context, executor) { newState ->
+                    tileRenderer.previewTile(tilePreview, newState)
+                }
+                .addPlatformDataProvider(
+                    StaticPlatformDataProvider(platformDataValues),
+                    *platformDataValues.all.keys.toTypedArray()
+                )
+                .build()
+
+        tileRenderer.previewTile(tilePreview)
+    }
+
+    private fun TileRenderer.previewTile(
+        tilePreview: TilePreviewData,
+        currentState: StateBuilders.State? = null
+    ) {
+        val deviceParams = context.buildDeviceParameters()
+        val tileRequest =
+            RequestBuilders.TileRequest.Builder()
+                .apply { currentState?.let { setCurrentState(it) } }
+                .setDeviceConfiguration(deviceParams)
+                .build()
+
+        val tile =
+            tilePreview.onTileRequest(tileRequest).also { tile ->
+                tile.state?.let { setState(it.keyToValueMapping) }
+            }
+        val layout = tile.tileTimeline?.getCurrentLayout() ?: return
+
+        val resourcesRequest =
+            ResourcesRequest.Builder()
+                .setDeviceConfiguration(deviceParams)
+                .setVersion(tile.resourcesVersion)
+                .build()
+        val resources = tilePreview.onTileResourceRequest(resourcesRequest)
+
+        val inflateFuture = inflateAsync(layout, resources, this@TileServiceViewAdapter)
+        inflateFuture.addListener(
+            {
+                inflateFuture.get()?.let {
+                    (it.layoutParams as LayoutParams).gravity = Gravity.CENTER
+                }
+            },
+            executor
+        )
+    }
+
+    fun getAnimations(): List<DynamicTypeAnimator> {
+        return tileRenderer.animations
     }
 
     @SuppressLint("BanUncheckedReflection")
-    @Suppress("UNCHECKED_CAST")
-    internal fun init(tileServiceName: String) {
-        val tileServiceClass = Class.forName(tileServiceName)
+    internal fun getTilePreview(tilePreviewMethodFqn: String): TilePreviewData? {
+        val className = tilePreviewMethodFqn.substringBeforeLast('.')
+        val methodName = tilePreviewMethodFqn.substringAfterLast('.')
 
-        // val tileService = <TileServiceClassName>()
-        val tileService = tileServiceClass.getConstructor().newInstance() as TileService
-
-        // tileService.attachBaseContext(context)
-        val attachBaseContextMethod =
-            tileServiceClass
-                .findMethod("attachBaseContext", Context::class.java)
-                .apply { isAccessible = true }
-        attachBaseContextMethod.invoke(tileService, context)
-
-        val deviceParams = context.buildDeviceParameters()
-        val tileRequest = RequestBuilders.TileRequest
-            .Builder()
-            .setState(StateBuilders.State.Builder().build())
-            .setDeviceParameters(deviceParams)
-            .build()
-
-        // val tile = tileService.onTileRequest(tileRequest)
-        val onTileRequestMethod =
-            tileServiceClass
-                .findMethod("onTileRequest", RequestBuilders.TileRequest::class.java)
-                .apply { isAccessible = true }
-        val tile =
-            (onTileRequestMethod.invoke(tileService, tileRequest) as
-                ListenableFuture<TileBuilders.Tile>).get(1, TimeUnit.SECONDS)
-
-        val resourceRequest = RequestBuilders.ResourcesRequest
-            .Builder()
-            .setVersion(tile.resourcesVersion)
-            .setDeviceParameters(deviceParams)
-            .build()
-
-        // val resources = tileService.onResourcesRequest(resourceRequest).get(1, TimeUnit.SECONDS)
-        val onResourcesRequestMethod =
-            tileServiceClass
-                .findMethod("onResourcesRequest", RequestBuilders.ResourcesRequest::class.java)
-                .apply { isAccessible = true }
-        val resources =
-            (onResourcesRequestMethod.invoke(tileService, resourceRequest) as
-                ListenableFuture<ResourceBuilders.Resources>).get(1, TimeUnit.SECONDS)
-
-        val layout = tile.timeline?.getCurrentLayout()
-        if (layout != null) {
-            val renderer = TileRenderer(
-                context,
-                layout,
-                resources,
-                ContextCompat.getMainExecutor(context)
-            ) { }
-            renderer.inflate(this)?.apply {
-                (layoutParams as FrameLayout.LayoutParams).gravity = Gravity.CENTER
+        val methods = Class.forName(className).declaredMethods.filter { it.name == methodName }
+        methods
+            .firstOrNull {
+                it.parameterCount == 1 && it.parameters.first().type == Context::class.java
             }
+            ?.let { methodWithContextParameter ->
+                return invokeTilePreviewMethod(methodWithContextParameter, context)
+            }
+
+        return methods
+            .firstOrNull { it.name == methodName && it.parameterCount == 0 }
+            ?.let { methodWithoutContextParameter ->
+                return invokeTilePreviewMethod(methodWithoutContextParameter)
+            }
+    }
+
+    @SuppressLint("BanUncheckedReflection")
+    private fun invokeTilePreviewMethod(method: Method, vararg args: Any?): TilePreviewData? {
+        method.isAccessible = true
+        return if (Modifier.isStatic(method.modifiers)) {
+            method.invoke(null, *args) as? TilePreviewData
+        } else {
+            val instance = method.declaringClass.getConstructor().newInstance()
+            method.invoke(instance, *args) as? TilePreviewData
         }
+    }
+
+    private fun getPlatformDataValues(tilePreview: TilePreviewData): PlatformDataValues {
+        return PlatformDataValues.Builder()
+            .putAll(defaultPlatformDataValues)
+            .apply {
+                tilePreview.platformDataValues?.let { platformDataValues ->
+                    putAll(platformDataValues)
+                }
+            }
+            .build()
     }
 }
 
 internal fun TimelineBuilders.Timeline?.getCurrentLayout(): LayoutElementBuilders.Layout? {
     val now = System.currentTimeMillis()
     return this?.let {
-        val cache = TilesTimelineCache(it)
-        cache.findTimelineEntryForTime(now) ?: cache.findClosestTimelineEntry(now)
-    }?.layout
+            val cache = TilesTimelineCache(it)
+            cache.findTileTimelineEntryForTime(now) ?: cache.findClosestTileTimelineEntry(now)
+        }
+        ?.layout
 }
 
-/**
- * Creates an instance of [DeviceParametersBuilders.DeviceParameters] from the [Context].
- */
+/** Creates an instance of [DeviceParametersBuilders.DeviceParameters] from the [Context]. */
 internal fun Context.buildDeviceParameters(): DeviceParametersBuilders.DeviceParameters {
     val displayMetrics = resources.displayMetrics
     val isScreenRound = resources.configuration.isScreenRound
     return DeviceParametersBuilders.DeviceParameters.Builder()
-        .setScreenWidthDp(
-            (displayMetrics.widthPixels / displayMetrics.density).roundToInt())
-        .setScreenHeightDp(
-            (displayMetrics.heightPixels / displayMetrics.density).roundToInt())
+        .setScreenWidthDp((displayMetrics.widthPixels / displayMetrics.density).roundToInt())
+        .setScreenHeightDp((displayMetrics.heightPixels / displayMetrics.density).roundToInt())
         .setScreenDensity(displayMetrics.density)
         .setScreenShape(
             if (isScreenRound) DeviceParametersBuilders.SCREEN_SHAPE_ROUND
             else DeviceParametersBuilders.SCREEN_SHAPE_RECT
         )
         .setDevicePlatform(DeviceParametersBuilders.DEVICE_PLATFORM_WEAR_OS)
+        .setFontScale(resources.configuration.fontScale)
+        .setRendererSchemaVersion(VersionBuilders.VersionInfo.CURRENT)
         .build()
 }

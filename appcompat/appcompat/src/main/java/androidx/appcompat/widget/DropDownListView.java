@@ -32,16 +32,14 @@ import android.widget.AdapterView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.R;
 import androidx.appcompat.graphics.drawable.DrawableWrapperCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.core.os.BuildCompat;
 import androidx.core.view.ViewPropertyAnimatorCompat;
 import androidx.core.widget.ListViewAutoScrollHelper;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -128,19 +126,15 @@ class DropDownListView extends ListView {
         mHijackFocus = hijackFocus;
         setCacheColorHint(0); // Transparent, since the background drawable could be anything.
     }
-
-    @OptIn(markerClass = BuildCompat.PrereleaseSdkCheck.class)
     private boolean superIsSelectedChildViewEnabled() {
-        if (BuildCompat.isAtLeastT()) {
+        if (Build.VERSION.SDK_INT >= 33) {
             return Api33Impl.isSelectedChildViewEnabled(this);
         } else {
             return PreApi33Impl.isSelectedChildViewEnabled(this);
         }
     }
-
-    @OptIn(markerClass = BuildCompat.PrereleaseSdkCheck.class)
     private void superSetSelectedChildViewEnabled(boolean enabled) {
-        if (BuildCompat.isAtLeastT()) {
+        if (Build.VERSION.SDK_INT >= 33) {
             Api33Impl.setSelectedChildViewEnabled(this, enabled);
         } else {
             PreApi33Impl.setSelectedChildViewEnabled(this, enabled);
@@ -805,7 +799,6 @@ class DropDownListView extends ListView {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void drawableHotspotChanged(View view, float x, float y) {
             view.drawableHotspotChanged(x, y);
         }
@@ -862,12 +855,10 @@ class DropDownListView extends ListView {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isSelectedChildViewEnabled(AbsListView view) {
             return view.isSelectedChildViewEnabled();
         }
 
-        @DoNotInline
         static void setSelectedChildViewEnabled(AbsListView view, boolean enabled) {
             view.setSelectedChildViewEnabled(enabled);
         }

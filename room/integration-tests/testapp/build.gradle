@@ -24,54 +24,23 @@ buildscript {
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
+    id("androidx.room")
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled true
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [
-                        "room.schemaLocation"  : "$projectDir/schemas".toString(),
-                ]
-            }
-        }
-    }
     buildFeatures {
         aidl = true
     }
-    buildTypes {
-        debug {
-            // Need to make sure androidx.tracing.Trace gets put in primary dex for legacy multidex
-            // as it is needed by androidx.test.runner.AndroidJUnitRunner
-            multiDexKeepFile file('multidex-config.txt')
-        }
-    }
     sourceSets {
-        androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
         androidTest.assets.srcDirs += files("$projectDir/databases".toString())
     }
     flavorDimensions "processorConfiguration"
     productFlavors {
-        withExpandProjection {
-            dimension "processorConfiguration"
-            javaCompileOptions {
-                annotationProcessorOptions {
-                    arguments = [
-                            "room.schemaLocation"  : "$projectDir/schemas".toString(),
-                            "room.expandProjection"  : "true"
-                    ]
-                }
-            }
-        }
         withoutExpandProjection {
             dimension "processorConfiguration"
             javaCompileOptions {
                 annotationProcessorOptions {
-                    arguments = [
-                            "room.schemaLocation"  : "$projectDir/schemas".toString(),
-                            "room.expandProjection"  : "false"
-                    ]
+                    arguments = ["room.expandProjection"  : "false"]
                 }
             }
         }
@@ -80,56 +49,66 @@ android {
             javaCompileOptions {
                 annotationProcessorOptions {
                     arguments = [
-                            "room.schemaLocation"  : "$projectDir/schemas".toString(),
                             "room.expandProjection"  : "false",
                             "room.useNullAwareTypeAnalysis": "true"
                     ]
                 }
             }
         }
+        withPreKmpCompiler {
+            dimension "processorConfiguration"
+        }
     }
-    namespace "androidx.room.integration.testapp"
+    compileOptions {
+        // For testing Java records
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled = true
+    }
+    namespace = "androidx.room.integration.testapp"
 }
 
 dependencies {
+    implementation(libs.jspecify)
+    coreLibraryDesugaring(libs.desugarJdkLibs)
     implementation(project(":room:room-common"))
     implementation(project(":room:room-runtime"))
-    implementation(projectOrArtifact(":arch:core:core-runtime"))
-    implementation(projectOrArtifact(":lifecycle:lifecycle-livedata"))
-    implementation(projectOrArtifact(":lifecycle:lifecycle-runtime"))
-    implementation(libs.multidex)
+    implementation(project(":room:room-migration"))
+    implementation("androidx.arch.core:core-runtime:2.2.0")
+    implementation("androidx.lifecycle:lifecycle-livedata:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
 
-    // Workaround for b/191286558.
-    implementation(project(":annotation:annotation-experimental"))
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     // libs.findbugs dependency resolves an app/testapp version conflict.
     implementation(libs.findbugs)
     implementation("androidx.recyclerview:recyclerview:1.0.0")
     implementation("androidx.appcompat:appcompat:1.3.1")
-    // use the shadowed dependency in tests so that if the shadowing does not work properly,
-    // our tests fail.
-    annotationProcessor project(path: ":room:room-compiler",
-            configuration: "shadowAndImplementation")
-    androidTestAnnotationProcessor project(path: ":room:room-compiler",
-            configuration: "shadowAndImplementation")
 
-    androidTestImplementation(project(":annotation:annotation-experimental"))
-    androidTestImplementation(project(":arch:core:core-runtime"))
-    androidTestImplementation(project(":arch:core:core-common"))
+    // Annotation processor / compiler dependencies:
+    withoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
+    withNullAwareTypeConverterAnnotationProcessor(project(":room:room-compiler"))
+    withPreKmpCompilerAnnotationProcessor("androidx.room:room-compiler:2.6.1")
+    androidTestWithoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
+    androidTestWithNullAwareTypeConverterAnnotationProcessor(project(":room:room-compiler"))
+    androidTestWithPreKmpCompilerAnnotationProcessor("androidx.room:room-compiler:2.6.1")
+
+    androidTestImplementation("androidx.arch.core:core-runtime:2.2.0")
+    androidTestImplementation("androidx.arch.core:core-common:2.2.0")
     androidTestImplementation(project(":room:room-testing"))
     androidTestImplementation(project(":room:room-rxjava2"))
     androidTestImplementation(project(":room:room-rxjava3"))
     androidTestImplementation(project(":room:room-guava"))
     androidTestImplementation(project(":room:room-paging"))
-    androidTestImplementation("androidx.arch.core:core-testing:2.0.1")
-    androidTestImplementation(projectOrArtifact(":paging:paging-runtime"))
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime"))
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-livedata"))
+    androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
+    androidTestImplementation(project(":paging:paging-runtime"))
+    androidTestImplementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
+    androidTestImplementation("androidx.lifecycle:lifecycle-runtime-testing:2.6.1")
+    androidTestImplementation("androidx.lifecycle:lifecycle-livedata:2.6.1")
+    androidTestImplementation(libs.guavaAndroid)
 
     // libs.findbugs dependency resolves an app/testapp version conflict.
     androidTestImplementation(libs.findbugs)
-    androidTestImplementation(libs.guavaAndroid)
     androidTestImplementation(libs.rxjava2)
     androidTestImplementation(libs.rxjava3)
     androidTestImplementation(libs.testExtJunit)
@@ -138,12 +117,16 @@ dependencies {
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it's own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(libs.mockitoAndroid5)
     androidTestImplementation(project(":internal-testutils-truth"))
 
-
     testImplementation(libs.junit)
+}
+
+room {
+    schemaDirectory(
+        layout.projectDirectory.dir("schemas")
+    )
 }
 
 // Enable parameter names to support Room incremental when its a project() dep.

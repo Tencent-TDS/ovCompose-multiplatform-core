@@ -32,13 +32,14 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
+import android.view.View;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A helper class that contains several {@link Drawable}s and selects which one to use.
@@ -94,7 +95,7 @@ public class DrawableContainerCompat extends Drawable implements Drawable.Callba
 
     private boolean needsMirroring() {
         return isAutoMirrored()
-                && (DrawableCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL);
+                && (DrawableCompat.getLayoutDirection(this) == View.LAYOUT_DIRECTION_RTL);
     }
 
     @Override
@@ -299,7 +300,7 @@ public class DrawableContainerCompat extends Drawable implements Drawable.Callba
     }
 
     @Override
-    protected boolean onStateChange(@NonNull int[] state) {
+    protected boolean onStateChange(int @NonNull [] state) {
         if (mLastDrawable != null) {
             return mLastDrawable.setState(state);
         }
@@ -517,9 +518,7 @@ public class DrawableContainerCompat extends Drawable implements Drawable.Callba
             if (Build.VERSION.SDK_INT >= 23) {
                 DrawableCompat.setLayoutDirection(d, DrawableCompat.getLayoutDirection(this));
             }
-            if (Build.VERSION.SDK_INT >= 19) {
-                DrawableCompat.setAutoMirrored(d, mDrawableContainerState.mAutoMirrored);
-            }
+            DrawableCompat.setAutoMirrored(d, mDrawableContainerState.mAutoMirrored);
             final Rect hotspotBounds = mHotspotBounds;
             if (Build.VERSION.SDK_INT >= 21 && hotspotBounds != null) {
                 DrawableCompat.setHotspotBounds(d, hotspotBounds.left, hotspotBounds.top,
@@ -570,9 +569,8 @@ public class DrawableContainerCompat extends Drawable implements Drawable.Callba
         }
     }
 
-    @NonNull
     @Override
-    public Drawable getCurrent() {
+    public @NonNull Drawable getCurrent() {
         return mCurrDrawable;
     }
 

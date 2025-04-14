@@ -25,15 +25,16 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import androidx.annotation.Nullable;
 import androidx.car.app.OnDoneCallback;
 import androidx.car.app.TestUtils;
+import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.model.Action;
 import androidx.car.app.model.ActionStrip;
 import androidx.car.app.model.CarIcon;
@@ -48,9 +49,11 @@ import androidx.car.app.model.PlaceMarker;
 import androidx.car.app.model.Row;
 import androidx.car.app.serialization.Bundler.CycleDetectedBundlerException;
 import androidx.car.app.serialization.Bundler.TracedBundlerException;
+import androidx.core.app.Person;
 import androidx.core.graphics.drawable.IconCompat;
 import androidx.test.core.app.ApplicationProvider;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,6 +78,7 @@ public class BundlerTest {
     private static final String TAG_CLASS_NAME = "tag_class_name";
     private static final String TAG_CLASS_TYPE = "tag_class_type";
     private static final String TAG_VALUE = "tag_value";
+    private static final int CLASS_TYPE_OBJECT = 5;
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -332,6 +336,35 @@ public class BundlerTest {
     }
 
     @Test
+    public void personSerialization() throws BundlerException {
+        IconCompat icon =
+                IconCompat.createWithBitmap(
+                        Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+                );
+        Uri uri = Uri.parse("http://foo.com/test/sender/uri");
+        Person person = new Person.Builder()
+                .setName("Person Name")
+                .setKey("sender_key")
+                .setKey("Foo Person")
+                .setIcon(icon)
+                .setUri(uri.toString())
+                .setBot(true)
+                .setImportant(true)
+                .build();
+
+        Bundle bundle = Bundler.toBundle(person);
+        Person reconstitutedPerson = (Person) Bundler.fromBundle(bundle);
+
+        assertThat(reconstitutedPerson.getName()).isEqualTo(person.getName());
+        assertThat(reconstitutedPerson.getKey()).isEqualTo(person.getKey());
+        assertThat(reconstitutedPerson.getKey()).isEqualTo(person.getKey());
+        assertThat(reconstitutedPerson.getIcon()).isNotNull();
+        assertThat(reconstitutedPerson.getUri()).isEqualTo(person.getUri());
+        assertThat(reconstitutedPerson.isBot()).isEqualTo(person.isBot());
+        assertThat(reconstitutedPerson.isImportant()).isEqualTo(person.isImportant());
+    }
+
+    @Test
     public void templateSerialization() throws BundlerException {
         String title = "titleOfThePane";
 
@@ -536,6 +569,24 @@ public class BundlerTest {
         assertThrows(BundlerException.class, () -> Bundler.fromBundle(bundle));
     }
 
+    @Test
+    public void missingCarProtocolAnnotationBundle_throwsBundlerException() {
+        TestClassMissingCarProtocolAnnotation invalidObj =
+                new TestClassMissingCarProtocolAnnotation(3);
+        Bundle bundle = new Bundle(3);
+        bundle.putInt(TAG_CLASS_TYPE, CLASS_TYPE_OBJECT);
+        bundle.putString(TAG_CLASS_NAME, invalidObj.getClass().getName());
+
+        assertThrows(BundlerException.class, () -> Bundler.fromBundle(bundle));
+    }
+
+    @Test
+    public void classMissingCarProtocolAnnotation_throwsBundlerException() {
+        assertThrows(
+                BundlerException.class,
+                () -> Bundler.toBundle(new TestClassMissingCarProtocolAnnotation(1)));
+    }
+
     //TODO(rampara): Investigate why default constructor is still found when running with
     // robolectric.
 //    @Test
@@ -576,6 +627,7 @@ public class BundlerTest {
     }
 
     @SuppressWarnings("unused")
+    @CarProtocol
     private static class Click {
         private final Clack mClack;
 
@@ -585,9 +637,9 @@ public class BundlerTest {
     }
 
     @SuppressWarnings("unused")
+    @CarProtocol
     private static class Clack {
-        @Nullable
-        private final Click mClick;
+        private final @Nullable Click mClick;
 
         private Clack(@Nullable Click click) {
             mClick = click;
@@ -598,6 +650,7 @@ public class BundlerTest {
         }
     }
 
+    @CarProtocol
     private static class TestClass {
         private int mInt;
         private final String mString;
@@ -661,6 +714,7 @@ public class BundlerTest {
         }
     }
 
+    @CarProtocol
     private static class TestClassExtended extends TestClass {
         private final boolean mBoolean;
         private final Map<Integer, Double> mIntegerDoubleMap;
@@ -720,9 +774,22 @@ public class BundlerTest {
         }
     }
 
+    @CarProtocol
     private static class TestClassMissingDefaultConstructor {
         @SuppressWarnings("unused")
         private TestClassMissingDefaultConstructor(int i) {
+        }
+    }
+
+    private static class TestClassMissingCarProtocolAnnotation {
+        private final int mInt;
+        @SuppressWarnings("unused")
+        private TestClassMissingCarProtocolAnnotation(int i) {
+            this.mInt = i;
+        }
+
+        private TestClassMissingCarProtocolAnnotation() {
+            this(33);
         }
     }
 

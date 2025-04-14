@@ -17,14 +17,18 @@
 package androidx.glance.appwidget.demos
 
 import android.content.Context
-import android.os.Build
 import android.content.Intent
+import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.glance.Button
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
@@ -43,38 +47,44 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 
 class VerticalGridAppWidget : GlanceAppWidget() {
-
-    override suspend fun provideGlance(
-        context: Context,
-        id: GlanceId
-    ) = provideContent {
-        val gridCells = if (Build.VERSION.SDK_INT >= 31) {
+    private val gridModifier =
+        GlanceModifier.padding(R.dimen.external_padding)
+            .fillMaxSize()
+            .appWidgetBackground()
+            .cornerRadius(R.dimen.corner_radius)
+            .background(R.color.default_widget_background)
+    private val gridCells =
+        if (Build.VERSION.SDK_INT >= 31) {
             GridCells.Adaptive(100.dp)
         } else {
             GridCells.Fixed(3)
         }
-        SampleGrid(
-            cells = gridCells,
-            modifier = GlanceModifier.padding(R.dimen.external_padding)
-                .fillMaxSize()
-                .appWidgetBackground()
-                .cornerRadius(R.dimen.corner_radius)
-                .background(R.color.default_widget_background)
-        )
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
+        SampleGrid(gridCells, gridModifier)
+    }
+
+    override suspend fun providePreview(context: Context, widgetCategory: Int) = provideContent {
+        SampleGrid(gridCells, gridModifier)
     }
 }
 
 @Composable
 fun SampleGrid(cells: GridCells, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
-    LazyVerticalGrid(
-        modifier = modifier,
-        gridCells = cells
-    ) {
+    val localSize = LocalSize.current
+    LazyVerticalGrid(modifier = modifier, gridCells = cells) {
+        item { Text("LazyVerticalGrid") }
+        item { Text("${localSize.width}x${localSize.height}") }
+        items(count = 22, itemId = { it * 2L }) { index -> Text("Item $index") }
         item {
-            Text("LazyVerticalGrid")
-        }
-        items(count = 20, itemId = { it * 2L }) { index ->
-            Text("Item $index")
+            Text(
+                text = "Clickable text",
+                modifier =
+                    GlanceModifier.background(GlanceTheme.colors.surfaceVariant)
+                        .padding(8.dp)
+                        .cornerRadius(28.dp)
+                        .clickable { Log.i("SampleGrid", "Clicked the clickable text!") }
+            )
         }
         itemsIndexed(
             listOf(
@@ -88,9 +98,7 @@ fun SampleGrid(cells: GridCells, modifier: GlanceModifier = GlanceModifier.fillM
             ) {
                 Button(
                     text = "Activity ${index + 1}",
-                    onClick = actionStartActivity(
-                        Intent(LocalContext.current, activityClass)
-                    )
+                    onClick = actionStartActivity(Intent(LocalContext.current, activityClass))
                 )
             }
         }

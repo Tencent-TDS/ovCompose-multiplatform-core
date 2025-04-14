@@ -26,11 +26,9 @@ import java.nio.file.Path
 import javax.annotation.processing.Filer
 import javax.tools.StandardLocation
 import kotlin.io.path.extension
+import kotlin.io.path.invariantSeparatorsPathString
 
-internal class JavacFiler(
-    private val processingEnv: XProcessingEnv,
-    val delegate: Filer
-) : XFiler {
+internal class JavacFiler(private val processingEnv: XProcessingEnv, val delegate: Filer) : XFiler {
 
     // "mode" is ignored in javac, and only applicable in KSP
     override fun write(javaFile: JavaFile, mode: XFiler.Mode) {
@@ -46,6 +44,42 @@ internal class JavacFiler(
         fileSpec.writeTo(delegate)
     }
 
+    override fun writeSource(
+        packageName: String,
+        fileNameWithoutExtension: String,
+        extension: String,
+        originatingElements: List<XElement>,
+        mode: XFiler.Mode
+    ): OutputStream {
+        require(extension == "java" || extension == "kt") {
+            "Source file extension must be either 'java' or 'kt', but was: $extension"
+        }
+        val javaOriginatingElements =
+            originatingElements.filterIsInstance<JavacElement>().map { it.element }.toTypedArray()
+        return when (extension) {
+            "java" -> {
+                val name =
+                    if (packageName.isEmpty()) {
+                        fileNameWithoutExtension
+                    } else {
+                        "$packageName.$fileNameWithoutExtension"
+                    }
+                delegate.createSourceFile(name, *javaOriginatingElements).openOutputStream()
+            }
+            "kt" -> {
+                delegate
+                    .createResource(
+                        StandardLocation.SOURCE_OUTPUT,
+                        packageName,
+                        "$fileNameWithoutExtension.$extension",
+                        *javaOriginatingElements
+                    )
+                    .openOutputStream()
+            }
+            else -> error("file type not supported: $extension")
+        }
+    }
+
     override fun writeResource(
         filePath: Path,
         originatingElements: List<XElement>,
@@ -57,12 +91,13 @@ internal class JavacFiler(
         }
         val javaOriginatingElements =
             originatingElements.filterIsInstance<JavacElement>().map { it.element }.toTypedArray()
-        val fileObject = delegate.createResource(
-            StandardLocation.CLASS_OUTPUT,
-            "",
-            filePath.toString(),
-            *javaOriginatingElements
-        )
+        val fileObject =
+            delegate.createResource(
+                StandardLocation.CLASS_OUTPUT,
+                "",
+                filePath.invariantSeparatorsPathString,
+                *javaOriginatingElements
+            )
         return fileObject.openOutputStream()
     }
 }

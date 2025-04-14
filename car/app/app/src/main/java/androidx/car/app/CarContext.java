@@ -25,6 +25,7 @@ import static androidx.car.app.utils.LogTags.TAG;
 import static java.util.Objects.requireNonNull;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -32,22 +33,26 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
+import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Display;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StringDef;
+import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.constraints.ConstraintManager;
 import androidx.car.app.hardware.CarHardwareManager;
 import androidx.car.app.managers.ManagerCache;
 import androidx.car.app.managers.ResultManager;
+import androidx.car.app.media.MediaPlaybackManager;
 import androidx.car.app.navigation.NavigationManager;
 import androidx.car.app.notification.CarPendingIntent;
 import androidx.car.app.suggestion.SuggestionManager;
@@ -60,6 +65,9 @@ import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -97,10 +105,11 @@ public class CarContext extends ContextWrapper {
     /**
      * Represents the types of services for client-host communication.
      *
-     * @hide
      */
+    @SuppressWarnings({
+            "UnsafeOptInUsageError"})
     @StringDef({APP_SERVICE, CAR_SERVICE, NAVIGATION_SERVICE, SCREEN_SERVICE, CONSTRAINT_SERVICE,
-            HARDWARE_SERVICE, SUGGESTION_SERVICE})
+            HARDWARE_SERVICE, SUGGESTION_SERVICE, MEDIA_PLAYBACK_SERVICE})
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(LIBRARY)
     public @interface CarServiceType {
@@ -135,6 +144,12 @@ public class CarContext extends ContextWrapper {
      * Manages posting suggestion events
      */
     public static final String SUGGESTION_SERVICE = "suggestion";
+
+    /**
+     * Manages the media requests from 3p apps such as providing a media session token,
+     */
+    @ExperimentalCarApi
+    public static final String MEDIA_PLAYBACK_SERVICE = "media_playback";
 
     /**
      * Key for including a IStartCarApp in the notification {@link Intent}, for starting the app
@@ -176,13 +191,10 @@ public class CarContext extends ContextWrapper {
     @CarAppApiLevel
     private int mCarAppApiLevel = CarAppApiLevels.UNKNOWN;
 
-    @Nullable
-    private HostInfo mHostInfo = null;
+    private @Nullable HostInfo mHostInfo = null;
 
-    /** @hide */
-    @NonNull
     @RestrictTo(LIBRARY)
-    public static CarContext create(@NonNull Lifecycle lifecycle) {
+    public static @NonNull CarContext create(@NonNull Lifecycle lifecycle) {
         return new CarContext(lifecycle, new HostDispatcher());
     }
 
@@ -221,8 +233,7 @@ public class CarContext extends ContextWrapper {
      *                                  instantiated (e.g. missing library dependency)
      * @throws NullPointerException     if {@code name} is {@code null}
      */
-    @NonNull
-    public Object getCarService(@CarServiceType @NonNull String name) {
+    public @NonNull Object getCarService(@CarServiceType @NonNull String name) {
         requireNonNull(name);
         return mManagers.getOrCreate(name);
     }
@@ -242,8 +253,7 @@ public class CarContext extends ContextWrapper {
      *                                  missing library dependency)
      * @throws NullPointerException     if {@code serviceClass} is {@code null}
      */
-    @NonNull
-    public <T> T getCarService(@NonNull Class<T> serviceClass) {
+    public <T> @NonNull T getCarService(@NonNull Class<T> serviceClass) {
         requireNonNull(serviceClass);
         return mManagers.getOrCreate(serviceClass);
     }
@@ -261,9 +271,8 @@ public class CarContext extends ContextWrapper {
      * @throws NullPointerException     if {@code serviceClass} is {@code null}
      * @see #getCarService
      */
-    @NonNull
     @CarServiceType
-    public String getCarServiceName(@NonNull Class<?> serviceClass) {
+    public @NonNull String getCarServiceName(@NonNull Class<?> serviceClass) {
         requireNonNull(serviceClass);
         return mManagers.getName(serviceClass);
     }
@@ -409,9 +418,8 @@ public class CarContext extends ContextWrapper {
      * @return the {@link ComponentName} of the component that will receive your reply, or
      * {@code null} if none
      */
-    @Nullable
     @RequiresCarApi(2)
-    public ComponentName getCallingComponent() {
+    public @Nullable ComponentName getCallingComponent() {
         try {
             return getCarService(ResultManager.class).getCallingComponent();
         } catch (IllegalStateException ex) {
@@ -454,8 +462,7 @@ public class CarContext extends ContextWrapper {
      * <b>MUST</b> call {@link ScreenManager#pop} in the callback. The default behavior is
      * overridden when you have a callback enabled.
      */
-    @NonNull
-    public OnBackPressedDispatcher getOnBackPressedDispatcher() {
+    public @NonNull OnBackPressedDispatcher getOnBackPressedDispatcher() {
         return mOnBackPressedDispatcher;
     }
 
@@ -504,8 +511,7 @@ public class CarContext extends ContextWrapper {
      * @return The {@link HostInfo} of the connected host, or {@code null} if it is not available.
      * @see HostInfo
      */
-    @Nullable
-    public HostInfo getHostInfo() {
+    public @Nullable HostInfo getHostInfo() {
         return mHostInfo;
     }
 
@@ -580,7 +586,7 @@ public class CarContext extends ContextWrapper {
      *                              {@code callback} are {@code null}
      */
     public void requestPermissions(@NonNull List<String> permissions,
-            @NonNull /* @CallbackExecutor */ Executor executor,
+            /* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull OnRequestPermissionsListener listener) {
         requireNonNull(executor);
         requireNonNull(permissions);
@@ -609,10 +615,13 @@ public class CarContext extends ContextWrapper {
                 new Intent(REQUEST_PERMISSIONS_ACTION).setComponent(appActivityComponent)
                         .putExtras(extras)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        Bundle activityOptionsBundle = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            activityOptionsBundle = Api26Impl.makeBasicActivityOptionsBundle();
+        }
+        startActivity(intent, activityOptionsBundle);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
     @MainThread
     public void setCarHost(@NonNull ICarHost carHost) {
@@ -624,7 +633,6 @@ public class CarContext extends ContextWrapper {
      * Copies the fields from the provided {@link Configuration} into the {@link Configuration}
      * contained in this object.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @MainThread
@@ -646,8 +654,6 @@ public class CarContext extends ContextWrapper {
 
     /**
      * Updates context information based on the information provided during connection handshake
-     *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP)
     @MainThread
@@ -658,7 +664,6 @@ public class CarContext extends ContextWrapper {
     /**
      * Updates host information based on the information provided during connection handshake
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @MainThread
@@ -676,7 +681,6 @@ public class CarContext extends ContextWrapper {
      * updates to the phone configuration do not update either the {@link Configuration} or {@link
      * android.util.DisplayMetrics} held by this {@link CarContext}'s resources.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @MainThread
@@ -707,18 +711,17 @@ public class CarContext extends ContextWrapper {
         onCarConfigurationChanged(configuration);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP)
     // Restrict to testing library
     ManagerCache getManagers() {
         return mManagers;
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
     @SuppressWarnings({
             "argument.type.incompatible",
-            "method.invocation.invalid"
+            "method.invocation.invalid",
+            "UnsafeOptInUsageError"
     }) // @UnderInitialization not available with androidx
     protected CarContext(@NonNull Lifecycle lifecycle, @NonNull HostDispatcher hostDispatcher) {
         super(null);
@@ -738,6 +741,8 @@ public class CarContext extends ContextWrapper {
                 () -> ResultManager.create(this));
         mManagers.addFactory(SuggestionManager.class, SUGGESTION_SERVICE,
                 () -> SuggestionManager.create(this, hostDispatcher, lifecycle));
+        mManagers.addFactory(MediaPlaybackManager.class, MEDIA_PLAYBACK_SERVICE,
+                () -> MediaPlaybackManager.create(this, hostDispatcher, lifecycle));
 
         mOnBackPressedDispatcher =
                 new OnBackPressedDispatcher(() -> getCarService(ScreenManager.class).pop());
@@ -752,5 +757,14 @@ public class CarContext extends ContextWrapper {
         };
 
         lifecycle.addObserver(observer);
+    }
+
+    @RequiresApi(api = VERSION_CODES.O)
+    private static class Api26Impl {
+
+        static Bundle makeBasicActivityOptionsBundle() {
+            return ActivityOptions.makeBasic()
+                    .setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle();
+        }
     }
 }

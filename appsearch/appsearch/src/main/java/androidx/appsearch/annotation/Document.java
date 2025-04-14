@@ -17,6 +17,12 @@
 package androidx.appsearch.annotation;
 
 import androidx.appsearch.app.AppSearchSchema;
+import androidx.appsearch.app.EmbeddingVector;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
+import androidx.appsearch.app.LongSerializer;
+import androidx.appsearch.app.StringSerializer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -70,8 +76,8 @@ import java.lang.annotation.Target;
  *
  * <p>Properties contain the document's data. They may be indexed or non-indexed (the default).
  * Only indexed properties can be searched for in queries. There is a limit of
- * {@link androidx.appsearch.app.GenericDocument#getMaxIndexedProperties} indexed properties in
- * one document.
+ * {@link androidx.appsearch.app.Features#getMaxIndexedProperties} indexed properties in one
+ * document.
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)
@@ -86,6 +92,22 @@ public @interface Document {
      * <p>If not specified, it will be automatically set to the simple name of the annotated class.
      */
     String name() default "";
+
+    /**
+     * The list of {@link Document} annotated classes that this type inherits from, in the context
+     * of AppSearch.
+     *
+     * <p>Please note that the type systems in AppSearch and Java are not necessarily equivalent.
+     * Specifically, if Foo and Bar are two classes, Bar can be a parent type of Foo in
+     * AppSearch, but the Foo class does not have to extend the Bar class in Java. The converse
+     * holds as well. However, the most common use case is to align the two type systems for
+     * single parent pattern, given that if Foo extends Bar in Java, Bar's properties will
+     * automatically be copied into Foo so that it is not necessary to redefine every property in
+     * Foo.
+     *
+     * @see AppSearchSchema.Builder#addParentType(String)
+     */
+    Class<?>[] parent() default {};
 
     /**
      * Marks a member field of a document as the document's unique identifier (ID).
@@ -148,7 +170,9 @@ public @interface Document {
      * <p>The document will be automatically deleted {@link TtlMillis} milliseconds after
      * {@link CreationTimestampMillis}.
      *
-     * <p>This field is not required. If not present or not set, the document will never expire.
+     * <p>This field is not required. If not present, not set, or set to {@code 0}, the document
+     * will never expire or be auto-deleted until the app is uninstalled or
+     * {@link androidx.appsearch.app.AppSearchSession#removeAsync} is called.
      *
      * <p>If present, the field must be of type {@code long} or {@link Long}.
      *
@@ -209,10 +233,65 @@ public @interface Document {
          * <p>If not specified, defaults to {@link
          * AppSearchSchema.StringPropertyConfig#INDEXING_TYPE_NONE} (the field will not be indexed
          * and cannot be queried).
-         * TODO(b/171857731) renamed to TermMatchType when using String-specific indexing config.
          */
         @AppSearchSchema.StringPropertyConfig.IndexingType int indexingType()
                 default AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_NONE;
+
+        /**
+         * Configures how a property should be processed so that the document can be joined.
+         *
+         * <p>Properties configured with
+         * {@link AppSearchSchema.StringPropertyConfig#JOINABLE_VALUE_TYPE_QUALIFIED_ID} enable
+         * the documents to be joined with other documents that have the same qualified ID as the
+         * value of this field. (A qualified ID is a compact representation of the tuple <package
+         * name, database name, namespace, document ID> that uniquely identifies a document
+         * indexed in the AppSearch storage backend.) This property name can be specified as the
+         * child property expression in {@link androidx.appsearch.app.JoinSpec.Builder(String)} for
+         * join operations.
+         *
+         * <p>This attribute doesn't apply to properties of a repeated type (e.g., a list).
+         *
+         * <p>If not specified, defaults to
+         * {@link AppSearchSchema.StringPropertyConfig#JOINABLE_VALUE_TYPE_NONE}, which means the
+         * property can not be used in a child property expression to configure a
+         * {@link androidx.appsearch.app.JoinSpec.Builder(String)}.
+         */
+        @AppSearchSchema.StringPropertyConfig.JoinableValueType int joinableValueType()
+                default AppSearchSchema.StringPropertyConfig.JOINABLE_VALUE_TYPE_NONE;
+
+        /**
+         * Configures how a property should be converted to and from a {@link String}.
+         *
+         * <p>Useful for representing properties using rich types that boil down to simple string
+         * values in the database.
+         *
+         * <p>The referenced class must have a public zero params constructor.
+         *
+         * <p>For example:
+         *
+         * <pre>
+         * {@code
+         * @Document("Entity")
+         * public final class MyEntity {
+         *
+         *     @Document.StringProperty(serializer = SomeRichTypeSerializer.class)
+         *     public SomeRichType getMyProperty();
+         *
+         *     public final class SomeRichTypeSerializer implements StringSerializer<SomeRichType> {
+         *
+         *       @Override
+         *       @NonNull
+         *       public String serialize(@NonNull SomeRichType instance) {...}
+         *
+         *       @Override
+         *       @Nullable
+         *       public SomeRichType deserialize(@NonNull String string) {...}
+         *     }
+         * }
+         * }
+         * </pre>
+         */
+        Class<? extends StringSerializer<?>> serializer() default DefaultSerializer.class;
 
         /**
          * Configures whether this property must be specified for the document to be valid.
@@ -224,6 +303,18 @@ public @interface Document {
          * this attribute to {@code true}.
          */
         boolean required() default false;
+
+        final class DefaultSerializer implements StringSerializer<String> {
+            @Override
+            public @NonNull String serialize(@NonNull String instance) {
+                return instance;
+            }
+
+            @Override
+            public @NonNull String deserialize(@NonNull String string) {
+                return string;
+            }
+        }
     }
 
     /**
@@ -243,12 +334,62 @@ public @interface Document {
         String name() default "";
 
         /**
-         * Configures whether fields in the nested document should be indexed.
+         * Configures whether all fields in the nested document should be indexed.
          *
          * <p>If false, the nested document's properties are not indexed regardless of its own
-         * schema.
+         * schema, unless {@link #indexableNestedPropertiesList()} is used to index a subset of
+         * properties from the nested document.
+         *
+         * <p>{@link IllegalArgumentException} will be thrown during setSchema if set to true and
+         * defining a non-empty list for {@link #indexableNestedPropertiesList()}
          */
         boolean indexNestedProperties() default false;
+
+        /**
+         * The list of properties in the nested document to index. The property will be indexed
+         * according to its indexing configurations in the document's schema definition.
+         *
+         * <p>{@link #indexNestedProperties} is required to be false if this list is non-empty.
+         * {@link IllegalArgumentException} will be thrown during setSchema if this condition is
+         * not met.
+         *
+         * @see
+         * AppSearchSchema.DocumentPropertyConfig.Builder#addIndexableNestedProperties(Collection)
+         */
+        String[] indexableNestedPropertiesList() default {};
+
+        /**
+         * Configures whether to inherit the indexable nested properties list from the Document's
+         * superclass type definition. When set to true, the indexable property paths will be
+         * a union of the paths specified in {@link #indexableNestedPropertiesList()} and any
+         * path specified in the document class's superclass or inherited interfaces.
+         * Effectively, this is a no-op if none of the document superclasses specify a path for
+         * this document property.
+         *
+         * <p>Ex. Consider the following Document classes:
+         * <pre>
+         * {@code
+         * @Document
+         * class Person {
+         *   @Document.DocumentProperty(indexableNestedPropertiesList = {"streetName", "zipcode"})
+         *   Address livesAt;
+         * }
+         * @Document
+         * class Artist extends Person {
+         *   @Document.DocumentProperty(
+         *     indexableNestedPropertiesList = {"country"},
+         *     inheritIndexableNestedPropertiesFromSuperclass = true
+         *   )
+         *   Address livesAt;
+         * }
+         * }
+         * </pre>
+         *
+         * <p>By setting 'inheritIndexableNestedPropertiesFromSuperclass = true', Artist.livesAt
+         * inherits the indexable nested properties defined by its parent class's livesAt field
+         * (Person.livesAt) and indexes all three fields: {streetName, zipCode, country}
+         */
+        boolean inheritIndexableNestedPropertiesFromSuperclass() default false;
 
         /**
          * Configures whether this property must be specified for the document to be valid.
@@ -288,6 +429,18 @@ public @interface Document {
                 default AppSearchSchema.LongPropertyConfig.INDEXING_TYPE_NONE;
 
         /**
+         * Configures how a property should be converted to and from a {@link Long}.
+         *
+         * <p>Useful for representing properties using rich types that boil down to simple 64-bit
+         * integer values in the database.
+         *
+         * <p>The referenced class must have a public zero params constructor.
+         *
+         * <p>See {@link StringProperty#serializer()} for an example of a serializer.
+         */
+        Class<? extends LongSerializer<?>> serializer() default DefaultSerializer.class;
+
+        /**
          * Configures whether this property must be specified for the document to be valid.
          *
          * <p>This attribute does not apply to properties of a repeated type (e.g. a list).
@@ -297,6 +450,19 @@ public @interface Document {
          * this attribute to {@code true}.
          */
         boolean required() default false;
+
+        final class DefaultSerializer implements LongSerializer<Long> {
+            @Override
+            public long serialize(@SuppressWarnings("AutoBoxing") @NonNull Long value) {
+                return value;
+            }
+
+            @Override
+            @SuppressWarnings("AutoBoxing")
+            public @NonNull Long deserialize(long value) {
+                return value;
+            }
+        }
     }
 
     /**
@@ -373,4 +539,101 @@ public @interface Document {
          */
         boolean required() default false;
     }
+
+    /**
+     * Configures an {@link EmbeddingVector} field of a class as a property known to AppSearch.
+     */
+    @Documented
+    @Retention(RetentionPolicy.CLASS)
+    @Target({ElementType.FIELD, ElementType.METHOD})
+    @interface EmbeddingProperty {
+        /**
+         * The name of this property. This string is used to query against this property.
+         *
+         * <p>If not specified, the name of the field in the code will be used instead.
+         */
+        String name() default "";
+
+        /**
+         * Configures how a property should be indexed so that it can be retrieved by queries.
+         *
+         * <p>If not specified, defaults to
+         * {@link AppSearchSchema.EmbeddingPropertyConfig#INDEXING_TYPE_NONE} (the field will not be
+         * indexed and cannot be queried).
+         */
+        @AppSearchSchema.EmbeddingPropertyConfig.IndexingType int indexingType()
+                default AppSearchSchema.EmbeddingPropertyConfig.INDEXING_TYPE_NONE;
+
+        /**
+         * Configures whether the embedding vectors in this property should be quantized.
+         *
+         * <p>If not specified, defaults to
+         * {@link AppSearchSchema.EmbeddingPropertyConfig#QUANTIZATION_TYPE_NONE} (contents in
+         * this property will not be quantized.).
+         */
+        @ExperimentalAppSearchApi
+        @AppSearchSchema.EmbeddingPropertyConfig.QuantizationType int quantizationType()
+                default AppSearchSchema.EmbeddingPropertyConfig.QUANTIZATION_TYPE_NONE;
+
+        /**
+         * Configures whether this property must be specified for the document to be valid.
+         *
+         * <p>This attribute does not apply to properties of a repeated type (e.g. a list).
+         *
+         * <p>Please make sure you understand the consequences of required fields on
+         * {@link androidx.appsearch.app.AppSearchSession#setSchemaAsync schema migration} before
+         * setting this attribute to {@code true}.
+         */
+        boolean required() default false;
+    }
+
+    /**
+     * Configures an {@link androidx.appsearch.app.AppSearchBlobHandle} field of a class as a
+     * property known to AppSearch.
+     */
+    @Documented
+    @Retention(RetentionPolicy.CLASS)
+    @Target({ElementType.FIELD, ElementType.METHOD})
+    @ExperimentalAppSearchApi
+    @interface BlobHandleProperty {
+        /**
+         * The name of this property. This string is used to query against this property.
+         *
+         * <p>If not specified, the name of the field in the code will be used instead.
+         */
+        String name() default "";
+
+        /**
+         * Configures whether this property must be specified for the document to be valid.
+         *
+         * <p>This attribute does not apply to properties of a repeated type (e.g. a list).
+         *
+         * <p>Please make sure you understand the consequences of required fields on
+         * {@link androidx.appsearch.app.AppSearchSession#setSchemaAsync schema migration} before
+         * setting this attribute to {@code true}.
+         */
+        boolean required() default false;
+    }
+
+    /**
+     * Marks a static method or a builder class directly as a builder producer. A builder class
+     * should contain a "build()" method to construct the AppSearch document object and setter
+     * methods to set field values.
+     *
+     * <p>When a static method is marked as a builder producer, the method should return a
+     * builder instance for AppSearch to construct the document object. When a builder class is
+     * marked as a builder producer directly, AppSearch will use the constructor of the builder
+     * class to create a builder instance.
+     *
+     * <p>The annotated static method or the constructor of the annotated builder class is allowed
+     * to accept parameters to set a part of field values. In this case, AppSearch will only use
+     * setters to set values for the remaining fields.
+     *
+     * <p>Once a builder producer is specified, AppSearch will be forced to use the builder
+     * pattern to construct the document object.
+     */
+    @Documented
+    @Retention(RetentionPolicy.CLASS)
+    @Target({ElementType.METHOD, ElementType.TYPE})
+    @interface BuilderProducer {}
 }

@@ -25,6 +25,9 @@ import android.widget.ImageView;
 
 import androidx.leanback.app.OnboardingFragment;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 
 public class OnboardingDemoFragment extends OnboardingFragment {
@@ -83,7 +86,8 @@ public class OnboardingDemoFragment extends OnboardingFragment {
     }
 
     @Override
-    protected View onCreateContentView(LayoutInflater layoutInflater, ViewGroup viewGroup) {
+    protected @Nullable View onCreateContentView(@NonNull LayoutInflater layoutInflater,
+            @NonNull ViewGroup viewGroup) {
         mContentView = layoutInflater.inflate(R.layout.onboarding_content, viewGroup, false);
         mContentBackgroundView = (ImageView) mContentView.findViewById(R.id.background_image);
         mContentAnimationView = (ImageView) mContentView.findViewById(R.id.animation_image);
@@ -91,7 +95,8 @@ public class OnboardingDemoFragment extends OnboardingFragment {
     }
 
     @Override
-    protected View onCreateForegroundView(LayoutInflater layoutInflater, ViewGroup viewGroup) {
+    protected @Nullable View onCreateForegroundView(@NonNull LayoutInflater layoutInflater,
+            @NonNull ViewGroup viewGroup) {
         return null;
     }
 

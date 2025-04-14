@@ -26,8 +26,10 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -42,9 +44,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 
-/**
- * Demonstration of how various press/tap gesture interact together in a nested fashion.
- */
+/** Demonstration of how various press/tap gesture interact together in a nested fashion. */
 @Composable
 fun PointerInputDuringSubComp() {
     Column {
@@ -61,35 +61,28 @@ fun PointerInputDuringSubComp() {
                 "your finger there and then add more fingers, it will track those new fingers."
         )
         LazyColumn(
-            Modifier
-                .fillMaxSize()
+            Modifier.fillMaxSize()
                 .wrapContentSize(Alignment.Center)
                 .requiredSize(200.dp)
                 .background(color = Color.White)
         ) {
             items(100) {
-                val pointerCount = remember { mutableStateOf(0) }
+                var pointerCount by remember { mutableIntStateOf(0) }
 
                 Box(
                     Modifier.fillParentMaxSize()
                         .border(width = 1.dp, color = Color.Black)
-                        .pointerCounterGestureFilter { newCount -> pointerCount.value = newCount },
+                        .pointerCounterGestureFilter { newCount -> pointerCount = newCount },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "${pointerCount.value}",
-                        fontSize = 16.em,
-                        color = Color.Black
-                    )
+                    Text("$pointerCount", fontSize = 16.em, color = Color.Black)
                 }
             }
         }
     }
 }
 
-fun Modifier.pointerCounterGestureFilter(
-    onPointerCountChanged: (Int) -> Unit
-): Modifier =
+fun Modifier.pointerCounterGestureFilter(onPointerCountChanged: (Int) -> Unit): Modifier =
     composed {
         val filter = remember { PointerCounterGestureFilter() }
         filter.onPointerCountChanged = onPointerCountChanged
@@ -111,9 +104,8 @@ internal class PointerCounterGestureFilter : PointerInputFilter() {
         val changes = pointerEvent.changes
 
         if (pass == PointerEventPass.Main) {
-            if (changes.any {
-                it.changedToDownIgnoreConsumed() || it.changedToUpIgnoreConsumed()
-            }
+            if (
+                changes.any { it.changedToDownIgnoreConsumed() || it.changedToUpIgnoreConsumed() }
             ) {
                 onPointerCountChanged.invoke(changes.count { it.pressed })
             }

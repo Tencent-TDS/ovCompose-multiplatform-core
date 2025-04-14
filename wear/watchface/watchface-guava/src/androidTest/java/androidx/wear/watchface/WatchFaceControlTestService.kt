@@ -91,14 +91,26 @@ public open class WatchFaceControlClientServiceTest {
     val glSurface = Surface(surfaceTexture)
     val glSurfaceHolder = Mockito.mock(SurfaceHolder::class.java)
 
-    val watchFaceControlClientService = runBlocking {
+    fun createWatchFaceControlClientService() = runBlocking {
         WatchFaceControlClient.createWatchFaceControlClientImpl(
             context,
             Intent(context, WatchFaceControlTestService::class.java).apply {
                 action = WatchFaceControlService.ACTION_WATCHFACE_CONTROL_SERVICE
-            }
+            },
+            resourceOnlyWatchFacePackageName = null
         )
     }
+
+    fun createWatchFaceRuntimeControlClientService(resourceOnlyWatchFacePackageName: String) =
+        runBlocking {
+            WatchFaceControlClient.createWatchFaceControlClientImpl(
+                context,
+                Intent(context, WatchFaceControlTestService::class.java).apply {
+                    action = WatchFaceControlService.ACTION_WATCHFACE_CONTROL_SERVICE
+                },
+                resourceOnlyWatchFacePackageName
+            )
+        }
 
     @Before
     fun setUp() {

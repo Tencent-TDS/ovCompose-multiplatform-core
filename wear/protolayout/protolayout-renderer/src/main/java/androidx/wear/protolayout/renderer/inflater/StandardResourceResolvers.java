@@ -16,11 +16,13 @@
 
 package androidx.wear.protolayout.renderer.inflater;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 
-import androidx.annotation.NonNull;
 import androidx.wear.protolayout.proto.ResourceProto;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.Executor;
 
@@ -37,9 +39,9 @@ public class StandardResourceResolvers {
      * @param appContext Context for the app that both owns the resources and displays the layout.
      * @param asyncLoadExecutor The executor to use to load any async resources (e.g. Content URI).
      */
-    @NonNull
-    public static ResourceResolvers.Builder forLocalApp(
-            @NonNull ResourceProto.Resources protoResources,
+    @SuppressLint("CheckResult")
+    public static ResourceResolvers.@NonNull Builder forLocalApp(
+            ResourceProto.@NonNull Resources protoResources,
             @NonNull Context appContext,
             @NonNull Executor asyncLoadExecutor,
             boolean animationEnabled) {
@@ -100,9 +102,9 @@ public class StandardResourceResolvers {
      * @param animationEnabled Whether animation is enabled, which decides whether to load AVD
      *     resources.
      */
-    @NonNull
-    public static ResourceResolvers.Builder forRemoteService(
-            @NonNull ResourceProto.Resources protoResources,
+    @SuppressLint("CheckResult")
+    public static ResourceResolvers.@NonNull Builder forRemoteService(
+            ResourceProto.@NonNull Resources protoResources,
             @NonNull String servicePackageName,
             @NonNull Resources serviceAndroidResources,
             @NonNull Context hostAppContext,

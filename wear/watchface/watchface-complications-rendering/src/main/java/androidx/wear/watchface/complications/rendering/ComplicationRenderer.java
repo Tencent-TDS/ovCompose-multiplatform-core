@@ -22,7 +22,6 @@ import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.toRadians;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -48,8 +47,6 @@ import android.support.wearable.complications.ComplicationText;
 import android.text.Layout;
 import android.text.TextPaint;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.wear.watchface.complications.data.ImageKt;
@@ -62,6 +59,9 @@ import androidx.wear.watchface.complications.rendering.utils.LongTextLayoutHelpe
 import androidx.wear.watchface.complications.rendering.utils.RangedValueLayoutHelper;
 import androidx.wear.watchface.complications.rendering.utils.ShortTextLayoutHelper;
 import androidx.wear.watchface.complications.rendering.utils.SmallImageLayoutHelper;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -209,16 +209,16 @@ class ComplicationRenderer {
     PaintSet mAmbientPaintSetLostTapAction = null;
 
     // Paints for texts
-    @Nullable private TextPaint mMainTextPaint = null;
-    @Nullable private TextPaint mSubTextPaint = null;
+    private @Nullable TextPaint mMainTextPaint = null;
+    private @Nullable TextPaint mSubTextPaint = null;
 
     // Styles for active and ambient modes.
     private ComplicationStyle mActiveStyle;
     private ComplicationStyle mAmbientStyle;
 
-    @Nullable private Paint mDebugPaint;
+    private @Nullable Paint mDebugPaint;
 
-    @Nullable private OnInvalidateListener mInvalidateListener;
+    private @Nullable OnInvalidateListener mInvalidateListener;
 
     /**
      * Initializes complication renderer.
@@ -395,7 +395,7 @@ class ComplicationRenderer {
     }
 
     /** Returns {@code true} if the ranged value progress should be hidden. */
-    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+    @VisibleForTesting
     public boolean isRangedValueProgressHidden() {
         return mRangedValueProgressHidden;
     }
@@ -1147,7 +1147,6 @@ class ComplicationRenderer {
                     mContext,
                     new OnDrawableLoadedListener() {
                         @Override
-                        @SuppressLint("SyntheticAccessor")
                         public void onDrawableLoaded(Drawable d) {
                             if (d == null) {
                                 return;
@@ -1166,7 +1165,6 @@ class ComplicationRenderer {
                     mContext,
                     new OnDrawableLoadedListener() {
                         @Override
-                        @SuppressLint("SyntheticAccessor")
                         public void onDrawableLoaded(Drawable d) {
                             if (d == null) {
                                 return;
@@ -1185,7 +1183,6 @@ class ComplicationRenderer {
                     mContext,
                     new OnDrawableLoadedListener() {
                         @Override
-                        @SuppressLint("SyntheticAccessor")
                         public void onDrawableLoaded(Drawable d) {
                             if (d == null) {
                                 return;
@@ -1204,7 +1201,6 @@ class ComplicationRenderer {
                     mContext,
                     new OnDrawableLoadedListener() {
                         @Override
-                        @SuppressLint("SyntheticAccessor")
                         public void onDrawableLoaded(Drawable d) {
                             if (d == null) {
                                 return;
@@ -1222,7 +1218,6 @@ class ComplicationRenderer {
                     mContext,
                     new OnDrawableLoadedListener() {
                         @Override
-                        @SuppressLint("SyntheticAccessor")
                         public void onDrawableLoaded(Drawable d) {
                             if (d == null) {
                                 return;
@@ -1326,7 +1321,6 @@ class ComplicationRenderer {
         /** Icon tint color filter */
         final ColorFilter mIconColorFilter;
 
-        @SuppressLint("SyntheticAccessor")
         PaintSet(
                 ComplicationStyle style,
                 boolean isAmbientStyle,
@@ -1420,64 +1414,55 @@ class ComplicationRenderer {
         }
     }
 
-    @NonNull
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Rect getBounds() {
+    @VisibleForTesting
+    public @NonNull Rect getBounds() {
         return mBounds;
     }
 
-    @NonNull
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Rect getIconBounds() {
+    @VisibleForTesting
+    public @NonNull Rect getIconBounds() {
         return mIconBounds;
     }
 
-    @Nullable
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Drawable getIcon() {
+    @VisibleForTesting
+    public @Nullable Drawable getIcon() {
         return mIcon;
     }
 
-    @Nullable
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Drawable getSmallImage() {
+    @VisibleForTesting
+    public @Nullable Drawable getSmallImage() {
         return mSmallImage;
     }
 
-    @Nullable
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Drawable getBurnInProtectionIcon() {
+    @VisibleForTesting
+    public @Nullable Drawable getBurnInProtectionIcon() {
         return mBurnInProtectionIcon;
     }
 
-    @Nullable
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Drawable getBurnInProtectionSmallImage() {
+    @VisibleForTesting
+    public @Nullable Drawable getBurnInProtectionSmallImage() {
         return mBurnInProtectionSmallImage;
     }
 
-    @Nullable
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public RoundedDrawable getRoundedSmallImage() {
+    @VisibleForTesting
+    public @Nullable RoundedDrawable getRoundedSmallImage() {
         return mRoundedSmallImage;
     }
 
-    @NonNull
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Rect getMainTextBounds() {
+    @VisibleForTesting
+    public @NonNull Rect getMainTextBounds() {
         return mMainTextBounds;
     }
 
-    @NonNull
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public Rect getSubTextBounds() {
+    @VisibleForTesting
+    public @NonNull Rect getSubTextBounds() {
         return mSubTextBounds;
     }
 
     /**
      * @param outRect Object that receives the computation of the complication's inner bounds
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    @VisibleForTesting
     public void getComplicationInnerBounds(@NonNull Rect outRect) {
         LayoutUtils.getInnerBounds(
                 outRect,
@@ -1489,7 +1474,7 @@ class ComplicationRenderer {
      * @param drawable The {@link ComplicationRenderer} to check against this one
      * @return True if this {@link ComplicationRenderer} has the same layout as the provided one
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    @VisibleForTesting
     public boolean hasSameLayout(@NonNull ComplicationRenderer drawable) {
         return mBounds.equals(drawable.mBounds)
                 && mBackgroundBounds.equals(drawable.mBackgroundBounds)
@@ -1510,8 +1495,8 @@ class ComplicationRenderer {
      * restricted to black, white or transparent. All text and icon colors in the returned style
      * will be set to white.
      */
-    @NonNull
-    private static ComplicationStyle lowBitAmbientStyleFrom(@NonNull ComplicationStyle style) {
+    private static @NonNull ComplicationStyle lowBitAmbientStyleFrom(
+            @NonNull ComplicationStyle style) {
         ComplicationStyle newStyle = new ComplicationStyle(style);
         if (style.getBackgroundColor() != Color.BLACK) {
             newStyle.setBackgroundColor(Color.TRANSPARENT);

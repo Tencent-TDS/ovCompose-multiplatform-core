@@ -35,6 +35,9 @@ import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
 import androidx.leanback.widget.VerticalGridPresenter;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * A fragment for creating leanback vertical grids.
  *
@@ -81,7 +84,7 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Sets the grid presenter.
      */
-    public void setGridPresenter(VerticalGridPresenter gridPresenter) {
+    public void setGridPresenter(@NonNull VerticalGridPresenter gridPresenter) {
         if (gridPresenter == null) {
             throw new IllegalArgumentException("Grid presenter may not be null");
         }
@@ -95,14 +98,14 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Returns the grid presenter.
      */
-    public VerticalGridPresenter getGridPresenter() {
+    public @Nullable VerticalGridPresenter getGridPresenter() {
         return mGridPresenter;
     }
 
     /**
      * Sets the object adapter for the fragment.
      */
-    public void setAdapter(ObjectAdapter adapter) {
+    public void setAdapter(@Nullable ObjectAdapter adapter) {
         mAdapter = adapter;
         updateAdapter();
     }
@@ -110,7 +113,7 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Returns the object adapter.
      */
-    public ObjectAdapter getAdapter() {
+    public @Nullable ObjectAdapter getAdapter() {
         return mAdapter;
     }
 
@@ -132,7 +135,12 @@ public class VerticalGridFragment extends BaseFragment {
     final private OnChildLaidOutListener mChildLaidOutListener =
             new OnChildLaidOutListener() {
         @Override
-        public void onChildLaidOut(ViewGroup parent, View view, int position, long id) {
+        public void onChildLaidOut(
+                @NonNull ViewGroup parent,
+                @NonNull View view,
+                int position,
+                long id
+        ) {
             if (position == 0) {
                 showOrHideTitle();
             }
@@ -142,7 +150,7 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Sets an item selection listener.
      */
-    public void setOnItemViewSelectedListener(OnItemViewSelectedListener listener) {
+    public void setOnItemViewSelectedListener(@Nullable OnItemViewSelectedListener listener) {
         mOnItemViewSelectedListener = listener;
     }
 
@@ -168,7 +176,7 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Sets an item clicked listener.
      */
-    public void setOnItemViewClickedListener(OnItemViewClickedListener listener) {
+    public void setOnItemViewClickedListener(@Nullable OnItemViewClickedListener listener) {
         mOnItemViewClickedListener = listener;
         if (mGridPresenter != null) {
             mGridPresenter.setOnItemViewClickedListener(mOnItemViewClickedListener);
@@ -178,12 +186,12 @@ public class VerticalGridFragment extends BaseFragment {
     /**
      * Returns the item clicked listener.
      */
-    public OnItemViewClickedListener getOnItemViewClickedListener() {
+    public @Nullable OnItemViewClickedListener getOnItemViewClickedListener() {
         return mOnItemViewClickedListener;
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public @Nullable View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
             Bundle savedInstanceState) {
         ViewGroup root = (ViewGroup) inflater.inflate(R.layout.lb_vertical_grid_fragment,
                 container, false);
@@ -247,13 +255,13 @@ public class VerticalGridFragment extends BaseFragment {
     }
 
     @Override
-    protected Object createEntranceTransition() {
+    protected @NonNull Object createEntranceTransition() {
         return TransitionHelper.loadTransition(FragmentUtil.getContext(VerticalGridFragment.this),
                 R.transition.lb_vertical_grid_entrance_transition);
     }
 
     @Override
-    protected void runEntranceTransition(Object entranceTransition) {
+    protected void runEntranceTransition(@Nullable Object entranceTransition) {
         TransitionHelper.runTransition(mSceneAfterEntranceTransition, entranceTransition);
     }
 

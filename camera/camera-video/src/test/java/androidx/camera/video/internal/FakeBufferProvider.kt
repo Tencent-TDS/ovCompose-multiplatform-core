@@ -20,9 +20,9 @@ import androidx.camera.core.impl.Observable
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.directExecutor
 import androidx.camera.core.impl.utils.futures.Futures.immediateFailedFuture
 import androidx.camera.core.impl.utils.futures.Futures.immediateFuture
-import androidx.camera.testing.mocks.MockConsumer
-import androidx.camera.testing.mocks.helpers.CallTimes
-import androidx.camera.testing.mocks.verifyAcceptCallExt
+import androidx.camera.testing.impl.mocks.MockConsumer
+import androidx.camera.testing.impl.mocks.helpers.CallTimes
+import androidx.camera.testing.impl.mocks.verifyAcceptCallExt
 import androidx.camera.video.internal.encoder.FakeInputBuffer
 import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.ExecutionException
@@ -39,18 +39,24 @@ class FakeBufferProvider(
     override fun acquireBuffer(): ListenableFuture<FakeInputBuffer> {
         return if (state == BufferProvider.State.ACTIVE) {
             val bufferFuture = bufferFactory.invoke(acquiredBufferNum++)
-            bufferFuture.addListener({
-                try {
-                    val inputBuffer = bufferFuture.get()
-                    inputBuffer.terminationFuture.addListener({
-                        if (inputBuffer.isSubmitted) {
-                            submittedBufferCalls.accept(inputBuffer)
-                        }
-                    }, directExecutor())
-                } catch (e: ExecutionException) {
-                    // Ignored.
-                }
-            }, directExecutor())
+            bufferFuture.addListener(
+                {
+                    try {
+                        val inputBuffer = bufferFuture.get()
+                        inputBuffer.terminationFuture.addListener(
+                            {
+                                if (inputBuffer.isSubmitted) {
+                                    submittedBufferCalls.accept(inputBuffer)
+                                }
+                            },
+                            directExecutor()
+                        )
+                    } catch (e: ExecutionException) {
+                        // Ignored.
+                    }
+                },
+                directExecutor()
+            )
             return bufferFuture
         } else {
             immediateFailedFuture(IllegalStateException("Not in ACTIVE state"))
@@ -78,13 +84,14 @@ class FakeBufferProvider(
         timeoutMs: Long = MockConsumer.NO_TIMEOUT,
         inOder: Boolean = false,
         onCompleteBuffers: ((List<FakeInputBuffer>) -> Unit)? = null,
-    ) = submittedBufferCalls.verifyAcceptCallExt(
-        FakeInputBuffer::class.java,
-        inOder,
-        timeoutMs,
-        callTimes,
-        onCompleteBuffers,
-    )
+    ) =
+        submittedBufferCalls.verifyAcceptCallExt(
+            FakeInputBuffer::class.java,
+            inOder,
+            timeoutMs,
+            callTimes,
+            onCompleteBuffers,
+        )
 
     fun setState(newState: BufferProvider.State) {
         if (state == newState) {

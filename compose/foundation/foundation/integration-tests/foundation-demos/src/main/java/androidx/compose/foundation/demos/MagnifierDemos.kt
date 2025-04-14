@@ -16,12 +16,11 @@
 
 package androidx.compose.foundation.demos
 
+import android.os.Build
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.MagnifierStyle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,19 +53,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
-val MagnifierDemos = listOf(
-    ComposableDemo("Simple Magnifier") { MagnifierSample() },
-    ComposableDemo("Multitouch Custom Magnifier") { MultitouchCustomMagnifierDemo() },
-)
-
-@OptIn(ExperimentalFoundationApi::class)
-private val DemoMagnifierStyle = MagnifierStyle(
-    size = DpSize(100.dp, 100.dp),
-    cornerRadius = 50.dp,
-)
+val MagnifierDemos =
+    listOf(
+        ComposableDemo("Simple Magnifier") { MagnifierSample() },
+        ComposableDemo("Multitouch Custom Magnifier") { MultitouchCustomMagnifierDemo() },
+    )
 
 @Preview
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MultitouchCustomMagnifierDemo() {
     // Track the offset for every pointer ID that is currently "down".
@@ -74,11 +67,9 @@ fun MultitouchCustomMagnifierDemo() {
 
     // Animate the background to demonstrate the magnifier updating its content when the
     // layer is redrawn.
-    val colorAnimationSpec = remember {
-        infiniteRepeatable(tween<Color>(1000))
-    }
-    val color by rememberInfiniteTransition()
-        .animateColor(Color.Red, Color.Green, colorAnimationSpec)
+    val colorAnimationSpec = remember { infiniteRepeatable(tween<Color>(1000)) }
+    val color by
+        rememberInfiniteTransition().animateColor(Color.Red, Color.Green, colorAnimationSpec)
 
     Column {
         Text(
@@ -86,7 +77,7 @@ fun MultitouchCustomMagnifierDemo() {
             style = TextStyle(textAlign = TextAlign.Center),
             modifier = Modifier.fillMaxWidth()
         )
-        if (!DemoMagnifierStyle.isSupported) {
+        if (Build.VERSION.SDK_INT < 28) {
             Text(
                 "Magnifier not supported on this platform.",
                 color = Color.Red,
@@ -97,8 +88,7 @@ fun MultitouchCustomMagnifierDemo() {
         Divider()
         // Include some padding to ensure the magnifier is using the right offset.
         Box(
-            Modifier
-                .padding(48.dp)
+            Modifier.padding(48.dp)
                 .fillMaxSize()
                 .clipToBounds()
                 .drawBehind {
@@ -107,31 +97,28 @@ fun MultitouchCustomMagnifierDemo() {
                     drawRect(color)
 
                     // Draw something interesting to zoom in on.
+                    @Suppress("SteppedForLoop")
                     for (diameter in 2 until size.maxDimension.toInt() step 10) {
-                    drawCircle(
-                        color = Color.Black,
-                        radius = diameter / 2f,
-                        style = Stroke()
-                    )
+                        drawCircle(color = Color.Black, radius = diameter / 2f, style = Stroke())
+                    }
                 }
-            }
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        // Track a magnifier for each finger on the screen.
-                        awaitPointerEvent().changes.forEach {
-                            if (it.pressed) {
-                                magnifierOffsets.getOrPut(it.id) {
-                                    mutableStateOf(it.position)
-                                }.value = it.position
-                            } else {
-                                magnifierOffsets -= it.id
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            // Track a magnifier for each finger on the screen.
+                            awaitPointerEvent().changes.forEach {
+                                if (it.pressed) {
+                                    magnifierOffsets
+                                        .getOrPut(it.id) { mutableStateOf(it.position) }
+                                        .value = it.position
+                                } else {
+                                    magnifierOffsets -= it.id
+                                }
+                                it.consume()
                             }
-                            it.consume()
                         }
                     }
                 }
-            }
         ) {
             magnifierOffsets.keys.forEach { id ->
                 key(id) {
@@ -149,7 +136,8 @@ fun MultitouchCustomMagnifierDemo() {
                                     ?: Offset.Zero
                             },
                             zoom = 3f,
-                            style = DemoMagnifierStyle
+                            size = DpSize(100.dp, 100.dp),
+                            cornerRadius = 50.dp,
                         )
                     )
                 }

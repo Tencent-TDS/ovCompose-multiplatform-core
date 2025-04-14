@@ -36,9 +36,8 @@ import androidx.navigation.fragment.DialogFragmentNavigator.Destination
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Navigator that uses [DialogFragment.show]. Every
- * destination using this Navigator must set a valid DialogFragment class name with
- * `android:name` or [Destination.setClassName].
+ * Navigator that uses [DialogFragment.show]. Every destination using this Navigator must set a
+ * valid DialogFragment class name with `android:name` or [Destination.setClassName].
  */
 @Navigator.Name("dialog")
 public class DialogFragmentNavigator(
@@ -46,85 +45,83 @@ public class DialogFragmentNavigator(
     private val fragmentManager: FragmentManager
 ) : Navigator<Destination>() {
     private val restoredTagsAwaitingAttach = mutableSetOf<String>()
-    private val observer = object : LifecycleEventObserver {
-        override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    val dialogFragment = source as DialogFragment
-                    val dialogOnBackStack = state.backStack.value.any {
-                        it.id == dialogFragment.tag
-                    }
-                    if (!dialogOnBackStack) {
-                        // If the Fragment is no longer on the back stack, it must have been
-                        // been popped before it was actually attached to the FragmentManager
-                        // (i.e., popped in the same frame as the navigate() call that added it).
-                        // For that case, we need to dismiss the dialog to ensure the states stay
-                        // in sync
-                        dialogFragment.dismiss()
-                    }
-                }
-                Lifecycle.Event.ON_RESUME -> {
-                    val dialogFragment = source as DialogFragment
-                    val entry = state.transitionsInProgress.value.lastOrNull { entry ->
-                        entry.id == dialogFragment.tag
-                    }
-                    entry?.let { state.markTransitionComplete(it) }
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    val dialogFragment = source as DialogFragment
-                    if (!dialogFragment.requireDialog().isShowing) {
-                        val beforePopList = state.backStack.value
-                        val poppedEntry = beforePopList.lastOrNull {
-                            it.id == dialogFragment.tag
+    private val observer =
+        object : LifecycleEventObserver {
+            override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                when (event) {
+                    Lifecycle.Event.ON_CREATE -> {
+                        val dialogFragment = source as DialogFragment
+                        val dialogOnBackStack =
+                            state.backStack.value.any { it.id == dialogFragment.tag }
+                        if (!dialogOnBackStack) {
+                            // If the Fragment is no longer on the back stack, it must have been
+                            // been popped before it was actually attached to the FragmentManager
+                            // (i.e., popped in the same frame as the navigate() call that added
+                            // it).
+                            // For that case, we need to dismiss the dialog to ensure the states
+                            // stay
+                            // in sync
+                            dialogFragment.dismiss()
                         }
-                        if (beforePopList.lastOrNull() != poppedEntry) {
-                            Log.i(
-                                TAG,
-                                "Dialog $dialogFragment was dismissed while it was not the " +
-                                    "top of the back stack, popping all dialogs above this " +
-                                    "dismissed dialog"
-                            )
+                    }
+                    Lifecycle.Event.ON_RESUME -> {
+                        val dialogFragment = source as DialogFragment
+                        val entry =
+                            state.transitionsInProgress.value.lastOrNull { entry ->
+                                entry.id == dialogFragment.tag
+                            }
+                        entry?.let { state.markTransitionComplete(it) }
+                    }
+                    Lifecycle.Event.ON_STOP -> {
+                        val dialogFragment = source as DialogFragment
+                        if (!dialogFragment.requireDialog().isShowing) {
+                            val beforePopList = state.backStack.value
+                            val popIndex = beforePopList.indexOfLast { it.id == dialogFragment.tag }
+                            val poppedEntry = beforePopList.elementAtOrNull(popIndex)
+                            if (beforePopList.lastOrNull() != poppedEntry) {
+                                Log.i(
+                                    TAG,
+                                    "Dialog $dialogFragment was dismissed while it was not the " +
+                                        "top of the back stack, popping all dialogs above this " +
+                                        "dismissed dialog"
+                                )
+                            }
+                            poppedEntry?.let { popWithTransition(popIndex, it, false) }
                         }
-                        poppedEntry?.let { state.popWithTransition(it, false) }
+                    }
+                    Lifecycle.Event.ON_DESTROY -> {
+                        val dialogFragment = source as DialogFragment
+                        val entry =
+                            state.transitionsInProgress.value.lastOrNull { entry ->
+                                entry.id == dialogFragment.tag
+                            }
+                        entry?.let { state.markTransitionComplete(it) }
+                        dialogFragment.lifecycle.removeObserver(this)
+                    }
+                    else -> {
+                        /* added to exhaust when */
                     }
                 }
-                Lifecycle.Event.ON_DESTROY -> {
-                    val dialogFragment = source as DialogFragment
-                    val entry = state.transitionsInProgress.value.lastOrNull { entry ->
-                        entry.id == dialogFragment.tag
-                    }
-                    entry?.let { state.markTransitionComplete(it) }
-                    dialogFragment.lifecycle.removeObserver(this)
-                }
-                else -> { /* added to exhaust when */ }
             }
         }
-    }
 
-    /**
-     * Gets the backstack of [NavBackStackEntry] associated with this Navigator
-     */
+    /** Gets the backstack of [NavBackStackEntry] associated with this Navigator */
     internal val backStack: StateFlow<List<NavBackStackEntry>>
         get() = state.backStack
 
-    /**
-     * Stores DialogFragments that have been created but pendingTransaction.
-     */
+    /** Stores DialogFragments that have been created but pendingTransaction. */
     private val transitioningFragments: MutableMap<String, DialogFragment> = mutableMapOf()
 
     override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         if (fragmentManager.isStateSaved) {
-            Log.i(
-                TAG, "Ignoring popBackStack() call: FragmentManager has already saved its state"
-            )
+            Log.i(TAG, "Ignoring popBackStack() call: FragmentManager has already saved its state")
             return
         }
         val beforePopList = state.backStack.value
         // Get the set of entries that are going to be popped
-        val poppedList = beforePopList.subList(
-            beforePopList.indexOf(popUpTo),
-            beforePopList.size
-        )
+        val popUpToIndex = beforePopList.indexOf(popUpTo)
+        val poppedList = beforePopList.subList(popUpToIndex, beforePopList.size)
+
         // Now go through the list in reversed order (i.e., starting from the most recently added)
         // and dismiss each dialog
         for (entry in poppedList.reversed()) {
@@ -133,7 +130,24 @@ public class DialogFragmentNavigator(
                 (existingFragment as DialogFragment).dismiss()
             }
         }
+
+        popWithTransition(popUpToIndex, popUpTo, savedState)
+    }
+
+    private fun popWithTransition(
+        popUpToIndex: Int,
+        popUpTo: NavBackStackEntry,
+        savedState: Boolean
+    ) {
+        // track transitioning state of incoming entry
+        val incomingEntry = state.backStack.value.elementAtOrNull(popUpToIndex - 1)
+        val incomingEntryTransitioning = state.transitionsInProgress.value.contains(incomingEntry)
+
         state.popWithTransition(popUpTo, savedState)
+        // if incoming entry was marked as transitioning by popWithTransition, mark it as complete
+        if (incomingEntry != null && !incomingEntryTransitioning) {
+            state.markTransitionComplete(incomingEntry)
+        }
     }
 
     public override fun createDestination(): Destination {
@@ -154,12 +168,16 @@ public class DialogFragmentNavigator(
         }
     }
 
-    private fun navigate(
-        entry: NavBackStackEntry
-    ) {
+    private fun navigate(entry: NavBackStackEntry) {
         val dialogFragment = createDialogFragment(entry)
         dialogFragment.show(fragmentManager, entry.id)
+        val outGoingEntry = state.backStack.value.lastOrNull()
+        val outGoingEntryTransitioning = state.transitionsInProgress.value.contains(outGoingEntry)
         state.pushWithTransition(entry)
+        // if outgoing entry was put in Transition by push, mark complete here
+        if (outGoingEntry != null && !outGoingEntryTransitioning) {
+            state.markTransitionComplete(outGoingEntry)
+        }
     }
 
     override fun onLaunchSingleTop(backStackEntry: NavBackStackEntry) {
@@ -173,8 +191,9 @@ public class DialogFragmentNavigator(
 
         // Ensure previous fragment is dismissed. If it is in transition, we have to dismiss it
         // here before its value with same key (entry.id) gets replaced by new fragment.
-        val oldFragment = transitioningFragments[backStackEntry.id]
-            ?: fragmentManager.findFragmentByTag(backStackEntry.id) as? DialogFragment
+        val oldFragment =
+            transitioningFragments[backStackEntry.id]
+                ?: fragmentManager.findFragmentByTag(backStackEntry.id) as? DialogFragment
         if (oldFragment != null) {
             oldFragment.lifecycle.removeObserver(observer)
             oldFragment.dismiss()
@@ -191,9 +210,7 @@ public class DialogFragmentNavigator(
         if (className[0] == '.') {
             className = context.packageName + className
         }
-        val frag = fragmentManager.fragmentFactory.instantiate(
-            context.classLoader, className
-        )
+        val frag = fragmentManager.fragmentFactory.instantiate(context.classLoader, className)
         require(DialogFragment::class.java.isAssignableFrom(frag.javaClass)) {
             "Dialog destination ${destination.className} is not an instance of DialogFragment"
         }
@@ -211,10 +228,8 @@ public class DialogFragmentNavigator(
     override fun onAttach(state: NavigatorState) {
         super.onAttach(state)
         for (entry in state.backStack.value) {
-            val fragment = fragmentManager
-                .findFragmentByTag(entry.id) as DialogFragment?
-            fragment?.lifecycle?.addObserver(observer)
-                ?: restoredTagsAwaitingAttach.add(entry.id)
+            val fragment = fragmentManager.findFragmentByTag(entry.id) as DialogFragment?
+            fragment?.lifecycle?.addObserver(observer) ?: restoredTagsAwaitingAttach.add(entry.id)
         }
         fragmentManager.addFragmentOnAttachListener { _, childFragment ->
             val needToAddObserver = restoredTagsAwaitingAttach.remove(childFragment.tag)
@@ -232,8 +247,8 @@ public class DialogFragmentNavigator(
      * Fragment via [setClassName].
      *
      * @param fragmentNavigator The [DialogFragmentNavigator] which this destination will be
-     *                          associated with. Generally retrieved via a [NavController]'s
-     *                          [NavigatorProvider.getNavigator] method.
+     *   associated with. Generally retrieved via a [NavController]'s
+     *   [NavigatorProvider.getNavigator] method.
      */
     @NavDestination.ClassType(DialogFragment::class)
     public open class Destination
@@ -255,20 +270,18 @@ public class DialogFragmentNavigator(
          * Construct a new fragment destination. This destination is not valid until you set the
          * Fragment via [setClassName].
          *
-         * @param navigatorProvider The [NavController] which this destination
-         * will be associated with.
+         * @param navigatorProvider The [NavController] which this destination will be associated
+         *   with.
          */
-        public constructor(navigatorProvider: NavigatorProvider) : this(
-            navigatorProvider.getNavigator(DialogFragmentNavigator::class.java)
-        )
+        public constructor(
+            navigatorProvider: NavigatorProvider
+        ) : this(navigatorProvider.getNavigator(DialogFragmentNavigator::class.java))
 
         @CallSuper
         public override fun onInflate(context: Context, attrs: AttributeSet) {
             super.onInflate(context, attrs)
-            context.resources.obtainAttributes(
-                attrs,
-                R.styleable.DialogFragmentNavigator
-            ).use { array ->
+            context.resources.obtainAttributes(attrs, R.styleable.DialogFragmentNavigator).use {
+                array ->
                 val className = array.getString(R.styleable.DialogFragmentNavigator_android_name)
                 className?.let { setClassName(it) }
             }
@@ -276,8 +289,9 @@ public class DialogFragmentNavigator(
 
         /**
          * Set the DialogFragment class name associated with this destination
+         *
          * @param className The class name of the DialogFragment to show when you navigate to this
-         *                  destination
+         *   destination
          * @return this [Destination]
          */
         public fun setClassName(className: String): Destination {
@@ -286,6 +300,7 @@ public class DialogFragmentNavigator(
         }
 
         override fun equals(other: Any?): Boolean {
+            if (this === other) return true
             if (other == null || other !is Destination) return false
             return super.equals(other) && _className == other._className
         }

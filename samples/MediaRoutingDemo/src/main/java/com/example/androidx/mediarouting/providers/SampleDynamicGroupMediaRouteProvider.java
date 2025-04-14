@@ -24,8 +24,6 @@ import android.content.IntentSender;
 import android.media.MediaRouter;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.collection.ArrayMap;
 import androidx.mediarouter.media.MediaRouteDescriptor;
 import androidx.mediarouter.media.MediaRouteProvider;
@@ -37,6 +35,9 @@ import com.example.androidx.mediarouting.RoutesManager;
 import com.example.androidx.mediarouting.activities.SettingsActivity;
 import com.example.androidx.mediarouting.data.RouteItem;
 import com.example.androidx.mediarouting.services.SampleDynamicGroupMediaRouteProviderService;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -63,9 +64,8 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
         super(context);
     }
 
-    @Nullable
     @Override
-    public RouteController onCreateRouteController(@NonNull String routeId) {
+    public @Nullable RouteController onCreateRouteController(@NonNull String routeId) {
         if (!checkDrawOverlay()) return null;
 
         MediaRouteDescriptor routeDescriptor = mRouteDescriptors.get(routeId);
@@ -77,9 +77,8 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
         return new SampleRouteController(routeId);
     }
 
-    @Nullable
     @Override
-    public RouteController onCreateRouteController(@NonNull String routeId,
+    public @Nullable RouteController onCreateRouteController(@NonNull String routeId,
             @NonNull String groupId) {
         // Handle a static group exceptionally
         if (groupId.equals(STATIC_GROUP_ROUTE_ID)) {
@@ -100,9 +99,8 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
         return controller;
     }
 
-    @Nullable
     @Override
-    public DynamicGroupRouteController onCreateDynamicGroupRouteController(
+    public @Nullable DynamicGroupRouteController onCreateDynamicGroupRouteController(
             @NonNull String initialMemberRouteId) {
         if (!checkDrawOverlay()) return null;
 
@@ -224,11 +222,17 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
             mGroupDescriptor = groupRouteBuilder.build();
             mTvSelectedCount = countTvFromRoute(mGroupDescriptor);
 
-            // Initialize DynamicRouteDescriptor with all the route descriptors.
+            RoutesManager routesManager = RoutesManager.getInstance(getContext());
+
+            // Initialize DynamicRouteDescriptor with all the non-sender-driven descriptors.
             List<MediaRouteDescriptor> routeDescriptors = getDescriptor().getRoutes();
             if (routeDescriptors != null && !routeDescriptors.isEmpty()) {
                 for (MediaRouteDescriptor descriptor: routeDescriptors) {
                     String routeId = descriptor.getId();
+                    RouteItem item = routesManager.getRouteWithId(routeId);
+                    if (item != null && item.isSenderDriven()) {
+                        continue;
+                    }
                     boolean selected = memberIds.contains(routeId);
                     DynamicRouteDescriptor.Builder builder =
                             new DynamicRouteDescriptor.Builder(descriptor)
@@ -298,7 +302,16 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
             for (String memberRouteId : mMemberRouteIds) {
                 groupDescriptorBuilder.addGroupMemberId(memberRouteId);
             }
-
+            if (!mMemberRouteIds.isEmpty()) {
+                DynamicRouteDescriptor firstDynamicRouteDescriptor =
+                        mDynamicRouteDescriptors.get(mMemberRouteIds.get(0));
+                if (firstDynamicRouteDescriptor != null) {
+                    String name = firstDynamicRouteDescriptor.getRouteDescriptor().getName();
+                    int sizeMinusOne = mMemberRouteIds.size() - 1;
+                    String nameSuffix = sizeMinusOne == 0 ? "" : (" + " + sizeMinusOne);
+                    groupDescriptorBuilder.setName(name + nameSuffix);
+                }
+            }
             mGroupDescriptor = groupDescriptorBuilder.build();
         }
 
@@ -339,7 +352,7 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
 
             mDynamicRouteDescriptors.put(routeId, builder.build());
 
-            if (routeDescriptor.getDeviceType() == MediaRouter.RouteInfo.DEVICE_TYPE_TV) {
+            if (routeDescriptor.getDeviceType() == RouteInfo.DEVICE_TYPE_TV) {
                 mTvSelectedCount++;
             }
             return true;
@@ -359,7 +372,7 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
 
             MediaRouteDescriptor routeDescriptor =
                     mRouteDescriptors.get(dynamicDescriptor.getRouteDescriptor().getId());
-            if (routeDescriptor.getDeviceType() == MediaRouter.RouteInfo.DEVICE_TYPE_TV) {
+            if (routeDescriptor.getDeviceType() == RouteInfo.DEVICE_TYPE_TV) {
                 mTvSelectedCount--;
             }
             return true;
@@ -526,7 +539,7 @@ public final class SampleDynamicGroupMediaRouteProvider extends SampleMediaRoute
 
         private int countTvFromRoute(MediaRouteDescriptor routeDescriptor) {
             if (routeDescriptor.getGroupMemberIds().isEmpty()) {
-                return (routeDescriptor.getDeviceType() == MediaRouter.RouteInfo.DEVICE_TYPE_TV)
+                return (routeDescriptor.getDeviceType() == RouteInfo.DEVICE_TYPE_TV)
                         ? 1 : 0;
             }
             int count = 0;

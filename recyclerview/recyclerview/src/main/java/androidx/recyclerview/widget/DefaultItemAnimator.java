@@ -23,8 +23,9 @@ import android.annotation.SuppressLint;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
 
-import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +100,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void runPendingAnimations() {
         boolean removalsPending = !mPendingRemovals.isEmpty();
@@ -190,6 +192,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressLint("UnknownNullness") // b/240775049: Cannot annotate properly
     public boolean animateRemove(final RecyclerView.ViewHolder holder) {
@@ -220,6 +223,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
                 }).start();
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressLint("UnknownNullness") // b/240775049: Cannot annotate properly
     public boolean animateAdd(final RecyclerView.ViewHolder holder) {
@@ -255,6 +259,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
                 }).start();
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressLint("UnknownNullness") // b/240775049: Cannot annotate properly
     public boolean animateMove(final RecyclerView.ViewHolder holder, int fromX, int fromY,
@@ -320,6 +325,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         }).start();
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressLint("UnknownNullness") // b/240775049: Cannot annotate properly
     public boolean animateChange(RecyclerView.ViewHolder oldHolder,
@@ -438,6 +444,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         return true;
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressLint("UnknownNullness") // b/240775049: Cannot annotate properly
     public void endAnimation(RecyclerView.ViewHolder item) {
@@ -533,6 +540,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         endAnimation(holder);
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean isRunning() {
         return (!mPendingAdditions.isEmpty()
@@ -559,6 +567,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void endAnimations() {
         int count = mPendingMoves.size();
@@ -667,7 +676,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
      * </ul>
      */
     @Override
-    public boolean canReuseUpdatedViewHolder(@NonNull RecyclerView.ViewHolder viewHolder,
+    public boolean canReuseUpdatedViewHolder(RecyclerView.@NonNull ViewHolder viewHolder,
             @NonNull List<Object> payloads) {
         return !payloads.isEmpty() || super.canReuseUpdatedViewHolder(viewHolder, payloads);
     }

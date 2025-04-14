@@ -33,13 +33,17 @@ class SurfaceControlWrapperTestActivity : Activity() {
         var DEFAULT_HEIGHT = 100
     }
 
+    private var mDestroyCallback: (() -> Unit)? = null
+
+    fun setDestroyCallback(callback: () -> Unit) {
+        mDestroyCallback = callback
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        mLayoutParams = FrameLayout.LayoutParams(
-            DEFAULT_WIDTH, DEFAULT_HEIGHT,
-            Gravity.LEFT or Gravity.TOP
-        )
+        mLayoutParams =
+            FrameLayout.LayoutParams(DEFAULT_WIDTH, DEFAULT_HEIGHT, Gravity.LEFT or Gravity.TOP)
         mLayoutParams.topMargin = 100
         mLayoutParams.leftMargin = 100
 
@@ -56,5 +60,10 @@ class SurfaceControlWrapperTestActivity : Activity() {
 
     fun getSurfaceView(): SurfaceView {
         return mSurfaceView
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mDestroyCallback?.invoke()
     }
 }

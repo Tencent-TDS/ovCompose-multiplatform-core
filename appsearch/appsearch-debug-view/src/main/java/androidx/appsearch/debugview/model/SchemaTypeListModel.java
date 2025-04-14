@@ -18,8 +18,6 @@ package androidx.appsearch.debugview.model;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.GetSchemaResponse;
@@ -35,6 +33,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +46,7 @@ import java.util.concurrent.ExecutorService;
  * <p>This model captures the data for displaying a list of {@link AppSearchSchema} objects that
  * compose of the schema. This also captures the overall schema version.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SchemaTypeListModel extends ViewModel {
@@ -67,8 +68,7 @@ public class SchemaTypeListModel extends ViewModel {
      *
      * @return live data of list of {@link AppSearchSchema} objects.
      */
-    @NonNull
-    public LiveData<List<AppSearchSchema>> getSchemaTypes() {
+    public @NonNull LiveData<List<AppSearchSchema>> getSchemaTypes() {
         return Transformations.map(getSchema(),
                 input -> new ArrayList<>(input.getSchemas()));
     }
@@ -78,8 +78,7 @@ public class SchemaTypeListModel extends ViewModel {
      *
      * @return live data of {@link Integer} representing the overall schema version.
      */
-    @NonNull
-    public LiveData<Integer> getSchemaVersion() {
+    public @NonNull LiveData<Integer> getSchemaVersion() {
         return Transformations.map(getSchema(), GetSchemaResponse::getVersion);
     }
 
@@ -88,8 +87,7 @@ public class SchemaTypeListModel extends ViewModel {
      *
      * @return live data of {@link GetSchemaResponse}
      */
-    @NonNull
-    private LiveData<GetSchemaResponse> getSchema() {
+    private @NonNull LiveData<GetSchemaResponse> getSchema() {
         Futures.addCallback(mDebugAppSearchManager.getSchemaAsync(),
                 new FutureCallback<GetSchemaResponse>() {
                     @Override
@@ -119,9 +117,8 @@ public class SchemaTypeListModel extends ViewModel {
         }
 
         @SuppressWarnings("unchecked")
-        @NonNull
         @Override
-        public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+        public <T extends ViewModel> @NonNull T create(@NonNull Class<T> modelClass) {
             if (modelClass == SchemaTypeListModel.class) {
                 return (T) new SchemaTypeListModel(mExecutorService, mDebugAppSearchManager);
             } else {

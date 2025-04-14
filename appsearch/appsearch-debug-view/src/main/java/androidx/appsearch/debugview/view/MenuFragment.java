@@ -22,24 +22,24 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.debugview.R;
 import androidx.fragment.app.Fragment;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * A fragment for displaying page navigation shortcuts of the debug view.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class MenuFragment extends Fragment {
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-            @Nullable Bundle savedInstanceState) {
+    public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_menu, container, /*attachToRoot=*/false);
     }

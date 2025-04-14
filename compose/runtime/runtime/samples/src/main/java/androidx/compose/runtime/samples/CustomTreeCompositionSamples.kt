@@ -19,9 +19,9 @@ package androidx.compose.runtime.samples
 import androidx.annotation.Sampled
 import androidx.compose.runtime.AbstractApplier
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
-import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,13 +60,8 @@ fun CustomTreeComposition() {
     }
 
     // A function like the following could be created to create a composition provided a root Node.
-    fun Node.setContent(
-        parent: CompositionContext,
-        content: @Composable () -> Unit
-    ): Composition {
-        return Composition(NodeApplier(this), parent).apply {
-            setContent(content)
-        }
+    fun Node.setContent(parent: CompositionContext, content: @Composable () -> Unit): Composition {
+        return Composition(NodeApplier(this), parent).apply { setContent(content) }
     }
 
     // assuming we have Node sub-classes like "TextNode" and "GroupNode"
@@ -77,14 +72,16 @@ fun CustomTreeComposition() {
     class GroupNode : Node()
 
     // Composable equivalents could be created
-    @Composable fun Text(text: String, onClick: () -> Unit = {}) {
+    @Composable
+    fun Text(text: String, onClick: () -> Unit = {}) {
         ComposeNode<TextNode, NodeApplier>(::TextNode) {
             set(text) { this.text = it }
             set(onClick) { this.onClick = it }
         }
     }
 
-    @Composable fun Group(content: @Composable () -> Unit) {
+    @Composable
+    fun Group(content: @Composable () -> Unit) {
         ComposeNode<GroupNode, NodeApplier>(::GroupNode, {}, content)
     }
 

@@ -17,7 +17,6 @@
 package androidx.room.compiler.processing.javac
 
 import androidx.room.compiler.processing.InternalXAnnotation
-import androidx.room.compiler.processing.XAnnotationBox
 import androidx.room.compiler.processing.XAnnotationValue
 import androidx.room.compiler.processing.XType
 import androidx.room.compiler.processing.javac.kotlin.KmAnnotationContainer
@@ -26,9 +25,6 @@ internal class JavacKmAnnotation(
     private val env: JavacProcessingEnv,
     private val kmAnnotation: KmAnnotationContainer
 ) : InternalXAnnotation() {
-    override fun <T : Annotation> asAnnotationBox(annotationClass: Class<T>): XAnnotationBox<T> {
-        throw UnsupportedOperationException("No plan to support XAnnotationBox.")
-    }
 
     override val name: String
         get() = typeElement.name
@@ -43,14 +39,29 @@ internal class JavacKmAnnotation(
     override val type: XType
         get() = typeElement.type
 
+    override val declaredAnnotationValues: List<XAnnotationValue> by lazy {
+        methodToDeclaredAnnotationValues.values.filterNotNull()
+    }
+
     override val annotationValues: List<XAnnotationValue> by lazy {
-        val methods = typeElement.getDeclaredMethods()
-        methods.map { method ->
-            JavacKmAnnotationValue(
-                method = method,
-                kmAnnotationArgumentContainer =
-                    kmAnnotation.getArguments(env).getValue(method.jvmName)
-            )
+        methodToDeclaredAnnotationValues.mapNotNull { (method, annotationValue) ->
+            annotationValue ?: method.defaultValue
         }
+    }
+
+    private val methodToDeclaredAnnotationValues:
+        Map<JavacMethodElement, XAnnotationValue?> by lazy {
+        val methods = typeElement.getDeclaredMethods()
+        val kmAnnotationArguments = kmAnnotation.getArguments(env)
+        methods.associateWith { method ->
+            // KmAnnotation doesn't include arguments with default values
+            kmAnnotationArguments[method.jvmName]?.let {
+                JavacKmAnnotationValue(method = method, kmAnnotationArgumentContainer = it)
+            }
+        }
+    }
+
+    override val defaultValues: List<XAnnotationValue> by lazy {
+        typeElement.getDeclaredMethods().mapNotNull { it.defaultValue }
     }
 }

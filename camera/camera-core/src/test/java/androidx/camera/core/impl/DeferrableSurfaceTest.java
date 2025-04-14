@@ -16,6 +16,8 @@
 
 package androidx.camera.core.impl;
 
+import static androidx.camera.core.impl.utils.executor.CameraXExecutors.directExecutor;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.times;
@@ -24,13 +26,12 @@ import static org.mockito.Mockito.verify;
 import android.os.Build;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.camera.core.impl.utils.executor.CameraXExecutors;
 import androidx.camera.core.impl.utils.futures.FutureCallback;
 import androidx.camera.core.impl.utils.futures.Futures;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +52,7 @@ public class DeferrableSurfaceTest {
     public void setup() {
         mDeferrableSurface = new DeferrableSurface() {
             @Override
-            @NonNull
-            public ListenableFuture<Surface> provideSurface() {
+            public @NonNull ListenableFuture<Surface> provideSurface() {
                 return Futures.immediateFuture(null);
             }
         };
@@ -87,6 +87,17 @@ public class DeferrableSurfaceTest {
     }
 
     @Test
+    public void close_closeFutureCompletes() {
+        // Arrange.
+        ListenableFuture<Void> closeFuture = mDeferrableSurface.getCloseFuture();
+        assertThat(closeFuture.isDone()).isFalse();
+        // Act.
+        mDeferrableSurface.close();
+        // Assert.
+        assertThat(closeFuture.isDone()).isTrue();
+    }
+
+    @Test
     public void terminationFutureFinishesWhenCompletelyDecremented()
             throws DeferrableSurface.SurfaceClosedException {
         Runnable listener = Mockito.mock(Runnable.class);
@@ -94,7 +105,7 @@ public class DeferrableSurfaceTest {
         mDeferrableSurface.incrementUseCount();
         mDeferrableSurface.close();
         mDeferrableSurface.getTerminationFuture().addListener(listener,
-                CameraXExecutors.directExecutor());
+                directExecutor());
         mDeferrableSurface.incrementUseCount();
         mDeferrableSurface.decrementUseCount();
         mDeferrableSurface.decrementUseCount();
@@ -108,7 +119,7 @@ public class DeferrableSurfaceTest {
 
         mDeferrableSurface.close();
         mDeferrableSurface.getTerminationFuture().addListener(listener,
-                CameraXExecutors.directExecutor());
+                directExecutor());
 
         Mockito.verify(listener, times(1)).run();
     }
@@ -150,7 +161,7 @@ public class DeferrableSurfaceTest {
         ArgumentCaptor<Throwable> throwableCaptor = ArgumentCaptor.forClass(Throwable.class);
 
         Futures.addCallback(surfaceListenableFuture, futureCallback,
-                CameraXExecutors.directExecutor());
+                directExecutor());
         verify(futureCallback, times(1)).onFailure(throwableCaptor.capture());
 
         assertThat(throwableCaptor.getValue()).isInstanceOf(

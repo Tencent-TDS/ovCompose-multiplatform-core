@@ -25,16 +25,16 @@ import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,18 +49,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @Preview
 @Composable
 fun SwipeToDismissDemo() {
     Column {
-        var index by remember { mutableStateOf(0) }
+        var index by remember { mutableIntStateOf(0) }
         Box(Modifier.requiredHeight(300.dp).fillMaxWidth()) {
             Box(
-                Modifier.swipeToDismiss(index).align(Alignment.BottomCenter).requiredSize(150.dp)
+                Modifier.swipeToDismiss(index)
+                    .align(Alignment.BottomCenter)
+                    .requiredSize(150.dp)
                     .background(pastelColors[index])
             )
         }
@@ -70,9 +72,7 @@ fun SwipeToDismissDemo() {
             modifier = Modifier.padding(40.dp).align(Alignment.CenterHorizontally)
         )
         Button(
-            onClick = {
-                index = (index + 1) % pastelColors.size
-            },
+            onClick = { index = (index + 1) % pastelColors.size },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
             Text("New Card")
@@ -82,51 +82,42 @@ fun SwipeToDismissDemo() {
 
 private fun Modifier.swipeToDismiss(index: Int): Modifier = composed {
     val animatedOffset = remember { Animatable(0f) }
-    val height = remember { mutableStateOf(0) }
-    LaunchedEffect(index) {
-        animatedOffset.snapTo(0f)
-    }
+    val height = remember { mutableIntStateOf(0) }
+    LaunchedEffect(index) { animatedOffset.snapTo(0f) }
     this.pointerInput(Unit) {
-        coroutineScope {
-            while (true) {
-                height.value = size.height
-                val velocityTracker = VelocityTracker()
-                awaitPointerEventScope {
-                    val pointerId = awaitFirstDown().id
-                    verticalDrag(pointerId) {
-                        launch {
-                            animatedOffset.snapTo(
-                                animatedOffset.value + it.positionChange().y
-                            )
+            coroutineScope {
+                while (true) {
+                    height.intValue = size.height
+                    val velocityTracker = VelocityTracker()
+                    awaitPointerEventScope {
+                        val pointerId = awaitFirstDown().id
+                        verticalDrag(pointerId) {
+                            launch {
+                                animatedOffset.snapTo(animatedOffset.value + it.positionChange().y)
+                            }
+                            velocityTracker.addPosition(it.uptimeMillis, it.position)
                         }
-                        velocityTracker.addPosition(
-                            it.uptimeMillis,
-                            it.position
-                        )
                     }
-                }
-                val velocity = velocityTracker.calculateVelocity().y
-                launch {
-                    // Either fling out of the sight, or snap back
-                    val decay = splineBasedDecay<Float>(this@pointerInput)
-                    if (decay.calculateTargetValue(
-                            animatedOffset.value,
-                            velocity
-                        ) >= -size.height
-                    ) {
-                        // Not enough velocity to be dismissed
-                        animatedOffset.animateTo(0f, initialVelocity = velocity)
-                    } else {
-                        animatedOffset.updateBounds(
-                            lowerBound = -size.height.toFloat()
-                        )
-                        animatedOffset.animateDecay(velocity, decay)
+                    val velocity = velocityTracker.calculateVelocity().y
+                    launch {
+                        // Either fling out of the sight, or snap back
+                        val decay = splineBasedDecay<Float>(this@pointerInput)
+                        if (
+                            decay.calculateTargetValue(animatedOffset.value, velocity) >=
+                                -size.height
+                        ) {
+                            // Not enough velocity to be dismissed
+                            animatedOffset.animateTo(0f, initialVelocity = velocity)
+                        } else {
+                            animatedOffset.updateBounds(lowerBound = -size.height.toFloat())
+                            animatedOffset.animateDecay(velocity, decay)
+                        }
                     }
                 }
             }
         }
-    }.offset { IntOffset(0, animatedOffset.value.roundToInt()) }
-        .graphicsLayer(alpha = calculateAlpha(animatedOffset.value, height.value))
+        .offset { IntOffset(0, animatedOffset.value.roundToInt()) }
+        .graphicsLayer(alpha = calculateAlpha(animatedOffset.value, height.intValue))
 }
 
 private fun calculateAlpha(offset: Float, size: Int): Float {
@@ -135,10 +126,11 @@ private fun calculateAlpha(offset: Float, size: Int): Float {
     return alpha.coerceIn(0f, 1f)
 }
 
-internal val pastelColors = listOf(
-    Color(0xFFffd7d7),
-    Color(0xFFffe9d6),
-    Color(0xFFfffbd0),
-    Color(0xFFe3ffd9),
-    Color(0xFFd0fff8)
-)
+internal val pastelColors =
+    listOf(
+        Color(0xFFffd7d7),
+        Color(0xFFffe9d6),
+        Color(0xFFfffbd0),
+        Color(0xFFe3ffd9),
+        Color(0xFFd0fff8)
+    )

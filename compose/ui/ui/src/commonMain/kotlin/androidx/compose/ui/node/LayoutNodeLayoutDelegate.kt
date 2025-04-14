@@ -17,15 +17,11 @@
 package androidx.compose.ui.node
 
 import androidx.compose.runtime.collection.MutableVector
-import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.node.LayoutNode.LayoutState
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.util.fastForEach
 
 /**
  * This class works as a layout delegate for [LayoutNode]. It delegates all the measure/layout
@@ -33,18 +29,61 @@ import androidx.compose.ui.util.fastForEach
  * request is specific to lookahead.
  */
 internal class LayoutNodeLayoutDelegate(
-    private val layoutNode: LayoutNode,
+    internal val layoutNode: LayoutNode,
 ) {
     val outerCoordinator: NodeCoordinator
         get() = layoutNode.nodes.outerCoordinator
+
     val lastConstraints: Constraints?
         get() = measurePassDelegate.lastConstraints
+
     val lastLookaheadConstraints: Constraints?
         get() = lookaheadPassDelegate?.lastConstraints
+
     internal val height: Int
         get() = measurePassDelegate.height
+
     internal val width: Int
         get() = measurePassDelegate.width
+
+    /**
+     * Marks that a LayoutNode will not participate in its parent's lookahead pass. More
+     * specifically, when the parent does lookahead measurement and placement, the child that is
+     * marked [detachedFromParentLookaheadPass] will be skipped. The lookahead measurement and
+     * placement will instead happen during approach, as if the node was the lookahead root. This is
+     * needed in SubcomposeLayout where some content is only composed in approach pass, therefore
+     * they have already missed their parents' lookahead pass. They will instead do a make-up
+     * lookahead measurement/placement in approach.
+     *
+     * This gets set to true via [MeasurePassDelegate.markDetachedFromParentLookaheadPass] and
+     * automatically gets unset in `measure` when the measure call comes from parent with
+     * layoutState being LookaheadMeasuring or LookaheadLayingOut.
+     *
+     * Note: This is different than [detachedFromParentLookaheadPlacement] in that the node is
+     * detached from both parent's lookahead measurement and placement.
+     */
+    internal var detachedFromParentLookaheadPass: Boolean = false
+
+    /**
+     * This is a flag indicating the node is not going to be placed in the parent's lookahead, but
+     * only placed during parent's approach. This is needed because in SubcomposeLayout, a custom
+     * measure policy may consider placement unnecessary after measuring the content in lookahead.
+     * However, the custom measure policy may require placement of the same content during approach,
+     * due to different measured size in approach vs. lookahead. As such, we are marking the nodes
+     * that were skipped by its parent's lookahead placement, so that we can do a make-up lookahead
+     * placement later in approach.
+     *
+     * This gets set to `true` when the node is SubComposeLayout's direct children (i.e. folded
+     * children of the SubComposeLayout's root) && not placed in lookahead but needs to be placed in
+     * approach. [detachedFromParentLookaheadPlacement] gets reset to false when there is a
+     * lookahead placement call coming from parent.
+     *
+     * Note: When [detachedFromParentLookaheadPlacement] is true, it is implied that the lookahead
+     * measurement is still triggered by its parent's lookahead measure. In contrast,
+     * [detachedFromParentLookaheadPass] indicates that both measurement and placement are detached
+     * from parent's lookahead.
+     */
+    internal var detachedFromParentLookaheadPlacement: Boolean = false
 
     /**
      * The layout state the node is currently in.
@@ -53,104 +92,96 @@ internal class LayoutNodeLayoutDelegate(
      * read-only outside this class. This makes the state machine easier to reason about.
      */
     internal var layoutState = LayoutState.Idle
-        private set
 
     /**
-     * Tracks whether another measure pass is needed for the LayoutNodeLayoutDelegate.
-     * Mutation to [measurePending] is confined to LayoutNodeLayoutDelegate. It can only be set true
-     * from outside of this class via [markMeasurePending]. It is cleared (i.e. set false) during
-     * the measure pass (i.e. in [performMeasure]).
+     * Tracks whether another measure pass is needed for the LayoutNodeLayoutDelegate. Mutation to
+     * [measurePending] is confined to LayoutNodeLayoutDelegate. It can only be set true from
+     * outside of this class via [markMeasurePending]. It is cleared (i.e. set false) during the
+     * measure pass (i.e. in [measurePassDelegate.performMeasure]).
      */
-    internal var measurePending: Boolean = false
-        private set
+    internal val measurePending: Boolean
+        get() = measurePassDelegate.measurePending
 
     /**
-     * Tracks whether another layout pass is needed for the LayoutNodeLayoutDelegate.
-     * Mutation to [layoutPending] is confined to this class. It can only be set true from outside
-     * of this class via [markLayoutPending]. It is cleared (i.e. set false) during the layout pass
-     * (i.e. in [MeasurePassDelegate.layoutChildren]).
+     * Tracks whether another layout pass is needed for the LayoutNodeLayoutDelegate. Mutation to
+     * [layoutPending] is confined to this class. It can only be set true from outside of this class
+     * via [markLayoutPending]. It is cleared (i.e. set false) during the layout pass (i.e. in
+     * [MeasurePassDelegate.layoutChildren]).
      */
-    internal var layoutPending: Boolean = false
-        private set
-
-    /**
-     * Tracks whether another layout pass is needed for the LayoutNodeLayoutDelegate
-     * for the purposes of calculating alignment lines. After calculating alignment lines, if
-     * the [Placeable.PlacementScope.coordinates] have been accessed, there is no need to
-     * rerun layout for further alignment lines checks, but [layoutPending] will indicate
-     * that the normal placement still needs to be run.
-     */
-    private var layoutPendingForAlignment = false
+    internal val layoutPending: Boolean
+        get() = measurePassDelegate.layoutPending
 
     /**
      * Tracks whether another lookahead measure pass is needed for the LayoutNodeLayoutDelegate.
-     * Mutation to [lookaheadMeasurePending] is confined to LayoutNodeLayoutDelegate. It can only
-     * be set true from outside of this class via [markLookaheadMeasurePending]. It is cleared
-     * (i.e. set false) during the lookahead measure pass (i.e. in [performLookaheadMeasure]).
+     * Mutation to [lookaheadMeasurePending] is confined to LayoutNodeLayoutDelegate. It can only be
+     * set true from outside of this class via [markLookaheadMeasurePending]. It is cleared (i.e.
+     * set false) during the lookahead measure pass (i.e. in [performLookaheadMeasure]).
      */
     internal var lookaheadMeasurePending: Boolean = false
-        private set
 
     /**
      * Tracks whether another lookahead layout pass is needed for the LayoutNodeLayoutDelegate.
-     * Mutation to [lookaheadLayoutPending] is confined to this class. It can only be set true
-     * from outside of this class via [markLookaheadLayoutPending]. It is cleared (i.e. set false)
-     * during the layout pass (i.e. in [LookaheadPassDelegate.layoutChildren]).
+     * Mutation to [lookaheadLayoutPending] is confined to this class. It can only be set true from
+     * outside of this class via [markLookaheadLayoutPending]. It is cleared (i.e. set false) during
+     * the layout pass (i.e. in [LookaheadPassDelegate.layoutChildren]).
      */
     internal var lookaheadLayoutPending: Boolean = false
-        private set
 
     /**
-     * Tracks whether another lookahead layout pass is needed for the LayoutNodeLayoutDelegate
-     * for the purposes of calculating alignment lines. After calculating alignment lines, if
-     * the [Placeable.PlacementScope.coordinates] have been accessed, there is no need to
-     * rerun layout for further alignment lines checks, but [lookaheadLayoutPending] will indicate
-     * that the normal placement still needs to be run.
+     * Tracks whether another lookahead layout pass is needed for the LayoutNodeLayoutDelegate for
+     * the purposes of calculating alignment lines. After calculating alignment lines, if the
+     * [Placeable.PlacementScope.coordinates] have been accessed, there is no need to rerun layout
+     * for further alignment lines checks, but [lookaheadLayoutPending] will indicate that the
+     * normal placement still needs to be run.
      */
-    private var lookaheadLayoutPendingForAlignment = false
+    internal var lookaheadLayoutPendingForAlignment = false
 
     /**
-     * Marks the layoutNode dirty for another layout pass.
+     * The counter on a parent node which is used by its children to understand the order in which
+     * they were placed in the lookahead pass.
      */
+    internal var nextChildLookaheadPlaceOrder: Int = 0
+
+    /**
+     * The counter on a parent node which is used by its children to understand the order in which
+     * they were placed in the main pass.
+     */
+    internal var nextChildPlaceOrder: Int = 0
+
+    /** Marks the layoutNode dirty for another layout pass. */
     internal fun markLayoutPending() {
-        layoutPending = true
-        layoutPendingForAlignment = true
+        measurePassDelegate.markLayoutPending()
     }
 
-    /**
-     * Marks the layoutNode dirty for another measure pass.
-     */
+    /** Marks the layoutNode dirty for another measure pass. */
     internal fun markMeasurePending() {
-        measurePending = true
+        measurePassDelegate.markMeasurePending()
     }
 
-    /**
-     * Marks the layoutNode dirty for another lookahead layout pass.
-     */
+    /** Marks the layoutNode dirty for another lookahead layout pass. */
     internal fun markLookaheadLayoutPending() {
         lookaheadLayoutPending = true
         lookaheadLayoutPendingForAlignment = true
     }
 
-    /**
-     * Marks the layoutNode dirty for another lookahead measure pass.
-     */
+    /** Marks the layoutNode dirty for another lookahead measure pass. */
     internal fun markLookaheadMeasurePending() {
         lookaheadMeasurePending = true
     }
 
     internal val alignmentLinesOwner: AlignmentLinesOwner
         get() = measurePassDelegate
+
     internal val lookaheadAlignmentLinesOwner: AlignmentLinesOwner?
         get() = lookaheadPassDelegate
 
     /**
-     * This is used to track when the [Placeable.PlacementScope.coordinates] have been
-     * accessed while placement is run. When the coordinates are accessed during an alignment
-     * line query, it indicates that the placement is not final and must be run again so that
-     * the correct positioning is done. If the coordinates are not accessed during an alignment
-     * lines query (and it isn't just a [LookaheadCapablePlaceable.isShallowPlacing]),
-     * then the placement can be considered final and doesn't have to be run again.
+     * This is used to track when the [Placeable.PlacementScope.coordinates] have been accessed
+     * while placement is run. When the coordinates are accessed during an alignment line query, it
+     * indicates that the placement is not final and must be run again so that the correct
+     * positioning is done. If the coordinates are not accessed during an alignment lines query (and
+     * it isn't just a [LookaheadCapablePlaceable.isShallowPlacing]), then the placement can be
+     * considered final and doesn't have to be run again.
      *
      * Also, if coordinates are accessed during placement, then a change in parent coordinates
      * requires placement to be run again.
@@ -160,18 +191,39 @@ internal class LayoutNodeLayoutDelegate(
             val oldValue = field
             if (oldValue != value) {
                 field = value
-                if (value) {
+                if (value && !coordinatesAccessedDuringModifierPlacement) {
+                    // if first out of both flags changes to true increment
                     childrenAccessingCoordinatesDuringPlacement++
-                } else {
+                } else if (!value && !coordinatesAccessedDuringModifierPlacement) {
+                    // if both flags changes to false decrement
                     childrenAccessingCoordinatesDuringPlacement--
                 }
             }
         }
 
     /**
-     * The number of children with [coordinatesAccessedDuringPlacement] or have
-     * descendants with [coordinatesAccessedDuringPlacement]. This also includes
-     * this, if [coordinatesAccessedDuringPlacement] is `true`.
+     * Similar to [coordinatesAccessedDuringPlacement], but tracks the coordinates read happening
+     * during the modifier layout blocks run.
+     */
+    var coordinatesAccessedDuringModifierPlacement = false
+        set(value) {
+            val oldValue = field
+            if (oldValue != value) {
+                field = value
+                if (value && !coordinatesAccessedDuringPlacement) {
+                    // if first out of both flags changes to true increment
+                    childrenAccessingCoordinatesDuringPlacement++
+                } else if (!value && !coordinatesAccessedDuringPlacement) {
+                    // if both flags changes to false decrement
+                    childrenAccessingCoordinatesDuringPlacement--
+                }
+            }
+        }
+
+    /**
+     * The number of children with [coordinatesAccessedDuringPlacement] or have descendants with
+     * [coordinatesAccessedDuringPlacement]. This also includes this, if
+     * [coordinatesAccessedDuringPlacement] is `true`.
      */
     var childrenAccessingCoordinatesDuringPlacement = 0
         set(value) {
@@ -190,11 +242,69 @@ internal class LayoutNodeLayoutDelegate(
             }
         }
 
+    /** Equivalent flag of [coordinatesAccessedDuringPlacement] but for [lookaheadPassDelegate]. */
+    var lookaheadCoordinatesAccessedDuringPlacement = false
+        set(value) {
+            val oldValue = field
+            if (oldValue != value) {
+                field = value
+                if (value && !lookaheadCoordinatesAccessedDuringModifierPlacement) {
+                    // if first out of both flags changes to true increment
+                    childrenAccessingLookaheadCoordinatesDuringPlacement++
+                } else if (!value && !lookaheadCoordinatesAccessedDuringModifierPlacement) {
+                    // if both flags changes to false decrement
+                    childrenAccessingLookaheadCoordinatesDuringPlacement--
+                }
+            }
+        }
+
+    /**
+     * Equivalent flag of [coordinatesAccessedDuringModifierPlacement] but for
+     * [lookaheadPassDelegate].
+     */
+    var lookaheadCoordinatesAccessedDuringModifierPlacement = false
+        set(value) {
+            val oldValue = field
+            if (oldValue != value) {
+                field = value
+                if (value && !lookaheadCoordinatesAccessedDuringPlacement) {
+                    // if first out of both flags changes to true increment
+                    childrenAccessingLookaheadCoordinatesDuringPlacement++
+                } else if (!value && !lookaheadCoordinatesAccessedDuringPlacement) {
+                    // if both flags changes to false decrement
+                    childrenAccessingLookaheadCoordinatesDuringPlacement--
+                }
+            }
+        }
+
+    /**
+     * Equivalent flag of [childrenAccessingCoordinatesDuringPlacement] but for
+     * [lookaheadPassDelegate].
+     *
+     * Naturally, this flag should only be affected by the lookahead coordinates access flags.
+     */
+    var childrenAccessingLookaheadCoordinatesDuringPlacement = 0
+        set(value) {
+            val oldValue = field
+            field = value
+            if ((oldValue == 0) != (value == 0)) {
+                // A child is either newly listening for coordinates or stopped listening
+                val parentLayoutDelegate = layoutNode.parent?.layoutDelegate
+                if (parentLayoutDelegate != null) {
+                    if (value == 0) {
+                        parentLayoutDelegate.childrenAccessingLookaheadCoordinatesDuringPlacement--
+                    } else {
+                        parentLayoutDelegate.childrenAccessingLookaheadCoordinatesDuringPlacement++
+                    }
+                }
+            }
+        }
+
     /**
      * measurePassDelegate manages the measure/layout and alignmentLine related queries for the
      * actual measure/layout pass.
      */
-    internal val measurePassDelegate = MeasurePassDelegate()
+    internal val measurePassDelegate = MeasurePassDelegate(this)
 
     /**
      * lookaheadPassDelegate manages the measure/layout and alignmentLine related queries for the
@@ -203,928 +313,31 @@ internal class LayoutNodeLayoutDelegate(
     internal var lookaheadPassDelegate: LookaheadPassDelegate? = null
         private set
 
-    /**
-     * [MeasurePassDelegate] manages the measure/layout and alignmentLine related queries for the
-     * actual measure/layout pass.
-     */
-    inner class MeasurePassDelegate : Measurable, Placeable(), AlignmentLinesOwner {
-        private var measuredOnce = false
-        private var placedOnce = false
-        val lastConstraints: Constraints?
-            get() = if (measuredOnce) {
-                measurementConstraints
+    fun onCoordinatesUsed() {
+        val state = layoutNode.layoutState
+        if (state == LayoutState.LayingOut || state == LayoutState.LookaheadLayingOut) {
+            if (measurePassDelegate.layingOutChildren) {
+                coordinatesAccessedDuringPlacement = true
             } else {
-                null
+                coordinatesAccessedDuringModifierPlacement = true
             }
-        internal var duringAlignmentLinesQuery = false
-
-        private var lastPosition: IntOffset = IntOffset.Zero
-        private var lastLayerBlock: (GraphicsLayerScope.() -> Unit)? = null
-        private var lastZIndex: Float = 0f
-
-        private var parentDataDirty: Boolean = true
-        override var parentData: Any? = null
-            private set
-        override val isPlaced: Boolean
-            get() = layoutNode.isPlaced
-        override val innerCoordinator: NodeCoordinator
-            get() = layoutNode.innerCoordinator
-        override val alignmentLines: AlignmentLines = LayoutNodeAlignmentLines(this)
-
-        private val _childMeasurables = MutableVector<Measurable>()
-
-        internal var childMeasurablesDirty: Boolean = true
-        internal val childMeasurables: List<Measurable>
-            get() {
-                // Update the children list first so we know whether the cached list is
-                // reusable.
-                layoutNode.updateChildrenIfDirty()
-
-                if (!childMeasurablesDirty) return _childMeasurables.asMutableList()
-                layoutNode.updateChildMeasurables(_childMeasurables) {
-                    it.layoutDelegate.measurePassDelegate
-                }
-                childMeasurablesDirty = false
-                return _childMeasurables.asMutableList()
-            }
-
-        override fun layoutChildren() {
-            alignmentLines.recalculateQueryOwner()
-
-            if (layoutPending) {
-                onBeforeLayoutChildren()
-            }
-            // as a result of the previous operation we can figure out a child has been resized
-            // and we need to be remeasured, not relaid out
-            if (layoutPendingForAlignment ||
-                (!duringAlignmentLinesQuery && !innerCoordinator.isPlacingForAlignment &&
-                    layoutPending)) {
-                layoutPending = false
-                val oldLayoutState = layoutState
-                layoutState = LayoutState.LayingOut
-                with(layoutNode) {
-                    val owner = requireOwner()
-                    owner.snapshotObserver.observeLayoutSnapshotReads(
-                        this,
-                        affectsLookahead = false
-                    ) {
-                        layoutNode.clearPlaceOrder()
-                        forEachChildAlignmentLinesOwner {
-                            it.alignmentLines.usedDuringParentLayout
-                        }
-                        innerCoordinator.measureResult.placeChildren()
-
-                        layoutNode.checkChildrenPlaceOrderForUpdates()
-                        forEachChildAlignmentLinesOwner {
-                            it.alignmentLines.previousUsedDuringParentLayout =
-                                it.alignmentLines.usedDuringParentLayout
-                        }
-                    }
-                }
-                layoutState = oldLayoutState
-
-                if (innerCoordinator.isPlacingForAlignment &&
-                    coordinatesAccessedDuringPlacement
-                ) {
-                    requestLayout()
-                }
-                layoutPendingForAlignment = false
-            }
-
-            if (alignmentLines.usedDuringParentLayout) {
-                alignmentLines.previousUsedDuringParentLayout = true
-            }
-            if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
         }
-
-        /**
-         * The function to be executed when the parent layout measures its children.
-         */
-        override fun measure(constraints: Constraints): Placeable {
-            if (layoutNode.intrinsicsUsageByParent == LayoutNode.UsageByParent.NotUsed) {
-                // This LayoutNode may have asked children for intrinsics. If so, we should
-                // clear the intrinsics usage for everything that was requested previously.
-                layoutNode.clearSubtreeIntrinsicsUsage()
-            }
-            // If we are at the lookahead root of the tree, do both the lookahead measure and
-            // regular measure. Otherwise, we'll be consistent with parent's lookahead measure
-            // and regular measure stages. This avoids producing exponential amount of
-            // lookahead when LookaheadLayouts are nested.
-            if (layoutNode.isOutMostLookaheadRoot()) {
-                measuredOnce = true
-                measurementConstraints = constraints
-                layoutNode.measuredByParentInLookahead = LayoutNode.UsageByParent.NotUsed
-                lookaheadPassDelegate!!.measure(constraints)
-            }
-            layoutNode.trackMeasurementByParent()
-            remeasure(constraints)
-            return this
-        }
-
-        /**
-         * Return true if the measured size has been changed
-         */
-        fun remeasure(constraints: Constraints): Boolean {
-            val owner = layoutNode.requireOwner()
-            val parent = layoutNode.parent
-            @Suppress("Deprecation")
-            layoutNode.canMultiMeasure = layoutNode.canMultiMeasure ||
-                (parent != null && parent.canMultiMeasure)
-            if (layoutNode.measurePending || measurementConstraints != constraints) {
-                alignmentLines.usedByModifierMeasurement = false
-                forEachChildAlignmentLinesOwner {
-                    it.alignmentLines.usedDuringParentMeasurement = false
-                }
-                measuredOnce = true
-                val outerPreviousMeasuredSize = outerCoordinator.size
-                measurementConstraints = constraints
-                performMeasure(constraints)
-                val sizeChanged = outerCoordinator.size != outerPreviousMeasuredSize ||
-                    outerCoordinator.width != width ||
-                    outerCoordinator.height != height
-                // We are using the coerced coordinator size here to avoid double offset in layout coop.
-                measuredSize = IntSize(outerCoordinator.width, outerCoordinator.height)
-                return sizeChanged
+        if (state == LayoutState.LookaheadLayingOut) {
+            if (lookaheadPassDelegate?.layingOutChildren == true) {
+                lookaheadCoordinatesAccessedDuringPlacement = true
             } else {
-                // this node doesn't require being remeasured. however in order to make sure we have
-                // the final size we need to also make sure the whole subtree is remeasured as it can
-                // trigger extra remeasure request on our node. we do it now in order to report the
-                // final measured size to our parent without doing extra pass later.
-                owner.forceMeasureTheSubtree(layoutNode)
-
-                // Restore the intrinsics usage for the sub-tree
-                layoutNode.resetSubtreeIntrinsicsUsage()
-            }
-            return false
-        }
-
-        private fun LayoutNode.trackMeasurementByParent() {
-            val parent = parent
-            if (parent != null) {
-                check(
-                    measuredByParent == LayoutNode.UsageByParent.NotUsed ||
-                        @Suppress("DEPRECATION") canMultiMeasure
-                ) {
-                    "measure() may not be called multiple times on the same Measurable. Current " +
-                        "state $measuredByParent. Parent state ${parent.layoutState}."
-                }
-                measuredByParent = when (parent.layoutState) {
-                    LayoutState.Measuring ->
-                        LayoutNode.UsageByParent.InMeasureBlock
-                    LayoutState.LayingOut ->
-                        LayoutNode.UsageByParent.InLayoutBlock
-                    else -> throw IllegalStateException(
-                        "Measurable could be only measured from the parent's measure or layout" +
-                            " block. Parents state is ${parent.layoutState}"
-                    )
-                }
-            } else {
-                // when we measure the root it is like the virtual parent is currently laying out
-                measuredByParent = LayoutNode.UsageByParent.NotUsed
-            }
-        }
-
-        // We are setting our measuredSize to match the coerced outerCoordinator size, to prevent
-        // double offseting for layout cooperation. However, this means that here we need
-        // to override these getters to make the measured values correct in Measured.
-        // TODO(popam): clean this up
-        override val measuredWidth: Int get() = outerCoordinator.measuredWidth
-        override val measuredHeight: Int get() = outerCoordinator.measuredHeight
-
-        override fun get(alignmentLine: AlignmentLine): Int {
-            if (layoutNode.parent?.layoutState == LayoutState.Measuring) {
-                alignmentLines.usedDuringParentMeasurement = true
-            } else if (layoutNode.parent?.layoutState == LayoutState.LayingOut) {
-                alignmentLines.usedDuringParentLayout = true
-            }
-            duringAlignmentLinesQuery = true
-            val result = outerCoordinator[alignmentLine]
-            duringAlignmentLinesQuery = false
-            return result
-        }
-
-        override fun placeAt(
-            position: IntOffset,
-            zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
-        ) {
-            if (position != lastPosition) {
-                notifyChildrenUsingCoordinatesWhilePlacing()
-            }
-            // This can actually be called as soon as LookaheadMeasure is done, but devs may expect
-            // certain placement results (e.g. LayoutCoordinates) to be valid when lookahead placement
-            // takes place. If that's not the case, it will make sense to move this right after
-            // lookahead measure, before place.
-            if (layoutNode.isOutMostLookaheadRoot()) {
-                // Lookahead placement first
-                with(PlacementScope) {
-                    lookaheadPassDelegate!!.place(position.x, position.y)
-                }
-            }
-
-            // Post-lookahead (if any) placement
-            layoutState = LayoutState.LayingOut
-            placeOuterCoordinator(position, zIndex, layerBlock)
-            layoutState = LayoutState.Idle
-        }
-
-        private fun placeOuterCoordinator(
-            position: IntOffset,
-            zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
-        ) {
-            lastPosition = position
-            lastZIndex = zIndex
-            lastLayerBlock = layerBlock
-
-            placedOnce = true
-            alignmentLines.usedByModifierLayout = false
-            coordinatesAccessedDuringPlacement = false
-            val owner = layoutNode.requireOwner()
-            owner.snapshotObserver.observeLayoutModifierSnapshotReads(
-                layoutNode,
-                affectsLookahead = false
-            ) {
-                with(PlacementScope) {
-                    if (layerBlock == null) {
-                        outerCoordinator.place(position, zIndex)
-                    } else {
-                        outerCoordinator.placeWithLayer(position, zIndex, layerBlock)
-                    }
-                }
-            }
-        }
-
-        /**
-         * Calls [placeOuterCoordinator] with the same position used during the last
-         * [placeOuterCoordinator] call. [placeOuterCoordinator] only does the placement for
-         * post-lookahead pass.
-         */
-        fun replace() {
-            check(placedOnce)
-            placeOuterCoordinator(lastPosition, lastZIndex, lastLayerBlock)
-        }
-
-        override fun minIntrinsicWidth(height: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.minIntrinsicWidth(height)
-        }
-
-        override fun maxIntrinsicWidth(height: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.maxIntrinsicWidth(height)
-        }
-
-        override fun minIntrinsicHeight(width: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.minIntrinsicHeight(width)
-        }
-
-        override fun maxIntrinsicHeight(width: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.maxIntrinsicHeight(width)
-        }
-
-        private fun onIntrinsicsQueried() {
-            // How intrinsics work when specific / custom intrinsics are not provided to the custom
-            // layout is we essentially run the measure block of a child with not-final constraints
-            // and fake measurables. It is possible that some measure blocks are not pure and have
-            // side effects, like save some state calculated during the measurement.
-            // In order to make it possible we always have to rerun the measure block with the real
-            // final constraints after the intrinsics run. Sometimes it will cause unnecessary
-            // remeasurements, but it makes sure such component states are using the correct final
-            // constraints/sizes.
-            layoutNode.requestRemeasure()
-
-            // Mark the intrinsics size has been used by the parent if it hasn't already been marked.
-            val parent = layoutNode.parent
-            if (parent != null &&
-                layoutNode.intrinsicsUsageByParent == LayoutNode.UsageByParent.NotUsed
-            ) {
-                layoutNode.intrinsicsUsageByParent = when (parent.layoutState) {
-                    LayoutState.Measuring -> LayoutNode.UsageByParent.InMeasureBlock
-                    LayoutState.LayingOut -> LayoutNode.UsageByParent.InLayoutBlock
-                    // Called from parent's intrinsic measurement
-                    else -> parent.intrinsicsUsageByParent
-                }
-            }
-        }
-
-        fun invalidateParentData() {
-            parentDataDirty = true
-        }
-        fun updateParentData(): Boolean {
-            if (!parentDataDirty) return false
-            parentDataDirty = false
-            val changed = parentData != outerCoordinator.parentData
-            parentData = outerCoordinator.parentData
-            return changed
-        }
-
-        override fun calculateAlignmentLines(): Map<AlignmentLine, Int> {
-            if (!duringAlignmentLinesQuery) {
-                // Mark alignments used by modifier
-                if (layoutState == LayoutState.Measuring) {
-                    alignmentLines.usedByModifierMeasurement = true
-                    // We quickly transition to layoutPending as we need the alignment lines now.
-                    // Later we will see that we also laid out as part of measurement and will skip layout.
-                    if (alignmentLines.dirty) markLayoutPending()
-                } else {
-                    // Note this can also happen for onGloballyPositioned queries.
-                    alignmentLines.usedByModifierLayout = true
-                }
-            }
-            innerCoordinator.isPlacingForAlignment = true
-            layoutChildren()
-            innerCoordinator.isPlacingForAlignment = false
-            return alignmentLines.getLastCalculation()
-        }
-
-        override val parentAlignmentLinesOwner: AlignmentLinesOwner?
-            get() = layoutNode.parent?.layoutDelegate?.alignmentLinesOwner
-
-        override fun forEachChildAlignmentLinesOwner(block: (AlignmentLinesOwner) -> Unit) {
-            layoutNode.children.fastForEach {
-                block(it.layoutDelegate.alignmentLinesOwner)
-            }
-        }
-
-        override fun requestLayout() {
-            layoutNode.requestRelayout()
-        }
-
-        override fun requestMeasure() {
-            layoutNode.requestRemeasure()
-        }
-
-        /**
-         * This is called any time a placement has done that changes the position during the
-         * layout pass. If any child is looking at their own coordinates to know how to
-         * place children, it will be invalided.
-         *
-         * Note that this is called for every changed position. While not many layouts
-         * look at their coordinates, if there is one, it will cause all position changes
-         * from an ancestor to call down the hierarchy. If this becomes expensive (e.g. many
-         * parents change their position on the same frame), it might be worth using a flag
-         * so that this call becomes cheap after the first one.
-         */
-        fun notifyChildrenUsingCoordinatesWhilePlacing() {
-            if (childrenAccessingCoordinatesDuringPlacement > 0) {
-                layoutNode.children.fastForEach { child ->
-                    val childLayoutDelegate = child.layoutDelegate
-                    if (childLayoutDelegate.coordinatesAccessedDuringPlacement &&
-                        !childLayoutDelegate.layoutPending) {
-                        child.requestRelayout()
-                    }
-                    childLayoutDelegate.measurePassDelegate
-                        .notifyChildrenUsingCoordinatesWhilePlacing()
-                }
-            }
-        }
-
-        /**
-         * The callback to be executed before running layoutChildren.
-         *
-         * There are possible cases when we run layoutChildren() on the parent node, but some of its
-         * children are not yet measured even if they are supposed to be measured in the measure
-         * block of our parent.
-         *
-         * Example:
-         * val child = Layout(...)
-         * Layout(child) { measurable, constraints ->
-         *    val placeable = measurable.first().measure(constraints)
-         *    layout(placeable.width, placeable.height) {
-         *       placeable.place(0, 0)
-         *    }
-         * }
-         * And now some set of changes scheduled remeasure for child and relayout for parent.
-         *
-         * During the [MeasureAndLayoutDelegate.measureAndLayout] we will start with the parent as it
-         * has lower depth. Inside the layout block we will call placeable.width which is currently
-         * dirty as the child was scheduled to remeasure. This callback will ensure it never happens
-         * and pre-remeasure everything required for this layoutChildren().
-         */
-        private fun onBeforeLayoutChildren() {
-            layoutNode.forEachChild {
-                if (it.measurePending &&
-                    it.measuredByParent == LayoutNode.UsageByParent.InMeasureBlock
-                ) {
-                    if (it.remeasure()) {
-                        layoutNode.requestRemeasure()
-                    }
-                }
-            }
-        }
-
-        /**
-         * If this was used in an intrinsics measurement, find the parent that used it and
-         * invalidate either the measure block or layout block.
-         */
-        fun invalidateIntrinsicsParent(forceRequest: Boolean) {
-            val parent = layoutNode.parent
-            val intrinsicsUsageByParent = layoutNode.intrinsicsUsageByParent
-            if (parent != null && intrinsicsUsageByParent != LayoutNode.UsageByParent.NotUsed) {
-                // find measuring parent
-                var intrinsicsUsingParent: LayoutNode = parent
-                while (intrinsicsUsingParent.intrinsicsUsageByParent == intrinsicsUsageByParent) {
-                    intrinsicsUsingParent = intrinsicsUsingParent.parent ?: break
-                }
-                when (intrinsicsUsageByParent) {
-                    LayoutNode.UsageByParent.InMeasureBlock ->
-                        intrinsicsUsingParent.requestRemeasure(forceRequest)
-                    LayoutNode.UsageByParent.InLayoutBlock ->
-                        intrinsicsUsingParent.requestRelayout(forceRequest)
-                    else -> error("Intrinsics isn't used by the parent")
-                }
+                lookaheadCoordinatesAccessedDuringModifierPlacement = true
             }
         }
     }
 
-    /**
-     * [LookaheadPassDelegate] manages the measure/layout and alignmentLine related queries for
-     * the lookahead pass.
-     */
-    inner class LookaheadPassDelegate : Placeable(), Measurable, AlignmentLinesOwner {
-
-        internal var duringAlignmentLinesQuery: Boolean = false
-        private var placedOnce: Boolean = false
-        private var measuredOnce: Boolean = false
-        val lastConstraints: Constraints?
-            get() = lookaheadConstraints
-        private var lookaheadConstraints: Constraints? = null
-        private var lastPosition: IntOffset = IntOffset.Zero
-
-        override var isPlaced: Boolean = false
-        private var isPreviouslyPlaced: Boolean = false
-        override val innerCoordinator: NodeCoordinator
-            get() = layoutNode.innerCoordinator
-        override val alignmentLines: AlignmentLines = LookaheadAlignmentLines(this)
-
-        private val _childMeasurables = MutableVector<Measurable>()
-
-        internal var childMeasurablesDirty: Boolean = true
-        internal val childMeasurables: List<Measurable>
-            get() {
-                layoutNode.children.let {
-                    // Invoke children to get children updated before checking dirty
-                    if (!childMeasurablesDirty) return _childMeasurables.asMutableList()
-                }
-                layoutNode.updateChildMeasurables(_childMeasurables) {
-                    it.layoutDelegate.lookaheadPassDelegate!!
-                }
-                childMeasurablesDirty = false
-                return _childMeasurables.asMutableList()
-            }
-
-        private inline fun forEachChildDelegate(block: (LookaheadPassDelegate) -> Unit) =
-            layoutNode.forEachChild {
-                block(it.layoutDelegate.lookaheadPassDelegate!!)
-            }
-
-        override fun layoutChildren() {
-            alignmentLines.recalculateQueryOwner()
-
-            if (lookaheadLayoutPending) {
-                onBeforeLayoutChildren()
-            }
-            val lookaheadDelegate = innerCoordinator.lookaheadDelegate!!
-            // as a result of the previous operation we can figure out a child has been resized
-            // and we need to be remeasured, not relaid out
-            if (lookaheadLayoutPendingForAlignment ||
-                (!duringAlignmentLinesQuery && !lookaheadDelegate.isPlacingForAlignment &&
-                lookaheadLayoutPending)
-            ) {
-                lookaheadLayoutPending = false
-                val oldLayoutState = layoutState
-                layoutState = LayoutState.LookaheadLayingOut
-                val owner = layoutNode.requireOwner()
-                owner.snapshotObserver.observeLayoutSnapshotReads(layoutNode) {
-                    forEachChildDelegate {
-                        it.isPreviouslyPlaced = it.isPlaced
-                        it.isPlaced = false
-                    }
-                    layoutNode.forEachChild {
-                        // Before rerunning the user's layout block reset previous
-                        // lookaheadlyMeasuredByParent for children which we measured in the
-                        // layout block during the last run.
-                        if (it.measuredByParentInLookahead ==
-                            LayoutNode.UsageByParent.InLayoutBlock
-                        ) {
-                            it.measuredByParentInLookahead = LayoutNode.UsageByParent.NotUsed
-                        }
-                    }
-                    forEachChildAlignmentLinesOwner { child ->
-                        child.alignmentLines.usedDuringParentLayout = false
-                    }
-                    lookaheadDelegate.measureResult.placeChildren()
-                    forEachChildAlignmentLinesOwner { child ->
-                        child.alignmentLines.previousUsedDuringParentLayout =
-                            child.alignmentLines.usedDuringParentLayout
-                    }
-                    forEachChildDelegate {
-                        if (!it.isPlaced) {
-                            it.markSubtreeNotPlaced()
-                        }
-                    }
-                }
-                layoutState = oldLayoutState
-                if (coordinatesAccessedDuringPlacement &&
-                    lookaheadDelegate.isPlacingForAlignment) {
-                    requestLayout()
-                }
-                lookaheadLayoutPendingForAlignment = false
-            }
-            if (alignmentLines.usedDuringParentLayout) {
-                alignmentLines.previousUsedDuringParentLayout = true
-            }
-            if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
-        }
-
-        private fun markSubtreeNotPlaced() {
-            isPlaced = false
-            forEachChildDelegate { it.markSubtreeNotPlaced() }
-        }
-
-        override fun calculateAlignmentLines(): Map<AlignmentLine, Int> {
-            if (!duringAlignmentLinesQuery) {
-                if (layoutState == LayoutState.LookaheadMeasuring) {
-                    // Mark alignments used by modifier
-                    alignmentLines.usedByModifierMeasurement = true
-                    // We quickly transition to layoutPending as we need the alignment lines now.
-                    // Later we will see that we also laid out as part of measurement and will skip layout.
-                    if (alignmentLines.dirty) markLookaheadLayoutPending()
-                } else {
-                    // Note this can also happen for onGloballyPositioned queries.
-                    alignmentLines.usedByModifierLayout = true
-                }
-            }
-            innerCoordinator.lookaheadDelegate?.isPlacingForAlignment = true
-            layoutChildren()
-            innerCoordinator.lookaheadDelegate?.isPlacingForAlignment = false
-            return alignmentLines.getLastCalculation()
-        }
-
-        override val parentAlignmentLinesOwner: AlignmentLinesOwner?
-            get() = layoutNode.parent?.layoutDelegate?.lookaheadAlignmentLinesOwner
-
-        override fun forEachChildAlignmentLinesOwner(block: (AlignmentLinesOwner) -> Unit) {
-            layoutNode.children.fastForEach {
-                block(it.layoutDelegate.lookaheadAlignmentLinesOwner!!)
-            }
-        }
-
-        override fun requestLayout() {
-            layoutNode.requestLookaheadRelayout()
-        }
-
-        override fun requestMeasure() {
-            layoutNode.requestLookaheadRemeasure()
-        }
-
-        /**
-         * This is called any time a placement has done that changes the position during the
-         * lookahead layout pass. If any child is looking at their own coordinates to know how to
-         * place children, it will be invalided.
-         *
-         * Note that this is called for every changed position. While not many layouts
-         * look at their coordinates, if there is one, it will cause all position changes
-         * from an ancestor to call down the hierarchy. If this becomes expensive (e.g. many
-         * parents change their position on the same frame), it might be worth using a flag
-         * so that this call becomes cheap after the first one.
-         */
-        fun notifyChildrenUsingCoordinatesWhilePlacing() {
-            if (childrenAccessingCoordinatesDuringPlacement > 0) {
-                layoutNode.children.fastForEach { child ->
-                    val childLayoutDelegate = child.layoutDelegate
-                    if (childLayoutDelegate.coordinatesAccessedDuringPlacement &&
-                        !childLayoutDelegate.layoutPending) {
-                        child.requestLookaheadRelayout()
-                    }
-                    childLayoutDelegate.lookaheadPassDelegate
-                        ?.notifyChildrenUsingCoordinatesWhilePlacing()
-                }
-            }
-        }
-
-        override fun measure(constraints: Constraints): Placeable {
-            layoutNode.trackLookaheadMeasurementByParent()
-            if (layoutNode.intrinsicsUsageByParent == LayoutNode.UsageByParent.NotUsed) {
-                // This LayoutNode may have asked children for intrinsics. If so, we should
-                // clear the intrinsics usage for everything that was requested previously.
-                layoutNode.clearSubtreeIntrinsicsUsage()
-            }
-            // Since this a measure request coming from the parent. We'd be starting lookahead
-            // only if the current layoutNode is the top-level lookahead root.
-            // This is an optimization to avoid redundant Snapshot.enter when creating new snapshots
-            // for lookahead, in order to reduce the size of the call stack.
-            remeasure(constraints)
-            return this
-        }
-
-        // Track lookahead measurement
-        private fun LayoutNode.trackLookaheadMeasurementByParent() {
-            // when we measure the root it is like the virtual parent is currently laying out
-            val parent = parent
-            if (parent != null) {
-                check(
-                    measuredByParentInLookahead == LayoutNode.UsageByParent.NotUsed ||
-                        @Suppress("DEPRECATION") canMultiMeasure
-                ) {
-                    "measure() may not be called multiple times on the same Measurable. Current " +
-                        "state $measuredByParentInLookahead. Parent state ${parent.layoutState}."
-                }
-                measuredByParentInLookahead = when (parent.layoutState) {
-                    LayoutState.LookaheadMeasuring, LayoutState.Measuring ->
-                        LayoutNode.UsageByParent.InMeasureBlock
-                    LayoutState.LayingOut, LayoutState.LookaheadLayingOut ->
-                        LayoutNode.UsageByParent.InLayoutBlock
-                    else -> throw IllegalStateException(
-                        "Measurable could be only measured from the parent's measure or layout" +
-                            " block. Parents state is ${parent.layoutState}"
-                    )
-                }
-            } else {
-                measuredByParentInLookahead = LayoutNode.UsageByParent.NotUsed
-            }
-        }
-
-        private var parentDataDirty: Boolean = true
-        override var parentData: Any? = measurePassDelegate.parentData
-            private set
-
-        // Lookahead remeasurement with the given constraints.
-        fun remeasure(constraints: Constraints): Boolean {
-            val parent = layoutNode.parent
-            @Suppress("Deprecation")
-            layoutNode.canMultiMeasure = layoutNode.canMultiMeasure ||
-                (parent != null && parent.canMultiMeasure)
-            if (layoutNode.lookaheadMeasurePending || lookaheadConstraints != constraints) {
-                lookaheadConstraints = constraints
-                alignmentLines.usedByModifierMeasurement = false
-                forEachChildAlignmentLinesOwner {
-                    it.alignmentLines.usedDuringParentMeasurement = false
-                }
-                measuredOnce = true
-                val lookaheadDelegate = outerCoordinator.lookaheadDelegate
-                check(lookaheadDelegate != null) {
-                    "Lookahead result from lookaheadRemeasure cannot be null"
-                }
-
-                // Copy out the previous size before perform lookahead measure
-                val lastLookaheadSize = IntSize(lookaheadDelegate.width, lookaheadDelegate.height)
-                performLookaheadMeasure(constraints)
-                measuredSize = IntSize(lookaheadDelegate.width, lookaheadDelegate.height)
-                val sizeChanged = lastLookaheadSize.width != lookaheadDelegate.width ||
-                    lastLookaheadSize.height != lookaheadDelegate.height
-                return sizeChanged
-            }
-            return false
-        }
-
-        override fun placeAt(
-            position: IntOffset,
-            zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
-        ) {
-            layoutState = LayoutState.LookaheadLayingOut
-            placedOnce = true
-            if (position != lastPosition) {
-                notifyChildrenUsingCoordinatesWhilePlacing()
-            }
-            alignmentLines.usedByModifierLayout = false
-            val owner = layoutNode.requireOwner()
-            coordinatesAccessedDuringPlacement = false
-            owner.snapshotObserver.observeLayoutModifierSnapshotReads(layoutNode) {
-                with(PlacementScope) {
-                    outerCoordinator.lookaheadDelegate!!.place(position)
-                }
-            }
-            lastPosition = position
-            layoutState = LayoutState.Idle
-        }
-
-        // We are setting our measuredSize to match the coerced outerCoordinator size, to prevent
-        // double offseting for layout cooperation. However, this means that here we need
-        // to override these getters to make the measured values correct in Measured.
-        // TODO(popam): clean this up
-        override val measuredWidth: Int get() = outerCoordinator.lookaheadDelegate!!.measuredWidth
-        override val measuredHeight: Int get() = outerCoordinator.lookaheadDelegate!!.measuredHeight
-
-        override fun get(alignmentLine: AlignmentLine): Int {
-            if (layoutNode.parent?.layoutState == LayoutState.LookaheadMeasuring) {
-                alignmentLines.usedDuringParentMeasurement = true
-            } else if (layoutNode.parent?.layoutState == LayoutState.LookaheadLayingOut) {
-                alignmentLines.usedDuringParentLayout = true
-            }
-            duringAlignmentLinesQuery = true
-            val result = outerCoordinator.lookaheadDelegate!![alignmentLine]
-            duringAlignmentLinesQuery = false
-            return result
-        }
-
-        override fun minIntrinsicWidth(height: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.lookaheadDelegate!!.minIntrinsicWidth(height)
-        }
-
-        override fun maxIntrinsicWidth(height: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.lookaheadDelegate!!.maxIntrinsicWidth(height)
-        }
-
-        override fun minIntrinsicHeight(width: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.lookaheadDelegate!!.minIntrinsicHeight(width)
-        }
-
-        override fun maxIntrinsicHeight(width: Int): Int {
-            onIntrinsicsQueried()
-            return outerCoordinator.lookaheadDelegate!!.maxIntrinsicHeight(width)
-        }
-
-        private fun onIntrinsicsQueried() {
-            // How intrinsics work when specific / custom intrinsics are not provided to the custom
-            // layout is we essentially run the measure block of a child with not-final constraints
-            // and fake measurables. It is possible that some measure blocks are not pure and have
-            // side effects, like save some state calculated during the measurement.
-            // In order to make it possible we always have to rerun the measure block with the real
-            // final constraints after the intrinsics run. Sometimes it will cause unnecessary
-            // remeasurements, but it makes sure such component states are using the correct final
-            // constraints/sizes.
-            layoutNode.requestLookaheadRemeasure()
-
-            // Mark the intrinsics size has been used by the parent if it hasn't already been marked.
-            val parent = layoutNode.parent
-            if (parent != null &&
-                layoutNode.intrinsicsUsageByParent == LayoutNode.UsageByParent.NotUsed
-            ) {
-                layoutNode.intrinsicsUsageByParent = when (parent.layoutState) {
-                    LayoutState.Measuring -> LayoutNode.UsageByParent.InMeasureBlock
-                    LayoutState.LayingOut -> LayoutNode.UsageByParent.InLayoutBlock
-                    // Called from parent's intrinsic measurement
-                    else -> parent.intrinsicsUsageByParent
-                }
-            }
-        }
-
-        /**
-         * If this was used in an intrinsics measurement, find the parent that used it and
-         * invalidate either the measure block or layout block.
-         */
-        fun invalidateIntrinsicsParent(forceRequest: Boolean) {
-            val parent = layoutNode.parent
-            val intrinsicsUsageByParent = layoutNode.intrinsicsUsageByParent
-            if (parent != null && intrinsicsUsageByParent != LayoutNode.UsageByParent.NotUsed) {
-                // find measuring parent
-                var intrinsicsUsingParent: LayoutNode = parent
-                while (intrinsicsUsingParent.intrinsicsUsageByParent == intrinsicsUsageByParent) {
-                    intrinsicsUsingParent = intrinsicsUsingParent.parent ?: break
-                }
-                when (intrinsicsUsageByParent) {
-                    LayoutNode.UsageByParent.InMeasureBlock ->
-                        if (intrinsicsUsingParent.lookaheadRoot != null) {
-                            intrinsicsUsingParent.requestLookaheadRemeasure(forceRequest)
-                        } else {
-                            intrinsicsUsingParent.requestRemeasure(forceRequest)
-                        }
-                    LayoutNode.UsageByParent.InLayoutBlock ->
-                        if (intrinsicsUsingParent.lookaheadRoot != null) {
-                            intrinsicsUsingParent.requestLookaheadRelayout(forceRequest)
-                        } else {
-                            intrinsicsUsingParent.requestRelayout(forceRequest)
-                        }
-                    else -> error("Intrinsics isn't used by the parent")
-                }
-            }
-        }
-
-        fun invalidateParentData() {
-            parentDataDirty = true
-        }
-
-        fun updateParentData(): Boolean {
-            if (!parentDataDirty) return false
-            parentDataDirty = false
-            val changed = parentData != outerCoordinator.lookaheadDelegate!!.parentData
-            parentData = outerCoordinator.lookaheadDelegate!!.parentData
-            return changed
-        }
-
-        fun onPlaced() {
-            if (!isPlaced) {
-                isPlaced = true
-                if (!isPreviouslyPlaced) {
-                    requestSubtreeForLookahead()
-                }
-            }
-        }
-
-        private fun requestSubtreeForLookahead() {
-            layoutNode.forEachChild {
-                it.rescheduleRemeasureOrRelayout(it)
-                it.layoutDelegate.lookaheadPassDelegate!!.requestSubtreeForLookahead()
-            }
-        }
-
-        /**
-         * The callback to be executed before running layoutChildren.
-         *
-         * There are possible cases when we run layoutChildren() on the parent node, but some of its
-         * children are not yet measured even if they are supposed to be measured in the measure
-         * block of our parent.
-         *
-         * Example:
-         * val child = Layout(...)
-         * Layout(child) { measurable, constraints ->
-         *    val placeable = measurable.first().measure(constraints)
-         *    layout(placeable.width, placeable.height) {
-         *       placeable.place(0, 0)
-         *    }
-         * }
-         * And now some set of changes scheduled remeasure for child and relayout for parent.
-         *
-         * During the [MeasureAndLayoutDelegate.measureAndLayout] we will start with the parent as it
-         * has lower depth. Inside the layout block we will call placeable.width which is currently
-         * dirty as the child was scheduled to remeasure. This callback will ensure it never happens
-         * and pre-remeasure everything required for this layoutChildren().
-         */
-        private fun onBeforeLayoutChildren() {
-            layoutNode.forEachChild {
-                if (it.lookaheadMeasurePending &&
-                    it.measuredByParentInLookahead == LayoutNode.UsageByParent.InMeasureBlock
-                ) {
-                    if (it.layoutDelegate.lookaheadPassDelegate!!.remeasure(
-                            lastConstraints!!
-                        )
-                    ) {
-                        layoutNode.requestLookaheadRemeasure()
-                    }
-                }
-            }
-        }
-
-        fun replace() {
-            check(placedOnce)
-            placeAt(lastPosition, 0f, null)
-        }
-    }
-
-    /**
-     * Returns if the we are at the lookahead root of the tree, by checking if the parent is
-     * has a lookahead root.
-     */
-    private fun LayoutNode.isOutMostLookaheadRoot(): Boolean =
-        lookaheadRoot != null && parent?.lookaheadRoot == null
-
-    /**
-     * Performs measure with the given constraints and perform necessary state mutations before
-     * and after the measurement.
-     */
-    private fun performMeasure(constraints: Constraints) {
-        check(layoutState == LayoutState.Idle) {
-            "layout state is not idle before measure starts"
-        }
-        layoutState = LayoutState.Measuring
-        measurePending = false
-        layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(
-            layoutNode,
-            affectsLookahead = false
-        ) {
-            outerCoordinator.measure(constraints)
-        }
-        // The resulting layout state might be Ready. This can happen when the layout node's
-        // own modifier is querying an alignment line during measurement, therefore we
-        // need to also layout the layout node.
-        if (layoutState == LayoutState.Measuring) {
-            markLayoutPending()
-            layoutState = LayoutState.Idle
-        }
-    }
-
-    private fun performLookaheadMeasure(
-        constraints: Constraints
-    ) {
-        layoutState = LayoutState.LookaheadMeasuring
-        lookaheadMeasurePending = false
-        layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(layoutNode) {
-            outerCoordinator.lookaheadDelegate!!.measure(constraints)
-        }
-        markLookaheadLayoutPending()
-        if (layoutNode.isOutMostLookaheadRoot()) {
-            // If layoutNode is the root of the lookahead, measure is redirected to lookahead
-            // measure, and layout pass will begin lookahead placement, measure & layout.
-            markLayoutPending()
-        } else {
-            // If layoutNode is not the root of the lookahead, measure needs to follow the
-            // lookahead measure.
-            markMeasurePending()
-        }
-        layoutState = LayoutState.Idle
+    internal fun performLookaheadMeasure(constraints: Constraints) {
+        lookaheadPassDelegate?.performMeasure(constraints)
     }
 
     internal fun ensureLookaheadDelegateCreated() {
         if (lookaheadPassDelegate == null) {
-            lookaheadPassDelegate = LookaheadPassDelegate()
+            lookaheadPassDelegate = LookaheadPassDelegate(this)
         }
     }
 
@@ -1133,7 +346,7 @@ internal class LayoutNodeLayoutDelegate(
             layoutNode.parent?.requestRemeasure()
         }
         if (lookaheadPassDelegate?.updateParentData() == true) {
-            if (layoutNode.isOutMostLookaheadRoot()) {
+            if (layoutNode.isOutMostLookaheadRoot) {
                 layoutNode.parent?.requestRemeasure()
             } else {
                 layoutNode.parent?.requestLookaheadRemeasure()
@@ -1152,14 +365,30 @@ internal class LayoutNodeLayoutDelegate(
     }
 
     fun markChildrenDirty() {
-        measurePassDelegate.childMeasurablesDirty = true
-        lookaheadPassDelegate?.let { it.childMeasurablesDirty = true }
+        measurePassDelegate.childDelegatesDirty = true
+        lookaheadPassDelegate?.let { it.childDelegatesDirty = true }
+    }
+
+    fun onRemovedFromLookaheadScope() {
+        lookaheadPassDelegate = null
+        // Clear lookahead invalidations when a LayoutNode is moved out of LookaheadScope.
+        lookaheadLayoutPending = false
+        lookaheadMeasurePending = false
     }
 }
 
-private fun LayoutNode.updateChildMeasurables(
-    destination: MutableVector<Measurable>,
-    transform: (LayoutNode) -> Measurable
+/**
+ * Returns if the we are at the lookahead root of the tree, by checking if the parent is has a
+ * lookahead root.
+ */
+internal val LayoutNode.isOutMostLookaheadRoot: Boolean
+    get() =
+        lookaheadRoot != null &&
+            (parent?.lookaheadRoot == null || layoutDelegate.detachedFromParentLookaheadPass)
+
+internal inline fun <T : Measurable> LayoutNode.updateChildMeasurables(
+    destination: MutableVector<T>,
+    transform: (LayoutNode) -> T
 ) {
     forEachChildIndexed { i, layoutNode ->
         if (destination.size <= i) {
@@ -1168,30 +397,28 @@ private fun LayoutNode.updateChildMeasurables(
             destination[i] = transform(layoutNode)
         }
     }
-    destination.removeRange(
-        children.size,
-        destination.size
-    )
+    destination.removeRange(children.size, destination.size)
 }
+
+internal const val MeasuredTwiceErrorMessage: String =
+    "measure() may not be called multiple times on the same Measurable. If you want to " +
+        "get the content size of the Measurable before calculating the final constraints, " +
+        "please use methods like minIntrinsicWidth()/maxIntrinsicWidth() and " +
+        "minIntrinsicHeight()/maxIntrinsicHeight()"
 
 /**
  * AlignmentLinesOwner defines APIs that are needed to respond to alignment line changes, and to
  * query alignment line related info.
  *
- * [LayoutNodeLayoutDelegate.LookaheadPassDelegate] and
- * [LayoutNodeLayoutDelegate.MeasurePassDelegate] both implement this interface, and they
+ * [LookaheadPassDelegate] and [MeasurePassDelegate] both implement this interface, and they
  * encapsulate the difference in alignment lines handling for lookahead pass vs. actual
  * measure/layout pass.
  */
 internal interface AlignmentLinesOwner : Measurable {
-    /**
-     * Whether the AlignmentLinesOwner has been placed.
-     */
+    /** Whether the AlignmentLinesOwner has been placed. */
     val isPlaced: Boolean
 
-    /**
-     * InnerNodeCoordinator of the LayoutNode that the AlignmentLinesOwner operates on.
-     */
+    /** InnerNodeCoordinator of the LayoutNode that the AlignmentLinesOwner operates on. */
     val innerCoordinator: NodeCoordinator
 
     /**
@@ -1206,9 +433,7 @@ internal interface AlignmentLinesOwner : Measurable {
      */
     fun layoutChildren()
 
-    /**
-     * Recalculate the alignment lines if dirty, and layout children as needed.
-     */
+    /** Recalculate the alignment lines if dirty, and layout children as needed. */
     fun calculateAlignmentLines(): Map<AlignmentLine, Int>
 
     /**
@@ -1225,15 +450,50 @@ internal interface AlignmentLinesOwner : Measurable {
 
     /**
      * Depending on which pass the [AlignmentLinesOwner] is created for, this could mean
-     * requestLookaheadLayout() for the lookahead pass, or requestLayout() for post-
-     * lookahead pass.
+     * requestLookaheadLayout() for the lookahead pass, or requestLayout() for post- lookahead pass.
      */
     fun requestLayout()
 
     /**
      * Depending on which pass the [AlignmentLinesOwner] is created for, this could mean
-     * requestLookaheadMeasure() for the lookahead pass, or requestMeasure() for post-
-     * lookahead pass.
+     * requestLookaheadMeasure() for the lookahead pass, or requestMeasure() for post- lookahead
+     * pass.
      */
     fun requestMeasure()
+}
+
+/**
+ * Interface for layout delegates, so that they can set the
+ * [LookaheadCapablePlaceable.isPlacedUnderMotionFrameOfReference] to the proper placeable.
+ */
+internal interface MotionReferencePlacementDelegate {
+    /**
+     * Called when a layout is about to be placed.
+     *
+     * This updates the corresponding [LookaheadCapablePlaceable]'s
+     * [LookaheadCapablePlaceable.isPlacedUnderMotionFrameOfReference] flag IF AND ONLY IF the
+     * placement call comes from parent [LookaheadCapablePlaceable]. More specifically, for
+     * [LookaheadCapablePlaceable] that are the head of the modifier chain (e.g. outerCoordinator),
+     * the placement call doesn't always come from the parent, as the node can be independently
+     * replaced. For these [LookaheadCapablePlaceable], we maintain the old
+     * [isPlacedUnderMotionFrameOfReference] until the next placement call comes from the parent.
+     * This reason is that only placement from parent runs the placement lambda where
+     * [Placeable.PlacementScope.withMotionFrameOfReferencePlacement] is invoked. Also note, for
+     * [LookaheadCapablePlaceable] that are not the head of the modifier chain, the placement call
+     * always comes from the parent.
+     *
+     * The placeable should be tagged such that its corresponding coordinates reflect the flag in
+     * [androidx.compose.ui.layout.LayoutCoordinates.introducesMotionFrameOfReference]. Note that
+     * when it's placed on the current frame of reference, it means it doesn't introduce a new frame
+     * of reference.
+     */
+    fun updatePlacedUnderMotionFrameOfReference(newMFR: Boolean)
+
+    /**
+     * Flag to indicate whether the [MotionReferencePlacementDelegate] is being placed under motion
+     * frame of reference. This is also reflected in
+     * [androidx.compose.ui.layout.LayoutCoordinates.introducesMotionFrameOfReference], which is
+     * used for local position calculation between coordinates.
+     */
+    val isPlacedUnderMotionFrameOfReference: Boolean
 }

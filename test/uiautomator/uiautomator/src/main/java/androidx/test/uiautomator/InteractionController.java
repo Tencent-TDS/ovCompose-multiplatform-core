@@ -16,12 +16,10 @@
 
 package androidx.test.uiautomator;
 
-import android.accessibilityservice.AccessibilityService;
 import android.app.Service;
 import android.app.UiAutomation;
 import android.app.UiAutomation.AccessibilityEventFilter;
 import android.graphics.Point;
-import android.os.Build;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -36,6 +34,8 @@ import android.view.MotionEvent.PointerProperties;
 import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -50,8 +50,9 @@ class InteractionController {
 
     private static final String TAG = InteractionController.class.getSimpleName();
 
-    private final KeyCharacterMap mKeyCharacterMap =
-            KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
+    // Duration of a long press (with multiplier to ensure detection).
+    private static final long LONG_PRESS_DURATION_MS =
+            (long) (ViewConfiguration.getLongPressTimeout() * 1.5f);
 
     private final UiDevice mDevice;
 
@@ -61,6 +62,30 @@ class InteractionController {
 
     // Inserted after each motion event injection.
     private static final int MOTION_EVENT_INJECTION_DELAY_MILLIS = 5;
+
+    private static final Map<Integer, Integer> KEY_MODIFIER = new HashMap<>();
+
+    static {
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_SHIFT_LEFT,
+                KeyEvent.META_SHIFT_LEFT_ON | KeyEvent.META_SHIFT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_SHIFT_RIGHT,
+                KeyEvent.META_SHIFT_RIGHT_ON | KeyEvent.META_SHIFT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_ALT_LEFT,
+                KeyEvent.META_ALT_LEFT_ON | KeyEvent.META_ALT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_ALT_RIGHT,
+                KeyEvent.META_ALT_RIGHT_ON | KeyEvent.META_ALT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_SYM, KeyEvent.META_SYM_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_FUNCTION, KeyEvent.META_FUNCTION_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_CTRL_LEFT,
+                KeyEvent.META_CTRL_LEFT_ON | KeyEvent.META_CTRL_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_CTRL_RIGHT,
+                KeyEvent.META_CTRL_RIGHT_ON | KeyEvent.META_CTRL_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_META_LEFT, KeyEvent.META_META_LEFT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_META_RIGHT, KeyEvent.META_META_RIGHT_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_CAPS_LOCK, KeyEvent.META_CAPS_LOCK_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_NUM_LOCK, KeyEvent.META_NUM_LOCK_ON);
+        KEY_MODIFIER.put(KeyEvent.KEYCODE_SCROLL_LOCK, KeyEvent.META_SCROLL_LOCK_ON);
+    }
 
     InteractionController(UiDevice device) {
         mDevice = device;
@@ -170,11 +195,11 @@ class InteractionController {
      * @return true if the click executed successfully
      */
     public boolean clickNoSync(int x, int y) {
-        if (touchDown(x, y)) {
-            SystemClock.sleep(REGULAR_CLICK_LENGTH);
-            return touchUp(x, y);
-        }
-        return false;
+        boolean success = touchDown(x, y);
+        SystemClock.sleep(REGULAR_CLICK_LENGTH);
+        // Always touch up (regardless of touch down success) to ensure the gesture is complete.
+        success &= touchUp(x, y);
+        return success;
     }
 
     /**
@@ -187,7 +212,7 @@ class InteractionController {
      * @return true if events are received, else false if timeout.
      */
     public boolean clickAndSync(final int x, final int y, long timeout) {
-        return runAndWaitForEvents(clickRunnable(x, y), new WaitForAnyEventPredicate(
+        return runAndWaitForEvents(() -> clickNoSync(x, y), new WaitForAnyEventPredicate(
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED |
                 AccessibilityEvent.TYPE_VIEW_SELECTED), timeout) != null;
     }
@@ -202,43 +227,9 @@ class InteractionController {
      * @return true if both events occurred in the expected order
      */
     public boolean clickAndWaitForNewWindow(final int x, final int y, long timeout) {
-        return runAndWaitForEvents(clickRunnable(x, y), new WaitForAllEventPredicate(
+        return runAndWaitForEvents(() -> clickNoSync(x, y), new WaitForAllEventPredicate(
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED |
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED), timeout) != null;
-    }
-
-    /**
-     * Returns a Runnable for use in
-     * {@link #runAndWaitForEvents(Runnable, AccessibilityEventFilter, long) to perform a click.
-     *
-     * @param x coordinate
-     * @param y coordinate
-     * @return Runnable
-     */
-    private Runnable clickRunnable(final int x, final int y) {
-        return () -> {
-            if (touchDown(x, y)) {
-                SystemClock.sleep(REGULAR_CLICK_LENGTH);
-                touchUp(x, y);
-            }
-        };
-    }
-
-    /**
-     * Returns a Runnable for use in
-     * {@link #runAndWaitForEvents(Runnable, AccessibilityEventFilter, long) to perform a long tap.
-     *
-     * @param x coordinate
-     * @param y coordinate
-     * @return Runnable
-     */
-    private Runnable longTapRunnable(final int x, final int y) {
-        return () -> {
-            if (touchDown(x, y)) {
-                SystemClock.sleep(ViewConfiguration.getLongPressTimeout());
-                touchUp(x, y);
-            }
-        };
     }
 
     /**
@@ -249,11 +240,11 @@ class InteractionController {
      * @return true if successful.
      */
     public boolean longTapNoSync(int x, int y) {
-        if (touchDown(x, y)) {
-            SystemClock.sleep(ViewConfiguration.getLongPressTimeout());
-            return touchUp(x, y);
-        }
-        return false;
+        boolean success = touchDown(x, y);
+        SystemClock.sleep(LONG_PRESS_DURATION_MS);
+        // Always touch up (regardless of touch down success) to ensure the gesture is complete.
+        success &= touchUp(x, y);
+        return success;
     }
 
     /**
@@ -266,7 +257,7 @@ class InteractionController {
      * @return true if events are received, else false if timeout.
      */
     public boolean longTapAndSync(final int x, final int y, long timeout) {
-        return runAndWaitForEvents(longTapRunnable(x, y), new WaitForAnyEventPredicate(
+        return runAndWaitForEvents(() -> longTapNoSync(x, y), new WaitForAnyEventPredicate(
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED |
                 AccessibilityEvent.TYPE_VIEW_SELECTED), timeout) != null;
     }
@@ -318,7 +309,7 @@ class InteractionController {
                 condition,
                 Configurator.getInstance().getScrollAcknowledgmentTimeout());
 
-        return !condition.getResult();
+        return Boolean.FALSE.equals(condition.getResult());
     }
 
     /**
@@ -360,7 +351,7 @@ class InteractionController {
         ret = touchDown(downX, downY);
         SystemClock.sleep(MOTION_EVENT_INJECTION_DELAY_MILLIS);
         if (drag)
-            SystemClock.sleep(ViewConfiguration.getLongPressTimeout());
+            SystemClock.sleep(LONG_PRESS_DURATION_MS);
         for(int i = 1; i < swipeSteps; i++) {
             ret &= touchMove(downX + (int)(xStep * i), downY + (int)(yStep * i));
             if (!ret) {
@@ -424,29 +415,6 @@ class InteractionController {
         return ret;
     }
 
-
-    public boolean sendText(String text) {
-        KeyEvent[] events = mKeyCharacterMap.getEvents(text.toCharArray());
-
-        if (events != null) {
-            long keyDelay = Configurator.getInstance().getKeyInjectionDelay();
-            for (KeyEvent event2 : events) {
-                // We have to change the time of an event before injecting it because
-                // all KeyEvents returned by KeyCharacterMap.getEvents() have the same
-                // time stamp and the system rejects too old events. Hence, it is
-                // possible for an event to become stale before it is injected if it
-                // takes too long to inject the preceding ones.
-                KeyEvent event = KeyEvent.changeTimeRepeat(event2,
-                        SystemClock.uptimeMillis(), 0);
-                if (!injectEventSync(event)) {
-                    return false;
-                }
-                SystemClock.sleep(keyDelay);
-            }
-        }
-        return true;
-    }
-
     public boolean sendKey(int keyCode, int metaState) {
         return sendKeys(new int[]{keyCode}, metaState);
     }
@@ -461,6 +429,9 @@ class InteractionController {
     public boolean sendKeys(int[] keyCodes, int metaState) {
         final long eventTime = SystemClock.uptimeMillis();
         for (int keyCode : keyCodes) {
+            if (KEY_MODIFIER.containsKey(keyCode)) {
+                metaState |= KEY_MODIFIER.get(keyCode);
+            }
             KeyEvent downEvent = new KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN,
                     keyCode, 0, metaState, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                     InputDevice.SOURCE_KEYBOARD);
@@ -475,6 +446,9 @@ class InteractionController {
             if (!injectEventSync(upEvent)) {
                 return false;
             }
+            if (KEY_MODIFIER.containsKey(keyCode)) {
+                metaState &= ~KEY_MODIFIER.get(keyCode);
+            }
         }
         return true;
     }
@@ -488,8 +462,7 @@ class InteractionController {
      */
     public boolean wakeDevice() throws RemoteException {
         if(!isScreenOn()) {
-            boolean supportsWakeButton = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH;
-            sendKey(supportsWakeButton ? KeyEvent.KEYCODE_WAKEUP : KeyEvent.KEYCODE_POWER, 0);
+            sendKey(KeyEvent.KEYCODE_WAKEUP, 0);
             return true;
         }
         return false;
@@ -504,8 +477,7 @@ class InteractionController {
      */
     public boolean sleepDevice() throws RemoteException {
         if(isScreenOn()) {
-            boolean supportsSleepButton = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH;
-            sendKey(supportsSleepButton ? KeyEvent.KEYCODE_SLEEP : KeyEvent.KEYCODE_POWER, 0);
+            sendKey(KeyEvent.KEYCODE_SLEEP , 0);
             return true;
         }
         return false;
@@ -626,33 +598,6 @@ class InteractionController {
                 properties, pointerCoords, 0, 0, 1, 1, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0);
         ret &= injectEventSync(event);
         return ret;
-    }
-
-    /**
-     * Simulates a short press on the Recent Apps button.
-     *
-     * @return true if successful, else return false
-     */
-    public boolean toggleRecentApps() {
-        return getUiAutomation().performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-    }
-
-    /**
-     * Opens the notification shade
-     *
-     * @return true if successful, else return false
-     */
-    public boolean openNotification() {
-        return getUiAutomation().performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
-    }
-
-    /**
-     * Opens the quick settings shade
-     *
-     * @return true if successful, else return false
-     */
-    public boolean openQuickSettings() {
-        return getUiAutomation().performGlobalAction(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS);
     }
 
     /** Helper function to obtain a MotionEvent. */

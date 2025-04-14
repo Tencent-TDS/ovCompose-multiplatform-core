@@ -33,11 +33,30 @@ private const val FLOAT_TOLERANCE = 1E-4
 class MatrixExtTest {
 
     @Test
+    fun preVerticalFlip() {
+        // Arrange.
+        val flipLine = 0.5f
+        val matrix = FloatArray(16)
+        Matrix.setIdentityM(matrix, 0)
+        val expected = FloatArray(16)
+        Matrix.setIdentityM(expected, 0)
+
+        // Act: flip around the line y = 0.5.
+        MatrixExt.preVerticalFlip(matrix, flipLine)
+
+        // Assert: the matrix should be flipped around the line y = 0.5.
+        Matrix.translateM(expected, 0, 0f, flipLine * 2, 0f)
+        Matrix.scaleM(expected, 0, 1f, -flipLine * 2, 1f)
+        assertThat(matrix).usingTolerance(FLOAT_TOLERANCE).containsExactly(expected).inOrder()
+    }
+
+    @Test
     fun setRotate() {
-        val transform = createIdentityMatrix().also {
-            // 0.5x scaling on the Y axis
-            Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
-        }
+        val transform =
+            createIdentityMatrix().also {
+                // 0.5x scaling on the Y axis
+                Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
+            }
 
         // Act.
         // 90° clockwise rotation around (0.5, 0.5).
@@ -50,16 +69,18 @@ class MatrixExtTest {
         val data = floatArrayOf(0f, 1f, 0f, 1f)
         val result = FloatArray(4)
         Matrix.multiplyMV(result, 0, transform, 0, data, 0)
-        assertThat(result).usingTolerance(FLOAT_TOLERANCE)
+        assertThat(result)
+            .usingTolerance(FLOAT_TOLERANCE)
             .containsExactly(floatArrayOf(1f, 1f, 0f, 1f))
     }
 
     @Test
     fun preRotate() {
-        val transform = createIdentityMatrix().also {
-            // 0.5x scaling on the Y axis
-            Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
-        }
+        val transform =
+            createIdentityMatrix().also {
+                // 0.5x scaling on the Y axis
+                Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
+            }
 
         // Act.
         // 90° clockwise rotation around (0.5, 0.5).
@@ -71,16 +92,18 @@ class MatrixExtTest {
         val data = floatArrayOf(0f, 1f, 0f, 1f)
         val result = FloatArray(4)
         Matrix.multiplyMV(result, 0, transform, 0, data, 0)
-        assertThat(result).usingTolerance(FLOAT_TOLERANCE)
+        assertThat(result)
+            .usingTolerance(FLOAT_TOLERANCE)
             .containsExactly(floatArrayOf(1f, 0.5f, 0f, 1f))
     }
 
     @Test
     fun postRotate() {
-        val transform = createIdentityMatrix().also {
-            // 0.5x scaling on the Y axis
-            Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
-        }
+        val transform =
+            createIdentityMatrix().also {
+                // 0.5x scaling on the Y axis
+                Matrix.scaleM(it, 0, 1f, 0.5f, 1f)
+            }
 
         // Act.
         // 90° clockwise rotation around (0.5, 0.5).
@@ -92,7 +115,8 @@ class MatrixExtTest {
         val data = floatArrayOf(0f, 1f, 0f, 1f)
         val result = FloatArray(4)
         Matrix.multiplyMV(result, 0, transform, 0, data, 0)
-        assertThat(result).usingTolerance(FLOAT_TOLERANCE)
+        assertThat(result)
+            .usingTolerance(FLOAT_TOLERANCE)
             .containsExactly(floatArrayOf(0.5f, 1f, 0f, 1f))
     }
 

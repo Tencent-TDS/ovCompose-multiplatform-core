@@ -22,6 +22,9 @@ import androidx.privacysandbox.tools.core.generator.AidlGenerator
 import androidx.privacysandbox.tools.core.generator.ClientProxyTypeGenerator
 import androidx.privacysandbox.tools.core.generator.CoreLibInfoAndBinderWrapperConverterGenerator
 import androidx.privacysandbox.tools.core.generator.GenerationTarget
+import androidx.privacysandbox.tools.core.generator.PrivacySandboxCancellationExceptionFileGenerator
+import androidx.privacysandbox.tools.core.generator.PrivacySandboxExceptionFileGenerator
+import androidx.privacysandbox.tools.core.generator.SdkActivityLauncherWrapperGenerator
 import androidx.privacysandbox.tools.core.generator.ServerBinderCodeConverter
 import androidx.privacysandbox.tools.core.generator.ServiceFactoryFileGenerator
 import androidx.privacysandbox.tools.core.generator.StubDelegatesGenerator
@@ -29,6 +32,7 @@ import androidx.privacysandbox.tools.core.generator.ThrowableParcelConverterFile
 import androidx.privacysandbox.tools.core.generator.TransportCancellationGenerator
 import androidx.privacysandbox.tools.core.generator.ValueConverterFileGenerator
 import androidx.privacysandbox.tools.core.model.ParsedApi
+import androidx.privacysandbox.tools.core.model.containsSdkActivityLauncher
 import androidx.privacysandbox.tools.core.model.getOnlyService
 import androidx.privacysandbox.tools.core.model.hasSuspendFunctions
 import com.google.devtools.ksp.processing.CodeGenerator
@@ -55,6 +59,7 @@ internal class SdkCodeGenerator(
     private val sandboxApiVersion: SandboxApiVersion
 ) {
     private val binderCodeConverter = ServerBinderCodeConverter(api)
+    private val target = GenerationTarget.SERVER
 
     fun generate() {
         if (api.services.isEmpty()) {
@@ -67,6 +72,7 @@ internal class SdkCodeGenerator(
         generateCallbackProxies()
         generateToolMetadata()
         generateSuspendFunctionUtilities()
+        generateSdkActivityLauncherUtilities()
         generateServiceFactoryFile()
     }
 
@@ -74,19 +80,25 @@ internal class SdkCodeGenerator(
         val workingDir = createTempDirectory("aidl")
         try {
             AidlGenerator.generate(
-                AidlCompiler(aidlCompilerPath, frameworkAidlPath),
-                api, workingDir
-            )
+                    AidlCompiler(aidlCompilerPath, frameworkAidlPath),
+                    api,
+                    workingDir
+                )
                 .forEach { source ->
                     // Sources created by the AIDL compiler have to be copied to files created
                     // through the KSP APIs, so that they are included in downstream compilation.
-                    val kspGeneratedFile = codeGenerator.createNewFile(
-                        Dependencies.ALL_FILES,
-                        source.packageName,
-                        source.interfaceName,
-                        extensionName = "java"
-                    )
-                    source.file.inputStream().copyTo(kspGeneratedFile)
+                    val kspGeneratedFile =
+                        codeGenerator.createNewFile(
+                            Dependencies.ALL_FILES,
+                            source.packageName,
+                            source.interfaceName,
+                            extensionName = "java"
+                        )
+                    kspGeneratedFile.use { outputStream ->
+                        source.file.inputStream().use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
                 }
         } finally {
             workingDir.toFile().deleteRecursively()
@@ -94,43 +106,42 @@ internal class SdkCodeGenerator(
     }
 
     private fun generateAbstractSdkProvider() {
-        val generator = when (sandboxApiVersion) {
-            SandboxApiVersion.API_33 -> Api33SdkProviderGenerator(api)
-            SandboxApiVersion.SDK_RUNTIME_COMPAT_LIBRARY -> CompatSdkProviderGenerator(api)
-        }
+        val generator =
+            when (sandboxApiVersion) {
+                SandboxApiVersion.API_33 -> Api33SdkProviderGenerator(api)
+                SandboxApiVersion.SDK_RUNTIME_COMPAT_LIBRARY -> CompatSdkProviderGenerator(api)
+            }
         generator.generate()?.also(::write)
     }
 
     private fun generateStubDelegates() {
         val stubDelegateGenerator = StubDelegatesGenerator(basePackageName(), binderCodeConverter)
-        api.services.map { stubDelegateGenerator.generate(it, GenerationTarget.SERVER) }
-            .forEach(::write)
-        api.interfaces.map { stubDelegateGenerator.generate(it, GenerationTarget.SERVER) }
-            .forEach(::write)
+        api.services.map { stubDelegateGenerator.generate(it, target) }.forEach(::write)
+        api.interfaces.map { stubDelegateGenerator.generate(it, target) }.forEach(::write)
     }
 
     private fun generateValueConverters() {
-        val valueConverterFileGenerator =
-            ValueConverterFileGenerator(binderCodeConverter, GenerationTarget.SERVER)
+        val valueConverterFileGenerator = ValueConverterFileGenerator(binderCodeConverter, target)
         api.values.map(valueConverterFileGenerator::generate).forEach(::write)
-        api.interfaces.filter { it.inheritsSandboxedUiAdapter }.map {
-            CoreLibInfoAndBinderWrapperConverterGenerator.generate(it).also(::write)
-        }
+        api.interfaces
+            .filter { it.inheritsUiAdapter }
+            .map { CoreLibInfoAndBinderWrapperConverterGenerator.generate(it).also(::write) }
     }
 
     private fun generateCallbackProxies() {
         val clientProxyGenerator = ClientProxyTypeGenerator(basePackageName(), binderCodeConverter)
-        api.callbacks.map { clientProxyGenerator.generate(it, GenerationTarget.SERVER) }
-            .forEach(::write)
+        api.callbacks.map { clientProxyGenerator.generate(it, target) }.forEach(::write)
     }
 
     private fun generateToolMetadata() {
-        codeGenerator.createNewFile(
-            Dependencies.ALL_FILES,
-            Metadata.filePath.parent.toString(),
-            Metadata.filePath.nameWithoutExtension,
-            Metadata.filePath.extension,
-        ).use { Metadata.toolMetadata.writeTo(it) }
+        codeGenerator
+            .createNewFile(
+                Dependencies.ALL_FILES,
+                Metadata.filePath.parent.toString(),
+                Metadata.filePath.nameWithoutExtension,
+                Metadata.filePath.extension,
+            )
+            .use { Metadata.toolMetadata.writeTo(it) }
     }
 
     private fun generateServiceFactoryFile() {
@@ -138,21 +149,27 @@ internal class SdkCodeGenerator(
         // API descriptors, and the client can use those symbols without running the API Generator.
         // It's not intended to be used by the SDK code.
         val serviceFactoryFileGenerator = ServiceFactoryFileGenerator(generateStubs = true)
-        api.services.forEach {
-            serviceFactoryFileGenerator.generate(it).also(::write)
-        }
+        api.services.forEach { serviceFactoryFileGenerator.generate(it).also(::write) }
     }
 
     private fun generateSuspendFunctionUtilities() {
         if (!api.hasSuspendFunctions()) return
         TransportCancellationGenerator(basePackageName()).generate().also(::write)
-        ThrowableParcelConverterFileGenerator(basePackageName()).generate(convertToParcel = true)
-            .also(::write)
+        ThrowableParcelConverterFileGenerator(basePackageName()).generate().also(::write)
+        PrivacySandboxExceptionFileGenerator(basePackageName()).generate().also(::write)
+        PrivacySandboxCancellationExceptionFileGenerator(basePackageName()).generate().also(::write)
+    }
+
+    private fun generateSdkActivityLauncherUtilities() {
+        if (!api.containsSdkActivityLauncher()) return
+        SdkActivityLauncherWrapperGenerator(basePackageName()).generate().also(::write)
     }
 
     private fun write(spec: FileSpec) {
-        codeGenerator.createNewFile(Dependencies.ALL_FILES, spec.packageName, spec.name)
-            .bufferedWriter().use(spec::writeTo)
+        codeGenerator
+            .createNewFile(Dependencies.ALL_FILES, spec.packageName, spec.name)
+            .bufferedWriter()
+            .use(spec::writeTo)
     }
 
     private fun basePackageName() = api.getOnlyService().type.packageName

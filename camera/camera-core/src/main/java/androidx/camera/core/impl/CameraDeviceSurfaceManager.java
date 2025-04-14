@@ -17,12 +17,13 @@
 package androidx.camera.core.impl;
 
 import android.content.Context;
+import android.util.Pair;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.InitializationException;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,6 @@ import java.util.Set;
  * Camera device manager to provide the guaranteed supported stream capabilities related info for
  * all camera devices
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraDeviceSurfaceManager {
 
     /**
@@ -42,44 +42,28 @@ public interface CameraDeviceSurfaceManager {
         /**
          * Creates a new, initialized instance of a CameraDeviceSurfaceManager.
          *
-         * @param context the android context
-         * @param cameraManager the camera manager object used to query the camera information.
+         * @param context            the android context
+         * @param cameraManager      the camera manager object used to query the camera information.
          * @param availableCameraIds current available camera ids.
          * @return the factory instance
          * @throws InitializationException if it fails to create the factory
          */
-        @NonNull
-        CameraDeviceSurfaceManager newInstance(@NonNull Context context,
+        @NonNull CameraDeviceSurfaceManager newInstance(@NonNull Context context,
                 @Nullable Object cameraManager, @NonNull Set<String> availableCameraIds)
                 throws InitializationException;
     }
 
     /**
-     * Check whether the input surface configuration list is under the capability of any combination
-     * of this object.
-     *
-     * @param isConcurrentCameraModeOn true if concurrent camera mode is on, otherwise false.
-     * @param cameraId          the camera id of the camera device to be compared
-     * @param surfaceConfigList the surface configuration list to be compared
-     * @return the check result that whether it could be supported
-     */
-    boolean checkSupported(
-            boolean isConcurrentCameraModeOn,
-            @NonNull String cameraId,
-            @Nullable List<SurfaceConfig> surfaceConfigList);
-
-    /**
      * Transform to a SurfaceConfig object with cameraId, image format and size info
      *
-     * @param isConcurrentCameraModeOn true if concurrent camera mode is on, otherwise false.
+     * @param cameraMode  the working camera mode.
      * @param cameraId    the camera id of the camera device to transform the object
      * @param imageFormat the image format info for the surface configuration object
      * @param size        the size info for the surface configuration object
      * @return new {@link SurfaceConfig} object
      */
-    @Nullable
-    SurfaceConfig transformSurfaceConfig(
-            boolean isConcurrentCameraModeOn,
+    @Nullable SurfaceConfig transformSurfaceConfig(
+            @CameraMode.Mode int cameraMode,
             @NonNull String cameraId,
             int imageFormat,
             @NonNull Size size);
@@ -87,8 +71,7 @@ public interface CameraDeviceSurfaceManager {
     /**
      * Retrieves a map of suggested stream specifications for the given list of use cases.
      *
-     * @param isConcurrentCameraModeOn          true if concurrent camera mode is on, otherwise
-     *                                          false.
+     * @param cameraMode                        the working camera mode.
      * @param cameraId                          the camera id of the camera device used by the
      *                                          use cases
      * @param existingSurfaces                  list of surfaces already configured and used by
@@ -97,6 +80,8 @@ public interface CameraDeviceSurfaceManager {
      * @param newUseCaseConfigsSupportedSizeMap map of configurations of the use cases to the
      *                                          supported output sizes list that will be given a
      *                                          suggested stream specification
+     * @param isPreviewStabilizationOn          whether the preview stabilization is enabled.
+     * @param hasVideoCapture                   whether the use cases has video capture.
      * @return map of suggested stream specifications for given use cases
      * @throws IllegalStateException    if not initialized
      * @throws IllegalArgumentException if {@code newUseCaseConfigs} is an empty list, if
@@ -104,10 +89,12 @@ public interface CameraDeviceSurfaceManager {
      *                                  available, or if the {@code cameraId}
      *                                  is not a valid id.
      */
-    @NonNull
-    Map<UseCaseConfig<?>, StreamSpec> getSuggestedStreamSpecs(
-            boolean isConcurrentCameraModeOn,
+    @NonNull Pair<Map<UseCaseConfig<?>, StreamSpec>, Map<AttachedSurfaceInfo, StreamSpec>>
+            getSuggestedStreamSpecs(
+            @CameraMode.Mode int cameraMode,
             @NonNull String cameraId,
             @NonNull List<AttachedSurfaceInfo> existingSurfaces,
-            @NonNull Map<UseCaseConfig<?>, List<Size>> newUseCaseConfigsSupportedSizeMap);
+            @NonNull Map<UseCaseConfig<?>, List<Size>> newUseCaseConfigsSupportedSizeMap,
+            boolean isPreviewStabilizationOn,
+            boolean hasVideoCapture);
 }

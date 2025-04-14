@@ -33,8 +33,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.compose.ui.viewbinding.samples.databinding.SampleLayoutBinding
+import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
@@ -49,8 +49,7 @@ import org.junit.runner.RunWith
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 class AndroidViewBindingTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun drawing() {
@@ -77,16 +76,14 @@ class AndroidViewBindingTest {
 
         val size = 50.dp
         val sizePx = with(rule.density) { size.roundToPx() }
-        rule.onNodeWithTag("layout").captureToImage()
-            .assertPixels(IntSize(sizePx, sizePx * 2)) {
-                if (it.y < sizePx) Color.Blue else color.value
-            }
+        rule.onNodeWithTag("layout").captureToImage().assertPixels(IntSize(sizePx, sizePx * 2)) {
+            if (it.y < sizePx) Color.Blue else color.value
+        }
 
         rule.runOnIdle { color.value = Color.DarkGray }
-        rule.onNodeWithTag("layout").captureToImage()
-            .assertPixels(IntSize(sizePx, sizePx * 2)) {
-                if (it.y < sizePx) Color.Blue else color.value
-            }
+        rule.onNodeWithTag("layout").captureToImage().assertPixels(IntSize(sizePx, sizePx * 2)) {
+            if (it.y < sizePx) Color.Blue else color.value
+        }
     }
 
     @Test

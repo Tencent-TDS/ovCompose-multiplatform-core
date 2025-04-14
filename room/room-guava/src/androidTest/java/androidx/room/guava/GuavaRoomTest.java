@@ -20,16 +20,14 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.os.CancellationSignal;
 
-import androidx.annotation.NonNull;
-import androidx.room.DatabaseConfiguration;
 import androidx.room.InvalidationTracker;
 import androidx.room.RoomDatabase;
-import androidx.sqlite.db.SupportSQLiteOpenHelper;
-import androidx.test.filters.SdkSuppress;
+import androidx.room.RoomSQLiteQuery;
 import androidx.test.filters.SmallTest;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 
 import java.util.concurrent.Executor;
@@ -38,13 +36,14 @@ import java.util.concurrent.Executor;
 public class GuavaRoomTest {
 
     @Test
-    @SdkSuppress(minSdkVersion = 16)
+    @SuppressWarnings("deprecation")
     public void queryIsCancelled() {
         Executor executor = runnable -> { /* nothing to do */ };
 
         CancellationSignal signal = new CancellationSignal();
         ListenableFuture<Integer> future = GuavaRoom.createListenableFuture(
-                new TestDatabase(executor), false, () -> 1, null, false, signal);
+                new TestDatabase(executor), false, () -> 1, RoomSQLiteQuery.acquire("", 0), false,
+                signal);
 
         future.cancel(true);
 
@@ -59,21 +58,13 @@ public class GuavaRoomTest {
             mTestExecutor = testExecutor;
         }
 
-        @NonNull
         @Override
-        public Executor getQueryExecutor() {
+        public @NonNull Executor getQueryExecutor() {
             return mTestExecutor;
         }
 
-        @NonNull
         @Override
-        protected SupportSQLiteOpenHelper createOpenHelper(DatabaseConfiguration config) {
-            throw new UnsupportedOperationException("Shouldn't be called!");
-        }
-
-        @NonNull
-        @Override
-        protected InvalidationTracker createInvalidationTracker() {
+        protected @NonNull InvalidationTracker createInvalidationTracker() {
             return null;
         }
 

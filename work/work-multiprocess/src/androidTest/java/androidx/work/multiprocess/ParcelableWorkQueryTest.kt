@@ -23,10 +23,10 @@ import androidx.work.WorkInfo
 import androidx.work.WorkQuery
 import androidx.work.multiprocess.parcelable.ParcelConverters
 import androidx.work.multiprocess.parcelable.ParcelableWorkQuery
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 public class ParcelableWorkQueryTest {
@@ -39,11 +39,12 @@ public class ParcelableWorkQueryTest {
             return
         }
 
-        val workQuery = WorkQuery.Builder.fromUniqueWorkNames(listOf("name1"))
-            .addTags(listOf("tag1", "tag2"))
-            .addIds(listOf(UUID.randomUUID()))
-            .addStates(listOf(WorkInfo.State.ENQUEUED))
-            .build()
+        val workQuery =
+            WorkQuery.Builder.fromUniqueWorkNames(listOf("name1"))
+                .addTags(listOf("tag1", "tag2"))
+                .addIds(listOf(UUID.randomUUID()))
+                .addStates(listOf(WorkInfo.State.ENQUEUED))
+                .build()
 
         assertOn(workQuery)
     }
@@ -56,8 +57,7 @@ public class ParcelableWorkQueryTest {
             return
         }
 
-        val workQuery = WorkQuery.Builder.fromUniqueWorkNames(listOf("name1"))
-            .build()
+        val workQuery = WorkQuery.Builder.fromUniqueWorkNames(listOf("name1")).build()
 
         assertOn(workQuery)
     }
@@ -70,8 +70,7 @@ public class ParcelableWorkQueryTest {
             return
         }
 
-        val workQuery = WorkQuery.Builder.fromTags(listOf("tag1", "tag2"))
-            .build()
+        val workQuery = WorkQuery.Builder.fromTags(listOf("tag1", "tag2")).build()
 
         assertOn(workQuery)
     }
@@ -84,8 +83,7 @@ public class ParcelableWorkQueryTest {
             return
         }
 
-        val workQuery = WorkQuery.Builder.fromStates(listOf(WorkInfo.State.ENQUEUED))
-            .build()
+        val workQuery = WorkQuery.Builder.fromStates(listOf(WorkInfo.State.ENQUEUED)).build()
 
         assertOn(workQuery)
     }

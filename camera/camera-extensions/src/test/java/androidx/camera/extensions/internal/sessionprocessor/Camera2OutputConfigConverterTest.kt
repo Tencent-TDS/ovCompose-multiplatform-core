@@ -37,6 +37,7 @@ private const val SURFACE_GROUP_ID = 1
 private const val IMAGE_FORMAT = ImageFormat.YUV_420_888
 private const val MAX_IMAGES = 2
 private const val ID = 10
+
 private val SIZE = Size(640, 480)
 
 @RunWith(RobolectricTestRunner::class)
@@ -44,37 +45,39 @@ private val SIZE = Size(640, 480)
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class Camera2OutputConfigConverterTest {
     private val surface = mock(Surface::class.java)
-    private val sharedConfigImpls = listOf(
-        FakeImageReaderConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            emptyList(),
-            SIZE,
-            IMAGE_FORMAT,
-            MAX_IMAGES
-        ),
-        FakeSurfaceConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            emptyList(),
-            surface,
+    private val sharedConfigImpls =
+        listOf(
+            FakeImageReaderConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                emptyList(),
+                SIZE,
+                IMAGE_FORMAT,
+                MAX_IMAGES
+            ),
+            FakeSurfaceConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                emptyList(),
+                surface,
+            )
         )
-    )
 
     @Test
     fun canConvertFromImpl_imageReaderOutputConfigImpl() {
         // Arrange
-        val outputConfigImpl = FakeImageReaderConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            sharedConfigImpls,
-            SIZE,
-            IMAGE_FORMAT,
-            MAX_IMAGES
-        )
+        val outputConfigImpl =
+            FakeImageReaderConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                sharedConfigImpls,
+                SIZE,
+                IMAGE_FORMAT,
+                MAX_IMAGES
+            )
 
         // Act
         val outputConfig = Camera2OutputConfigConverter.fromImpl(outputConfigImpl)
@@ -86,13 +89,14 @@ class Camera2OutputConfigConverterTest {
     @Test
     fun canConvertFromImpl_surfaceOutputConfigImpl() {
         // Arrange
-        val outputConfigImpl = FakeSurfaceConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            sharedConfigImpls,
-            surface,
-        )
+        val outputConfigImpl =
+            FakeSurfaceConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                sharedConfigImpls,
+                surface,
+            )
 
         // Act
         val outputConfig = Camera2OutputConfigConverter.fromImpl(outputConfigImpl)
@@ -104,14 +108,15 @@ class Camera2OutputConfigConverterTest {
     @Test
     fun canConvertFromImpl_multiResImageOutputConfigImpl() {
         // Arrange
-        val outputConfigImpl = FakeMultiResImageReaderConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            sharedConfigImpls,
-            IMAGE_FORMAT,
-            MAX_IMAGES
-        )
+        val outputConfigImpl =
+            FakeMultiResImageReaderConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                sharedConfigImpls,
+                IMAGE_FORMAT,
+                MAX_IMAGES
+            )
 
         // Act
         val outputConfig = Camera2OutputConfigConverter.fromImpl(outputConfigImpl)
@@ -123,13 +128,14 @@ class Camera2OutputConfigConverterTest {
     @Test
     fun canConvertFromImpl_surfaceSharingConfigsIsNull() {
         // Arrange
-        val outputConfigImpl = FakeSurfaceConfigImpl(
-            ID,
-            SURFACE_GROUP_ID,
-            PHYSICAL_CAMERA_ID,
-            null,
-            surface,
-        )
+        val outputConfigImpl =
+            FakeSurfaceConfigImpl(
+                ID,
+                SURFACE_GROUP_ID,
+                PHYSICAL_CAMERA_ID,
+                null,
+                surface,
+            )
 
         // Act
         val outputConfig = Camera2OutputConfigConverter.fromImpl(outputConfigImpl)
@@ -149,7 +155,7 @@ class Camera2OutputConfigConverterTest {
         assertThat(outputConfig.surfaceSharingOutputConfigs.size)
             .isEqualTo(outputConfigImpl.surfaceSharingOutputConfigs?.size ?: 0)
         outputConfig.surfaceSharingOutputConfigs.forEachIndexed { index, sharingConfig ->
-            val sharedConfigImpl = outputConfigImpl.surfaceSharingOutputConfigs[index]
+            val sharedConfigImpl = outputConfigImpl.surfaceSharingOutputConfigs!![index]
             assertOutputConfigElements(sharingConfig, sharedConfigImpl)
         }
 
@@ -165,10 +171,9 @@ class Camera2OutputConfigConverterTest {
                     .isEqualTo(imageReaderOutputConfigImpl.imageFormat)
                 assertThat(outputConfig.maxImages).isEqualTo(imageReaderOutputConfigImpl.maxImages)
             }
-
             is MultiResolutionImageReaderOutputConfig -> {
-                val multiResOutputConfigImpl = outputConfigImpl
-                    as MultiResolutionImageReaderOutputConfigImpl
+                val multiResOutputConfigImpl =
+                    outputConfigImpl as MultiResolutionImageReaderOutputConfigImpl
                 assertThat(outputConfig.imageFormat).isEqualTo(multiResOutputConfigImpl.imageFormat)
                 assertThat(outputConfig.maxImages).isEqualTo(multiResOutputConfigImpl.maxImages)
             }
@@ -185,11 +190,17 @@ class Camera2OutputConfigConverterTest {
         private val maxImages: Int,
     ) : ImageReaderOutputConfigImpl {
         override fun getId() = id
+
         override fun getSurfaceGroupId() = surfaceGroupId
+
         override fun getPhysicalCameraId() = physicalCameraId
+
         override fun getSurfaceSharingOutputConfigs() = sharedOutputConfigImpl
+
         override fun getSize() = size
+
         override fun getImageFormat() = format
+
         override fun getMaxImages() = maxImages
     }
 
@@ -201,9 +212,13 @@ class Camera2OutputConfigConverterTest {
         private val surface: Surface,
     ) : SurfaceOutputConfigImpl {
         override fun getId() = id
+
         override fun getSurfaceGroupId() = surfaceGroupId
+
         override fun getPhysicalCameraId() = physicalCameraId
+
         override fun getSurfaceSharingOutputConfigs() = sharedOutputConfigImpl
+
         override fun getSurface() = surface
     }
 
@@ -216,10 +231,15 @@ class Camera2OutputConfigConverterTest {
         private val maxImages: Int,
     ) : MultiResolutionImageReaderOutputConfigImpl {
         override fun getId() = id
+
         override fun getSurfaceGroupId() = surfaceGroupId
+
         override fun getPhysicalCameraId() = physicalCameraId
+
         override fun getSurfaceSharingOutputConfigs() = sharedOutputConfigImpl
+
         override fun getImageFormat() = format
+
         override fun getMaxImages() = maxImages
     }
 }

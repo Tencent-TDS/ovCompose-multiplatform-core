@@ -17,27 +17,36 @@
 package androidx.wear.tiles;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
+import androidx.wear.protolayout.expression.Fingerprint;
 import androidx.wear.protolayout.proto.ColorProto;
 
-/** Builders for color utilities for layout elements. */
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Builders for color utilities for layout elements.
+ *
+ * @deprecated Use {@link androidx.wear.protolayout.ColorBuilders} instead.
+ */
+@Deprecated
 public final class ColorBuilders {
     private ColorBuilders() {}
 
     /** Shortcut for building a {@link ColorProp} using an ARGB value. */
-    @NonNull
-    public static ColorProp argb(@ColorInt int colorArgb) {
+    public static @NonNull ColorProp argb(@ColorInt int colorArgb) {
         return new ColorProp.Builder().setArgb(colorArgb).build();
     }
 
     /** A property defining a color. */
     public static final class ColorProp {
         private final ColorProto.ColorProp mImpl;
+        private final @Nullable Fingerprint mFingerprint;
 
-        private ColorProp(ColorProto.ColorProp impl) {
+        ColorProp(ColorProto.ColorProp impl, @Nullable Fingerprint fingerprint) {
             this.mImpl = impl;
+            this.mFingerprint = fingerprint;
         }
 
         /** Gets the color value, in ARGB format. Intended for testing purposes only. */
@@ -46,35 +55,37 @@ public final class ColorBuilders {
             return mImpl.getArgb();
         }
 
+        /** Get the fingerprint for this object, or null if unknown. */
         @RestrictTo(Scope.LIBRARY_GROUP)
-        @NonNull
-        public static ColorProp fromProto(@NonNull ColorProto.ColorProp proto) {
-            return new ColorProp(proto);
+        public @Nullable Fingerprint getFingerprint() {
+            return mFingerprint;
         }
 
-        @RestrictTo(Scope.LIBRARY_GROUP)
-        @NonNull
-        public ColorProto.ColorProp toProto() {
+        static @NonNull ColorProp fromProto(ColorProto.@NonNull ColorProp proto) {
+            return new ColorProp(proto, null);
+        }
+
+        ColorProto.@NonNull ColorProp toProto() {
             return mImpl;
         }
 
         /** Builder for {@link ColorProp} */
         public static final class Builder {
             private final ColorProto.ColorProp.Builder mImpl = ColorProto.ColorProp.newBuilder();
+            private final Fingerprint mFingerprint = new Fingerprint(-1332287496);
 
             public Builder() {}
 
             /** Sets the color value, in ARGB format. */
-            @NonNull
-            public Builder setArgb(@ColorInt int argb) {
+            public @NonNull Builder setArgb(@ColorInt int argb) {
                 mImpl.setArgb(argb);
+                mFingerprint.recordPropertyUpdate(1, argb);
                 return this;
             }
 
             /** Builds an instance from accumulated values. */
-            @NonNull
-            public ColorProp build() {
-                return ColorProp.fromProto(mImpl.build());
+            public @NonNull ColorProp build() {
+                return new ColorProp(mImpl.build(), mFingerprint);
             }
         }
     }

@@ -16,7 +16,6 @@
 
 package androidx.window.testing.embedding
 
-import androidx.window.testing.layout.FoldingFeature as testFoldingFeature
 import android.content.res.Configuration
 import android.graphics.Rect
 import androidx.window.core.ExperimentalWindowApi
@@ -27,6 +26,7 @@ import androidx.window.embedding.SplitAttributesCalculatorParams
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowLayoutInfo
 import androidx.window.layout.WindowMetrics
+import androidx.window.testing.layout.FoldingFeature as testFoldingFeature
 import androidx.window.testing.layout.TestWindowLayoutInfo
 import java.util.Collections
 import org.junit.Assert.assertEquals
@@ -37,9 +37,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /** Test class to verify [TestSplitAttributesCalculatorParams]. */
-@OptIn(ExperimentalWindowApi::class)
 @RunWith(RobolectricTestRunner::class)
 class SplitAttributesCalculatorParamsTestingTest {
+
     /** Verifies if the default values of [TestSplitAttributesCalculatorParams] are as expected. */
     @Test
     fun testDefaults() {
@@ -60,7 +60,8 @@ class SplitAttributesCalculatorParamsTestingTest {
     fun testParamsWithTabletopFoldingFeature() {
         val tabletopFoldingFeature = testFoldingFeature(TEST_BOUNDS)
         val parentWindowLayoutInfo = TestWindowLayoutInfo(listOf(tabletopFoldingFeature))
-        val params = TestSplitAttributesCalculatorParams(
+        val params =
+            TestSplitAttributesCalculatorParams(
                 parentWindowMetrics = TEST_METRICS,
                 parentWindowLayoutInfo = parentWindowLayoutInfo
             )
@@ -78,35 +79,35 @@ class SplitAttributesCalculatorParamsTestingTest {
     private fun testSplitAttributesCalculator(
         params: SplitAttributesCalculatorParams
     ): SplitAttributes {
-        val foldingFeatures = params.parentWindowLayoutInfo.displayFeatures
-            .filterIsInstance<FoldingFeature>()
+        val foldingFeatures =
+            params.parentWindowLayoutInfo.displayFeatures.filterIsInstance<FoldingFeature>()
         val foldingFeature: FoldingFeature? =
             if (foldingFeatures.size == 1) {
                 foldingFeatures.first()
             } else {
                 null
             }
-        if (foldingFeature?.state == FoldingFeature.State.HALF_OPENED &&
-            foldingFeature.orientation == FoldingFeature.Orientation.HORIZONTAL
+        if (
+            foldingFeature?.state == FoldingFeature.State.HALF_OPENED &&
+                foldingFeature.orientation == FoldingFeature.Orientation.HORIZONTAL
         ) {
             return TABLETOP_HINGE_ATTRIBUTES
         }
         return if (params.areDefaultConstraintsSatisfied) {
             params.defaultSplitAttributes
         } else {
-            SplitAttributes.Builder()
-                .setSplitType(SPLIT_TYPE_EXPAND)
-                .build()
+            SplitAttributes.Builder().setSplitType(SPLIT_TYPE_EXPAND).build()
         }
     }
 
     companion object {
         private val TEST_BOUNDS = Rect(0, 0, 2000, 2000)
-        private val TEST_METRICS = WindowMetrics(TEST_BOUNDS)
+        private val TEST_METRICS = WindowMetrics(TEST_BOUNDS, density = 1f)
         private val DEFAULT_SPLIT_ATTRIBUTES = SplitAttributes.Builder().build()
-        private val TABLETOP_HINGE_ATTRIBUTES = SplitAttributes.Builder()
-            .setSplitType(SPLIT_TYPE_HINGE)
-            .setLayoutDirection(SplitAttributes.LayoutDirection.TOP_TO_BOTTOM)
-            .build()
+        private val TABLETOP_HINGE_ATTRIBUTES =
+            SplitAttributes.Builder()
+                .setSplitType(SPLIT_TYPE_HINGE)
+                .setLayoutDirection(SplitAttributes.LayoutDirection.TOP_TO_BOTTOM)
+                .build()
     }
 }

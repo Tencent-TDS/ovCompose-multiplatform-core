@@ -18,11 +18,11 @@ package androidx.room.compiler.processing.javac
 
 import androidx.room.compiler.processing.InternalXAnnotated
 import androidx.room.compiler.processing.XAnnotation
-import androidx.room.compiler.processing.XAnnotationBox
 import androidx.room.compiler.processing.XElement
 import androidx.room.compiler.processing.XEquality
 import androidx.room.compiler.processing.XHasModifiers
-import androidx.room.compiler.processing.javac.kotlin.KmFlags
+import androidx.room.compiler.processing.javac.kotlin.KmData
+import androidx.room.compiler.processing.javac.kotlin.KmVisibility
 import androidx.room.compiler.processing.unwrapRepeatedAnnotationsFromContainer
 import com.google.auto.common.MoreElements
 import com.google.auto.common.MoreElements.isAnnotationPresent
@@ -31,7 +31,6 @@ import java.util.Locale
 import javax.lang.model.element.Element
 import javax.lang.model.element.Modifier
 import kotlin.reflect.KClass
-import kotlinx.metadata.Flag
 
 @Suppress("UnstableApiUsage")
 internal abstract class JavacElement(
@@ -39,38 +38,41 @@ internal abstract class JavacElement(
     open val element: Element
 ) : XElement, XEquality, InternalXAnnotated, XHasModifiers {
 
-    abstract val kotlinMetadata: KmFlags?
+    abstract val kotlinMetadata: KmData?
 
     override fun <T : Annotation> getAnnotations(
         annotation: KClass<T>,
         containerAnnotation: KClass<out Annotation>?
-    ): List<XAnnotationBox<T>> {
+    ): List<XAnnotation> {
         // if there is a container annotation and annotation is repeated, we'll get the container.
         if (containerAnnotation != null) {
-            MoreElements
-                .getAnnotationMirror(element, containerAnnotation.java)
-                .orNull()
-                ?.box(env, containerAnnotation.java)
-                ?.let { containerBox ->
-                    // found a container, return
-                    return containerBox.getAsAnnotationBoxArray<T>("value").toList()
-                }
+            MoreElements.getAnnotationMirror(element, containerAnnotation.java).orNull()?.let {
+                container ->
+                // found a container, return
+                return JavacAnnotation(env, container).getAsAnnotationList("value")
+            }
         }
         // if there is no container annotation or annotation is not repeated, we'll see the
         // individual value
-        return MoreElements
-            .getAnnotationMirror(element, annotation.java)
-            .orNull()
-            ?.box(env, annotation.java)
-            ?.let {
-                listOf(it)
-            } ?: emptyList()
+        return MoreElements.getAnnotationMirror(element, annotation.java).orNull()?.let {
+            listOf(JavacAnnotation(env, it))
+        } ?: emptyList()
     }
 
     override fun getAllAnnotations(): List<XAnnotation> {
-        return element.annotationMirrors.map { mirror -> JavacAnnotation(env, mirror) }
+        return element.annotationMirrors
+            .map { mirror -> JavacAnnotation(env, mirror) }
             .flatMap { annotation ->
-                annotation.unwrapRepeatedAnnotationsFromContainer() ?: listOf(annotation)
+                // TODO(b/313473892): Checking if an annotation needs to be unwrapped can be
+                //  expensive with the XProcessing API, especially if we don't really care about
+                //  annotation values, so do a quick check on the AnnotationMirror first to decide
+                //  if its repeatable. Remove this once we've optimized the general solution in
+                //  unwrapRepeatedAnnotationsFromContainer()
+                if (annotation.mirror.isRepeatable()) {
+                    annotation.unwrapRepeatedAnnotationsFromContainer() ?: listOf(annotation)
+                } else {
+                    listOf(annotation)
+                }
             }
     }
 
@@ -86,9 +88,7 @@ internal abstract class JavacElement(
         return element.toString()
     }
 
-    final override val equalityItems: Array<out Any?> by lazy {
-        arrayOf(element)
-    }
+    final override val equalityItems: Array<out Any?> by lazy { arrayOf(element) }
 
     override fun equals(other: Any?): Boolean {
         return XEquality.equals(this, other)
@@ -108,9 +108,7 @@ internal abstract class JavacElement(
         }
     }
 
-    override val docComment: String? by lazy {
-        env.elementUtils.getDocComment(element)
-    }
+    override val docComment: String? by lazy { env.elementUtils.getDocComment(element) }
 
     override fun validate(): Boolean {
         return SuperficialValidation.validateElement(element)
@@ -121,7 +119,7 @@ internal abstract class JavacElement(
     }
 
     override fun isInternal(): Boolean {
-        return kotlinMetadata?.flags?.let { Flag.IS_INTERNAL(it) } ?: false
+        return (kotlinMetadata as? KmVisibility)?.isInternal() ?: false
     }
 
     override fun isProtected(): Boolean {
@@ -130,6 +128,10 @@ internal abstract class JavacElement(
 
     override fun isAbstract(): Boolean {
         return element.modifiers.contains(Modifier.ABSTRACT)
+    }
+
+    override fun isKtPrivate(): Boolean {
+        return (kotlinMetadata as? KmVisibility)?.isPrivate() ?: false
     }
 
     override fun isPrivate(): Boolean {

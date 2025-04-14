@@ -18,7 +18,7 @@ package androidx.camera.video.internal
 
 import android.os.Build
 import androidx.camera.core.impl.EncoderProfilesProxy.VideoProfileProxy
-import androidx.camera.testing.EncoderProfilesUtil
+import androidx.camera.testing.impl.EncoderProfilesUtil
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,18 +28,21 @@ import org.robolectric.annotation.internal.DoNotInstrument
 
 private const val DEFAULT_WIDTH = 1920
 private const val DEFAULT_HEIGHT = 1080
-private val DEFAULT_VIDEO_PROFILE = VideoProfileProxy.create(
-    EncoderProfilesUtil.DEFAULT_VIDEO_CODEC,
-    EncoderProfilesUtil.DEFAULT_VIDEO_MEDIA_TYPE,
-    EncoderProfilesUtil.DEFAULT_VIDEO_BITRATE,
-    EncoderProfilesUtil.DEFAULT_VIDEO_FRAME_RATE,
-    DEFAULT_WIDTH,
-    DEFAULT_HEIGHT,
-    EncoderProfilesUtil.DEFAULT_VIDEO_PROFILE,
-    EncoderProfilesUtil.DEFAULT_VIDEO_BIT_DEPTH,
-    EncoderProfilesUtil.DEFAULT_VIDEO_CHROMA_SUBSAMPLING,
-    EncoderProfilesUtil.DEFAULT_VIDEO_HDR_FORMAT
-)
+
+private val DEFAULT_VIDEO_PROFILE by lazy {
+    VideoProfileProxy.create(
+        EncoderProfilesUtil.DEFAULT_VIDEO_CODEC,
+        EncoderProfilesUtil.DEFAULT_VIDEO_MEDIA_TYPE,
+        EncoderProfilesUtil.DEFAULT_VIDEO_BITRATE,
+        EncoderProfilesUtil.DEFAULT_VIDEO_FRAME_RATE,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+        EncoderProfilesUtil.DEFAULT_VIDEO_PROFILE,
+        EncoderProfilesUtil.DEFAULT_VIDEO_BIT_DEPTH,
+        EncoderProfilesUtil.DEFAULT_VIDEO_CHROMA_SUBSAMPLING,
+        EncoderProfilesUtil.DEFAULT_VIDEO_HDR_FORMAT
+    )
+}
 
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
@@ -105,12 +108,13 @@ class VideoValidatedEncoderProfilesProxyTest {
 
     @Test
     fun create_withEmptyAudioProfiles() {
-        val validatedProfiles = VideoValidatedEncoderProfilesProxy.create(
-            EncoderProfilesUtil.DEFAULT_DURATION,
-            EncoderProfilesUtil.DEFAULT_OUTPUT_FORMAT,
-            emptyList(),
-            listOf(DEFAULT_VIDEO_PROFILE)
-        )
+        val validatedProfiles =
+            VideoValidatedEncoderProfilesProxy.create(
+                EncoderProfilesUtil.DEFAULT_DURATION,
+                EncoderProfilesUtil.DEFAULT_OUTPUT_FORMAT,
+                emptyList(),
+                listOf(DEFAULT_VIDEO_PROFILE)
+            )
         assertThat(validatedProfiles.defaultAudioProfile).isNull()
     }
 }

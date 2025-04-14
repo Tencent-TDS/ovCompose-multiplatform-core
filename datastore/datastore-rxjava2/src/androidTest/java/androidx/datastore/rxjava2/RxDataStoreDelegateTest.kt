@@ -22,41 +22,45 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import io.reactivex.Single
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
-import java.io.FileOutputStream
 
 val Context.rxDataStore by rxDataStore("file1", TestingSerializer())
 
-val Context.rxdsWithMigration by rxDataStore(
-    "file2", TestingSerializer(),
-    produceMigrations = {
-        listOf(
-            object : DataMigration<Byte> {
-                override suspend fun shouldMigrate(currentData: Byte) = true
-                override suspend fun migrate(currentData: Byte) = 123.toByte()
-                override suspend fun cleanUp() {}
-            }
-        )
-    }
-)
+val Context.rxdsWithMigration by
+    rxDataStore(
+        "file2",
+        TestingSerializer(),
+        produceMigrations = {
+            listOf(
+                object : DataMigration<Byte> {
+                    override suspend fun shouldMigrate(currentData: Byte) = true
 
-val Context.rxdsWithCorruptionHandler by rxDataStore(
-    "file3",
-    TestingSerializer(failReadWithCorruptionException = true),
-    corruptionHandler = ReplaceFileCorruptionHandler { 123 }
-)
+                    override suspend fun migrate(currentData: Byte) = 123.toByte()
+
+                    override suspend fun cleanUp() {}
+                }
+            )
+        }
+    )
+
+val Context.rxdsWithCorruptionHandler by
+    rxDataStore(
+        "file3",
+        TestingSerializer(failReadWithCorruptionException = true),
+        corruptionHandler = ReplaceFileCorruptionHandler { 123 }
+    )
 
 val Context.rxDataStoreForFileNameCheck by rxDataStore("file4", TestingSerializer())
 
 @ExperimentalCoroutinesApi
 class RxDataStoreDelegateTest {
-    @get:Rule
-    val tmp = TemporaryFolder()
+    @get:Rule val tmp = TemporaryFolder()
 
     private lateinit var context: Context
 
@@ -83,9 +87,7 @@ class RxDataStoreDelegateTest {
         // File needs to exist or we don't actually hit the serializer:
         File(context.filesDir, "datastore/file3").let { file ->
             file.parentFile!!.mkdirs()
-            FileOutputStream(file).use {
-                it.write(0)
-            }
+            FileOutputStream(file).use { it.write(0) }
         }
 
         assertThat(context.rxdsWithCorruptionHandler.data().blockingFirst()).isEqualTo(123)
@@ -98,9 +100,14 @@ class RxDataStoreDelegateTest {
         context.rxDataStoreForFileNameCheck.shutdownComplete().blockingGet()
 
         assertThat(
-            RxDataStoreBuilder(
-                { File(context.filesDir, "datastore/file4") }, TestingSerializer()
-            ).build().data().blockingFirst()
-        ).isEqualTo(1)
+                RxDataStoreBuilder(
+                        { File(context.filesDir, "datastore/file4") },
+                        TestingSerializer()
+                    )
+                    .build()
+                    .data()
+                    .blockingFirst()
+            )
+            .isEqualTo(1)
     }
 }

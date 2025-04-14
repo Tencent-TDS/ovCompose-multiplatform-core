@@ -24,8 +24,9 @@ import android.content.Intent;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationProviderInfo;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Utilities to allow watch faces to launch the complication data source chooser.
@@ -110,6 +111,13 @@ public class ComplicationDataSourceChooserIntent {
             "android.support.wearable.complications.EXTRA_PROVIDER_INFO";
 
     /**
+     * Key for an extra that holds the [UserStyleWireFormat].
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static final String EXTRA_USER_STYLE =
+            "androidx.wear.watchface.complications.EXTRA_USER_STYLE";
+
+    /**
      * Returns an intent that may be used to start an activity to allow the user to select a
      * complication data source for the given complication. The activity will show a list of all
      * complication data source that can supply data of at least one of the {@code supportedTypes}.
@@ -145,11 +153,10 @@ public class ComplicationDataSourceChooserIntent {
      *     chosen will be whichever was specified first.
      * @see ComplicationHelperActivity
      */
-    @NonNull
-    public static Intent createComplicationDataSourceChooserIntent(
+    public static @NonNull Intent createComplicationDataSourceChooserIntent(
             @NonNull ComponentName watchFace,
             int watchFaceComplicationId,
-            @NonNull @ComplicationData.ComplicationType int... supportedTypes) {
+            @ComplicationData.ComplicationType int @NonNull ... supportedTypes) {
         Intent intent = new Intent(ACTION_CHOOSE_DATA_SOURCE);
         intent.putExtra(EXTRA_WATCH_FACE_COMPONENT_NAME, watchFace);
         intent.putExtra(EXTRA_COMPLICATION_ID, watchFaceComplicationId);
@@ -186,7 +193,7 @@ public class ComplicationDataSourceChooserIntent {
             @NonNull Context context,
             @NonNull ComponentName watchFace,
             int watchFaceComplicationId,
-            @NonNull @ComplicationData.ComplicationType int... supportedTypes) {
+            @ComplicationData.ComplicationType int @NonNull ... supportedTypes) {
         Intent intent =
                 createComplicationDataSourceChooserIntent(
                         watchFace, watchFaceComplicationId, supportedTypes);

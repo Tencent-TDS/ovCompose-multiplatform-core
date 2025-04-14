@@ -19,14 +19,9 @@ package androidx.compose.material.catalog.library.ui.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -67,32 +62,26 @@ fun Component(
         onBackClick = onBackClick
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = ComponentPadding),
-            contentPadding = WindowInsets.safeDrawing
-                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-                .asPaddingValues()
+            modifier = Modifier.padding(horizontal = ComponentPadding),
+            contentPadding = paddingValues
         ) {
             item {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = ComponentIconVerticalPadding)
+                    modifier =
+                        Modifier.fillMaxWidth().padding(vertical = ComponentIconVerticalPadding)
                 ) {
                     Image(
                         painter = painterResource(id = component.icon),
                         contentDescription = null,
-                        modifier = Modifier
-                            .size(ComponentIconSize)
-                            .align(Alignment.Center),
-                        colorFilter = if (component.tintIcon) {
-                            ColorFilter.tint(
-                                LocalContentColor.current.copy(alpha = ContentAlpha.disabled)
-                            )
-                        } else {
-                            null
-                        }
+                        modifier = Modifier.size(ComponentIconSize).align(Alignment.Center),
+                        colorFilter =
+                            if (component.tintIcon) {
+                                ColorFilter.tint(
+                                    LocalContentColor.current.copy(alpha = ContentAlpha.disabled)
+                                )
+                            } else {
+                                null
+                            }
                     )
                 }
             }
@@ -102,10 +91,7 @@ fun Component(
                     style = MaterialTheme.typography.body1
                 )
                 Spacer(modifier = Modifier.height(ComponentPadding))
-                Text(
-                    text = component.description,
-                    style = MaterialTheme.typography.body2
-                )
+                Text(text = component.description, style = MaterialTheme.typography.body2)
                 Spacer(modifier = Modifier.height(ComponentDescriptionPadding))
             }
             item {
@@ -117,10 +103,7 @@ fun Component(
             }
             if (component.examples.isNotEmpty()) {
                 items(component.examples) { example ->
-                    ExampleItem(
-                        example = example,
-                        onClick = onExampleClick
-                    )
+                    ExampleItem(example = example, onClick = onExampleClick)
                     Spacer(modifier = Modifier.height(ComponentPadding))
                 }
             } else {

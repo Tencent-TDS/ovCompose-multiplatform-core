@@ -23,9 +23,8 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * This transition captures the scroll properties of targets before and after
@@ -57,9 +56,13 @@ public class ChangeScroll extends Transition {
         captureValues(transitionValues);
     }
 
-    @Nullable
     @Override
-    public String[] getTransitionProperties() {
+    public boolean isSeekingSupported() {
+        return true;
+    }
+
+    @Override
+    public String @Nullable [] getTransitionProperties() {
         return PROPERTIES;
     }
 
@@ -68,9 +71,8 @@ public class ChangeScroll extends Transition {
         transitionValues.values.put(PROPNAME_SCROLL_Y, transitionValues.view.getScrollY());
     }
 
-    @Nullable
     @Override
-    public Animator createAnimator(@NonNull ViewGroup sceneRoot,
+    public @Nullable Animator createAnimator(@NonNull ViewGroup sceneRoot,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         if (startValues == null || endValues == null) {
             return null;

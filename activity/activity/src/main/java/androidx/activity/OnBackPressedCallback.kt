@@ -19,34 +19,31 @@ import androidx.annotation.MainThread
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * Class for handling [OnBackPressedDispatcher.onBackPressed] callbacks without
- * strongly coupling that implementation to a subclass of [ComponentActivity].
+ * Class for handling [OnBackPressedDispatcher.onBackPressed] callbacks without strongly coupling
+ * that implementation to a subclass of [ComponentActivity].
  *
- * This class maintains its own [enabled state][isEnabled]. Only when this callback
- * is enabled will it receive callbacks to [handleOnBackPressed].
+ * This class maintains its own [enabled state][isEnabled]. Only when this callback is enabled will
+ * it receive callbacks to [handleOnBackPressed].
  *
  * Note that the enabled state is an additional layer on top of the
- * [androidx.lifecycle.LifecycleOwner] passed to
- * [OnBackPressedDispatcher.addCallback]
- * which controls when the callback is added and removed to the dispatcher.
+ * [androidx.lifecycle.LifecycleOwner] passed to [OnBackPressedDispatcher.addCallback] which
+ * controls when the callback is added and removed to the dispatcher.
  *
- * By calling [remove], this callback will be removed from any
- * [OnBackPressedDispatcher] it has been added to. It is strongly recommended
- * to instead disable this callback to handle temporary changes in state.
+ * By calling [remove], this callback will be removed from any [OnBackPressedDispatcher] it has been
+ * added to. It is strongly recommended to instead disable this callback to handle temporary changes
+ * in state.
  *
  * @param enabled The default enabled state for this callback.
- *
  * @see OnBackPressedDispatcher
  */
 abstract class OnBackPressedCallback(enabled: Boolean) {
     /**
-     * The enabled state of the callback. Only when this callback
-     * is enabled will it receive callbacks to [handleOnBackPressed].
+     * The enabled state of the callback. Only when this callback is enabled will it receive
+     * callbacks to [handleOnBackPressed].
      *
      * Note that the enabled state is an additional layer on top of the
-     * [androidx.lifecycle.LifecycleOwner] passed to
-     * [OnBackPressedDispatcher.addCallback]
-     * which controls when the callback is added and removed to the dispatcher.
+     * [androidx.lifecycle.LifecycleOwner] passed to [OnBackPressedDispatcher.addCallback] which
+     * controls when the callback is added and removed to the dispatcher.
      */
     @get:MainThread
     @set:MainThread
@@ -59,18 +56,41 @@ abstract class OnBackPressedCallback(enabled: Boolean) {
     private val cancellables = CopyOnWriteArrayList<Cancellable>()
     internal var enabledChangedCallback: (() -> Unit)? = null
 
-    /**
-     * Removes this callback from any [OnBackPressedDispatcher] it is currently
-     * added to.
-     */
-    @MainThread
-    fun remove() = cancellables.forEach { it.cancel() }
+    /** Removes this callback from any [OnBackPressedDispatcher] it is currently added to. */
+    @MainThread fun remove() = cancellables.forEach { it.cancel() }
 
     /**
-     * Callback for handling the [OnBackPressedDispatcher.onBackPressed] event.
+     * Callback for handling the system UI generated equivalent to
+     * [OnBackPressedDispatcher.dispatchOnBackStarted].
+     *
+     * This will only be called by the framework on API 34 and above.
      */
+    @Suppress("CallbackMethodName") /* mirror handleOnBackPressed local style */
     @MainThread
-    abstract fun handleOnBackPressed()
+    open fun handleOnBackStarted(backEvent: BackEventCompat) {}
+
+    /**
+     * Callback for handling the system UI generated equivalent to
+     * [OnBackPressedDispatcher.dispatchOnBackProgressed].
+     *
+     * This will only be called by the framework on API 34 and above.
+     */
+    @Suppress("CallbackMethodName") /* mirror handleOnBackPressed local style */
+    @MainThread
+    open fun handleOnBackProgressed(backEvent: BackEventCompat) {}
+
+    /** Callback for handling the [OnBackPressedDispatcher.onBackPressed] event. */
+    @MainThread abstract fun handleOnBackPressed()
+
+    /**
+     * Callback for handling the system UI generated equivalent to
+     * [OnBackPressedDispatcher.dispatchOnBackCancelled].
+     *
+     * This will only be called by the framework on API 34 and above.
+     */
+    @Suppress("CallbackMethodName") /* mirror handleOnBackPressed local style */
+    @MainThread
+    open fun handleOnBackCancelled() {}
 
     @JvmName("addCancellable")
     internal fun addCancellable(cancellable: Cancellable) {

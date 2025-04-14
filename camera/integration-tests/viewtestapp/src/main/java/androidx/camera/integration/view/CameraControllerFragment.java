@@ -16,30 +16,17 @@
 
 package androidx.camera.integration.view;
 
-import static androidx.camera.core.impl.utils.TransformUtils.getRectToRect;
 import static androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor;
 import static androidx.camera.video.VideoRecordEvent.Finalize.ERROR_NONE;
 
-import static java.util.Arrays.asList;
-
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.RectF;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -54,21 +41,16 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.RequiresPermission;
-import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Logger;
 import androidx.camera.core.ZoomState;
 import androidx.camera.core.impl.utils.futures.FutureCallback;
 import androidx.camera.core.impl.utils.futures.Futures;
+import androidx.camera.integration.view.util.CaptureUtilsKt;
 import androidx.camera.video.MediaStoreOutputOptions;
 import androidx.camera.video.Recording;
 import androidx.camera.video.VideoRecordEvent;
@@ -76,28 +58,27 @@ import androidx.camera.view.CameraController;
 import androidx.camera.view.LifecycleCameraController;
 import androidx.camera.view.PreviewView;
 import androidx.camera.view.RotationProvider;
+import androidx.camera.view.TapToFocusInfo;
 import androidx.camera.view.video.AudioConfig;
-import androidx.camera.view.video.ExperimentalVideo;
 import androidx.core.util.Consumer;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.File;
-import java.nio.ByteBuffer;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * {@link Fragment} for testing {@link LifecycleCameraController}.
  */
-@SuppressLint("RestrictedAPI")
 public class CameraControllerFragment extends Fragment {
 
     private static final String TAG = "CameraCtrlFragment";
@@ -111,7 +92,6 @@ public class CameraControllerFragment extends Fragment {
     private FrameLayout mContainer;
     private Button mFlashMode;
     private ToggleButton mCameraToggle;
-    private ToggleButton mEffectToggle;
     private ExecutorService mExecutorService;
     private ToggleButton mCaptureEnabledToggle;
     private ToggleButton mAnalysisEnabledToggle;
@@ -123,13 +103,13 @@ public class CameraControllerFragment extends Fragment {
     private TextView mTorchStateText;
     private TextView mLuminance;
     private CheckBox mOnDisk;
+    private ImageView mFocusOnTapCircle;
     private boolean mIsAnalyzerSet = true;
     // Listen to accelerometer rotation change and pass it to tests.
     private RotationProvider mRotationProvider;
     private int mRotation;
     private final RotationProvider.Listener mRotationListener = rotation -> mRotation = rotation;
-    @Nullable
-    private Recording mActiveRecording = null;
+    private @Nullable Recording mActiveRecording = null;
     private final Consumer<VideoRecordEvent> mVideoRecordEventListener = videoRecordEvent -> {
         if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
             VideoRecordEvent.Finalize finalize = (VideoRecordEvent.Finalize) videoRecordEvent;
@@ -146,12 +126,7 @@ public class CameraControllerFragment extends Fragment {
     };
 
     // Wrapped analyzer for tests to receive callbacks.
-    @Nullable
-    private ImageAnalysis.Analyzer mWrappedAnalyzer;
-
-    @VisibleForTesting
-    ToneMappingPreviewEffect mToneMappingPreviewEffect;
-    ToneMappingImageEffect mToneMappingImageEffect;
+    private ImageAnalysis.@Nullable Analyzer mWrappedAnalyzer;
 
     private final ImageAnalysis.Analyzer mAnalyzer = image -> {
         byte[] bytes = new byte[image.getPlanes()[0].getBuffer().remaining()];
@@ -171,8 +146,7 @@ public class CameraControllerFragment extends Fragment {
         image.close();
     };
 
-    @NonNull
-    private MediaStoreOutputOptions getNewVideoOutputMediaStoreOptions() {
+    private @NonNull MediaStoreOutputOptions getNewVideoOutputMediaStoreOptions() {
         String videoFileName = "video_" + System.currentTimeMillis();
         ContentResolver resolver = requireContext().getContentResolver();
         ContentValues contentValues = new ContentValues();
@@ -186,10 +160,8 @@ public class CameraControllerFragment extends Fragment {
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    @NonNull
     @Override
-    @OptIn(markerClass = ExperimentalVideo.class)
-    public View onCreateView(
+    public @NonNull View onCreateView(
             @NonNull LayoutInflater inflater,
             @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
@@ -210,6 +182,7 @@ public class CameraControllerFragment extends Fragment {
         // Use compatible mode so StreamState is accurate.
         mPreviewView.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
         mPreviewView.setController(mCameraController);
+        mPreviewView.setScreenFlashWindow(requireActivity().getWindow());
 
         // Set up the button to add and remove the PreviewView
         mContainer = view.findViewById(R.id.container);
@@ -220,13 +193,6 @@ public class CameraControllerFragment extends Fragment {
                 mContainer.removeView(mPreviewView);
             }
         });
-
-        // Set up post-processing effects.
-        mToneMappingPreviewEffect = new ToneMappingPreviewEffect();
-        mToneMappingImageEffect = new ToneMappingImageEffect();
-        mEffectToggle = view.findViewById(R.id.effect_toggle);
-        mEffectToggle.setOnCheckedChangeListener((compoundButton, isChecked) -> onEffectsToggled());
-        onEffectsToggled();
 
         // Set up the button to change the PreviewView's size.
         view.findViewById(R.id.shrink).setOnClickListener(v -> {
@@ -239,9 +205,17 @@ public class CameraControllerFragment extends Fragment {
         mCameraToggle = view.findViewById(R.id.camera_toggle);
         mCameraToggle.setOnCheckedChangeListener(
                 (compoundButton, value) ->
-                        runSafely(() -> mCameraController.setCameraSelector(value
-                                ? CameraSelector.DEFAULT_BACK_CAMERA
-                                : CameraSelector.DEFAULT_FRONT_CAMERA)));
+                        runSafely(() -> {
+                            if (value) {
+                                mCameraController.setImageCaptureFlashMode(
+                                        ImageCapture.FLASH_MODE_OFF);
+                                updateUiText();
+                            }
+
+                            mCameraController.setCameraSelector(value
+                                    ? CameraSelector.DEFAULT_BACK_CAMERA
+                                    : CameraSelector.DEFAULT_FRONT_CAMERA);
+                        }));
 
         // Image Capture enable switch.
         mCaptureEnabledToggle = view.findViewById(R.id.capture_enabled);
@@ -256,6 +230,13 @@ public class CameraControllerFragment extends Fragment {
                     mCameraController.setImageCaptureFlashMode(ImageCapture.FLASH_MODE_ON);
                     break;
                 case ImageCapture.FLASH_MODE_ON:
+                    if (!mCameraToggle.isChecked()) {
+                        mCameraController.setImageCaptureFlashMode(ImageCapture.FLASH_MODE_SCREEN);
+                    } else {
+                        mCameraController.setImageCaptureFlashMode(ImageCapture.FLASH_MODE_OFF);
+                    }
+                    break;
+                case ImageCapture.FLASH_MODE_SCREEN:
                     mCameraController.setImageCaptureFlashMode(ImageCapture.FLASH_MODE_OFF);
                     break;
                 case ImageCapture.FLASH_MODE_OFF:
@@ -270,7 +251,9 @@ public class CameraControllerFragment extends Fragment {
 
         mOnDisk = view.findViewById(R.id.on_disk);
         // Take picture button.
-        view.findViewById(R.id.capture).setOnClickListener(v -> takePicture());
+        view.findViewById(R.id.capture).setOnClickListener(
+                v -> CaptureUtilsKt.takePicture(mCameraController, requireContext(),
+                        mExecutorService, this::toast, mOnDisk::isChecked));
 
         // Set up analysis UI.
         mAnalysisEnabledToggle = view.findViewById(R.id.analysis_enabled);
@@ -347,12 +330,10 @@ public class CameraControllerFragment extends Fragment {
         mCameraController.getZoomState().observe(getViewLifecycleOwner(),
                 this::updateZoomStateText);
 
+        mFocusOnTapCircle = view.findViewById(R.id.focus_on_tap_circle);
         mFocusResultText = view.findViewById(R.id.focus_result_text);
-        LiveData<Integer> focusMeteringResult =
-                mCameraController.getTapToFocusState();
-        updateFocusStateText(Objects.requireNonNull(focusMeteringResult.getValue()));
-        focusMeteringResult.observe(getViewLifecycleOwner(),
-                this::updateFocusStateText);
+        LiveData<TapToFocusInfo> focusOnTapState = mCameraController.getTapToFocusInfoState();
+        focusOnTapState.observe(getViewLifecycleOwner(), this::applyFocusOnTap);
 
         mTorchStateText = view.findViewById(R.id.torch_state_text);
         updateTorchStateText(mCameraController.getTorchState().getValue());
@@ -370,16 +351,6 @@ public class CameraControllerFragment extends Fragment {
             mExecutorService.shutdown();
         }
         mRotationProvider.removeListener(mRotationListener);
-        mToneMappingPreviewEffect.release();
-    }
-
-    private void onEffectsToggled() {
-        if (mEffectToggle.isChecked()) {
-            mCameraController.setEffects(
-                    new HashSet<>(asList(mToneMappingPreviewEffect, mToneMappingImageEffect)));
-        } else {
-            mCameraController.setEffects(null);
-        }
     }
 
     void checkFailedFuture(ListenableFuture<Void> voidFuture) {
@@ -392,7 +363,7 @@ public class CameraControllerFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Throwable t) {
-                toast(t.getMessage());
+                toast(t.toString());
             }
         }, mainThreadExecutor());
     }
@@ -400,8 +371,15 @@ public class CameraControllerFragment extends Fragment {
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
     void toast(String message) {
-        requireActivity().runOnUiThread(
-                () -> Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show());
+        FragmentActivity activity = getActivity();
+        if (activity != null) {
+            activity.runOnUiThread(() -> {
+                if (isAdded()) {
+                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        Log.d(TAG, message);
     }
 
     private void updateZoomStateText(@Nullable ZoomState zoomState) {
@@ -409,6 +387,41 @@ public class CameraControllerFragment extends Fragment {
             mZoomStateText.setText("Null");
         } else {
             mZoomStateText.setText(zoomState.toString());
+        }
+    }
+
+    private void applyFocusOnTap(@NonNull TapToFocusInfo tapToFocusInfo) {
+        if (mFocusOnTapCircle == null) {
+            return;
+        }
+
+        switch (tapToFocusInfo.getFocusState()) {
+            case CameraController.TAP_TO_FOCUS_NOT_STARTED:
+            case CameraController.TAP_TO_FOCUS_NOT_FOCUSED:
+            case CameraController.TAP_TO_FOCUS_FAILED:
+                mFocusOnTapCircle.setVisibility(View.INVISIBLE);
+                break;
+            case CameraController.TAP_TO_FOCUS_STARTED:
+                mFocusOnTapCircle.setVisibility(View.VISIBLE);
+                mFocusOnTapCircle.setColorFilter(Color.GRAY);
+                updateFocusOnTapCirclePosition(tapToFocusInfo);
+                break;
+            case CameraController.TAP_TO_FOCUS_FOCUSED:
+                mFocusOnTapCircle.setVisibility(View.VISIBLE);
+                mFocusOnTapCircle.setColorFilter(Color.WHITE);
+                updateFocusOnTapCirclePosition(tapToFocusInfo);
+                break;
+        }
+
+        updateFocusStateText(tapToFocusInfo.getFocusState());
+    }
+
+    private void updateFocusOnTapCirclePosition(@NonNull TapToFocusInfo tapToFocusInfo) {
+        if (tapToFocusInfo.getTapPoint() != null) {
+            mFocusOnTapCircle.setX(
+                    tapToFocusInfo.getTapPoint().x - (float) mFocusOnTapCircle.getWidth() / 2);
+            mFocusOnTapCircle.setY(
+                    tapToFocusInfo.getTapPoint().y - (float) mFocusOnTapCircle.getHeight() / 2);
         }
     }
 
@@ -447,7 +460,6 @@ public class CameraControllerFragment extends Fragment {
     /**
      * Updates UI text based on the state of {@link #mCameraController}.
      */
-    @OptIn(markerClass = ExperimentalVideo.class)
     private void updateUiText() {
         mFlashMode.setText(getFlashModeTextResId());
         final Integer lensFacing = mCameraController.getCameraSelector().getLensFacing();
@@ -458,22 +470,14 @@ public class CameraControllerFragment extends Fragment {
         mTapToFocusToggle.setChecked(mCameraController.isTapToFocusEnabled());
     }
 
-    private void createDefaultPictureFolderIfNotExist() {
-        File pictureFolder = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES);
-        if (!pictureFolder.exists()) {
-            if (!pictureFolder.mkdir()) {
-                Log.e(TAG, "Failed to create directory: " + pictureFolder);
-            }
-        }
-    }
-
     private int getFlashModeTextResId() {
         switch (mCameraController.getImageCaptureFlashMode()) {
             case ImageCapture.FLASH_MODE_AUTO:
                 return R.string.flash_mode_auto;
             case ImageCapture.FLASH_MODE_ON:
                 return R.string.flash_mode_on;
+            case ImageCapture.FLASH_MODE_SCREEN:
+                return R.string.flash_mode_screen;
             case ImageCapture.FLASH_MODE_OFF:
                 return R.string.flash_mode_off;
             default:
@@ -504,7 +508,6 @@ public class CameraControllerFragment extends Fragment {
         }
     }
 
-    @OptIn(markerClass = ExperimentalVideo.class)
     private void onUseCaseToggled(CompoundButton compoundButton, boolean value) {
         if (mCaptureEnabledToggle == null || mAnalysisEnabledToggle == null
                 || mVideoEnabledToggle == null) {
@@ -524,137 +527,46 @@ public class CameraControllerFragment extends Fragment {
         runSafely(() -> mCameraController.setEnabledUseCases(finalUseCaseEnabledFlags));
     }
 
-    /**
-     * Take a picture based on the current configuration.
-     */
-    private void takePicture() {
-        try {
-            if (mOnDisk.isChecked()) {
-                takePicture(new ImageCapture.OnImageSavedCallback() {
-                    @Override
-                    public void onImageSaved(
-                            @NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        toast("Image saved to: " + outputFileResults.getSavedUri());
-                    }
-
-                    @Override
-                    public void onError(@NonNull ImageCaptureException exception) {
-                        toast("Failed to save picture: " + exception.getMessage());
-                    }
-                });
-            } else {
-                mCameraController.takePicture(mExecutorService,
-                        new ImageCapture.OnImageCapturedCallback() {
-                            @Override
-                            public void onCaptureSuccess(@NonNull ImageProxy image) {
-                                displayImage(image);
-                            }
-
-                            @Override
-                            public void onError(@NonNull ImageCaptureException exception) {
-                                toast("Failed to capture in-memory picture: "
-                                        + exception.getMessage());
-                            }
-                        });
-            }
-        } catch (RuntimeException exception) {
-            toast("Failed to take picture: " + exception.getMessage());
-        }
-    }
-
-    /**
-     * Displays a {@link ImageProxy} in a pop-up dialog.
-     */
-    private void displayImage(@NonNull ImageProxy image) {
-        int rotationDegrees = image.getImageInfo().getRotationDegrees();
-        Bitmap cropped = getCroppedBitmap(image);
-        image.close();
-
-        mainThreadExecutor().execute(() -> {
-            Dialog dialog = new Dialog(requireContext());
-            dialog.setContentView(R.layout.image_dialog);
-            ImageView imageView = (ImageView) dialog.findViewById(R.id.dialog_image);
-            imageView.setImageBitmap(cropped);
-            imageView.setRotation(rotationDegrees);
-            dialog.findViewById(R.id.dialog_button).setOnClickListener(view -> dialog.dismiss());
-            dialog.show();
-        });
-    }
-
-    /**
-     * Converts the {@link ImageProxy} to {@link Bitmap} with crop rect applied.
-     */
-    private Bitmap getCroppedBitmap(@NonNull ImageProxy image) {
-        ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
-        byte[] bytes = new byte[byteBuffer.remaining()];
-        byteBuffer.get(bytes);
-        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-
-        Rect cropRect = image.getCropRect();
-        Size newSize = new Size(cropRect.width(), cropRect.height());
-        Bitmap cropped = Bitmap.createBitmap(newSize.getWidth(), newSize.getHeight(),
-                Bitmap.Config.ARGB_8888);
-
-        Matrix croppingTransform = getRectToRect(new RectF(cropRect),
-                new RectF(0, 0, cropRect.width(), cropRect.height()), 0);
-
-        Canvas canvas = new Canvas(cropped);
-        canvas.drawBitmap(bitmap, croppingTransform, new Paint());
-        canvas.save();
-
-        bitmap.recycle();
-        return cropped;
-    }
-
     // -----------------
     // For testing
     // -----------------
 
     /**
      */
-    @RestrictTo(RestrictTo.Scope.TESTS)
+    @VisibleForTesting
     LifecycleCameraController getCameraController() {
         return mCameraController;
     }
 
+    @VisibleForTesting
+    ExecutorService getExecutorService() {
+        return mExecutorService;
+    }
+
     /**
      */
-    @RestrictTo(RestrictTo.Scope.TESTS)
-    void setWrappedAnalyzer(@Nullable ImageAnalysis.Analyzer analyzer) {
+    @VisibleForTesting
+    void setWrappedAnalyzer(ImageAnalysis.@Nullable Analyzer analyzer) {
         mWrappedAnalyzer = analyzer;
     }
 
     /**
      */
-    @RestrictTo(RestrictTo.Scope.TESTS)
+    @VisibleForTesting
     PreviewView getPreviewView() {
         return mPreviewView;
     }
 
     /**
      */
-    @RestrictTo(RestrictTo.Scope.TESTS)
+    @VisibleForTesting
     int getSensorRotation() {
         return mRotation;
-    }
-
-    @VisibleForTesting
-    void takePicture(ImageCapture.OnImageSavedCallback callback) {
-        createDefaultPictureFolderIfNotExist();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
-        ImageCapture.OutputFileOptions outputFileOptions =
-                new ImageCapture.OutputFileOptions.Builder(
-                        requireContext().getContentResolver(),
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        contentValues).build();
-        mCameraController.takePicture(outputFileOptions, mExecutorService, callback);
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     @VisibleForTesting
     @MainThread
-    @OptIn(markerClass = ExperimentalVideo.class)
     void startRecording(Consumer<VideoRecordEvent> listener) {
         MediaStoreOutputOptions outputOptions = getNewVideoOutputMediaStoreOptions();
         AudioConfig audioConfig = AudioConfig.create(true);
@@ -664,7 +576,6 @@ public class CameraControllerFragment extends Fragment {
 
     @VisibleForTesting
     @MainThread
-    @OptIn(markerClass = ExperimentalVideo.class)
     void stopRecording() {
         if (mActiveRecording != null) {
             mActiveRecording.stop();

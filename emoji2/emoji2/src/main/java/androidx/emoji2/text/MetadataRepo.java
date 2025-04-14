@@ -15,18 +15,20 @@
  */
 package androidx.emoji2.text;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
+
 import android.content.res.AssetManager;
 import android.graphics.Typeface;
 import android.util.SparseArray;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.os.TraceCompat;
 import androidx.core.util.Preconditions;
 import androidx.emoji2.text.flatbuffer.MetadataList;
+
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +38,6 @@ import java.nio.ByteBuffer;
  * Class to hold the emoji metadata required to process and draw emojis.
  */
 @AnyThread
-@RequiresApi(19)
 public final class MetadataRepo {
     /**
      * The default children size of the root node.
@@ -54,7 +55,7 @@ public final class MetadataRepo {
      * mapped to Private Use Area A, in the range U+F0000..U+FFFFD. Therefore each emoji takes 2
      * chars.
      */
-    private final @NonNull char[] mEmojiCharArray;
+    private final char @NonNull [] mEmojiCharArray;
 
     /**
      * Empty root node of the trie.
@@ -72,8 +73,8 @@ public final class MetadataRepo {
      * @param typeface Typeface to be used to render emojis
      * @param metadataList MetadataList that contains the emoji metadata
      */
-    private MetadataRepo(@NonNull final Typeface typeface,
-            @NonNull final MetadataList metadataList) {
+    private MetadataRepo(final @NonNull Typeface typeface,
+            final @NonNull MetadataList metadataList) {
         mTypeface = typeface;
         mMetadataList = metadataList;
         mRootNode = new Node(DEFAULT_ROOT_SIZE);
@@ -85,11 +86,10 @@ public final class MetadataRepo {
      * Construct MetadataRepo with empty metadata.
      *
      * This should only be used from tests.
-     * @hide
      */
-    @NonNull
-    @RestrictTo(RestrictTo.Scope.TESTS)
-    public static MetadataRepo create(@NonNull final Typeface typeface) {
+    @RestrictTo(LIBRARY)
+    @VisibleForTesting
+    public static @NonNull MetadataRepo create(final @NonNull Typeface typeface) {
         try {
             TraceCompat.beginSection(S_TRACE_CREATE_REPO);
             return new MetadataRepo(typeface, new MetadataList());
@@ -105,9 +105,8 @@ public final class MetadataRepo {
      * @param typeface Typeface to be used to render emojis
      * @param inputStream InputStream to read emoji metadata from
      */
-    @NonNull
-    public static MetadataRepo create(@NonNull final Typeface typeface,
-            @NonNull final InputStream inputStream) throws IOException {
+    public static @NonNull MetadataRepo create(final @NonNull Typeface typeface,
+            final @NonNull InputStream inputStream) throws IOException {
         try {
             TraceCompat.beginSection(S_TRACE_CREATE_REPO);
             return new MetadataRepo(typeface, MetadataListReader.read(inputStream));
@@ -123,9 +122,8 @@ public final class MetadataRepo {
      * @param typeface Typeface to be used to render emojis
      * @param byteBuffer ByteBuffer to read emoji metadata from
      */
-    @NonNull
-    public static MetadataRepo create(@NonNull final Typeface typeface,
-            @NonNull final ByteBuffer byteBuffer) throws IOException {
+    public static @NonNull MetadataRepo create(final @NonNull Typeface typeface,
+            final @NonNull ByteBuffer byteBuffer) throws IOException {
         try {
             TraceCompat.beginSection(S_TRACE_CREATE_REPO);
             return new MetadataRepo(typeface, MetadataListReader.read(byteBuffer));
@@ -141,9 +139,8 @@ public final class MetadataRepo {
      * @param assetPath asset manager path of the file that the Typeface and metadata will be
      *                  created from
      */
-    @NonNull
-    public static MetadataRepo create(@NonNull final AssetManager assetManager,
-            @NonNull final String assetPath) throws IOException {
+    public static @NonNull MetadataRepo create(final @NonNull AssetManager assetManager,
+            final @NonNull String assetPath) throws IOException {
         try {
             TraceCompat.beginSection(S_TRACE_CREATE_REPO);
             final Typeface typeface = Typeface.createFromAsset(assetManager, assetPath);
@@ -170,16 +167,13 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
-    @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    Typeface getTypeface() {
+    @NonNull Typeface getTypeface() {
         return mTypeface;
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     int getMetadataVersion() {
@@ -187,40 +181,33 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
-    @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    Node getRootNode() {
+    @NonNull Node getRootNode() {
         return mRootNode;
     }
 
     /**
-     * @hide
      */
-    @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    public char[] getEmojiCharArray() {
+    public char @NonNull [] getEmojiCharArray() {
         return mEmojiCharArray;
     }
 
     /**
-     * @hide
      */
-    @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    public MetadataList getMetadataList() {
+    public @NonNull MetadataList getMetadataList() {
         return mMetadataList;
     }
 
     /**
      * Add a TypefaceEmojiRasterizer to the index.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @VisibleForTesting
-    void put(@NonNull final TypefaceEmojiRasterizer data) {
+    void put(final @NonNull TypefaceEmojiRasterizer data) {
         Preconditions.checkNotNull(data, "emoji metadata cannot be null");
         Preconditions.checkArgument(data.getCodepointsLength() > 0,
                 "invalid metadata codepoint length");
@@ -233,7 +220,6 @@ public final class MetadataRepo {
      *
      * A single codepoint emoji is represented by a child of the root node.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     static class Node {
@@ -258,7 +244,7 @@ public final class MetadataRepo {
         }
 
         @SuppressWarnings("WeakerAccess") /* synthetic access */
-        void put(@NonNull final TypefaceEmojiRasterizer data, final int start, final int end) {
+        void put(final @NonNull TypefaceEmojiRasterizer data, final int start, final int end) {
             Node node = get(data.getCodepointAt(start));
             if (node == null) {
                 node = new Node();

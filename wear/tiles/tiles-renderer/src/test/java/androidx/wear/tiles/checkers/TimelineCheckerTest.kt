@@ -16,10 +16,12 @@
 
 package androidx.wear.tiles.checkers
 
-import androidx.wear.tiles.LayoutElementBuilders
+import androidx.wear.protolayout.LayoutElementBuilders
+import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.tiles.TilesTestRunner
-import androidx.wear.tiles.TimelineBuilders
 import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
@@ -27,20 +29,14 @@ import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
-import org.junit.Test
-import org.junit.runner.RunWith
 
 @RunWith(TilesTestRunner::class)
 class TimelineCheckerTest {
     @Test
     fun doCheck_callsAllCheckersOnSuccess() {
-        val mockChecker1 = mock<TimelineEntryChecker> {
-            on { name } doReturn "MockChecker1"
-        }
+        val mockChecker1 = mock<TimelineEntryChecker> { on { name } doReturn "MockChecker1" }
 
-        val mockChecker2 = mock<TimelineEntryChecker> {
-            on { name } doReturn "MockChecker2"
-        }
+        val mockChecker2 = mock<TimelineEntryChecker> { on { name } doReturn "MockChecker2" }
 
         val checker = TimelineChecker(listOf(mockChecker1, mockChecker2))
         val timeline = buildTimeline()
@@ -63,15 +59,17 @@ class TimelineCheckerTest {
 
     @Test
     fun doCheck_callsAllCheckersOnFailure() {
-        val mockChecker1 = mock<TimelineEntryChecker> {
-            on { name } doReturn "MockChecker1"
-            on { check(any()) } doThrow CheckerException("Invalid...")
-        }
+        val mockChecker1 =
+            mock<TimelineEntryChecker> {
+                on { name } doReturn "MockChecker1"
+                on { check(any()) } doThrow CheckerException("Invalid...")
+            }
 
-        val mockChecker2 = mock<TimelineEntryChecker> {
-            on { name } doReturn "MockChecker2"
-            on { check(any()) } doThrow CheckerException("Invalid...")
-        }
+        val mockChecker2 =
+            mock<TimelineEntryChecker> {
+                on { name } doReturn "MockChecker2"
+                on { check(any()) } doThrow CheckerException("Invalid...")
+            }
 
         val checker = TimelineChecker(listOf(mockChecker1, mockChecker2))
         val timeline = buildTimeline()
@@ -94,17 +92,24 @@ class TimelineCheckerTest {
     }
 
     private fun buildTimeline() =
-        TimelineBuilders.Timeline.Builder().addTimelineEntry(
-            TimelineBuilders.TimelineEntry.Builder().setLayout(
-                LayoutElementBuilders.Layout.Builder().setRoot(
-                    LayoutElementBuilders.Text.Builder().setText("Hello").build()
-                ).build()
-            ).build()
-        ).addTimelineEntry(
-            TimelineBuilders.TimelineEntry.Builder().setLayout(
-                LayoutElementBuilders.Layout.Builder().setRoot(
-                    LayoutElementBuilders.Text.Builder().setText("World").build()
-                ).build()
-            ).build()
-        ).build()
+        TimelineBuilders.Timeline.Builder()
+            .addTimelineEntry(
+                TimelineBuilders.TimelineEntry.Builder()
+                    .setLayout(
+                        LayoutElementBuilders.Layout.Builder()
+                            .setRoot(LayoutElementBuilders.Text.Builder().setText("Hello").build())
+                            .build()
+                    )
+                    .build()
+            )
+            .addTimelineEntry(
+                TimelineBuilders.TimelineEntry.Builder()
+                    .setLayout(
+                        LayoutElementBuilders.Layout.Builder()
+                            .setRoot(LayoutElementBuilders.Text.Builder().setText("World").build())
+                            .build()
+                    )
+                    .build()
+            )
+            .build()
 }

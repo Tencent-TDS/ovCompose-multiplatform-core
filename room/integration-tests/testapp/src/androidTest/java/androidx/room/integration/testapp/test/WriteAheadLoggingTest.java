@@ -31,7 +31,6 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.database.Cursor;
 
-import androidx.annotation.NonNull;
 import androidx.arch.core.executor.testing.CountingTaskExecutorRule;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
@@ -46,9 +45,9 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -70,7 +69,6 @@ import java.util.concurrent.TimeoutException;
 @RunWith(AndroidJUnit4.class)
 @FlakyTest(bugId = 241095868)
 @LargeTest
-@SdkSuppress(minSdkVersion = 16)
 public class WriteAheadLoggingTest {
 
     private static final String DATABASE_NAME = "wal.db";
@@ -159,7 +157,6 @@ public class WriteAheadLoggingTest {
         stopObserver(user1, observer);
     }
 
-    @Ignore("b/239575607")
     @Test
     public void parallelWrites() throws InterruptedException, ExecutionException {
         int numberOfThreads = 10;

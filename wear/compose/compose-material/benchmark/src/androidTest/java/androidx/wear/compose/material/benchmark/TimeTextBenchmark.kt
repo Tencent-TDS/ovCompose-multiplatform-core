@@ -25,6 +25,7 @@ import androidx.compose.testutils.benchmark.benchmarkFirstDraw
 import androidx.compose.testutils.benchmark.benchmarkFirstLayout
 import androidx.compose.testutils.benchmark.benchmarkFirstMeasure
 import androidx.compose.testutils.benchmark.benchmarkLayoutPerf
+import androidx.compose.testutils.benchmark.benchmarkToFirstPixel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.wear.compose.material.MaterialTheme
@@ -37,17 +38,19 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Benchmark for Wear Compose TimeText.
- */
+/** Benchmark for Wear Compose TimeText. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class TimeTextBenchmark {
 
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     private val timeTextCaseFactory = { TimeTextTestCase() }
+
+    @Test
+    fun first_pixel() {
+        benchmarkRule.benchmarkToFirstPixel(timeTextCaseFactory)
+    }
 
     @Test
     fun first_compose() {
@@ -89,34 +92,20 @@ internal class TimeTextTestCase : LayeredComposeTestCase() {
                     text = "Leading content",
                 )
             },
-            textLinearSeparator = {
-                TimeTextDefaults.TextSeparator()
-            },
+            textLinearSeparator = { TimeTextDefaults.TextSeparator() },
             endLinearContent = {
                 Text(
                     text = "Trailing content",
                 )
             },
-            startCurvedContent = {
-                curvedText(
-                    text = "Leading content"
-                )
-            },
-            textCurvedSeparator = {
-                CurvedTextSeparator()
-            },
-            endCurvedContent = {
-                curvedText(
-                    text = "Trailing content"
-                )
-            },
+            startCurvedContent = { curvedText(text = "Leading content") },
+            textCurvedSeparator = { CurvedTextSeparator() },
+            endCurvedContent = { curvedText(text = "Trailing content") },
         )
     }
 
     @Composable
     override fun ContentWrappers(content: @Composable () -> Unit) {
-        MaterialTheme {
-            content()
-        }
+        MaterialTheme { content() }
     }
 }

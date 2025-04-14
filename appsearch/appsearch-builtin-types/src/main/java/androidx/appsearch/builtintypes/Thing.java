@@ -19,11 +19,14 @@ package androidx.appsearch.builtintypes;
 import android.content.Intent;
 import android.net.Uri;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchSchema.StringPropertyConfig;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,10 +68,16 @@ public class Thing {
     @Document.StringProperty
     private final String mUrl;
 
+    @Document.DocumentProperty
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
+    private final List<PotentialAction> mPotentialActions;
+
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     Thing(@NonNull String namespace, @NonNull String id, int documentScore,
             long creationTimestampMillis, long documentTtlMillis, @Nullable String name,
             @Nullable List<String> alternateNames, @Nullable String description,
-            @Nullable String image, @Nullable String url) {
+            @Nullable String image, @Nullable String url,
+            @Nullable List<PotentialAction> potentialActions) {
         mNamespace = Preconditions.checkNotNull(namespace);
         mId = Preconditions.checkNotNull(id);
         mDocumentScore = documentScore;
@@ -85,17 +94,22 @@ public class Thing {
         mDescription = description;
         mImage = image;
         mUrl = url;
+        // AppSearch may pass null if old schema lacks the potentialActions field during
+        // GenericDocument to Java class conversion.
+        if (potentialActions == null) {
+            mPotentialActions = Collections.emptyList();
+        } else {
+            mPotentialActions = Collections.unmodifiableList(potentialActions);
+        }
     }
 
     /** Returns the namespace (or logical grouping) for this item. */
-    @NonNull
-    public String getNamespace() {
+    public @NonNull String getNamespace() {
         return mNamespace;
     }
 
     /** Returns the unique identifier for this item. */
-    @NonNull
-    public String getId() {
+    public @NonNull String getId() {
         return mId;
     }
 
@@ -118,26 +132,25 @@ public class Thing {
     }
 
     /** Returns the name of this item. */
-    @Nullable
-    public String getName() {
+    public @Nullable String getName() {
         return mName;
     }
 
     /** Returns an unmodifiable list of aliases, if any, for this item. */
-    @NonNull
-    public List<String> getAlternateNames() {
+    public @NonNull List<String> getAlternateNames() {
         return mAlternateNames;
     }
 
     /** Returns a description of this item. */
-    @Nullable
-    public String getDescription() {
+    public @Nullable String getDescription() {
         return mDescription;
     }
 
     /** Returns the URL for an image of this item. */
-    @Nullable
-    public String getImage() {
+    // TODO(b/328672505): Discuss with other API reviewers or council whether this API should be
+    //  changed to return ImageObject instead for improved flexibility.
+    @ExperimentalAppSearchApi
+    public @Nullable String getImage() {
         return mImage;
     }
 
@@ -149,12 +162,18 @@ public class Thing {
      *
      * @see <a href="//reference/android/content/Intent#intent-structure">Intent Structure</a>
      */
-    @Nullable
-    public String getUrl() {
+    public @Nullable String getUrl() {
         return mUrl;
     }
 
+    /** Returns the actions that can be taken on this object. */
+    @ExperimentalAppSearchApi
+    public @NonNull List<PotentialAction> getPotentialActions() {
+        return mPotentialActions;
+    }
+
     /** Builder for {@link Thing}. */
+    @Document.BuilderProducer
     public static final class Builder extends BuilderImpl<Builder> {
         /** Constructs {@link Thing.Builder} with given {@code namespace} and {@code id} */
         public Builder(@NonNull String namespace, @NonNull String id) {
@@ -181,6 +200,9 @@ public class Thing {
         protected String mDescription;
         protected String mImage;
         protected String mUrl;
+        @OptIn(markerClass = ExperimentalAppSearchApi.class)
+        protected List<PotentialAction> mPotentialActions = new ArrayList<>();
+        private boolean mBuilt = false;
 
         BuilderImpl(@NonNull String namespace, @NonNull String id) {
             mNamespace = Preconditions.checkNotNull(namespace);
@@ -191,6 +213,7 @@ public class Thing {
             mCreationTimestampMillis = -1;
         }
 
+        @OptIn(markerClass = ExperimentalAppSearchApi.class)
         BuilderImpl(@NonNull Thing thing) {
             this(thing.getNamespace(), thing.getId());
             mDocumentScore = thing.getDocumentScore();
@@ -201,6 +224,7 @@ public class Thing {
             mDescription = thing.getDescription();
             mImage = thing.getImage();
             mUrl = thing.getUrl();
+            mPotentialActions = new ArrayList<>(thing.getPotentialActions());
         }
 
         /**
@@ -211,9 +235,9 @@ public class Thing {
          * <p>See {@link androidx.appsearch.annotation.Document.Score} for more information on
          * score.
          */
-        @NonNull
         @SuppressWarnings("unchecked")
-        public T setDocumentScore(int documentScore) {
+        public @NonNull T setDocumentScore(int documentScore) {
+            resetIfBuilt();
             mDocumentScore = documentScore;
             return (T) this;
         }
@@ -230,9 +254,9 @@ public class Thing {
          * <p>See {@link androidx.appsearch.annotation.Document.CreationTimestampMillis} for more
          * information on creation timestamp.
          */
-        @NonNull
         @SuppressWarnings("unchecked")
-        public T setCreationTimestampMillis(long creationTimestampMillis) {
+        public @NonNull T setCreationTimestampMillis(long creationTimestampMillis) {
+            resetIfBuilt();
             mCreationTimestampMillis = creationTimestampMillis;
             return (T) this;
         }
@@ -248,45 +272,56 @@ public class Thing {
          * <p>See {@link androidx.appsearch.annotation.Document.TtlMillis} for more information on
          * TTL.
          */
-        @NonNull
         @SuppressWarnings("unchecked")
-        public T setDocumentTtlMillis(long documentTtlMillis) {
+        public @NonNull T setDocumentTtlMillis(long documentTtlMillis) {
+            resetIfBuilt();
             mDocumentTtlMillis = documentTtlMillis;
             return (T) this;
         }
 
         /** Sets the name of the item. */
-        @NonNull
-        public T setName(@Nullable String name) {
+        public @NonNull T setName(@Nullable String name) {
+            resetIfBuilt();
             mName = name;
             return (T) this;
         }
 
         /** Adds an alias for the item. */
-        @NonNull
-        public T addAlternateName(@NonNull String alternateName) {
+        public @NonNull T addAlternateName(@NonNull String alternateName) {
+            resetIfBuilt();
             Preconditions.checkNotNull(alternateName);
             mAlternateNames.add(alternateName);
             return (T) this;
         }
 
+        /** Sets a list of aliases for the item. */
+        public @NonNull T setAlternateNames(@Nullable List<String> alternateNames) {
+            resetIfBuilt();
+            clearAlternateNames();
+            if (alternateNames != null) {
+                mAlternateNames.addAll(alternateNames);
+            }
+            return (T) this;
+        }
+
         /** Clears the aliases, if any, for the item. */
-        @NonNull
-        public T clearAlternateNames() {
+        public @NonNull T clearAlternateNames() {
+            resetIfBuilt();
             mAlternateNames.clear();
             return (T) this;
         }
 
         /** Sets the description for the item. */
-        @NonNull
-        public T setDescription(@Nullable String description) {
+        public @NonNull T setDescription(@Nullable String description) {
+            resetIfBuilt();
             mDescription = description;
             return (T) this;
         }
 
         /** Sets the URL for an image of the item. */
-        @NonNull
-        public T setImage(@Nullable String image) {
+        @ExperimentalAppSearchApi
+        public @NonNull T setImage(@Nullable String image) {
+            resetIfBuilt();
             mImage = image;
             return (T) this;
         }
@@ -305,17 +340,60 @@ public class Thing {
          * Activity</a> for more details on how to make activities in your app open for use by other
          * apps by defining intent filters.
          */
-        @NonNull
-        public T setUrl(@Nullable String url) {
+        public @NonNull T setUrl(@Nullable String url) {
+            resetIfBuilt();
             mUrl = url;
             return (T) this;
         }
+        /**
+         * Add a new action to the list of potential actions for this document.
+         */
+        @ExperimentalAppSearchApi
+        public @NonNull T addPotentialAction(@NonNull PotentialAction newPotentialAction) {
+            resetIfBuilt();
+            Preconditions.checkNotNull(newPotentialAction);
+            mPotentialActions.add(newPotentialAction);
+            return (T) this;
+        }
+
+        /** Sets a list of potential actions for this document. */
+        @ExperimentalAppSearchApi
+        public @NonNull T setPotentialActions(@Nullable List<PotentialAction> newPotentialActions) {
+            resetIfBuilt();
+            clearPotentialActions();
+            if (newPotentialActions != null) {
+                mPotentialActions.addAll(newPotentialActions);
+            }
+            return (T) this;
+        }
+
+        /**
+         * Clear all the potential actions for this document.
+         */
+        @ExperimentalAppSearchApi
+        public @NonNull T clearPotentialActions() {
+            resetIfBuilt();
+            mPotentialActions.clear();
+            return (T) this;
+        }
+
+        /**
+         * If built, make a copy of previous data for every field so that the builder can be reused.
+         */
+        private void resetIfBuilt() {
+            if (mBuilt) {
+                mAlternateNames = new ArrayList<>(mAlternateNames);
+                mPotentialActions = new ArrayList<>(mPotentialActions);
+                mBuilt = false;
+            }
+        }
 
         /** Builds a {@link Thing} object. */
-        @NonNull
-        public Thing build() {
+        public @NonNull Thing build() {
+            mBuilt = true;
             return new Thing(mNamespace, mId, mDocumentScore, mCreationTimestampMillis,
-                    mDocumentTtlMillis, mName, mAlternateNames, mDescription, mImage, mUrl);
+                    mDocumentTtlMillis, mName, mAlternateNames, mDescription, mImage, mUrl,
+                    mPotentialActions);
         }
     }
 }

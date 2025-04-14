@@ -16,16 +16,6 @@
 
 package androidx.camera.extensions.impl.advanced;
 
-import android.annotation.SuppressLint;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.util.Range;
-import android.util.Size;
-
-import java.util.List;
-import java.util.Map;
-
 /**
  * Stub advanced extender implementation for bokeh.
  *
@@ -33,58 +23,17 @@ import java.util.Map;
  *
  * @since 1.2
  */
-@SuppressLint("UnknownNullness")
-public class BokehAdvancedExtenderImpl implements AdvancedExtenderImpl {
+public class BokehAdvancedExtenderImpl extends ConfigurableAdvancedExtenderImpl {
     public BokehAdvancedExtenderImpl() {
+        super(/* longDurationCapture */ false,
+                /* postviewFormat */ POSTVIEW_NOT_SUPPORTED,
+                /* invokeOnCaptureCompleted */ false);
     }
 
-    @Override
-    public boolean isExtensionAvailable(String cameraId,
-            Map<String, CameraCharacteristics> characteristicsMap) {
-        return false;
-    }
-
-    @Override
-    public void init(String cameraId,
-            Map<String, CameraCharacteristics> characteristicsMap) {
-    }
-
-    @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(
-            String cameraId, Size size, int imageFormat) {
-        return null;
-    }
-
-    @Override
-    public Map<Integer, List<Size>> getSupportedPreviewOutputResolutions(
-            String cameraId) {
-        return null;
-    }
-
-    @Override
-    public Map<Integer, List<Size>> getSupportedCaptureOutputResolutions(
-            String cameraId) {
-        return null;
-    }
-
-    @Override
-    public List<Size> getSupportedYuvAnalysisResolutions(
-            String cameraId) {
-        return null;
-    }
-
-    @Override
-    public SessionProcessorImpl createSessionProcessor() {
-        return null;
-    }
-
-    @Override
-    public List<CaptureRequest.Key> getAvailableCaptureRequestKeys() {
-        return null;
-    }
-
-    @Override
-    public List<CaptureResult.Key> getAvailableCaptureResultKeys() {
-        return null;
-    }
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

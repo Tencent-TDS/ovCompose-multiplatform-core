@@ -19,11 +19,12 @@ package androidx.baselineprofile.gradle.utils
 import com.android.build.api.AndroidPluginVersion
 
 // Minimum AGP version required
-internal val MIN_AGP_VERSION_REQUIRED = AndroidPluginVersion(8, 0, 0).beta(1)
-internal val MAX_AGP_VERSION_REQUIRED = AndroidPluginVersion(8, 2, 0)
+internal val MIN_AGP_VERSION_REQUIRED_INCLUSIVE = AndroidPluginVersion(8, 0, 0)
+internal val MAX_AGP_VERSION_RECOMMENDED_EXCLUSIVE = AndroidPluginVersion(9, 0, 0).alpha(1)
 
 // Prefix for the build type baseline profile
 internal const val BUILD_TYPE_BASELINE_PROFILE_PREFIX = "nonMinified"
+internal const val BUILD_TYPE_BENCHMARK_PREFIX = "benchmark"
 
 // Configuration consumed by this plugin that carries the baseline profile HRF file.
 internal const val CONFIGURATION_NAME_BASELINE_PROFILES = "baselineProfile"
@@ -43,3 +44,18 @@ internal const val INTERMEDIATES_BASE_FOLDER = "intermediates/baselineprofiles"
 // structure: <action><variant><suffix>. For example, if action is `generate`, variant is `release`
 // and suffix is `baselineProfile` the task name will be `generateReleaseBaselineProfile`.
 internal const val TASK_NAME_SUFFIX = "baselineProfile"
+
+// Other constants
+internal const val RELEASE = "release"
+
+// Kotlin Multiplatform Plugin ID
+internal const val KOTLIN_MULTIPLATFORM_PLUGIN_ID = "org.jetbrains.kotlin.multiplatform"
+
+// Instrumentation runner arguments
+internal const val INSTRUMENTATION_ARG_ENABLED_RULES = "androidx.benchmark.enabledRules"
+internal const val INSTRUMENTATION_ARG_SKIP_ON_EMULATOR = "androidx.benchmark.skipOnEmulator"
+internal const val INSTRUMENTATION_ARG_ENABLED_RULES_BASELINE_PROFILE = "baselineprofile"
+internal const val INSTRUMENTATION_ARG_ENABLED_RULES_BENCHMARK = "macrobenchmark"
+
+// This should be aligned with `androidx.benchmark.Arguments#targetPackageName`
+internal const val INSTRUMENTATION_ARG_TARGET_PACKAGE_NAME = "androidx.benchmark.targetPackageName"

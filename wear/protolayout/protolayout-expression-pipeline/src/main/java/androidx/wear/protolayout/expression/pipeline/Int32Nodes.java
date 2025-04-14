@@ -20,34 +20,43 @@ import static java.lang.Math.abs;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
-import androidx.wear.protolayout.expression.pipeline.PlatformDataSources.PlatformDataSource;
-import androidx.wear.protolayout.expression.pipeline.PlatformDataSources.SensorGatewayPlatformDataSource;
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInt32;
+import androidx.wear.protolayout.expression.DynamicDataKey;
+import androidx.wear.protolayout.expression.PlatformHealthSources;
 import androidx.wear.protolayout.expression.proto.AnimationParameterProto.AnimationSpec;
+import androidx.wear.protolayout.expression.proto.DynamicDataProto.DynamicDataValue;
 import androidx.wear.protolayout.expression.proto.DynamicProto.AnimatableFixedInt32;
 import androidx.wear.protolayout.expression.proto.DynamicProto.ArithmeticInt32Op;
 import androidx.wear.protolayout.expression.proto.DynamicProto.DurationPartType;
 import androidx.wear.protolayout.expression.proto.DynamicProto.FloatToInt32Op;
 import androidx.wear.protolayout.expression.proto.DynamicProto.GetDurationPartOp;
+import androidx.wear.protolayout.expression.proto.DynamicProto.GetZonedDateTimePartOp;
 import androidx.wear.protolayout.expression.proto.DynamicProto.PlatformInt32Source;
 import androidx.wear.protolayout.expression.proto.DynamicProto.PlatformInt32SourceType;
 import androidx.wear.protolayout.expression.proto.DynamicProto.StateInt32Source;
+import androidx.wear.protolayout.expression.proto.DynamicProto.ZonedDateTimePartType;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedInt32;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.function.Function;
 
 /** Dynamic data nodes which yield integers. */
 class Int32Nodes {
+
     private Int32Nodes() {}
 
     /** Dynamic integer node that has a fixed value. */
     static class FixedInt32Node implements DynamicDataSourceNode<Integer> {
         private final int mValue;
-        private final DynamicTypeValueReceiver<Integer> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Integer> mDownstream;
 
-        FixedInt32Node(FixedInt32 protoNode, DynamicTypeValueReceiver<Integer> downstream) {
+        FixedInt32Node(
+                FixedInt32 protoNode, DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
             this.mValue = protoNode.getValue();
             this.mDownstream = downstream;
         }
@@ -67,69 +76,52 @@ class Int32Nodes {
         @Override
         @UiThread
         public void destroy() {}
+
+        @Override
+        public int getCost() {
+            return FIXED_NODE_COST;
+        }
     }
 
     /** Dynamic integer node that gets value from the platform source. */
-    static class PlatformInt32SourceNode implements DynamicDataSourceNode<Integer> {
-        private static final String TAG = "PlatformInt32SourceNode";
+    static class LegacyPlatformInt32SourceNode extends StateSourceNode<Integer> {
 
-        @Nullable private final SensorGatewayPlatformDataSource mSensorGatewaySource;
-        private final PlatformInt32Source mProtoNode;
-        private final DynamicTypeValueReceiver<Integer> mDownstream;
-
-        PlatformInt32SourceNode(
+        LegacyPlatformInt32SourceNode(
+                PlatformDataStore dataStore,
                 PlatformInt32Source protoNode,
-                @Nullable SensorGatewayPlatformDataSource sensorGatewaySource,
-                DynamicTypeValueReceiver<Integer> downstream) {
-            this.mProtoNode = protoNode;
-            this.mSensorGatewaySource = sensorGatewaySource;
-            this.mDownstream = downstream;
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
+            super(
+                    dataStore,
+                    getDataKey(protoNode.getSourceType()),
+                    getStateExtractor(protoNode.getSourceType()),
+                    downstream);
         }
 
-        @Override
-        @UiThread
-        public void preInit() {
-            if (platformInt32SourceTypeToPlatformDataSource(mProtoNode.getSourceType()) != null) {
-                mDownstream.onPreUpdate();
+        private static @NonNull DynamicDataKey<?> getDataKey(PlatformInt32SourceType type) {
+            if (type == PlatformInt32SourceType.PLATFORM_INT32_SOURCE_TYPE_CURRENT_HEART_RATE) {
+                return PlatformHealthSources.Keys.HEART_RATE_BPM;
             }
+
+            if (type == PlatformInt32SourceType.PLATFORM_INT32_SOURCE_TYPE_DAILY_STEP_COUNT) {
+                return PlatformHealthSources.Keys.DAILY_STEPS;
+            }
+
+            throw new IllegalArgumentException(
+                    "Unknown DynamicInt32 platform source type: " + type);
         }
 
-        @Override
-        @UiThread
-        public void init() {
-            PlatformDataSource dataSource =
-                    platformInt32SourceTypeToPlatformDataSource(mProtoNode.getSourceType());
-            if (dataSource != null) {
-                dataSource.registerForData(mProtoNode.getSourceType(), mDownstream);
-            } else {
-                mDownstream.onInvalidated();
+        private static @NonNull Function<DynamicDataValue, Integer> getStateExtractor(
+                PlatformInt32SourceType type) {
+            if (type == PlatformInt32SourceType.PLATFORM_INT32_SOURCE_TYPE_CURRENT_HEART_RATE) {
+                return se -> (int) se.getFloatVal().getValue();
             }
-        }
 
-        @Override
-        @UiThread
-        public void destroy() {
-            PlatformDataSource dataSource =
-                    platformInt32SourceTypeToPlatformDataSource(mProtoNode.getSourceType());
-            if (dataSource != null) {
-                dataSource.unregisterForData(mProtoNode.getSourceType(), mDownstream);
+            if (type == PlatformInt32SourceType.PLATFORM_INT32_SOURCE_TYPE_DAILY_STEP_COUNT) {
+                return se -> se.getInt32Val().getValue();
             }
-        }
 
-        @Nullable
-        private PlatformDataSource platformInt32SourceTypeToPlatformDataSource(
-                PlatformInt32SourceType sourceType) {
-            switch (sourceType) {
-                case UNRECOGNIZED:
-                case PLATFORM_INT32_SOURCE_TYPE_UNDEFINED:
-                    Log.w(TAG, "Unknown PlatformInt32SourceType");
-                    return null;
-                case PLATFORM_INT32_SOURCE_TYPE_CURRENT_HEART_RATE:
-                case PLATFORM_INT32_SOURCE_TYPE_DAILY_STEP_COUNT:
-                    return mSensorGatewaySource;
-            }
-            Log.w(TAG, "Unknown PlatformInt32SourceType");
-            return null;
+            throw new IllegalArgumentException(
+                    "Unknown DynamicInt32 platform source type: " + type);
         }
     }
 
@@ -138,16 +130,13 @@ class Int32Nodes {
         private static final String TAG = "ArithmeticInt32Node";
 
         ArithmeticInt32Node(
-                ArithmeticInt32Op protoNode, DynamicTypeValueReceiver<Integer> downstream) {
+                ArithmeticInt32Op protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
             super(
                     downstream,
                     (lhs, rhs) -> {
                         try {
                             switch (protoNode.getOperationType()) {
-                                case ARITHMETIC_OP_TYPE_UNDEFINED:
-                                case UNRECOGNIZED:
-                                    Log.e(TAG, "Unknown operation type in ArithmeticInt32Node");
-                                    return 0;
                                 case ARITHMETIC_OP_TYPE_ADD:
                                     return lhs + rhs;
                                 case ARITHMETIC_OP_TYPE_SUBTRACT:
@@ -158,14 +147,18 @@ class Int32Nodes {
                                     return lhs / rhs;
                                 case ARITHMETIC_OP_TYPE_MODULO:
                                     return lhs % rhs;
+                                case ARITHMETIC_OP_TYPE_UNDEFINED:
+                                case UNRECOGNIZED:
+                                    break;
                             }
                         } catch (ArithmeticException ex) {
                             Log.e(TAG, "ArithmeticException in ArithmeticInt32Node", ex);
-                            return 0;
+                            return null;
                         }
 
-                        Log.e(TAG, "Unknown operation type in ArithmeticInt32Node");
-                        return 0;
+                        throw new IllegalArgumentException(
+                                "Unknown operation type in ArithmeticInt32Node: "
+                                        + protoNode.getOperationType());
                     });
         }
     }
@@ -174,12 +167,13 @@ class Int32Nodes {
     static class StateInt32SourceNode extends StateSourceNode<Integer> {
 
         StateInt32SourceNode(
-                ObservableStateStore observableStateStore,
+                DataStore dataStore,
                 StateInt32Source protoNode,
-                DynamicTypeValueReceiver<Integer> downstream) {
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
             super(
-                    observableStateStore,
-                    protoNode.getSourceKey(),
+                    dataStore,
+                    StateSourceNode.<DynamicInt32>createKey(
+                            protoNode.getSourceNamespace(), protoNode.getSourceKey()),
                     se -> se.getInt32Val().getValue(),
                     downstream);
         }
@@ -188,22 +182,28 @@ class Int32Nodes {
     /** Dynamic integer node that gets value from float. */
     static class FloatToInt32Node extends DynamicDataTransformNode<Float, Integer> {
 
-        FloatToInt32Node(FloatToInt32Op protoNode, DynamicTypeValueReceiver<Integer> downstream) {
+        FloatToInt32Node(
+                FloatToInt32Op protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
             super(
                     downstream,
                     x -> {
                         switch (protoNode.getRoundMode()) {
                             case ROUND_MODE_UNDEFINED:
+                                // Round mode defaults to floor.
                             case ROUND_MODE_FLOOR:
                                 return (int) Math.floor(x);
                             case ROUND_MODE_ROUND:
                                 return Math.round(x);
                             case ROUND_MODE_CEILING:
                                 return (int) Math.ceil(x);
-                            default:
-                                throw new IllegalArgumentException("Unknown rounding mode");
+                            case UNRECOGNIZED:
+                                break;
                         }
-                    });
+                        throw new IllegalArgumentException(
+                                "Unknown rounding mode:" + protoNode.getRoundMode());
+                    },
+                    x -> x - 1 < Integer.MAX_VALUE && x >= Integer.MIN_VALUE);
         }
     }
 
@@ -212,7 +212,8 @@ class Int32Nodes {
         private static final String TAG = "GetDurationPartOpNode";
 
         GetDurationPartOpNode(
-                GetDurationPartOp protoNode, DynamicTypeValueReceiver<Integer> downstream) {
+                GetDurationPartOp protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
             super(
                     downstream,
                     duration -> (int) getDurationPart(duration, protoNode.getDurationPart()));
@@ -220,10 +221,6 @@ class Int32Nodes {
 
         private static long getDurationPart(Duration duration, DurationPartType durationPartType) {
             switch (durationPartType) {
-                case DURATION_PART_TYPE_UNDEFINED:
-                case UNRECOGNIZED:
-                    Log.e(TAG, "Unknown duration part type in GetDurationPartOpNode");
-                    return 0;
                 case DURATION_PART_TYPE_DAYS:
                     return abs(duration.getSeconds() / (3600 * 24));
                 case DURATION_PART_TYPE_HOURS:
@@ -240,8 +237,11 @@ class Int32Nodes {
                     return duration.toMinutes();
                 case DURATION_PART_TYPE_TOTAL_SECONDS:
                     return duration.getSeconds();
+                case DURATION_PART_TYPE_UNDEFINED:
+                case UNRECOGNIZED:
+                    break;
             }
-            throw new IllegalArgumentException("Unknown duration part");
+            throw new IllegalArgumentException("Unknown duration part: " + durationPartType);
         }
     }
 
@@ -250,17 +250,25 @@ class Int32Nodes {
             implements DynamicDataSourceNode<Integer> {
 
         private final AnimatableFixedInt32 mProtoNode;
-        private final DynamicTypeValueReceiver<Integer> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Integer> mDownstream;
+        private boolean mFirstUpdateFromAnimatorDone = false;
 
         AnimatableFixedInt32Node(
                 AnimatableFixedInt32 protoNode,
-                DynamicTypeValueReceiver<Integer> downstream,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream,
                 QuotaManager quotaManager) {
-            super(quotaManager, protoNode.getAnimationSpec());
+            super(quotaManager, protoNode.getAnimationSpec(), AnimatableNode.INT_EVALUATOR);
             this.mProtoNode = protoNode;
             this.mDownstream = downstream;
             mQuotaAwareAnimator.addUpdateCallback(
-                    animatedValue -> mDownstream.onData((Integer) animatedValue));
+                    animatedValue -> {
+                        // The onPreUpdate has already been called once before the first update.
+                        if (mFirstUpdateFromAnimatorDone) {
+                            mDownstream.onPreUpdate();
+                        }
+                        mDownstream.onData((Integer) animatedValue);
+                        mFirstUpdateFromAnimatorDone = true;
+                    });
         }
 
         @Override
@@ -273,6 +281,9 @@ class Int32Nodes {
         @UiThread
         public void init() {
             mQuotaAwareAnimator.setIntValues(mProtoNode.getFromValue(), mProtoNode.getToValue());
+            // For the first update from the animator with the above from & to values, the
+            // onPreUpdate has already been called.
+            mFirstUpdateFromAnimatorDone = false;
             startOrSkipAnimator();
         }
 
@@ -281,36 +292,47 @@ class Int32Nodes {
         public void destroy() {
             mQuotaAwareAnimator.stopAnimator();
         }
+
+        @Override
+        public int getCost() {
+            return DEFAULT_NODE_COST;
+        }
     }
 
     /** Dynamic int32 node that gets animatable value from dynamic source. */
     static class DynamicAnimatedInt32Node extends AnimatableNode
             implements DynamicDataNode<Integer> {
 
-        final DynamicTypeValueReceiver<Integer> mDownstream;
-        private final DynamicTypeValueReceiver<Integer> mInputCallback;
+        final DynamicTypeValueReceiverWithPreUpdate<Integer> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Integer> mInputCallback;
 
         @Nullable Integer mCurrentValue = null;
         int mPendingCalls = 0;
+        private boolean mFirstUpdateFromAnimatorDone = false;
 
         // Static analysis complains about calling methods of parent class AnimatableNode under
         // initialization but mInputCallback is only used after the constructor is finished.
         @SuppressWarnings("method.invocation.invalid")
         DynamicAnimatedInt32Node(
-                DynamicTypeValueReceiver<Integer> downstream,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream,
                 @NonNull AnimationSpec spec,
                 QuotaManager quotaManager) {
-            super(quotaManager, spec);
+            super(quotaManager, spec, AnimatableNode.INT_EVALUATOR);
             this.mDownstream = downstream;
             mQuotaAwareAnimator.addUpdateCallback(
                     animatedValue -> {
                         if (mPendingCalls == 0) {
+                            // The onPreUpdate has already been called once before the first update.
+                            if (mFirstUpdateFromAnimatorDone) {
+                                mDownstream.onPreUpdate();
+                            }
                             mCurrentValue = (Integer) animatedValue;
                             mDownstream.onData(mCurrentValue);
+                            mFirstUpdateFromAnimatorDone = true;
                         }
                     });
             this.mInputCallback =
-                    new DynamicTypeValueReceiver<Integer>() {
+                    new DynamicTypeValueReceiverWithPreUpdate<Integer>() {
                         @Override
                         public void onPreUpdate() {
                             mPendingCalls++;
@@ -321,7 +343,7 @@ class Int32Nodes {
                         }
 
                         @Override
-                        public void onData(Integer newData) {
+                        public void onData(@NonNull Integer newData) {
                             if (mPendingCalls > 0) {
                                 mPendingCalls--;
                             }
@@ -332,6 +354,9 @@ class Int32Nodes {
                                     mDownstream.onData(mCurrentValue);
                                 } else {
                                     mQuotaAwareAnimator.setIntValues(mCurrentValue, newData);
+                                    // For the first update from the animator with the above from &
+                                    // to values, the onPreUpdate has already been called.
+                                    mFirstUpdateFromAnimatorDone = false;
                                     startOrSkipAnimator();
                                 }
                             }
@@ -351,8 +376,48 @@ class Int32Nodes {
                     };
         }
 
-        public DynamicTypeValueReceiver<Integer> getInputCallback() {
+        public DynamicTypeValueReceiverWithPreUpdate<Integer> getInputCallback() {
             return mInputCallback;
+        }
+
+        @Override
+        public int getCost() {
+            return DEFAULT_NODE_COST;
+        }
+    }
+
+    /** Dynamic integer node that gets date-time part from a zoned date-time. */
+    static class GetZonedDateTimePartOpNode
+            extends DynamicDataTransformNode<ZonedDateTime, Integer> {
+        private static final String TAG = "GetZonedDateTimePartOpNode";
+
+        GetZonedDateTimePartOpNode(
+                GetZonedDateTimePartOp protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Integer> downstream) {
+            super(downstream, zdt -> (int) getZonedDateTimePart(zdt, protoNode.getPartType()));
+        }
+
+        private static long getZonedDateTimePart(ZonedDateTime zdt, ZonedDateTimePartType type) {
+            switch (type) {
+                case ZONED_DATE_TIME_PART_SECOND:
+                    return zdt.getSecond();
+                case ZONED_DATE_TIME_PART_MINUTE:
+                    return zdt.getMinute();
+                case ZONED_DATE_TIME_PART_HOUR_24H:
+                    return zdt.getHour();
+                case ZONED_DATE_TIME_PART_DAY_OF_WEEK:
+                    return zdt.getDayOfWeek().getValue();
+                case ZONED_DATE_TIME_PART_DAY_OF_MONTH:
+                    return zdt.getDayOfMonth();
+                case ZONED_DATE_TIME_PART_MONTH:
+                    return zdt.getMonth().getValue();
+                case ZONED_DATE_TIME_PART_YEAR:
+                    return zdt.getYear();
+                case ZONED_DATE_TIME_PART_UNDEFINED:
+                case UNRECOGNIZED:
+                    break;
+            }
+            throw new IllegalArgumentException("Unknown ZonedDateTime part: " + type);
         }
     }
 }

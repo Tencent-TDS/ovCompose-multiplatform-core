@@ -18,24 +18,23 @@ package androidx.car.app.model;
 
 import static java.util.Objects.requireNonNull;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.model.constraints.CarTextConstraints;
 import androidx.car.app.annotations.KeepFields;
+import androidx.car.app.model.constraints.CarTextConstraints;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
 /**
- * Represents an {@link ItemList} that is contained inside a section, for internal use only.
+ * Represents an {@link ItemList} that is contained inside a section.
  */
 @CarProtocol
 @KeepFields
 public final class SectionedItemList {
-    @Nullable
-    private final ItemList mItemList;
-    @Nullable
-    private final CarText mHeader;
+    private final @Nullable ItemList mItemList;
+    private final @Nullable CarText mHeader;
 
     /**
      * Creates an instance of a {@link SectionedItemList} with the given {@code itemList} and
@@ -45,8 +44,7 @@ public final class SectionedItemList {
      *
      * @throws IllegalArgumentException if {@code sectionHeader} contains unsupported spans
      */
-    @NonNull
-    public static SectionedItemList create(
+    public static @NonNull SectionedItemList create(
             @NonNull ItemList itemList, @NonNull CharSequence sectionHeader) {
         CarText sectionHeaderText = CarText.create(requireNonNull(sectionHeader));
         CarTextConstraints.TEXT_ONLY.validateOrThrow(sectionHeaderText);
@@ -54,20 +52,17 @@ public final class SectionedItemList {
     }
 
     /** Returns the {@link ItemList} for the section. */
-    @NonNull
-    public ItemList getItemList() {
+    public @NonNull ItemList getItemList() {
         return requireNonNull(mItemList);
     }
 
     /** Returns the title of the section. */
-    @NonNull
-    public CarText getHeader() {
+    public @NonNull CarText getHeader() {
         return requireNonNull(mHeader);
     }
 
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         return "[ items: " + mItemList + ", has header: " + (mHeader != null) + "]";
     }
 

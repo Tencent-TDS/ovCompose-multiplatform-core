@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe
 
-import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 
 /**
  * A map-like interface used to describe or interact with metadata from CameraPipe and Camera2.
@@ -28,28 +26,30 @@ import androidx.annotation.RequiresApi
  *
  * These interfaces are read-only.
  */
-interface Metadata {
-    operator fun <T> get(key: Key<T>): T?
-    fun <T> getOrDefault(key: Key<T>, default: T): T
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public interface Metadata {
+    public operator fun <T> get(key: Key<T>): T?
+
+    public fun <T> getOrDefault(key: Key<T>, default: T): T
 
     /** Metadata keys provide values or controls that are provided or computed by CameraPipe. */
-    class Key<T> private constructor(private val name: String) {
-        companion object {
-            @JvmStatic
-            internal val keys: MutableSet<String> = HashSet()
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public class Key<T> private constructor(private val name: String) {
+        public companion object {
+            @JvmStatic internal val keys: MutableSet<String> = HashSet()
 
             /**
              * This will create a new Key instance, and will check to see that the key has not been
              * previously created somewhere else.
              */
-            fun <T> create(name: String): Key<T> {
+            public fun <T> create(name: String): Key<T> {
                 synchronized(keys) { check(keys.add(name)) { "$name is already defined!" } }
                 return Key(name)
             }
         }
 
         override fun toString(): String {
-            return name
+            return "Metadata.Key($name)"
         }
     }
 }

@@ -29,7 +29,6 @@ import android.os.Build;
 import android.os.Build.VERSION;
 import android.os.SystemClock;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.RequiresApi;
 import androidx.core.util.Preconditions;
 import androidx.test.filters.SdkSuppress;
@@ -46,7 +45,7 @@ import java.util.Objects;
 @SuppressWarnings("JavaReflectionMemberAccess")
 @SmallTest
 @TargetApi(31) // Suppress NewApi since APIs are @hide at API levels 19 through 30
-@SdkSuppress(minSdkVersion = 19, maxSdkVersion = 30)
+@SdkSuppress(maxSdkVersion = 30)
 public class LocationRequestCompatTestApi19 {
     private static Method sGetProviderMethod;
     private static Method sGetIntervalMethod;
@@ -171,7 +170,6 @@ public class LocationRequestCompatTestApi19 {
         }
 
         @RequiresApi(Build.VERSION_CODES.S) // Work around a bug in NewApi check.
-        @DoNotInline
         private static long getExpireIn(LocationRequest request)
                 throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
             if (sGetExpireInMethod == null) {

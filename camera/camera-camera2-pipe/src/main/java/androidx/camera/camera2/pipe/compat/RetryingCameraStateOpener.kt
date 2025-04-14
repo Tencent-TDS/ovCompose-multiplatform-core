@@ -21,31 +21,42 @@ import android.app.admin.DevicePolicyManager
 import android.hardware.camera2.CameraDevice.StateCallback
 import android.hardware.camera2.CameraManager
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraError
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraPipe
-import androidx.camera.camera2.pipe.GraphState.GraphStateError
 import androidx.camera.camera2.pipe.core.Debug
 import androidx.camera.camera2.pipe.core.DurationNs
 import androidx.camera.camera2.pipe.core.Log
-import androidx.camera.camera2.pipe.core.SystemTimeSource
 import androidx.camera.camera2.pipe.core.Threads
 import androidx.camera.camera2.pipe.core.TimeSource
 import androidx.camera.camera2.pipe.core.TimestampNs
 import androidx.camera.camera2.pipe.core.Timestamps
 import androidx.camera.camera2.pipe.core.Timestamps.formatMs
-import androidx.camera.camera2.pipe.graph.GraphListener
+import androidx.camera.camera2.pipe.internal.CameraErrorListener
 import javax.inject.Inject
 import javax.inject.Provider
+import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-private val cameraRetryTimeout = DurationNs(10_000_000_000) // 10 seconds
+// TODO(b/246180670): Replace all duration usage in CameraPipe with kotlin.time.Duration
+private val defaultCameraRetryTimeoutNs = DurationNs(10_000_000_000L) // 10s
+
+private val activeResumeCameraRetryTimeoutNs = DurationNs(30L * 60L * 1_000_000_000L) // 30m
+
+private const val defaultCameraRetryDelayMs = 500L
+
+private const val activeResumeCameraRetryDelayBaseMs = defaultCameraRetryDelayMs
+
+private val activeResumeCameraRetryThresholds =
+    arrayOf(
+        DurationNs(2L * 60L * 1_000_000_000L), // 2m
+        DurationNs(5L * 60L * 1_000_000_000L), // 5m
+    )
 
 internal interface CameraOpener {
     fun openCamera(cameraId: CameraId, stateCallback: StateCallback)
@@ -55,11 +66,23 @@ internal interface CameraAvailabilityMonitor {
     suspend fun awaitAvailableCamera(cameraId: CameraId, timeoutMillis: Long): Boolean
 }
 
+internal interface RetryingCameraStateOpener {
+    suspend fun openCameraWithRetry(
+        cameraId: CameraId,
+        camera2DeviceCloser: Camera2DeviceCloser,
+        isForegroundObserver: (Unit) -> Boolean = { _ -> true },
+    ): OpenCameraResult
+
+    fun openAndAwaitCameraWithRetry(
+        cameraId: CameraId,
+        camera2DeviceCloser: Camera2DeviceCloser,
+    ): AwaitOpenCameraResult
+}
+
 internal interface DevicePolicyManagerWrapper {
     val camerasDisabled: Boolean
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal class Camera2CameraOpener
 @Inject
 constructor(private val cameraManager: Provider<CameraManager>, private val threads: Threads) :
@@ -70,10 +93,13 @@ constructor(private val cameraManager: Provider<CameraManager>, private val thre
     )
     override fun openCamera(cameraId: CameraId, stateCallback: StateCallback) {
         val instance = cameraManager.get()
-        Debug.trace("CameraDevice-${cameraId.value}#openCamera") {
+        Debug.trace("$cameraId#openCamera") {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 Api28Compat.openCamera(
-                    instance, cameraId.value, threads.camera2Executor, stateCallback
+                    instance,
+                    cameraId.value,
+                    threads.camera2Executor,
+                    stateCallback
                 )
             } else {
                 instance.openCamera(cameraId.value, stateCallback, threads.camera2Handler)
@@ -82,14 +108,13 @@ constructor(private val cameraManager: Provider<CameraManager>, private val thre
     }
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal class Camera2CameraAvailabilityMonitor
 @Inject
 constructor(private val cameraManager: Provider<CameraManager>, private val threads: Threads) :
     CameraAvailabilityMonitor {
 
     override suspend fun awaitAvailableCamera(cameraId: CameraId, timeoutMillis: Long): Boolean =
-        withTimeoutOrNull(timeoutMillis) { awaitAvailableCamera(cameraId) } ?: false
+        withTimeoutOrNull(timeoutMillis) { awaitAvailableCamera(cameraId) } == true
 
     private suspend fun awaitAvailableCamera(cameraId: CameraId) =
         suspendCancellableCoroutine { continuation ->
@@ -117,7 +142,9 @@ constructor(private val cameraManager: Provider<CameraManager>, private val thre
             val manager = cameraManager.get()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 Api28Compat.registerAvailabilityCallback(
-                    manager, threads.camera2Executor, availabilityCallback
+                    manager,
+                    threads.camera2Executor,
+                    availabilityCallback
                 )
             } else {
                 manager.registerAvailabilityCallback(availabilityCallback, threads.camera2Handler)
@@ -129,7 +156,6 @@ constructor(private val cameraManager: Provider<CameraManager>, private val thre
         }
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal class AndroidDevicePolicyManagerWrapper
 @Inject
 constructor(private val devicePolicyManager: DevicePolicyManager) : DevicePolicyManagerWrapper {
@@ -145,19 +171,28 @@ internal data class OpenCameraResult(
     val errorCode: CameraError? = null,
 )
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+internal data class AwaitOpenCameraResult(
+    val cameraDeviceWrapper: CameraDeviceWrapper? = null,
+    val androidCameraState: AndroidCameraState? = null,
+)
+
 internal class CameraStateOpener
 @Inject
 constructor(
     private val cameraOpener: CameraOpener,
     private val camera2MetadataProvider: Camera2MetadataProvider,
+    private val cameraErrorListener: CameraErrorListener,
+    private val camera2Quirks: Camera2Quirks,
     private val timeSource: TimeSource,
-    private val cameraInteropConfig: CameraPipe.CameraInteropConfig?
+    private val cameraInteropConfig: CameraPipe.CameraInteropConfig?,
+    private val threads: Threads
 ) {
     internal suspend fun tryOpenCamera(
         cameraId: CameraId,
         attempts: Int,
         requestTimestamp: TimestampNs,
+        camera2DeviceCloser: Camera2DeviceCloser,
+        audioRestrictionController: AudioRestrictionController
     ): OpenCameraResult {
         val metadata = camera2MetadataProvider.getCameraMetadata(cameraId)
         val cameraState =
@@ -167,8 +202,15 @@ constructor(
                 attempts,
                 requestTimestamp,
                 timeSource,
+                cameraErrorListener,
+                camera2DeviceCloser,
+                camera2Quirks,
+                threads,
+                audioRestrictionController,
                 cameraInteropConfig?.cameraDeviceStateCallback,
-                cameraInteropConfig?.cameraSessionStateCallback
+                cameraInteropConfig?.cameraSessionStateCallback,
+                /** interopExtensionSessionStateCallback= */
+                null
             )
 
         try {
@@ -182,12 +224,10 @@ constructor(
                     cameraState.close()
                     return OpenCameraResult(errorCode = result.cameraErrorCode)
                 }
-
                 is CameraStateClosed -> {
                     cameraState.close()
                     return OpenCameraResult(errorCode = result.cameraErrorCode)
                 }
-
                 is CameraStateUnopened -> {
                     cameraState.close()
                     throw IllegalStateException("Unexpected CameraState: $result")
@@ -201,18 +241,23 @@ constructor(
     }
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-internal class RetryingCameraStateOpener
+@Singleton
+internal class RetryingCameraStateOpenerImpl
 @Inject
 constructor(
     private val cameraStateOpener: CameraStateOpener,
+    private val cameraErrorListener: CameraErrorListener,
     private val cameraAvailabilityMonitor: CameraAvailabilityMonitor,
     private val timeSource: TimeSource,
-    private val devicePolicyManager: DevicePolicyManagerWrapper
-) {
-    internal suspend fun openCameraWithRetry(
+    private val devicePolicyManager: DevicePolicyManagerWrapper,
+    private val audioRestrictionController: AudioRestrictionController,
+    private val cameraInteropConfig: CameraPipe.CameraInteropConfig?,
+    private val threads: Threads,
+) : RetryingCameraStateOpener {
+    override suspend fun openCameraWithRetry(
         cameraId: CameraId,
-        graphListener: GraphListener
+        camera2DeviceCloser: Camera2DeviceCloser,
+        isForegroundObserver: (Unit) -> Boolean,
     ): OpenCameraResult {
         val requestTimestamp = Timestamps.now(timeSource)
         var attempts = 0
@@ -220,7 +265,15 @@ constructor(
         while (true) {
             attempts++
 
-            val result = cameraStateOpener.tryOpenCamera(cameraId, attempts, requestTimestamp)
+            val result =
+                cameraStateOpener.tryOpenCamera(
+                    cameraId,
+                    attempts,
+                    requestTimestamp,
+                    camera2DeviceCloser,
+                    audioRestrictionController
+                )
+            val elapsed = Timestamps.now(timeSource) - requestTimestamp
             with(result) {
                 if (cameraState != null) {
                     return result
@@ -238,19 +291,21 @@ constructor(
                     return result
                 }
 
+                val isForeground = isForegroundObserver.invoke(Unit)
                 val willRetry =
                     shouldRetry(
                         errorCode,
                         attempts,
-                        requestTimestamp,
-                        timeSource,
-                        devicePolicyManager.camerasDisabled
+                        elapsed,
+                        devicePolicyManager.camerasDisabled,
+                        isForeground,
+                        cameraInteropConfig?.cameraOpenRetryMaxTimeoutNs
                     )
                 // Always notify if the decision is to not retry the camera open, otherwise allow
                 // 1 open call to happen silently without generating an error, and notify about each
                 // error after that point.
                 if (!willRetry || attempts > 1) {
-                    graphListener.onGraphError(GraphStateError(errorCode, willRetry))
+                    cameraErrorListener.onCameraError(cameraId, errorCode, willRetry)
                 }
                 if (!willRetry) {
                     Log.error {
@@ -260,12 +315,44 @@ constructor(
                     }
                     return result
                 }
+
+                // Listen to availability - if we are notified that the cameraId is available then
+                // retry immediately.
+                if (
+                    !cameraAvailabilityMonitor.awaitAvailableCamera(
+                        cameraId,
+                        timeoutMillis =
+                            getRetryDelayMs(
+                                elapsed,
+                                shouldActivateActiveResume(isForeground, errorCode)
+                            )
+                    )
+                ) {
+                    Log.debug { "Timeout expired, retrying camera open for camera $cameraId" }
+                }
+            }
+        }
+    }
+
+    override fun openAndAwaitCameraWithRetry(
+        cameraId: CameraId,
+        camera2DeviceCloser: Camera2DeviceCloser,
+    ): AwaitOpenCameraResult {
+        Log.debug { "$this#openAndAwaitCameraWithRetry($cameraId)" }
+        return runBlocking(threads.blockingDispatcher) {
+            val androidCameraState = openCameraWithRetry(cameraId, camera2DeviceCloser).cameraState
+            if (androidCameraState == null) {
+                Log.error { "Failed to open $cameraId!" }
+                return@runBlocking AwaitOpenCameraResult(null, null)
             }
 
-            // Listen to availability - if we are notified that the cameraId is available then
-            // retry immediately.
-            if (!cameraAvailabilityMonitor.awaitAvailableCamera(cameraId, timeoutMillis = 500)) {
-                Log.debug { "Timeout expired, retrying camera open for camera $cameraId" }
+            val cameraState = androidCameraState.state.first { it != CameraStateUnopened }
+            if (cameraState is CameraStateOpen) {
+                Log.info { "$cameraId opened successfully." }
+                AwaitOpenCameraResult(cameraState.cameraDevice, androidCameraState)
+            } else {
+                Log.error { "Failed to open $cameraId!" }
+                AwaitOpenCameraResult(null, null)
             }
         }
     }
@@ -274,15 +361,29 @@ constructor(
         internal fun shouldRetry(
             errorCode: CameraError,
             attempts: Int,
-            firstAttemptTimestampNs: TimestampNs,
-            timeSource: TimeSource = SystemTimeSource(),
-            camerasDisabledByDevicePolicy: Boolean
+            elapsedNs: DurationNs,
+            camerasDisabledByDevicePolicy: Boolean,
+            isForeground: Boolean = true,
+            cameraOpenRetryMaxTimeoutNs: DurationNs? = null
         ): Boolean {
-            val elapsed = Timestamps.now(timeSource) - firstAttemptTimestampNs
-            if (elapsed > cameraRetryTimeout) {
+            val shouldActiveResume = shouldActivateActiveResume(isForeground, errorCode)
+            if (shouldActiveResume) Log.debug { "shouldRetry: Active resume mode is activated" }
+            if (elapsedNs > getRetryTimeoutNs(shouldActiveResume, cameraOpenRetryMaxTimeoutNs)) {
                 return false
             }
             return when (errorCode) {
+                CameraError.ERROR_UNDETERMINED ->
+                    // The error indicates that the camera has encountered an undetermined error
+                    // while the camera is being opened [1].
+                    //
+                    // This is an error that will be later informed through onError() [2], and will
+                    // be returned as an actual error if the second camera open attempt also fails.
+                    //
+                    // [1] b/307411676 - IllegalArgumentException at
+                    //                   CameraStateAdapter$Companion.toCameraStateError
+                    // [2]
+                    // https://developer.android.com/reference/android/hardware/camera2/CameraDevice.StateCallback#onError(android.hardware.camera2.CameraDevice,%20int)
+                    attempts <= 1
                 CameraError.ERROR_CAMERA_IN_USE ->
                     // The error indicates that camera is in use, possibly by an app with higher
                     // priority [1].
@@ -300,7 +401,6 @@ constructor(
                     } else {
                         true
                     }
-
                 CameraError.ERROR_CAMERA_LIMIT_EXCEEDED -> true
                 CameraError.ERROR_CAMERA_DISABLED ->
                     // The error indicates indicates that the current camera is currently disabled,
@@ -321,16 +421,80 @@ constructor(
                     } else {
                         true
                     }
-
                 CameraError.ERROR_CAMERA_DEVICE -> true
                 CameraError.ERROR_CAMERA_SERVICE -> true
                 CameraError.ERROR_CAMERA_DISCONNECTED -> true
                 CameraError.ERROR_ILLEGAL_ARGUMENT_EXCEPTION -> true
                 CameraError.ERROR_SECURITY_EXCEPTION -> attempts <= 1
+                CameraError.ERROR_DO_NOT_DISTURB_ENABLED ->
+                    // The error indicates that a RuntimeException was encountered when opening the
+                    // camera while Do Not Disturb mode is on. This can happen on legacy devices on
+                    // API level 28 [1]. Retries will always fail and should not be attempted.
+                    //
+                    // [1] b/149413835 - Crash during CameraX initialization when Do Not Disturb
+                    //                   is on.
+                    false
+                CameraError.ERROR_UNKNOWN_EXCEPTION ->
+                    // The error indicates that an unknown (undocumented) Exception has been thrown
+                    // during the CameraManager.openCamera() call [1].
+                    //
+                    // The documentation states that only CameraAccessException,
+                    // IllegalArgumentException and SecurityException can be thrown [2]. However, it
+                    // seems that other Exceptions can also be thrown from a misbehaving camera HAL.
+                    //
+                    // [1] b/307387400 - Invalid (undocumented) exception during
+                    //                   CameraManager.openCamera()
+                    // [2]
+                    // https://developer.android.com/reference/android/hardware/camera2/CameraManager#openCamera(java.lang.String,%20java.util.concurrent.Executor,%20android.hardware.camera2.CameraDevice.StateCallback)
+                    attempts <= 1
                 else -> {
                     Log.error { "Unexpected CameraError: $this" }
                     false
                 }
+            }
+        }
+
+        internal fun shouldActivateActiveResume(
+            isForeground: Boolean,
+            errorCode: CameraError
+        ): Boolean =
+            isForeground &&
+                Build.VERSION.SDK_INT in (Build.VERSION_CODES.Q..Build.VERSION_CODES.S_V2) &&
+                (errorCode == CameraError.ERROR_CAMERA_IN_USE ||
+                    errorCode == CameraError.ERROR_CAMERA_LIMIT_EXCEEDED ||
+                    errorCode == CameraError.ERROR_CAMERA_DISCONNECTED)
+
+        internal fun getRetryTimeoutNs(
+            activeResumeActivated: Boolean,
+            cameraOpenRetryMaxTimeoutNs: DurationNs? = null
+        ) =
+            if (!activeResumeActivated) {
+                min(defaultCameraRetryTimeoutNs, cameraOpenRetryMaxTimeoutNs)
+            } else {
+                min(activeResumeCameraRetryTimeoutNs, cameraOpenRetryMaxTimeoutNs)
+            }
+
+        internal fun getRetryDelayMs(elapsedNs: DurationNs, activeResumeActivated: Boolean): Long {
+            if (!activeResumeActivated) {
+                return defaultCameraRetryDelayMs
+            }
+            return if (elapsedNs < activeResumeCameraRetryThresholds[0]) {
+                activeResumeCameraRetryDelayBaseMs
+            } else if (elapsedNs < activeResumeCameraRetryThresholds[1]) {
+                activeResumeCameraRetryDelayBaseMs * 4L
+            } else {
+                activeResumeCameraRetryDelayBaseMs * 8L
+            }
+        }
+
+        private fun min(d1: DurationNs, d2: DurationNs?): DurationNs {
+            if (d2 == null) {
+                return d1
+            }
+            return if (d1.compareTo(d2) == -1) {
+                d1
+            } else {
+                d2
             }
         }
     }

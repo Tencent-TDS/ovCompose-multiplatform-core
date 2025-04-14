@@ -19,9 +19,9 @@ package androidx.camera.core;
 import android.graphics.PixelFormat;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -85,14 +85,12 @@ public interface ImageProcessor {
      * @return a {@link Response} that contains the processed image.
      * @throws ProcessingException if the implementation fails to process the {@link Request}.
      */
-    @NonNull
-    Response process(@NonNull Request request) throws ProcessingException;
+    @NonNull Response process(@NonNull Request request) throws ProcessingException;
 
     /**
      * Valid output formats.
      *
      * <p>{@link Request#getOutputFormat()} can only return the formats defined by this annotation.
-     *
      */
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -116,8 +114,7 @@ public interface ImageProcessor {
          * <p>Currently, the image format is always {@link PixelFormat#RGBA_8888} with pixel
          * stride equals to 4 and row stride equals to width * 4.
          */
-        @NonNull
-        ImageProxy getInputImage();
+        @NonNull ImageProxy getInputImage();
 
         /**
          * Gets the output image format.
@@ -162,7 +159,6 @@ public interface ImageProcessor {
          *
          * @return the output image.
          */
-        @Nullable
-        ImageProxy getOutputImage();
+        @NonNull ImageProxy getOutputImage();
     }
 }

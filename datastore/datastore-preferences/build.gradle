@@ -14,25 +14,42 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
+import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
 }
 
-android{
-    buildTypes.all{
-        consumerProguardFiles "proguard-rules.pro"
-    }
-    namespace "androidx.datastore.preferences"
-}
 androidXMultiplatform {
     jvm()
     mac()
     linux()
     ios()
-    android()
+    watchos()
+    tvos()
+    androidLibrary {
+        namespace = "androidx.datastore.preferences"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
+
+    defaultPlatform(PlatformIdentifier.ANDROID)
+
     sourceSets {
         commonMain {
             dependencies {
@@ -49,24 +66,30 @@ androidXMultiplatform {
                 implementation(libs.kotlinCoroutinesTest)
             }
         }
-        jvmMain {
+        commonJvmMain {
             dependsOn(commonMain)
         }
-        jvmTest {
+        commonJvmTest {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.junit)
                 implementation(libs.kotlinTest)
             }
         }
+        jvmMain {
+            dependsOn(commonJvmMain)
+        }
+        jvmTest {
+            dependsOn(commonJvmTest)
+        }
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(commonJvmMain)
         }
-        androidTest {
-            dependsOn(jvmTest)
+        androidUnitTest {
+            dependsOn(commonJvmTest)
         }
-        androidAndroidTest {
-            dependsOn(androidTest)
+        androidInstrumentedTest {
+            dependsOn(commonJvmTest)
             dependencies {
                 implementation(libs.testRunner)
                 implementation(libs.testCore)
@@ -75,10 +98,9 @@ androidXMultiplatform {
     }
 }
 
-
 androidx {
-    name = "Android Preferences DataStore"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Preferences DataStore"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Preferences DataStore"
     legacyDisableKotlinStrictApiMode = true

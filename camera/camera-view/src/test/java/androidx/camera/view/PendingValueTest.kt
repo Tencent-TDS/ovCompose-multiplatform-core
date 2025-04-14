@@ -25,13 +25,64 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
-/**
- * Unit tests for [PendingValue].
- */
+/** Unit tests for [PendingValue]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class PendingValueTest {
+
+    @Test
+    fun assignPendingValueAfterPropagation_valueAssigned() {
+        // Arrange: create a pending value.
+        val pendingValue = PendingValue<Boolean>()
+        var assignedValue: Boolean? = null
+
+        // Act: set the pending value and propagate the result.
+        val future1 = pendingValue.setValue(true)
+        pendingValue.propagateIfHasValue {
+            assignedValue = it
+            Futures.immediateFuture(null)
+        }
+        // Assert: value is propagated to core. App future is done.
+        assertThat(assignedValue).isTrue()
+        assertThat(future1.isDone).isTrue()
+
+        // Act: set the pending value again.
+        val future2 = pendingValue.setValue(false)
+        pendingValue.propagateIfHasValue {
+            assignedValue = it
+            Futures.immediateFuture(null)
+        }
+        // Assert: value is propagated to core. App future is done.
+        assertThat(assignedValue).isFalse()
+        assertThat(future2.isDone).isTrue()
+    }
+
+    @Test
+    fun propagationTwiceForTheSameAssignment_theSecondTimeIsNoOp() {
+        // Arrange: create a pending value.
+        val pendingValue = PendingValue<Boolean>()
+
+        // Act: set the pending value and propagate the result.
+        val future1 = pendingValue.setValue(true)
+        var assignedValue: Boolean? = null
+        pendingValue.propagateIfHasValue {
+            assignedValue = it
+            Futures.immediateFuture(null)
+        }
+        // Assert: value is propagated to core. App future is done.
+        assertThat(assignedValue).isTrue()
+        assertThat(future1.isDone).isTrue()
+
+        // Act: propagate the result again. e.g. when camera is restarted
+        var assignedValue2: Boolean? = null
+        pendingValue.propagateIfHasValue {
+            assignedValue2 = it
+            Futures.immediateFuture(null)
+        }
+        // Assert: the value set in the previous session will not be propagated.
+        assertThat(assignedValue2).isNull()
+    }
 
     @Test
     fun assignPendingValueTwice_theSecondValueIsAssigned() {

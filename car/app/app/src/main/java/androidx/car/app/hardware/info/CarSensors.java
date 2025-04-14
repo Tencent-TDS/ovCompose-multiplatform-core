@@ -19,11 +19,12 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.hardware.common.CarValue;
 import androidx.car.app.hardware.common.OnCarDataAvailableListener;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -50,7 +51,6 @@ public interface CarSensors {
      * Defines the possible update rates that properties, sensors, and actions can be requested
      * with.
      *
-     * @hide
      */
     @IntDef({
             UPDATE_RATE_NORMAL,
@@ -93,7 +93,7 @@ public interface CarSensors {
      * @param listener the listener that will be invoked when data is available
      */
     void addAccelerometerListener(@UpdateRate int rate,
-            @NonNull /* @CallbackExecutor */ Executor executor,
+            /* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull OnCarDataAvailableListener<Accelerometer> listener);
 
     /**
@@ -117,7 +117,7 @@ public interface CarSensors {
      * @param listener the listener that will be invoked when data is available
      */
     void addGyroscopeListener(@UpdateRate int rate,
-            @NonNull /* @CallbackExecutor */ Executor executor,
+            /* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull OnCarDataAvailableListener<Gyroscope> listener);
 
     /**
@@ -141,7 +141,7 @@ public interface CarSensors {
      * @param listener the listener that will be invoked when data is available
      */
     void addCompassListener(@UpdateRate int rate,
-            @NonNull /* @CallbackExecutor */ Executor executor,
+            /* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull OnCarDataAvailableListener<Compass> listener);
 
     /**
@@ -165,7 +165,7 @@ public interface CarSensors {
      * @param listener the listener that will be invoked when data is available
      */
     void addCarHardwareLocationListener(@UpdateRate int rate,
-            @NonNull /* @CallbackExecutor */ Executor executor,
+            /* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull OnCarDataAvailableListener<CarHardwareLocation> listener);
 
     /**

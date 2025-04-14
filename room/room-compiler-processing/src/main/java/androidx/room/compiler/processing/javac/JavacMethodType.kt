@@ -31,42 +31,48 @@ internal sealed class JavacMethodType(
     override val returnType: JavacType by lazy {
         env.wrap<JavacType>(
             typeMirror = executableType.returnType,
-            kotlinType = if (element.isSuspendFunction()) {
-                // don't use kotlin metadata for suspend return type since it needs to look like
-                // java perspective
-                null
-            } else {
-                element.kotlinMetadata?.returnType
-            },
+            kotlinType =
+                if (element.isSuspendFunction()) {
+                    // don't use kotlin metadata for suspend return type since it needs to look like
+                    // java perspective
+                    null
+                } else {
+                    element.kotlinMetadata?.returnType
+                },
             elementNullability = element.element.nullability
         )
     }
 
-    override val typeVariableNames by lazy {
-        executableType.typeVariables.map {
-            TypeVariableName.get(it)
+    override val typeVariables: List<JavacTypeVariableType> by lazy {
+        executableType.typeVariables.mapIndexed { index, typeVariable ->
+            env.wrap(typeVariable, element.kotlinMetadata?.typeParameters?.get(index))
         }
+    }
+
+    @Deprecated(
+        "Use typeVariables property and convert to JavaPoet names.",
+        replaceWith =
+            ReplaceWith(
+                "typeVariables.map { it.asTypeName().toJavaPoet() }",
+                "androidx.room.compiler.codegen.toJavaPoet"
+            )
+    )
+    override val typeVariableNames by lazy {
+        typeVariables.map { it.asTypeName().java as TypeVariableName }
     }
 
     private class NormalMethodType(
         env: JavacProcessingEnv,
         element: JavacMethodElement,
         executableType: ExecutableType
-    ) : JavacMethodType(
-        env = env,
-        element = element,
-        executableType = executableType
-    )
+    ) : JavacMethodType(env = env, element = element, executableType = executableType)
 
     private class SuspendMethodType(
         env: JavacProcessingEnv,
         element: JavacMethodElement,
         executableType: ExecutableType
-    ) : JavacMethodType(
-        env = env,
-        element = element,
-        executableType = executableType
-    ),
+    ) :
+        JavacMethodType(env = env, element = element, executableType = executableType),
         XSuspendMethodType {
         override fun getSuspendFunctionReturnType(): XType {
             // the continuation parameter is always the last parameter of a suspend function and it

@@ -19,17 +19,17 @@ package androidx.camera.extensions.internal;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.os.Build;
 import android.util.Pair;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
-import androidx.camera.camera2.interop.Camera2CameraInfo;
-import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraInfo;
+import androidx.camera.core.Logger;
+import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.SessionProcessor;
 import androidx.camera.extensions.ExtensionMode;
 import androidx.camera.extensions.impl.advanced.AdvancedExtenderImpl;
@@ -42,6 +42,9 @@ import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledVa
 import androidx.camera.extensions.internal.sessionprocessor.AdvancedSessionProcessor;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,12 +53,13 @@ import java.util.Map;
 /**
  * Advanced vendor interface implementation
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class AdvancedVendorExtender implements VendorExtender {
+    private static final String TAG = "AdvancedVendorExtender";
     private final ExtensionDisabledValidator mExtensionDisabledValidator =
             new ExtensionDisabledValidator();
     private final AdvancedExtenderImpl mAdvancedExtenderImpl;
     private String mCameraId;
+    private final @ExtensionMode.Mode int mMode;
 
     public AdvancedVendorExtender(@ExtensionMode.Mode int mode) {
         try {
@@ -79,18 +83,25 @@ public class AdvancedVendorExtender implements VendorExtender {
                 default:
                     throw new IllegalArgumentException("Should not active ExtensionMode.NONE");
             }
+            mMode = mode;
         } catch (NoClassDefFoundError e) {
             throw new IllegalArgumentException("AdvancedExtenderImpl does not exist");
         }
     }
 
-    @OptIn(markerClass = ExperimentalCamera2Interop.class)
+    @VisibleForTesting
+    AdvancedVendorExtender(AdvancedExtenderImpl advancedExtenderImpl) {
+        mAdvancedExtenderImpl = advancedExtenderImpl;
+        mMode = ExtensionMode.NONE;
+    }
+
     @Override
     public void init(@NonNull CameraInfo cameraInfo) {
-        mCameraId = Camera2CameraInfo.from(cameraInfo).getCameraId();
+        CameraInfoInternal cameraInfoInternal = (CameraInfoInternal) cameraInfo;
+        mCameraId = cameraInfoInternal.getCameraId();
 
         Map<String, CameraCharacteristics> cameraCharacteristicsMap =
-                Camera2CameraInfo.from(cameraInfo).getCameraCharacteristicsMap();
+                ExtensionsUtils.getCameraCharacteristicsMap(cameraInfoInternal);
 
         mAdvancedExtenderImpl.init(mCameraId, cameraCharacteristicsMap);
     }
@@ -99,41 +110,55 @@ public class AdvancedVendorExtender implements VendorExtender {
     public boolean isExtensionAvailable(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> characteristicsMap) {
 
-        if (mExtensionDisabledValidator.shouldDisableExtension()) {
+        if (mExtensionDisabledValidator.shouldDisableExtension(cameraId)) {
             return false;
         }
 
         return mAdvancedExtenderImpl.isExtensionAvailable(cameraId, characteristicsMap);
     }
 
-    @Nullable
     @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
+    public @Nullable Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
         Preconditions.checkNotNull(mCameraId, "VendorExtender#init() must be called first");
 
         // CameraX only uses JPEG output in Advanced Extender implementation.
-        return mAdvancedExtenderImpl.getEstimatedCaptureLatencyRange(mCameraId, size,
-                ImageFormat.JPEG);
+        try {
+            return mAdvancedExtenderImpl.getEstimatedCaptureLatencyRange(mCameraId, size,
+                    ImageFormat.JPEG);
+        } catch (Throwable throwable) {
+            Logger.e(TAG, "AdvancedExtenderImpl.getEstimatedCaptureLatencyRange "
+                    + "throws exceptions", throwable);
+        }
+        return null;
     }
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
         Preconditions.checkNotNull(mCameraId, "VendorExtender#init() must be called first");
-        return convertResolutionMapToList(
-                mAdvancedExtenderImpl.getSupportedPreviewOutputResolutions(mCameraId));
+        try {
+            return convertResolutionMapToList(
+                    mAdvancedExtenderImpl.getSupportedPreviewOutputResolutions(mCameraId));
+        } catch (Throwable throwable) {
+            Logger.e(TAG, "AdvancedExtenderImpl.getSupportedPreviewOutputResolutions "
+                    + "throws exceptions", throwable);
+        }
+        return Collections.emptyList();
     }
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
         Preconditions.checkNotNull(mCameraId, "VendorExtender#init() must be called first");
-        return convertResolutionMapToList(
-                mAdvancedExtenderImpl.getSupportedCaptureOutputResolutions(mCameraId));
+        try {
+            return convertResolutionMapToList(
+                    mAdvancedExtenderImpl.getSupportedCaptureOutputResolutions(mCameraId));
+        } catch (Throwable throwable) {
+            Logger.e(TAG, "AdvancedExtenderImpl.getSupportedCaptureOutputResolutions "
+                    + "throws exceptions", throwable);
+        }
+        return Collections.emptyList();
     }
 
-    @NonNull
-    private List<Pair<Integer, Size[]>> convertResolutionMapToList(
+    private @NonNull List<Pair<Integer, Size[]>> convertResolutionMapToList(
             @NonNull Map<Integer, List<Size>> map) {
         List<Pair<Integer, Size[]>> result = new ArrayList<>();
         for (Integer imageFormat : map.keySet()) {
@@ -143,19 +168,140 @@ public class AdvancedVendorExtender implements VendorExtender {
         return Collections.unmodifiableList(result);
     }
 
-    @NonNull
     @Override
-    public Size[] getSupportedYuvAnalysisResolutions() {
+    public Size @NonNull [] getSupportedYuvAnalysisResolutions() {
         Preconditions.checkNotNull(mCameraId, "VendorExtender#init() must be called first");
-        List<Size> yuvList = mAdvancedExtenderImpl.getSupportedYuvAnalysisResolutions(mCameraId);
-        return yuvList == null ? new Size[0] : yuvList.toArray(new Size[0]);
+        // Disable ImageAnalysis
+        return new Size[0];
     }
 
-    @Nullable
+    private @NonNull List<CaptureRequest.Key<?>> getSupportedParameterKeys() {
+        List<CaptureRequest.Key<?>> keys = new ArrayList<>();
+        if (ExtensionVersion.getRuntimeVersion().compareTo(Version.VERSION_1_3) >= 0) {
+            try {
+                for (CaptureRequest.Key<?> key :
+                        mAdvancedExtenderImpl.getAvailableCaptureRequestKeys()) {
+                    keys.add(key);
+                }
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "Failed to retrieve available characteristics key-values!",
+                        throwable);
+            }
+        }
+        return Collections.unmodifiableList(keys);
+    }
+
     @Override
-    public SessionProcessor createSessionProcessor(@NonNull Context context) {
+    public @NonNull List<CaptureResult.Key> getSupportedCaptureResultKeys() {
+        if (ExtensionVersion.getRuntimeVersion().compareTo(Version.VERSION_1_3) >= 0) {
+            try {
+                return Collections.unmodifiableList(
+                        mAdvancedExtenderImpl.getAvailableCaptureResultKeys());
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "AdvancedExtenderImpl.getAvailableCaptureResultKeys "
+                        + "throws exceptions", throwable);
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public @NonNull Map<Integer, List<Size>> getSupportedPostviewResolutions(
+            @NonNull Size captureSize) {
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
+            try {
+                return Collections.unmodifiableMap(
+                        mAdvancedExtenderImpl.getSupportedPostviewResolutions(captureSize));
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "AdvancedExtenderImpl.getSupportedPostviewResolutions "
+                        + "throws exceptions", throwable);
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public boolean isPostviewAvailable() {
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
+            try {
+                return mAdvancedExtenderImpl.isPostviewAvailable();
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "AdvancedExtenderImpl.isPostviewAvailable throws exceptions",
+                        throwable);
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isCaptureProcessProgressAvailable() {
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
+            try {
+                return mAdvancedExtenderImpl.isCaptureProcessProgressAvailable();
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "AdvancedExtenderImpl.isCaptureProcessProgressAvailable "
+                        + "throws exceptions", throwable);
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isExtensionStrengthAvailable() {
+        // EXTENSION_STRENGTH is supported since API level 34
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return getSupportedParameterKeys().contains(CaptureRequest.EXTENSION_STRENGTH);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isCurrentExtensionModeAvailable() {
+        // EXTENSION_CURRENT_TYPE is supported since API level 34
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return getSupportedCaptureResultKeys().contains(CaptureResult.EXTENSION_CURRENT_TYPE);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public @NonNull List<Pair<CameraCharacteristics.Key, Object>>
+        getAvailableCharacteristicsKeyValues() {
+        if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_5)
+                && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_5)) {
+            List<Pair<CameraCharacteristics.Key, Object>> result = null;
+            try {
+                result = mAdvancedExtenderImpl.getAvailableCharacteristicsKeyValues();
+            } catch (Throwable throwable) {
+                Logger.e(TAG, "Failed to retrieve available characteristics key-values!",
+                        throwable);
+            }
+            // In case OEMs implements it incorrectly by returning a null.
+            if (result == null) {
+                return Collections.emptyList();
+            }
+            return result;
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public @Nullable SessionProcessor createSessionProcessor(@NonNull Context context) {
         Preconditions.checkNotNull(mCameraId, "VendorExtender#init() must be called first");
         return new AdvancedSessionProcessor(
-                mAdvancedExtenderImpl.createSessionProcessor(), context);
+                mAdvancedExtenderImpl.createSessionProcessor(),
+                getSupportedParameterKeys(),
+                this,
+                context,
+                mMode);
     }
 }

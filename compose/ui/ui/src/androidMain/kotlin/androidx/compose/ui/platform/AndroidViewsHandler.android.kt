@@ -21,15 +21,17 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.View
+import android.view.View.MeasureSpec.EXACTLY
+import android.view.View.MeasureSpec.getMode
 import android.view.ViewGroup
+import androidx.compose.ui.internal.requirePrecondition
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.viewinterop.AndroidViewHolder
 
 /**
- * Used by [AndroidComposeView] to handle the Android [View]s attached to its hierarchy.
- * The [AndroidComposeView] has one direct [AndroidViewsHandler], which is responsible
- * of intercepting [requestLayout]s, [onMeasure]s, [invalidate]s, etc. sent from or towards
- * children.
+ * Used by [AndroidComposeView] to handle the Android [View]s attached to its hierarchy. The
+ * [AndroidComposeView] has one direct [AndroidViewsHandler], which is responsible of intercepting
+ * [requestLayout]s, [onMeasure]s, [invalidate]s, etc. sent from or towards children.
  */
 internal class AndroidViewsHandler(context: Context) : ViewGroup(context) {
     init {
@@ -42,8 +44,12 @@ internal class AndroidViewsHandler(context: Context) : ViewGroup(context) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         // Layout will be handled by component nodes. However, we act like proper measurement
         // here in case ViewRootImpl did forceLayout().
-        require(MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY)
-        require(MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY)
+        requirePrecondition(getMode(widthMeasureSpec) == EXACTLY) {
+            "widthMeasureSpec should be EXACTLY"
+        }
+        requirePrecondition(getMode(heightMeasureSpec) == EXACTLY) {
+            "heightMeasureSpec should be EXACTLY"
+        }
         setMeasuredDimension(
             MeasureSpec.getSize(widthMeasureSpec),
             MeasureSpec.getSize(heightMeasureSpec)
@@ -64,8 +70,9 @@ internal class AndroidViewsHandler(context: Context) : ViewGroup(context) {
     // No call to super to avoid invalidating the AndroidComposeView and the handler, and rely on
     // component nodes logic. The layer invalidation will have been already done by the holder.
     @SuppressLint("MissingSuperCall")
-    override fun onDescendantInvalidated(child: View, target: View) { }
+    override fun onDescendantInvalidated(child: View, target: View) {}
 
+    @Suppress("OVERRIDE_DEPRECATION") // b/407491706
     override fun invalidateChildInParent(location: IntArray?, dirty: Rect?) = null
 
     fun drawView(view: AndroidViewHolder, canvas: Canvas) {
@@ -94,4 +101,8 @@ internal class AndroidViewsHandler(context: Context) : ViewGroup(context) {
     }
 
     override fun shouldDelayChildPressedState(): Boolean = false
+
+    // We don't want the AndroidComposeView drawing the holder and its children. All draw
+    // calls should come through AndroidViewHolder or ViewLayer.
+    override fun dispatchDraw(canvas: Canvas) {}
 }

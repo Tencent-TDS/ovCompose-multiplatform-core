@@ -27,69 +27,79 @@ import androidx.window.embedding.MatcherUtils.sMatchersTag
 import androidx.window.embedding.MatcherUtils.validateComponentName
 
 /**
- * Filter for [SplitPairRule] and used to find if a pair of activities should be put in a split.
- * It is used when a new activity is started from the primary activity.
- * If the filter matches the primary [Activity.getComponentName] and the new started activity
- * [Intent], it matches the [SplitPairRule] that holds this filter.
- *
- * @param primaryActivityName Component name of the primary activity in the split. Must be
- * non-empty. Can contain a single wildcard at the end.
- * Supported formats:
- * - package/class
- * - `package/*`
- * - `package/suffix.*`
- * - `*/*`
- * @param secondaryActivityName Component name of the secondary activity in the split. Must be
- * non-empty. Can contain a single wildcard at the end.
- * Supported formats:
- * - package/class
- * - `package/*`
- * - `package/suffix.*`
- * - `*/*`
- * @param secondaryActivityIntentAction action used for secondary activity launch Intent. If it is
- * not `null`, the [SplitPairFilter] will check the activity [Intent.getAction] besides the
- * component name. If it is `null`, [Intent.getAction] will be ignored.
+ * Filter for [SplitPairRule] and used to find if a pair of activities should be put in a split. It
+ * is used when a new activity is started from the primary activity. If the filter matches the
+ * primary [Activity.getComponentName] and the new started activity [Intent], it matches the
+ * [SplitPairRule] that holds this filter.
  */
-class SplitPairFilter(
-    /**
-     * Component name of the primary activity in the split. Must be non-empty. Can contain a single
-     * wildcard at the end.
-     * Supported formats:
-     * - package/class
-     * - `package/*`
-     * - `package/suffix.*`
-     * - `*/*`
-     */
-    val primaryActivityName: ComponentName,
-    /**
-     * Component name of the secondary activity in the split. Must be non-empty. Can contain a
-     * single wildcard at the end.
-     * Supported formats:
-     * - package/class
-     * - `package/*`
-     * - `package/suffix.*`
-     * - `*/*`
-     */
-    val secondaryActivityName: ComponentName,
-    /**
-     * Action used for secondary activity launch Intent.
-     *
-     * If it is not `null`, the [SplitPairFilter] will check the activity [Intent.getAction] besides
-     * the component name. If it is `null`, [Intent.getAction] will be ignored.
-     */
+class SplitPairFilter
+internal constructor(
+    private val _primaryActivityName: ActivityComponentInfo,
+    private val _secondaryActivityName: ActivityComponentInfo,
     val secondaryActivityIntentAction: String?
 ) {
 
+    /**
+     * @param primaryActivityName Component name of the primary activity in the split. Must be
+     *   non-empty. Can contain a single wildcard at the end. Supported formats:
+     * - package/class
+     * - `package/*`
+     * - `package/suffix.*`
+     * - `*/*`
+     *
+     * @param secondaryActivityName Component name of the secondary activity in the split. Must be
+     *   non-empty. Can contain a single wildcard at the end. Supported formats:
+     * - package/class
+     * - `package/*`
+     * - `package/suffix.*`
+     * - `*/*`
+     *
+     * @param secondaryActivityIntentAction action used for secondary activity launch Intent. If it
+     *   is not `null`, the [SplitPairFilter] will check the activity [Intent.getAction] besides the
+     *   component name. If it is `null`, [Intent.getAction] will be ignored.
+     */
+    constructor(
+        /**
+         * Component name of the primary activity in the split. Must be non-empty. Can contain a
+         * single wildcard at the end. Supported formats:
+         * - package/class
+         * - `package/*`
+         * - `package/suffix.*`
+         * - `*/*`
+         */
+        primaryActivityName: ComponentName,
+        /**
+         * Component name of the secondary activity in the split. Must be non-empty. Can contain a
+         * single wildcard at the end. Supported formats:
+         * - package/class
+         * - `package/*`
+         * - `package/suffix.*`
+         * - `*/*`
+         */
+        secondaryActivityName: ComponentName,
+        /**
+         * Action used for secondary activity launch Intent.
+         *
+         * If it is not `null`, the [SplitPairFilter] will check the activity [Intent.getAction]
+         * besides the component name. If it is `null`, [Intent.getAction] will be ignored.
+         */
+        secondaryActivityIntentAction: String?
+    ) : this(
+        ActivityComponentInfo(primaryActivityName),
+        ActivityComponentInfo(secondaryActivityName),
+        secondaryActivityIntentAction
+    )
+
     init {
-        validateComponentName(primaryActivityName.packageName, primaryActivityName.className)
-        validateComponentName(secondaryActivityName.packageName, secondaryActivityName.className)
+        validateComponentName(_primaryActivityName.packageName, _primaryActivityName.className)
+        validateComponentName(_secondaryActivityName.packageName, _secondaryActivityName.className)
     }
 
-    private val primaryActivityInfo: ActivityComponentInfo
-        get() = ActivityComponentInfo(primaryActivityName)
+    val primaryActivityName: ComponentName
+        get() = ComponentName(_primaryActivityName.packageName, _primaryActivityName.className)
 
-    private val secondaryActivityInfo: ActivityComponentInfo
-        get() = ActivityComponentInfo(secondaryActivityName)
+    val secondaryActivityName: ComponentName
+        get() = ComponentName(_secondaryActivityName.packageName, _secondaryActivityName.className)
 
     /**
      * Returns `true` if this [SplitPairFilter] matches [primaryActivity] and [secondaryActivity].
@@ -101,14 +111,15 @@ class SplitPairFilter(
      */
     fun matchesActivityPair(primaryActivity: Activity, secondaryActivity: Activity): Boolean {
         // Check if the activity component names match
-        val match = if (!isActivityMatching(primaryActivity, primaryActivityInfo)) {
-            false
-        } else if (!isActivityMatching(secondaryActivity, secondaryActivityInfo)) {
-            false
-        } else {
-            secondaryActivityIntentAction == null ||
-                secondaryActivityIntentAction == secondaryActivity.intent?.action
-        }
+        val match =
+            if (!isActivityMatching(primaryActivity, _primaryActivityName)) {
+                false
+            } else if (!isActivityMatching(secondaryActivity, _secondaryActivityName)) {
+                false
+            } else {
+                secondaryActivityIntentAction == null ||
+                    secondaryActivityIntentAction == secondaryActivity.intent?.action
+            }
 
         if (sDebugMatchers) {
             val matchString = if (match) "MATCH" else "NO MATCH"
@@ -123,9 +134,9 @@ class SplitPairFilter(
 
     /**
      * Returns `true` if this [SplitPairFilter] matches the [primaryActivity] and the
-     * [secondaryActivityIntent]
-     * If the [SplitPairFilter] is created with [secondaryActivityIntentAction], the filter will
-     * also compare it with [Intent.getAction] of the [secondaryActivityIntent].
+     * [secondaryActivityIntent] If the [SplitPairFilter] is created with
+     * [secondaryActivityIntentAction], the filter will also compare it with [Intent.getAction] of
+     * the [secondaryActivityIntent].
      *
      * @param primaryActivity the [Activity] to test against with the [primaryActivityName]
      * @param secondaryActivityIntent the [Intent] to test against with the [secondaryActivityName]
@@ -134,14 +145,15 @@ class SplitPairFilter(
         primaryActivity: Activity,
         secondaryActivityIntent: Intent
     ): Boolean {
-        val match = if (!isActivityMatching(primaryActivity, primaryActivityInfo)) {
-            false
-        } else if (!isIntentMatching(secondaryActivityIntent, secondaryActivityInfo)) {
-            false
-        } else {
-            secondaryActivityIntentAction == null ||
-                secondaryActivityIntentAction == secondaryActivityIntent.action
-        }
+        val match =
+            if (!isActivityMatching(primaryActivity, _primaryActivityName)) {
+                false
+            } else if (!isIntentMatching(secondaryActivityIntent, _secondaryActivityName)) {
+                false
+            } else {
+                secondaryActivityIntentAction == null ||
+                    secondaryActivityIntentAction == secondaryActivityIntent.action
+            }
         if (sDebugMatchers) {
             val matchString = if (match) "MATCH" else "NO MATCH"
             Log.w(
@@ -153,27 +165,29 @@ class SplitPairFilter(
         return match
     }
 
+    override fun toString(): String {
+        return "SplitPairFilter{primaryActivityName=$primaryActivityName, " +
+            "secondaryActivityName=$secondaryActivityName, " +
+            "secondaryActivityAction=$secondaryActivityIntentAction}"
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is SplitPairFilter) return false
+        if (javaClass != other?.javaClass) return false
 
-        if (primaryActivityName != other.primaryActivityName) return false
-        if (secondaryActivityName != other.secondaryActivityName) return false
+        other as SplitPairFilter
+
+        if (_primaryActivityName != other._primaryActivityName) return false
+        if (_secondaryActivityName != other._secondaryActivityName) return false
         if (secondaryActivityIntentAction != other.secondaryActivityIntentAction) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = primaryActivityName.hashCode()
-        result = 31 * result + secondaryActivityName.hashCode()
+        var result = _primaryActivityName.hashCode()
+        result = 31 * result + _secondaryActivityName.hashCode()
         result = 31 * result + (secondaryActivityIntentAction?.hashCode() ?: 0)
         return result
-    }
-
-    override fun toString(): String {
-        return "SplitPairFilter{primaryActivityName=$primaryActivityName, " +
-            "secondaryActivityName=$secondaryActivityName, " +
-            "secondaryActivityAction=$secondaryActivityIntentAction}"
     }
 }

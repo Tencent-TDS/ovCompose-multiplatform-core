@@ -21,11 +21,11 @@ import androidx.test.annotation.UiThreadTest
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.atomic.AtomicBoolean
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -35,7 +35,8 @@ class TextViewTest {
     private val view = TextView(context)
 
     @UiThreadTest
-    @Test fun doBeforeTextChanged() {
+    @Test
+    fun doBeforeTextChanged() {
         view.text = "before"
 
         val called = AtomicBoolean()
@@ -53,7 +54,8 @@ class TextViewTest {
     }
 
     @UiThreadTest
-    @Test fun doOnTextChanged() {
+    @Test
+    fun doOnTextChanged() {
         view.text = "before"
 
         val called = AtomicBoolean()
@@ -71,7 +73,8 @@ class TextViewTest {
     }
 
     @UiThreadTest
-    @Test fun doAfterTextChanged() {
+    @Test
+    fun doAfterTextChanged() {
         val called = AtomicBoolean()
         view.doAfterTextChanged { text ->
             assertEquals("text", text.toString())

@@ -18,12 +18,13 @@ package androidx.camera.video;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.utils.CloseGuardHelper;
 import androidx.core.util.Consumer;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,7 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * when the object is garbage collected, and no new recordings can be started from the same
  * {@link Recorder} that generated the object until that occurs.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class Recording implements AutoCloseable {
 
     // Indicates the recording has been explicitly stopped by users.
@@ -53,13 +53,15 @@ public final class Recording implements AutoCloseable {
     private final Recorder mRecorder;
     private final long mRecordingId;
     private final OutputOptions mOutputOptions;
+    private final boolean mIsPersistent;
     private final CloseGuardHelper mCloseGuard = CloseGuardHelper.create();
 
     Recording(@NonNull Recorder recorder, long recordingId, @NonNull OutputOptions options,
-            boolean finalizedOnCreation) {
+            boolean isPersistent, boolean finalizedOnCreation) {
         mRecorder = recorder;
         mRecordingId = recordingId;
         mOutputOptions = options;
+        mIsPersistent = isPersistent;
 
         if (finalizedOnCreation) {
             mIsClosed.set(true);
@@ -74,12 +76,12 @@ public final class Recording implements AutoCloseable {
      * <p>The recording ID is expected to be unique to the recorder that generated the pending
      * recording.
      */
-    @NonNull
-    static Recording from(@NonNull PendingRecording pendingRecording, long recordingId) {
+    static @NonNull Recording from(@NonNull PendingRecording pendingRecording, long recordingId) {
         Preconditions.checkNotNull(pendingRecording, "The given PendingRecording cannot be null.");
         return new Recording(pendingRecording.getRecorder(),
                 recordingId,
                 pendingRecording.getOutputOptions(),
+                pendingRecording.isPersistent(),
                 /*finalizedOnCreation=*/false);
     }
 
@@ -93,19 +95,32 @@ public final class Recording implements AutoCloseable {
      * <p>The recording ID is expected to be unique to the recorder that generated the pending
      * recording.
      */
-    @NonNull
-    static Recording createFinalizedFrom(@NonNull PendingRecording pendingRecording,
+    static @NonNull Recording createFinalizedFrom(@NonNull PendingRecording pendingRecording,
             long recordingId) {
         Preconditions.checkNotNull(pendingRecording, "The given PendingRecording cannot be null.");
         return new Recording(pendingRecording.getRecorder(),
                 recordingId,
                 pendingRecording.getOutputOptions(),
+                pendingRecording.isPersistent(),
                 /*finalizedOnCreation=*/true);
     }
 
-    @NonNull
-    OutputOptions getOutputOptions() {
+    @NonNull OutputOptions getOutputOptions() {
         return mOutputOptions;
+    }
+
+    /**
+     * Returns whether this recording is a persistent recording.
+     *
+     * <p>A persistent recording will only be stopped by explicitly calling of
+     * {@link Recording#stop()} and will ignore the lifecycle events or source state changes.
+     * Users are responsible of stopping a persistent recording.
+     *
+     * @return {@code true} if the recording is a persistent recording, otherwise {@code false}.
+     */
+    @ExperimentalPersistentRecording
+    public boolean isPersistent() {
+        return mIsPersistent;
     }
 
     /**
@@ -157,6 +172,26 @@ public final class Recording implements AutoCloseable {
     }
 
     /**
+     * Mutes or un-mutes the current recording.
+     *
+     * <p>The output file will contain an audio track even the whole recording is muted. Create a
+     * recording without calling {@link PendingRecording#withAudioEnabled()} to record a file
+     * with no audio track. To set the initial mute state of the recording, use
+     * {@link PendingRecording#withAudioEnabled(boolean)}.
+     *
+     * <p>Muting or unmuting a recording that isn't created
+     * {@link PendingRecording#withAudioEnabled()} with audio enabled is no-op.
+     *
+     * @param muted mutes the recording if {@code true}, un-mutes otherwise.
+     */
+    public void mute(boolean muted) {
+        if (mIsClosed.get()) {
+            throw new IllegalStateException("The recording has been stopped.");
+        }
+        mRecorder.mute(this, muted);
+    }
+
+    /**
      * Close this recording.
      *
      * <p>Once {@link #stop()} or {@code close()} called, all methods for controlling the state of
@@ -174,11 +209,7 @@ public final class Recording implements AutoCloseable {
      */
     @Override
     public void close() {
-        mCloseGuard.close();
-        if (mIsClosed.getAndSet(true)) {
-            return;
-        }
-        mRecorder.stop(this);
+        stopWithError(VideoRecordEvent.Finalize.ERROR_NONE, /*errorCause=*/ null);
     }
 
     @Override
@@ -186,7 +217,8 @@ public final class Recording implements AutoCloseable {
     protected void finalize() throws Throwable {
         try {
             mCloseGuard.warnIfOpen();
-            stop();
+            stopWithError(VideoRecordEvent.Finalize.ERROR_RECORDING_GARBAGE_COLLECTED,
+                    new RuntimeException("Recording stopped due to being garbage collected."));
         } finally {
             super.finalize();
         }
@@ -211,5 +243,14 @@ public final class Recording implements AutoCloseable {
     @RestrictTo(LIBRARY_GROUP)
     public boolean isClosed() {
         return mIsClosed.get();
+    }
+
+    private void stopWithError(@VideoRecordEvent.Finalize.VideoRecordError int error,
+            @Nullable Throwable errorCause) {
+        mCloseGuard.close();
+        if (mIsClosed.getAndSet(true)) {
+            return;
+        }
+        mRecorder.stop(this, error, errorCause);
     }
 }

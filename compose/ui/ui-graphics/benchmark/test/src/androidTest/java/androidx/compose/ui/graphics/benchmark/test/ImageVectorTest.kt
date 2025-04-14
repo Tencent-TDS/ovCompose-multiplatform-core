@@ -19,8 +19,10 @@ package androidx.compose.ui.graphics.benchmark.test
 import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -39,12 +41,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
+import kotlin.math.roundToInt
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.math.roundToInt
 
 /**
  * Test to ensure that [XmlVectorTestCase] and [ProgrammaticVectorTestCase] have an identical pixel
@@ -54,39 +56,45 @@ import kotlin.math.roundToInt
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 @RunWith(AndroidJUnit4::class)
 class ImageVectorTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun testProgrammaticAndXmlImageVectorsAreTheSame() {
         val xmlTestCase = XmlVectorTestCase()
         val programmaticTestCase = ProgrammaticVectorTestCase()
 
+        var firstRun by mutableStateOf(true)
         rule.setContent {
-            Column {
-                xmlTestCase.Content()
-                programmaticTestCase.Content()
+            Box {
+                if (firstRun) {
+                    xmlTestCase.Content()
+                } else {
+                    programmaticTestCase.Content()
+                }
             }
         }
 
         val xmlBitmap = rule.onNodeWithTag(xmlTestCase.testTag).captureToImage().asAndroidBitmap()
-        val programmaticBitmap = rule.onNodeWithTag(programmaticTestCase.testTag).captureToImage()
-            .asAndroidBitmap()
+
+        firstRun = false
+
+        rule.waitForIdle()
+
+        val programmaticBitmap =
+            rule.onNodeWithTag(programmaticTestCase.testTag).captureToImage().asAndroidBitmap()
 
         assertEquals(xmlBitmap.width, programmaticBitmap.width)
         assertEquals(xmlBitmap.height, programmaticBitmap.height)
 
-        val xmlPixelArray = with(xmlBitmap) {
-            IntArray(width * height).apply {
-                getPixels(this, 0, width, 0, 0, width, height)
+        val xmlPixelArray =
+            with(xmlBitmap) {
+                IntArray(width * height).apply { getPixels(this, 0, width, 0, 0, width, height) }
             }
-        }
 
-        val programmaticBitmapArray = with(programmaticBitmap) {
-            IntArray(width * height).apply {
-                getPixels(this, 0, width, 0, 0, width, height)
+        val programmaticBitmapArray =
+            with(programmaticBitmap) {
+                IntArray(width * height).apply { getPixels(this, 0, width, 0, 0, width, height) }
             }
-        }
 
         Assert.assertArrayEquals(xmlPixelArray, programmaticBitmapArray)
     }
@@ -99,9 +107,10 @@ class ImageVectorTest {
                 Box {
                     Image(
                         modifier = Modifier.testTag(testTag),
-                        painter = painterResource(
-                            androidx.compose.ui.graphics.benchmark.R.drawable.ic_auto_mirror
-                        ),
+                        painter =
+                            painterResource(
+                                androidx.compose.ui.graphics.benchmark.R.drawable.ic_auto_mirror
+                            ),
                         contentDescription = null
                     )
                 }
@@ -125,12 +134,11 @@ class ImageVectorTest {
         val testTag = "testTag"
         var insetRectSize: Int = 0
         rule.setContent {
-            with(LocalDensity.current) {
-                insetRectSize = (10f * this.density).roundToInt()
-            }
-            val imageVector = painterResource(
-                androidx.compose.ui.graphics.benchmark.R.drawable.ic_pathfill_sample
-            )
+            with(LocalDensity.current) { insetRectSize = (10f * this.density).roundToInt() }
+            val imageVector =
+                painterResource(
+                    androidx.compose.ui.graphics.benchmark.R.drawable.ic_pathfill_sample
+                )
             Image(imageVector, null, modifier = Modifier.testTag(testTag))
         }
 
@@ -143,27 +151,14 @@ class ImageVectorTest {
             assertEquals(Color.Blue.toArgb(), getPixel(width / 2, height / 2))
 
             assertEquals(Color.Red.toArgb(), getPixel(insetRectSize + 2, insetRectSize + 2))
+            assertEquals(Color.Red.toArgb(), getPixel(width - insetRectSize - 2, insetRectSize + 2))
             assertEquals(
                 Color.Red.toArgb(),
-                getPixel(
-                    width - insetRectSize - 2,
-                    insetRectSize + 2
-                )
+                getPixel(insetRectSize + 2, height - insetRectSize - 2)
             )
             assertEquals(
                 Color.Red.toArgb(),
-                getPixel(
-                    insetRectSize + 2,
-                    height - insetRectSize - 2
-                )
-            )
-            assertEquals(
-                Color.Red.toArgb(),
-                getPixel(
-                    width - insetRectSize - 2,
-                    height -
-                        insetRectSize - 2
-                )
+                getPixel(width - insetRectSize - 2, height - insetRectSize - 2)
             )
         }
     }

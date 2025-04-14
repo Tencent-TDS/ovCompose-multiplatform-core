@@ -14,44 +14,51 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    buildTypes.all {
+    compileSdk = 35
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.work.multiprocess"
+    namespace = "androidx.work.multiprocess"
 }
 
 dependencies {
-    api project(":work:work-runtime-ktx")
+    api(libs.jspecify)
+    api(project(":work:work-runtime"))
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesAndroid)
     api(libs.guavaListenableFuture)
-    implementation("androidx.core:core:1.9.0")
-    implementation("androidx.room:room-runtime:2.5.0")
-    androidTestImplementation(libs.kotlinStdlib)
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
+    implementation("androidx.room:room-runtime:2.6.1")
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
-    androidTestImplementation(project(":internal-testutils-runtime"))
-    testImplementation(libs.kotlinStdlib)
-    testImplementation(libs.junit)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
+    androidTestImplementation(libs.truth)
 }
 
 androidx {
-    name = "Android WorkManager Multiprocess Implementation"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "WorkManager Multiprocess"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android WorkManager runtime library"
     failOnDeprecationWarnings = false
+    legacyDisableKotlinStrictApiMode = true
 }

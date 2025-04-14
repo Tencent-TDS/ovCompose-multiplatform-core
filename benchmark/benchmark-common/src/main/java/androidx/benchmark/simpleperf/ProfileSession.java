@@ -21,10 +21,11 @@ import android.os.Build;
 import android.system.Os;
 import android.system.OsConstants;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -65,7 +66,6 @@ import java.util.stream.Collectors;
  * NOTE: copied from
  * https://cs.android.com/android/platform/superproject/+/master:system/extras/simpleperf/app_api/
  *
- * @hide
  */
 @SuppressWarnings({"IOStreamConstructor", "CatchMayIgnoreException",
         "IfStatementMissingBreakInLoop", "ResultOfMethodCallIgnored", "StringConcatenationInLoop",
@@ -248,8 +248,7 @@ public class ProfileSession {
         return file.canExecute();
     }
 
-    @Nullable
-    private String findSimpleperfInTempDir() {
+    private @Nullable String findSimpleperfInTempDir() {
         String path = "/data/local/tmp/simpleperf";
         File file = new File(path);
         if (!file.isFile()) {
@@ -409,8 +408,7 @@ public class ProfileSession {
         }
     }
 
-    @NonNull
-    private String readReply() {
+    private @NonNull String readReply() {
         // Read one byte at a time to stop at line break or EOF. BufferedReader will try to read
         // more than available and make us blocking, so don't use it.
         String s = "";

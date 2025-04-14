@@ -25,11 +25,9 @@ import org.gradle.process.CommandLineArgumentProvider
 
 internal abstract class FrameworkAidlInputs : CommandLineArgumentProvider {
 
-    @get:Internal
-    abstract val frameworkAidl: RegularFileProperty
+    @get:Internal abstract val frameworkAidl: RegularFileProperty
 
-    @get:Input
-    abstract val platformSdk: Property<String>
+    @get:Input abstract val platformSdk: Property<String>
 
     override fun asArguments(): Iterable<String> {
         val frameworkAidlFile = frameworkAidl.get().asFile
@@ -37,6 +35,6 @@ internal abstract class FrameworkAidlInputs : CommandLineArgumentProvider {
         if (!frameworkAidlFile.exists()) {
             throw FileNotFoundException("framework.aidl not found at $frameworkAidlPath")
         }
-        return listOf("framework_aidl=$frameworkAidlPath")
+        return listOf("framework_aidl_path=$frameworkAidlPath")
     }
 }

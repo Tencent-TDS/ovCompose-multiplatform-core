@@ -23,8 +23,8 @@ import androidx.camera.integration.extensions.util.Camera2ExtensionsTestUtil
 import androidx.camera.integration.extensions.util.Camera2ExtensionsTestUtil.EXTENSION_NOT_FOUND
 import androidx.camera.integration.extensions.util.Camera2ExtensionsTestUtil.findNextEffectMode
 import androidx.camera.integration.extensions.utils.CameraIdExtensionModePair
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.StressTestRule
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.StressTestRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
@@ -42,14 +42,14 @@ import org.junit.runners.Parameterized
 @SdkSuppress(minSdkVersion = 31)
 class Camera2ExtensionsSwitchModeStressTest(private val config: CameraIdExtensionModePair) {
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+        )
 
     companion object {
-        @ClassRule
-        @JvmField
-        val stressTest = StressTestRule()
+        @ClassRule @JvmField val stressTest = StressTestRule()
+        val context = ApplicationProvider.getApplicationContext<Context>()
 
         @Parameterized.Parameters(name = "cameraId = {0}, extensionMode = {1}")
         @JvmStatic

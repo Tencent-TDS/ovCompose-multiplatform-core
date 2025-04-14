@@ -29,7 +29,6 @@ import org.junit.runners.Parameterized
  * Tests that we're looking at the right item(s) after removing the current item(s) in the case
  * where all item views have the same size as RecyclerViews view port.
  */
-
 @MediumTest
 @RunWith(Parameterized::class)
 class LinearLayoutManagerRemoveShownItemsTest(
@@ -57,10 +56,7 @@ class LinearLayoutManagerRemoveShownItemsTest(
             }
     }
 
-    /**
-     * 1 item removed.
-     * Middle of the set of items.
-     */
+    /** 1 item removed. Middle of the set of items. */
     @Test
     fun notifyItemRangeRemoved_1_onlyCorrectItemVisible() {
         val llm = MyLayoutManager(activity, 500)
@@ -90,16 +86,21 @@ class LinearLayoutManagerRemoveShownItemsTest(
         mLayoutManager.waitForLayout(2)
 
         // .. then the views after the removed view are moved into the gap
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstCompletelyVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findLastCompletelyVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findLastVisibleItemPosition())
+        mActivityRule.runOnUiThread {
+            assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
+            assertEquals(
+                expectedResultingAdapterPosition,
+                llm.findFirstCompletelyVisibleItemPosition()
+            )
+            assertEquals(
+                expectedResultingAdapterPosition,
+                llm.findLastCompletelyVisibleItemPosition()
+            )
+            assertEquals(expectedResultingAdapterPosition, llm.findLastVisibleItemPosition())
+        }
     }
 
-    /**
-     * 2 items removed.
-     * Middle of the set of items.
-     */
+    /** 2 items removed. Middle of the set of items. */
     @Test
     fun notifyItemRangeRemoved_2_onlyCorrectItemsVisible() {
         val llm = MyLayoutManager(activity, 500)
@@ -110,12 +111,7 @@ class LinearLayoutManagerRemoveShownItemsTest(
             } else {
                 RecyclerView.LayoutParams(1000, 500)
             }
-        setupByConfig(
-            config,
-            true,
-            RecyclerView.LayoutParams(500, 500),
-            rvLayoutParams
-        )
+        setupByConfig(config, true, RecyclerView.LayoutParams(500, 500), rvLayoutParams)
 
         val startingAdapterPosition = 10 // Items 10 and 11 (with labels 11 and 12) will show.
 
@@ -136,19 +132,21 @@ class LinearLayoutManagerRemoveShownItemsTest(
         mLayoutManager.waitForLayout(2)
 
         // .. then the views after the removed view are moved into the gap
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstCompletelyVisibleItemPosition())
-        assertEquals(
-            expectedResultingAdapterPosition + 1,
-            llm.findLastCompletelyVisibleItemPosition()
-        )
-        assertEquals(expectedResultingAdapterPosition + 1, llm.findLastVisibleItemPosition())
+        mActivityRule.runOnUiThread {
+            assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
+            assertEquals(
+                expectedResultingAdapterPosition,
+                llm.findFirstCompletelyVisibleItemPosition()
+            )
+            assertEquals(
+                expectedResultingAdapterPosition + 1,
+                llm.findLastCompletelyVisibleItemPosition()
+            )
+            assertEquals(expectedResultingAdapterPosition + 1, llm.findLastVisibleItemPosition())
+        }
     }
 
-    /**
-     * All attached items removed.
-     * Middle of the set of items.
-     */
+    /** All attached items removed. Middle of the set of items. */
     @Test
     fun notifyItemRangeRemoved_all_onlyCorrectItemVisible() {
         val llm = MyLayoutManager(activity, 500)
@@ -173,23 +171,28 @@ class LinearLayoutManagerRemoveShownItemsTest(
         mLayoutManager.waitForLayout(2)
 
         // .. when we remove all laid out items ..
-        val removeFrom = llm.run {
-            List(childCount) {
-                getPosition(getChildAt(it)!!)
-            }.minOrNull()
-        }!!
+        val removeFrom =
+            llm.run { List(childCount) { getPosition(getChildAt(it)!!) }.minOrNull() }!!
         mLayoutManager.expectLayouts(2)
         mTestAdapter.deleteAndNotify(removeFrom, llm.childCount)
         mLayoutManager.waitForLayout(2)
 
         // .. then the views after the removed view are moved into the gap
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findFirstCompletelyVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findLastCompletelyVisibleItemPosition())
-        assertEquals(expectedResultingAdapterPosition, llm.findLastVisibleItemPosition())
+        mActivityRule.runOnUiThread {
+            assertEquals(expectedResultingAdapterPosition, llm.findFirstVisibleItemPosition())
+            assertEquals(
+                expectedResultingAdapterPosition,
+                llm.findFirstCompletelyVisibleItemPosition()
+            )
+            assertEquals(
+                expectedResultingAdapterPosition,
+                llm.findLastCompletelyVisibleItemPosition()
+            )
+            assertEquals(expectedResultingAdapterPosition, llm.findLastVisibleItemPosition())
+        }
     }
 
-    private inner class MyLayoutManager internal constructor(context: Context, val itemSize: Int) :
+    private inner class MyLayoutManager(context: Context, val itemSize: Int) :
         WrappedLinearLayoutManager(context, config.mOrientation, config.mReverseLayout) {
 
         override fun calculateExtraLayoutSpace(

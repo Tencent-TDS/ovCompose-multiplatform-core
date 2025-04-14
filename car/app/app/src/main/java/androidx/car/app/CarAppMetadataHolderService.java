@@ -25,24 +25,22 @@ import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A placeholder service to avoid adding application-level metadata.
  *
  * <p>The service is only used to expose metadata defined in the library's manifest.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class CarAppMetadataHolderService extends Service {
-    @Nullable
     @Override
-    public IBinder onBind(@NonNull Intent intent) {
+    public @Nullable IBinder onBind(@NonNull Intent intent) {
         throw new UnsupportedOperationException();
     }
 
@@ -52,9 +50,8 @@ public class CarAppMetadataHolderService extends Service {
     /**
      * Returns the {@link ServiceInfo} for the declared {@link CarAppMetadataHolderService}.
      */
-    @NonNull
     @SuppressWarnings("deprecation") // GET_DISABLED_COMPONENTS, getServiceInfo
-    public static ServiceInfo getServiceInfo(@NonNull Context context) throws
+    public static @NonNull ServiceInfo getServiceInfo(@NonNull Context context) throws
             PackageManager.NameNotFoundException {
         int flags = PackageManager.GET_META_DATA;
         // The service is marked as disabled so we need to include the following flags.
@@ -70,7 +67,6 @@ public class CarAppMetadataHolderService extends Service {
 
     @RequiresApi(24)
     private static class Api24Impl {
-        @DoNotInline
         static int getDisabledComponentFlag() {
             return PackageManager.MATCH_DISABLED_COMPONENTS;
         }

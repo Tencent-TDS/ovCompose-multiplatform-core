@@ -16,14 +16,14 @@
 
 package androidx.health.services.client.impl.ipc.internal;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * Unique key to hold listener reference.
  *
- * @hide
  */
 @RestrictTo(Scope.LIBRARY)
 public final class ListenerKey {

@@ -17,29 +17,27 @@
 package androidx.core.uwb.impl
 
 import androidx.core.uwb.RangingCapabilities
-import androidx.core.uwb.RangingParameters
-import androidx.core.uwb.RangingResult
+import androidx.core.uwb.RangingControleeParameters
 import androidx.core.uwb.UwbAddress
 import androidx.core.uwb.UwbComplexChannel
 import androidx.core.uwb.UwbControllerSessionScope
 import androidx.core.uwb.backend.IUwbClient
-import kotlinx.coroutines.flow.Flow
 
 internal class UwbControllerSessionScopeAospImpl(
     private val uwbClient: IUwbClient,
     override val rangingCapabilities: RangingCapabilities,
     override val localAddress: UwbAddress,
     override val uwbComplexChannel: UwbComplexChannel
-) : UwbControllerSessionScope {
-    private val uwbClientSessionScope =
-        UwbClientSessionScopeAospImpl(uwbClient, rangingCapabilities, localAddress)
+) :
+    UwbClientSessionScopeAospImpl(uwbClient, rangingCapabilities, localAddress),
+    UwbControllerSessionScope {
     override suspend fun addControlee(address: UwbAddress) {
         val uwbAddress = androidx.core.uwb.backend.UwbAddress()
         uwbAddress.address = address.address
         try {
             uwbClient.addControlee(uwbAddress)
         } catch (e: Exception) {
-            throw(e)
+            throw (e)
         }
     }
 
@@ -49,11 +47,29 @@ internal class UwbControllerSessionScopeAospImpl(
         try {
             uwbClient.removeControlee(uwbAddress)
         } catch (e: Exception) {
-            throw(e)
+            throw (e)
         }
     }
 
-    override fun prepareSession(parameters: RangingParameters): Flow<RangingResult> {
-        return uwbClientSessionScope.prepareSession(parameters)
+    override suspend fun reconfigureRangingInterval(intervalSkipCount: Int) {
+        try {
+            return uwbClient.reconfigureRangingInterval(intervalSkipCount)
+        } catch (e: Exception) {
+            throw (e)
+        }
+    }
+
+    override suspend fun addControlee(address: UwbAddress, parameters: RangingControleeParameters) {
+        val uwbAddress = androidx.core.uwb.backend.UwbAddress()
+        uwbAddress.address = address.address
+        val controleeParams = androidx.core.uwb.backend.RangingControleeParameters()
+        controleeParams.address = uwbAddress
+        controleeParams.subSessionId = parameters.subSessionId
+        controleeParams.subSessionKey = parameters.subSessionKey
+        try {
+            uwbClient.addControleeWithSessionParams(controleeParams)
+        } catch (e: Exception) {
+            throw (e)
+        }
     }
 }

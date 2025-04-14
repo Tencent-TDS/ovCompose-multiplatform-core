@@ -16,18 +16,18 @@
 
 package androidx.camera.core.impl;
 
+import static androidx.camera.core.impl.CameraMode.ULTRA_HIGH_RESOLUTION_CAMERA;
+
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCaptureSession.StateCallback;
-import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.internal.utils.SizeUtil;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -39,9 +39,9 @@ import java.util.List;
  * of surface configuration type and size pairs can be supported for different hardware level camera
  * devices.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class SurfaceConfig {
+    public static final long DEFAULT_STREAM_USE_CASE_VALUE = 0;
     /** Prevent subclassing */
     SurfaceConfig() {
     }
@@ -49,18 +49,39 @@ public abstract class SurfaceConfig {
     /**
      * Creates a new instance of SurfaceConfig with the given parameters.
      */
-    @NonNull
-    public static SurfaceConfig create(@NonNull ConfigType type, @NonNull ConfigSize size) {
-        return new AutoValue_SurfaceConfig(type, size);
+    public static @NonNull SurfaceConfig create(@NonNull ConfigType type,
+            @NonNull ConfigSize size) {
+        return new AutoValue_SurfaceConfig(type, size, DEFAULT_STREAM_USE_CASE_VALUE);
+    }
+
+    /**
+     * Creates a new instance of SurfaceConfig with the given parameters.
+     */
+    public static @NonNull SurfaceConfig create(@NonNull ConfigType type, @NonNull ConfigSize size,
+            long streamUseCase) {
+        return new AutoValue_SurfaceConfig(type, size, streamUseCase);
     }
 
     /** Returns the configuration type. */
-    @NonNull
-    public abstract ConfigType getConfigType();
+    public abstract @NonNull ConfigType getConfigType();
 
     /** Returns the configuration size. */
-    @NonNull
-    public abstract ConfigSize getConfigSize();
+    public abstract @NonNull ConfigSize getConfigSize();
+
+    /**
+     * Returns the stream use case.
+     * <p>Stream use case constants are implementation-specific constants that allow the
+     * implementation to optimize power and quality characteristics of a stream depending on how
+     * it will be used.
+     * <p> Stream use case is an int flag used to specify the purpose of the stream associated
+     * with this surface. Use cases for the camera2 implementation that are available on devices can
+     * be found in
+     * {@link android.hardware.camera2.CameraCharacteristics#SCALER_AVAILABLE_STREAM_USE_CASES}
+     *
+     * <p>See {@link android.hardware.camera2.params.OutputConfiguration#setStreamUseCase}
+     * to see how Camera2 framework uses this.
+     */
+    public abstract long getStreamUseCase();
 
     /**
      * Check whether the input surface configuration has a smaller size than this object and can be
@@ -87,14 +108,16 @@ public abstract class SurfaceConfig {
      * <p> PRIV refers to any target whose available sizes are found using
      * StreamConfigurationMap.getOutputSizes(Class) with no direct application-visible format,
      * YUV refers to a target Surface using the ImageFormat.YUV_420_888 format, JPEG refers to
-     * the ImageFormat.JPEG format, and RAW refers to the ImageFormat.RAW_SENSOR format.
+     * the ImageFormat.JPEG or ImageFormat.JPEG_R format, and RAW refers to the
+     * ImageFormat.RAW_SENSOR format.
      */
-    @NonNull
-    public static SurfaceConfig.ConfigType getConfigType(int imageFormat) {
+    public static SurfaceConfig.@NonNull ConfigType getConfigType(int imageFormat) {
         if (imageFormat == ImageFormat.YUV_420_888) {
             return SurfaceConfig.ConfigType.YUV;
         } else if (imageFormat == ImageFormat.JPEG) {
             return SurfaceConfig.ConfigType.JPEG;
+        } else if (imageFormat == ImageFormat.JPEG_R) {
+            return SurfaceConfig.ConfigType.JPEG_R;
         } else if (imageFormat == ImageFormat.RAW_SENSOR) {
             return SurfaceConfig.ConfigType.RAW;
         } else {
@@ -105,21 +128,17 @@ public abstract class SurfaceConfig {
     /**
      * Transform to a SurfaceConfig object with image format and size info
      *
-     * @param isConcurrentCameraModeOn true if concurrent camera mode is on, otherwise false.
+     * @param cameraMode            the working camera mode.
      * @param imageFormat           the image format info for the surface configuration object
      * @param size                  the size info for the surface configuration object
      * @param surfaceSizeDefinition the surface definition for the surface configuration object
-     * @param maxOutputSize         the maximum supported resolution for the particular format
-     *                              returned by {@link StreamConfigurationMap#getOutputSizes(int)}
      * @return new {@link SurfaceConfig} object
      */
-    @NonNull
-    public static SurfaceConfig transformSurfaceConfig(
-            boolean isConcurrentCameraModeOn,
+    public static @NonNull SurfaceConfig transformSurfaceConfig(
+            @CameraMode.Mode int cameraMode,
             int imageFormat,
             @NonNull Size size,
-            @NonNull SurfaceSizeDefinition surfaceSizeDefinition,
-            @Nullable Size maxOutputSize) {
+            @NonNull SurfaceSizeDefinition surfaceSizeDefinition) {
         ConfigType configType =
                 SurfaceConfig.getConfigType(imageFormat);
         ConfigSize configSize = ConfigSize.NOT_SUPPORT;
@@ -127,26 +146,34 @@ public abstract class SurfaceConfig {
         // Compare with surface size definition to determine the surface configuration size
         int sizeArea = SizeUtil.getArea(size);
 
-        if (isConcurrentCameraModeOn) {
-            int maxOutputSizeArea = maxOutputSize != null ? SizeUtil.getArea(maxOutputSize) : 0;
-            if (sizeArea <= Math.min(maxOutputSizeArea,
-                    SizeUtil.getArea(surfaceSizeDefinition.getS720pSize()))) {
+        if (cameraMode == CameraMode.CONCURRENT_CAMERA) {
+            if (sizeArea <= SizeUtil.getArea(surfaceSizeDefinition.getS720pSize(imageFormat))) {
                 configSize = ConfigSize.s720p;
-            } else if (sizeArea <= Math.min(maxOutputSizeArea,
-                    SizeUtil.getArea(surfaceSizeDefinition.getS1440pSize()))) {
+            } else if (sizeArea <= SizeUtil.getArea(surfaceSizeDefinition.getS1440pSize(
+                    imageFormat))) {
                 configSize = ConfigSize.s1440p;
             }
         } else {
             if (sizeArea <= SizeUtil.getArea(surfaceSizeDefinition.getAnalysisSize())) {
                 configSize = ConfigSize.VGA;
-            } else if (sizeArea
-                    <= SizeUtil.getArea(surfaceSizeDefinition.getPreviewSize())) {
+            } else if (sizeArea <= SizeUtil.getArea(surfaceSizeDefinition.getPreviewSize())) {
                 configSize = ConfigSize.PREVIEW;
-            } else if (sizeArea
-                    <= SizeUtil.getArea(surfaceSizeDefinition.getRecordSize())) {
+            } else if (sizeArea <= SizeUtil.getArea(surfaceSizeDefinition.getRecordSize())) {
                 configSize = ConfigSize.RECORD;
             } else {
-                configSize = ConfigSize.MAXIMUM;
+                Size maximumSize = surfaceSizeDefinition.getMaximumSize(imageFormat);
+                Size ultraMaximumSize = surfaceSizeDefinition.getUltraMaximumSize(imageFormat);
+                // On some devices, when extensions is on, some extra formats might be supported
+                // for extensions. But those formats are not supported in the normal mode. In
+                // that case, MaximumSize could be null. Directly make configSize as MAXIMUM for
+                // the case.
+                if ((maximumSize == null || sizeArea <= SizeUtil.getArea(maximumSize))
+                        && cameraMode != ULTRA_HIGH_RESOLUTION_CAMERA) {
+                    configSize = ConfigSize.MAXIMUM;
+                } else if (ultraMaximumSize != null && sizeArea <= SizeUtil.getArea(
+                        ultraMaximumSize)) {
+                    configSize = ConfigSize.ULTRA_MAXIMUM;
+                }
             }
         }
 
@@ -163,6 +190,7 @@ public abstract class SurfaceConfig {
         PRIV,
         YUV,
         JPEG,
+        JPEG_R,
         RAW
     }
 
@@ -179,29 +207,36 @@ public abstract class SurfaceConfig {
          * s720p refers to the best size match to the device's screen resolution, or to 720p
          * (1280x720), whichever is smaller.
          */
-        s720p(5),
+        s720p(1),
         /**
          * PREVIEW refers to the best size match to the device's screen resolution, or to 1080p
          * (1920x1080), whichever is smaller.
          */
-        PREVIEW(1),
+        PREVIEW(2),
         /**
          * s1440p refers to the best size match to the device's screen resolution, or to 1440p
          * (1920x1440), whichever is smaller.
          */
-        s1440p(6),
+        s1440p(3),
         /**
          * RECORD refers to the camera device's maximum supported recording resolution, as
          * determined by CamcorderProfile.
          */
-        RECORD(2),
+        RECORD(4),
         /**
-         * MAXIMUM refers to the camera device's maximum output resolution for that format or target
-         * from StreamConfigurationMap.getOutputSizes(int)
+         * MAXIMUM refers to the camera device's maximum output resolution for that format or
+         * target from StreamConfigurationMap.getOutputSizes() or getHighResolutionOutputSizes()
+         * in the default sensor pixel mode.
          */
-        MAXIMUM(3),
+        MAXIMUM(5),
+        /**
+         * ULTRA_MAXIMUM refers to the camera device's maximum output resolution for that format or
+         * target from StreamConfigurationMap.getOutputSizes() or getHighResolutionOutputSizes()
+         * in the maximum resolution sensor pixel mode.
+         */
+        ULTRA_MAXIMUM(6),
         /** NOT_SUPPORT is for the size larger than MAXIMUM */
-        NOT_SUPPORT(4);
+        NOT_SUPPORT(7);
 
         final int mId;
 

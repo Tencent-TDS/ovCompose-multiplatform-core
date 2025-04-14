@@ -21,14 +21,15 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.LocalElevationOverlay
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.center
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCoerceIn
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -58,7 +61,6 @@ import kotlin.math.pow
  * The default indicator for Compose pull-to-refresh, based on Android's SwipeRefreshLayout.
  *
  * @sample androidx.compose.material.samples.PullRefreshSample
- *
  * @param refreshing A boolean representing whether a refresh is occurring.
  * @param state The [PullRefreshState] which controls where and how the indicator will be drawn.
  * @param modifier Modifiers for the indicator.
@@ -78,26 +80,29 @@ fun PullRefreshIndicator(
     contentColor: Color = contentColorFor(backgroundColor),
     scale: Boolean = false
 ) {
-    val showElevation by remember(refreshing, state) {
-        derivedStateOf { refreshing || state.position > 0.5f }
-    }
+    val showElevation by
+        remember(refreshing, state) { derivedStateOf { refreshing || state.position > 0.5f } }
 
-    Surface(
-        modifier = modifier
-            .size(IndicatorSize)
-            .pullRefreshIndicatorTransform(state, scale),
-        shape = SpinnerShape,
-        color = backgroundColor,
-        elevation = if (showElevation) Elevation else 0.dp,
+    // Apply an elevation overlay if needed. Note that we aren't using Surface here, as we do not
+    // want its input-blocking behaviour, since the indicator is typically displayed above other
+    // (possibly) interactive content.
+    val elevationOverlay = LocalElevationOverlay.current
+    val color =
+        elevationOverlay?.apply(color = backgroundColor, elevation = Elevation) ?: backgroundColor
+
+    Box(
+        modifier =
+            modifier
+                .size(IndicatorSize)
+                .pullRefreshIndicatorTransform(state, scale)
+                .shadow(if (showElevation) Elevation else 0.dp, SpinnerShape, clip = true)
+                .background(color = color, shape = SpinnerShape)
     ) {
         Crossfade(
             targetState = refreshing,
             animationSpec = tween(durationMillis = CrossfadeDurationMs)
         ) { refreshing ->
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 val spinnerSize = (ArcRadius + StrokeWidth).times(2)
 
                 if (refreshing) {
@@ -114,9 +119,7 @@ fun PullRefreshIndicator(
     }
 }
 
-/**
- * Modifier.size MUST be specified.
- */
+/** Modifier.size MUST be specified. */
 @Composable
 @ExperimentalMaterialApi
 private fun CircularArrowIndicator(
@@ -126,11 +129,8 @@ private fun CircularArrowIndicator(
 ) {
     val path = remember { Path().apply { fillType = PathFillType.EvenOdd } }
 
-    val targetAlpha by remember(state) {
-        derivedStateOf {
-            if (state.progress >= 1f) MaxAlpha else MinAlpha
-        }
-    }
+    val targetAlpha by
+        remember(state) { derivedStateOf { if (state.progress >= 1f) MaxAlpha else MinAlpha } }
 
     val alphaState = animateFloatAsState(targetValue = targetAlpha, animationSpec = AlphaTween)
 
@@ -141,12 +141,13 @@ private fun CircularArrowIndicator(
 
         rotate(degrees = values.rotation) {
             val arcRadius = ArcRadius.toPx() + StrokeWidth.toPx() / 2f
-            val arcBounds = Rect(
-                size.center.x - arcRadius,
-                size.center.y - arcRadius,
-                size.center.x + arcRadius,
-                size.center.y + arcRadius
-            )
+            val arcBounds =
+                Rect(
+                    size.center.x - arcRadius,
+                    size.center.y - arcRadius,
+                    size.center.x + arcRadius,
+                    size.center.y + arcRadius
+                )
             drawArc(
                 color = color,
                 alpha = alpha,
@@ -155,10 +156,7 @@ private fun CircularArrowIndicator(
                 useCenter = false,
                 topLeft = arcBounds.topLeft,
                 size = arcBounds.size,
-                style = Stroke(
-                    width = StrokeWidth.toPx(),
-                    cap = StrokeCap.Square
-                )
+                style = Stroke(width = StrokeWidth.toPx(), cap = StrokeCap.Square)
             )
             drawArrow(path, arcBounds, color, alpha, values)
         }
@@ -179,7 +177,7 @@ private fun ArrowValues(progress: Float): ArrowValues {
     // How far beyond the threshold pull has gone, as a percentage of the threshold.
     val overshootPercent = abs(progress) - 1.0f
     // Limit the overshoot to 200%. Linear between 0 and 200.
-    val linearTension = overshootPercent.coerceIn(0f, 2f)
+    val linearTension = overshootPercent.fastCoerceIn(0f, 2f)
     // Non-linear tension. Increases with linearTension, but at a decreasing rate.
     val tensionPercent = linearTension - linearTension.pow(2) / 4
 
@@ -205,23 +203,15 @@ private fun DrawScope.drawArrow(
     arrow.lineTo(x = ArrowWidth.toPx() * values.scale, y = 0f) // Line to right corner
 
     // Line to tip of arrow
-    arrow.lineTo(
-        x = ArrowWidth.toPx() * values.scale / 2,
-        y = ArrowHeight.toPx() * values.scale
-    )
+    arrow.lineTo(x = ArrowWidth.toPx() * values.scale / 2, y = ArrowHeight.toPx() * values.scale)
 
     val radius = min(bounds.width, bounds.height) / 2f
     val inset = ArrowWidth.toPx() * values.scale / 2f
     arrow.translate(
-        Offset(
-            x = radius + bounds.center.x - inset,
-            y = bounds.center.y + StrokeWidth.toPx() / 2f
-        )
+        Offset(x = radius + bounds.center.x - inset, y = bounds.center.y + StrokeWidth.toPx() / 2f)
     )
     arrow.close()
-    rotate(degrees = values.endAngle) {
-        drawPath(path = arrow, color = color, alpha = alpha)
-    }
+    rotate(degrees = values.endAngle) { drawPath(path = arrow, color = color, alpha = alpha) }
 }
 
 private const val CrossfadeDurationMs = 100

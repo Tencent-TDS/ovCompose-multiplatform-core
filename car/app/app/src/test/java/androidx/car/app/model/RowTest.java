@@ -132,6 +132,14 @@ public class RowTest {
     }
 
     @Test
+    public void setExtraSmallImage() {
+        CarIcon image1 = BACK;
+        Row row = new Row.Builder().setTitle("Title")
+                .setImage(image1, Row.IMAGE_TYPE_EXTRA_SMALL).build();
+        assertThat(image1).isEqualTo(row.getImage());
+    }
+
+    @Test
     public void setDecoration_positiveValue() {
         int decoration = 5;
         Row row = new Row.Builder().setTitle("Title").setNumericDecoration(decoration).build();
@@ -208,6 +216,14 @@ public class RowTest {
     }
 
     @Test
+    public void clickDelegate() {
+        OnClickDelegate onClickDelegate = mock(OnClickDelegate.class);
+        Row row = new Row.Builder().setTitle("Title").setOnClickDelegate(onClickDelegate).build();
+
+        assertThat(row.getOnClickDelegate()).isEqualTo(onClickDelegate);
+    }
+
+    @Test
     public void addAction() {
         CarIcon icon = TestUtils.getTestCarIcon(ApplicationProvider.getApplicationContext(),
                 "ic_test_1");
@@ -241,7 +257,7 @@ public class RowTest {
     }
 
     @Test
-    public void addAction_manyActions_throws() {
+    public void addAction_threeActions_throws() {
         CarIcon carIcon = TestUtils.getTestCarIcon(ApplicationProvider.getApplicationContext(),
                 "ic_test_1");
         Action customAction = TestUtils.createAction("Title", carIcon);
@@ -256,14 +272,42 @@ public class RowTest {
     }
 
     @Test
-    public void addAction_invalidActionNullIcon_throws() {
-        Action customAction = TestUtils.createAction("Title", null);
+    public void addAction_twoActionsWithOnePrimary_doesNotThrow() {
+        CarIcon carIcon = TestUtils.getTestCarIcon(ApplicationProvider.getApplicationContext(),
+                "ic_test_1");
+        Action primaryAction = new Action.Builder().setTitle("Title").setFlags(
+                Action.FLAG_PRIMARY).build();
+        Action customAction = TestUtils.createAction("Title", carIcon);
+        Row row = new Row.Builder().setTitle("Title")
+                .addAction(customAction)
+                .addAction(primaryAction)
+                .build();
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Row.Builder().setTitle("Title")
-                        .addAction(customAction)
-                        .build());
+        assertThat(row.getActions().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void addAction_twoActionsWithOneTimed_doesNotThrow() {
+        CarIcon carIcon = TestUtils.getTestCarIcon(ApplicationProvider.getApplicationContext(),
+                "ic_test_1");
+        Action defaultAction = new Action.Builder().setTitle("Title").setFlags(
+                Action.FLAG_DEFAULT).build();
+        Action customAction = TestUtils.createAction("Title", carIcon);
+        Row row = new Row.Builder().setTitle("Title")
+                .addAction(customAction)
+                .addAction(defaultAction)
+                .build();
+
+        assertThat(row.getActions().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void addAction_textOnlyActionNullIcon_doesNotThrow() {
+        Action customAction = TestUtils.createAction("Title", null);
+        Row row = new Row.Builder().setTitle("Title")
+                .addAction(customAction)
+                .build();
+        assertThat(row.getActions().get(0)).isEqualTo(customAction);
     }
 
     public void addAction_browsableRow_throws() {

@@ -35,8 +35,6 @@ import android.util.TypedValue;
 import android.util.Xml;
 
 import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.graphics.drawable.AnimatedStateListDrawableCompat;
 import androidx.appcompat.resources.Compatibility;
@@ -50,6 +48,8 @@ import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -62,22 +62,21 @@ import java.util.WeakHashMap;
 public final class ResourceManagerInternal {
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public interface ResourceManagerHooks {
-        @Nullable
-        Drawable createDrawableFor(@NonNull ResourceManagerInternal appCompatDrawableManager,
+        @Nullable Drawable createDrawableFor(
+                @NonNull ResourceManagerInternal appCompatDrawableManager,
                 @NonNull Context context, @DrawableRes final int resId);
         boolean tintDrawable(@NonNull Context context, @DrawableRes int resId,
                 @NonNull Drawable drawable);
-        @Nullable
-        ColorStateList getTintListForDrawableRes(@NonNull Context context, @DrawableRes int resId);
+        @Nullable ColorStateList getTintListForDrawableRes(
+                @NonNull Context context, @DrawableRes int resId);
         boolean tintDrawableUsingColorFilter(@NonNull Context context,
                 @DrawableRes final int resId, @NonNull Drawable drawable);
-        @Nullable
-        PorterDuff.Mode getTintModeForDrawableRes(final int resId);
+        PorterDuff.@Nullable Mode getTintModeForDrawableRes(final int resId);
     }
 
     private interface InflateDelegate {
         Drawable createFromXmlInner(@NonNull Context context, @NonNull XmlPullParser parser,
-                @NonNull AttributeSet attrs, @Nullable Resources.Theme theme);
+                @NonNull AttributeSet attrs, Resources.@Nullable Theme theme);
     }
 
     private static final String TAG = "ResourceManagerInternal";
@@ -203,9 +202,7 @@ public final class ResourceManagerInternal {
         final ColorStateList tintList = getTintList(context, resId);
         if (tintList != null) {
             // First mutate the Drawable, then wrap it and set the tint list
-            if (DrawableUtils.canSafelyMutateDrawable(drawable)) {
-                drawable = drawable.mutate();
-            }
+            drawable = drawable.mutate();
             drawable = DrawableCompat.wrap(drawable);
             DrawableCompat.setTintList(drawable, tintList);
 
@@ -313,7 +310,7 @@ public final class ResourceManagerInternal {
         return null;
     }
 
-    private synchronized Drawable getCachedDrawable(@NonNull final Context context,
+    private synchronized Drawable getCachedDrawable(final @NonNull Context context,
             final long key) {
         final LongSparseArray<WeakReference<ConstantState>> cache = mDrawableCaches.get(context);
         if (cache == null) {
@@ -334,8 +331,8 @@ public final class ResourceManagerInternal {
         return null;
     }
 
-    private synchronized boolean addDrawableToCache(@NonNull final Context context, final long key,
-            @NonNull final Drawable drawable) {
+    private synchronized boolean addDrawableToCache(final @NonNull Context context, final long key,
+            final @NonNull Drawable drawable) {
         final ConstantState cs = drawable.getConstantState();
         if (cs != null) {
             LongSparseArray<WeakReference<ConstantState>> cache = mDrawableCaches.get(context);
@@ -438,13 +435,10 @@ public final class ResourceManagerInternal {
     static void tintDrawable(Drawable drawable, TintInfo tint, int[] state) {
         int[] drawableState = drawable.getState();
 
-        boolean mutated = false;
-        if (DrawableUtils.canSafelyMutateDrawable(drawable)) {
-            mutated = drawable.mutate() == drawable;
-            if (!mutated) {
-                Log.d(TAG, "Mutated drawable is not the same instance as the input.");
-                return;
-            }
+        boolean mutated = drawable.mutate() == drawable;
+        if (!mutated) {
+            Log.d(TAG, "Mutated drawable is not the same instance as the input.");
+            return;
         }
 
         // Workaround for b/232275112 where LayerDrawable loses its state on mutate().
@@ -520,7 +514,7 @@ public final class ResourceManagerInternal {
 
         @Override
         public Drawable createFromXmlInner(@NonNull Context context, @NonNull XmlPullParser parser,
-                @NonNull AttributeSet attrs, @Nullable Resources.Theme theme) {
+                @NonNull AttributeSet attrs, Resources.@Nullable Theme theme) {
             try {
                 return VectorDrawableCompat
                         .createFromXmlInner(context.getResources(), parser, attrs, theme);
@@ -537,7 +531,7 @@ public final class ResourceManagerInternal {
 
         @Override
         public Drawable createFromXmlInner(@NonNull Context context, @NonNull XmlPullParser parser,
-                @NonNull AttributeSet attrs, @Nullable Resources.Theme theme) {
+                @NonNull AttributeSet attrs, Resources.@Nullable Theme theme) {
             try {
                 return AnimatedVectorDrawableCompat
                         .createFromXmlInner(context, context.getResources(), parser, attrs, theme);
@@ -551,7 +545,7 @@ public final class ResourceManagerInternal {
     static class AsldcInflateDelegate implements InflateDelegate {
         @Override
         public Drawable createFromXmlInner(@NonNull Context context, @NonNull XmlPullParser parser,
-                @NonNull AttributeSet attrs, @Nullable Resources.Theme theme) {
+                @NonNull AttributeSet attrs, Resources.@Nullable Theme theme) {
             try {
                 return AnimatedStateListDrawableCompat
                         .createFromXmlInner(context, context.getResources(), parser, attrs, theme);
@@ -565,7 +559,7 @@ public final class ResourceManagerInternal {
     static class DrawableDelegate implements InflateDelegate {
         @Override
         public Drawable createFromXmlInner(@NonNull Context context, @NonNull XmlPullParser parser,
-                @NonNull AttributeSet attrs, @Nullable Resources.Theme theme) {
+                @NonNull AttributeSet attrs, Resources.@Nullable Theme theme) {
             String className = attrs.getClassAttribute();
             if (className != null) {
                 try {

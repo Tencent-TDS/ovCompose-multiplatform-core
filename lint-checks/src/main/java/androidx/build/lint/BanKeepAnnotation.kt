@@ -19,7 +19,6 @@
 package androidx.build.lint
 
 import com.android.tools.lint.client.api.UElementHandler
-
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
@@ -40,27 +39,32 @@ class BanKeepAnnotation : Detector(), Detector.UastScanner {
 
     private inner class AnnotationChecker(val context: JavaContext) : UElementHandler() {
         override fun visitAnnotation(node: UAnnotation) {
-            if (node.qualifiedName == "androidx.annotation.Keep" ||
-                node.qualifiedName == "android.support.annotation.keep"
+            if (
+                node.qualifiedName == "androidx.annotation.Keep" ||
+                    node.qualifiedName == "android.support.annotation.keep"
             ) {
-                val incident = Incident(context)
-                    .issue(ISSUE)
-                    .location(context.getNameLocation(node))
-                    .message("Uses @Keep annotation")
-                    .scope(node)
+                val incident =
+                    Incident(context)
+                        .issue(ISSUE)
+                        .location(context.getNameLocation(node))
+                        .message("Uses @Keep annotation")
+                        .scope(node)
                 context.report(incident)
             }
         }
     }
 
     companion object {
-        val ISSUE = Issue.create(
-            "BanKeepAnnotation",
-            "Uses @Keep annotation",
-            "Use of @Keep annotation is not allowed, please use a conditional " +
-                "keep rule in proguard-rules.pro.",
-            Category.CORRECTNESS, 5, Severity.ERROR,
-            Implementation(BanKeepAnnotation::class.java, Scope.JAVA_FILE_SCOPE)
-        )
+        val ISSUE =
+            Issue.create(
+                "BanKeepAnnotation",
+                "Uses @Keep annotation",
+                "Use of @Keep annotation is not allowed, please use a conditional " +
+                    "keep rule in proguard-rules.pro.",
+                Category.CORRECTNESS,
+                5,
+                Severity.ERROR,
+                Implementation(BanKeepAnnotation::class.java, Scope.JAVA_FILE_SCOPE)
+            )
     }
 }

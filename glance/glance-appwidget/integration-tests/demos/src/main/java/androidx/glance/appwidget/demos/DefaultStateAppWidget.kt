@@ -14,6 +14,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.appWidgetBackground
+import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
@@ -35,26 +36,31 @@ private val ClickValueKey = ActionParameters.Key<Int>("ClickValue")
 // the +/- clicks values.
 class DefaultStateAppWidget : GlanceAppWidget() {
 
-    @Composable
-    @Deprecated("")
-    override fun Content() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
         // Get the current stored value for the given Key.
         val count = currentState(CountClicksKey) ?: 0
+        Content(count)
+    }
 
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        provideContent { Content(count = 1) }
+    }
+
+    @Composable
+    private fun Content(count: Int) {
         Row(
-            modifier = GlanceModifier.fillMaxSize()
-                .appWidgetBackground()
-                .padding(16.dp)
-                .background(R.color.default_widget_background),
+            modifier =
+                GlanceModifier.fillMaxSize()
+                    .appWidgetBackground()
+                    .padding(16.dp)
+                    .background(R.color.default_widget_background),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
                 modifier = GlanceModifier.defaultWeight(),
                 text = "-",
                 style = TextStyle(textAlign = TextAlign.Center),
-                onClick = actionRunCallback<ClickAction>(
-                    actionParametersOf(ClickValueKey to -1)
-                )
+                onClick = actionRunCallback<ClickAction>(actionParametersOf(ClickValueKey to -1))
             )
             Text(
                 modifier = GlanceModifier.defaultWeight(),
@@ -65,9 +71,7 @@ class DefaultStateAppWidget : GlanceAppWidget() {
                 modifier = GlanceModifier.defaultWeight(),
                 text = "+",
                 style = TextStyle(textAlign = TextAlign.Center),
-                onClick = actionRunCallback<ClickAction>(
-                    actionParametersOf(ClickValueKey to 1)
-                )
+                onClick = actionRunCallback<ClickAction>(actionParametersOf(ClickValueKey to 1))
             )
         }
     }

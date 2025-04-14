@@ -16,19 +16,17 @@
 
 package androidx.camera.camera2.pipe.testing
 
-import android.hardware.camera2.CaptureFailure
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.FrameInfo
 import androidx.camera.camera2.pipe.FrameNumber
 import androidx.camera.camera2.pipe.Request
+import androidx.camera.camera2.pipe.RequestFailure
 import androidx.camera.camera2.pipe.RequestMetadata
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class VerifyResultListener(capturesCount: Int) : Request.Listener {
     private val captureRequests = mutableListOf<RequestMetadata>()
     private val captureResults = mutableListOf<FrameInfo>()
@@ -36,11 +34,15 @@ class VerifyResultListener(capturesCount: Int) : Request.Listener {
     private val waitingCount = atomic(capturesCount)
     private val failureException =
         TimeoutException("Test doesn't complete after waiting for $capturesCount frames.")
+
     @Volatile private var startReceiving = false
-    @Volatile private var _verifyBlock: (
-        captureRequest: RequestMetadata,
-        captureResult: FrameInfo
-    ) -> Boolean = { _, _ -> false }
+
+    @Volatile
+    private var _verifyBlock:
+        (captureRequest: RequestMetadata, captureResult: FrameInfo) -> Boolean =
+        { _, _ ->
+            false
+        }
     private val signal = CompletableDeferred<Unit>()
 
     override fun onAborted(request: Request) {
@@ -80,7 +82,7 @@ class VerifyResultListener(capturesCount: Int) : Request.Listener {
     override fun onFailed(
         requestMetadata: RequestMetadata,
         frameNumber: FrameNumber,
-        captureFailure: CaptureFailure
+        requestFailure: RequestFailure
     ) {
         if (!startReceiving) {
             return
@@ -92,10 +94,10 @@ class VerifyResultListener(capturesCount: Int) : Request.Listener {
     }
 
     suspend fun verify(
-        verifyBlock: (
-            captureRequest: RequestMetadata,
-            captureResult: FrameInfo
-        ) -> Boolean = { _, _ -> false },
+        verifyBlock: (captureRequest: RequestMetadata, captureResult: FrameInfo) -> Boolean =
+            { _, _ ->
+                false
+            },
         timeout: Long = TimeUnit.SECONDS.toMillis(5),
     ) {
         withTimeout(timeout) {
@@ -106,10 +108,8 @@ class VerifyResultListener(capturesCount: Int) : Request.Listener {
     }
 
     suspend fun verifyAllResults(
-        verifyBlock: (
-            captureRequests: List<RequestMetadata>,
-            captureResults: List<FrameInfo>
-        ) -> Unit,
+        verifyBlock:
+            (captureRequests: List<RequestMetadata>, captureResults: List<FrameInfo>) -> Unit,
         timeout: Long = TimeUnit.SECONDS.toMillis(5),
     ) {
         withTimeout(timeout) {

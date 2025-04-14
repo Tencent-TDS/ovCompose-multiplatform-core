@@ -34,10 +34,8 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
-        // Change the APK name to match the *testapp regex we use to pick up APKs for testing as
-        // part of CI
-        archivesBaseName = "glance-wear-tiles-demos-testapp"
+        minSdk = 26
+        compileSdk = 35
     }
-    namespace "androidx.glance.wear.tiles.demos"
+    namespace = "androidx.glance.wear.tiles.demos"
 }

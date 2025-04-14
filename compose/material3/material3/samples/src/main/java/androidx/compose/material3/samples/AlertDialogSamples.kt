@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,29 +56,13 @@ fun AlertDialogSample() {
                 // onDismissRequest.
                 openDialog.value = false
             },
-            title = {
-                Text(text = "Title")
-            },
-            text = {
-                Text(text = "Turned on by default")
-            },
+            title = { Text(text = "Title") },
+            text = { Text(text = "Turned on by default") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        openDialog.value = false
-                    }
-                ) {
-                    Text("Confirm")
-                }
+                TextButton(onClick = { openDialog.value = false }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        openDialog.value = false
-                    }
-                ) {
-                    Text("Dismiss")
-                }
+                TextButton(onClick = { openDialog.value = false }) { Text("Dismiss") }
             }
         )
     }
@@ -97,9 +83,7 @@ fun AlertDialogWithIconSample() {
                 openDialog.value = false
             },
             icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
-            title = {
-                Text(text = "Title")
-            },
+            title = { Text(text = "Title") },
             text = {
                 Text(
                     "This area typically contains the supportive text " +
@@ -107,22 +91,10 @@ fun AlertDialogWithIconSample() {
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        openDialog.value = false
-                    }
-                ) {
-                    Text("Confirm")
-                }
+                TextButton(onClick = { openDialog.value = false }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        openDialog.value = false
-                    }
-                ) {
-                    Text("Dismiss")
-                }
+                TextButton(onClick = { openDialog.value = false }) { Text("Dismiss") }
             }
         )
     }
@@ -132,11 +104,11 @@ fun AlertDialogWithIconSample() {
 @Sampled
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlertDialogWithCustomContentSample() {
+fun BasicAlertDialogSample() {
     val openDialog = remember { mutableStateOf(true) }
 
     if (openDialog.value) {
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = {
                 // Dismiss the dialog when the user clicks outside the dialog or on the back
                 // button. If you want to disable that functionality, simply use an empty
@@ -145,21 +117,19 @@ fun AlertDialogWithCustomContentSample() {
             }
         ) {
             Surface(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large
+                modifier = Modifier.wrapContentWidth().wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = AlertDialogDefaults.TonalElevation
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "This area typically contains the supportive text " +
-                            "which presents the details regarding the Dialog's purpose.",
+                        text =
+                            "This area typically contains the supportive text " +
+                                "which presents the details regarding the Dialog's purpose.",
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     TextButton(
-                        onClick = {
-                            openDialog.value = false
-                        },
+                        onClick = { openDialog.value = false },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text("Confirm")

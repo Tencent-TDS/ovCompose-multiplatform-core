@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
 }
+
 androidXMultiplatform {
-    jvm {}
+    jvm()
     mac()
     linux()
     ios()
+    watchos()
+    tvos()
 
     sourceSets {
         commonMain {
@@ -33,19 +43,41 @@ androidXMultiplatform {
                 api(libs.kotlinStdlibCommon)
                 api(libs.kotlinTestCommon)
                 api(libs.kotlinCoroutinesCore)
+                api(libs.kotlinCoroutinesTest)
                 api(libs.okio)
             }
         }
-
+        nativeMain {
+            dependsOn(commonMain)
+        }
         jvmMain {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinTest)
             }
         }
+        commonTest {
+            dependencies {
+                implementation(project(":kruth:kruth"))
+                implementation(libs.kotlinTest)
+            }
+        }
+        jvmTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.kotlinTest)
+            }
+        }
+        targets.configureEach { target ->
+            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nativeMain)
+                }
+            }
+        }
     }
 }
 
 androidx {
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.INTERNAL_TEST_LIBRARY
 }

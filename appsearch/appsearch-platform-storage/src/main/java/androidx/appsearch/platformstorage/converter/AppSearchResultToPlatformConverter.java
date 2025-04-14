@@ -19,7 +19,6 @@ package androidx.appsearch.platformstorage.converter;
 import android.annotation.SuppressLint;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.AppSearchBatchResult;
@@ -28,13 +27,15 @@ import androidx.appsearch.exceptions.AppSearchException;
 import androidx.concurrent.futures.ResolvableFuture;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Translates {@link androidx.appsearch.app.AppSearchResult} and
  * {@link androidx.appsearch.app.AppSearchBatchResult} to platform versions.
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -46,10 +47,9 @@ public final class AppSearchResultToPlatformConverter {
      * {@link androidx.appsearch.app.AppSearchResult}.
      */
     @SuppressLint("WrongConstant")
-    @NonNull
-    public static <PlatformType, JetpackType> AppSearchResult<JetpackType>
+    public static <PlatformType, JetpackType> @NonNull AppSearchResult<JetpackType>
             platformAppSearchResultToJetpack(
-            @NonNull android.app.appsearch.AppSearchResult<PlatformType> platformResult,
+            android.app.appsearch.@NonNull AppSearchResult<PlatformType> platformResult,
             @NonNull Function<PlatformType, JetpackType> valueMapper) {
         Preconditions.checkNotNull(platformResult);
         if (platformResult.isSuccess()) {
@@ -71,8 +71,9 @@ public final class AppSearchResultToPlatformConverter {
      * Uses the given {@link android.app.appsearch.AppSearchResult} to populate the given
      * {@link ResolvableFuture}, transforming it using {@code valueMapper}.
      */
+    @SuppressLint("WrongConstant")
     public static <PlatformType, JetpackType> void platformAppSearchResultToFuture(
-            @NonNull android.app.appsearch.AppSearchResult<PlatformType> platformResult,
+            android.app.appsearch.@NonNull AppSearchResult<PlatformType> platformResult,
             @NonNull ResolvableFuture<JetpackType> future,
             @NonNull Function<PlatformType, JetpackType> valueMapper) {
         Preconditions.checkNotNull(platformResult);
@@ -96,7 +97,7 @@ public final class AppSearchResultToPlatformConverter {
      * {@link ResolvableFuture}.
      */
     public static <T> void platformAppSearchResultToFuture(
-            @NonNull android.app.appsearch.AppSearchResult<T> platformResult,
+            android.app.appsearch.@NonNull AppSearchResult<T> platformResult,
             @NonNull ResolvableFuture<T> future) {
         platformAppSearchResultToFuture(platformResult, future, Function.identity());
     }
@@ -108,10 +109,9 @@ public final class AppSearchResultToPlatformConverter {
      * <p>Each value is translated using the provided {@code valueMapper} function.
      */
     @SuppressLint("WrongConstant")
-    @NonNull
-    public static <K, PlatformValue, JetpackValue> AppSearchBatchResult<K, JetpackValue>
+    public static <K, PlatformValue, JetpackValue> @NonNull AppSearchBatchResult<K, JetpackValue>
             platformAppSearchBatchResultToJetpack(
-            @NonNull android.app.appsearch.AppSearchBatchResult<K, PlatformValue> platformResult,
+            android.app.appsearch.@NonNull AppSearchBatchResult<K, PlatformValue> platformResult,
             @NonNull Function<PlatformValue, JetpackValue> valueMapper) {
         Preconditions.checkNotNull(platformResult);
         Preconditions.checkNotNull(valueMapper);

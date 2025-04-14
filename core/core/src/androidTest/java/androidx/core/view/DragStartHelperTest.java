@@ -34,7 +34,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-import androidx.annotation.NonNull;
 import androidx.core.test.R;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
@@ -42,6 +41,7 @@ import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -64,16 +64,14 @@ public class DragStartHelperTest {
         boolean onDragStart(View view, DragStartHelper helper, Point touchPosition);
     }
 
-    @NonNull
-    private DragStartListener createListener(boolean returnValue) {
+    private @NonNull DragStartListener createListener(boolean returnValue) {
         final DragStartListener listener = mock(DragStartListener.class);
         when(listener.onDragStart(any(View.class), any(DragStartHelper.class), any(Point.class)))
                 .thenReturn(returnValue);
         return listener;
     }
 
-    @NonNull
-    private DragStartHelper createDragStartHelper(final DragStartListener listener) {
+    private @NonNull DragStartHelper createDragStartHelper(final DragStartListener listener) {
         return new DragStartHelper(mDragSource, new DragStartHelper.OnDragStartListener() {
             @Override
             public boolean onDragStart(@NonNull View v, @NonNull DragStartHelper helper) {
@@ -373,6 +371,25 @@ public class DragStartHelperTest {
         // Since ACTION_DOWN is not handled, the touch offset is not available.
         verify(listener, times(1)).onDragStart(
                 eq(mDragSource), eq(helper), argThat(new TouchPositionMatcher(0, 0)));
+        verifyNoMoreInteractions(listener);
+    }
+
+    @LargeTest
+    @Test
+    public void mouseDragThenLongPress() throws Throwable {
+        final DragStartListener listener = createListener(true);
+        final DragStartHelper helper = createDragStartHelper(listener);
+        helper.attach();
+
+        sendMouseEvent(MotionEvent.ACTION_DOWN, MotionEvent.BUTTON_PRIMARY, mDragSource, 0, 0);
+        sendMouseEvent(MotionEvent.ACTION_MOVE, MotionEvent.BUTTON_PRIMARY, mDragSource, 1, 2);
+
+        verify(listener, times(1)).onDragStart(
+                eq(mDragSource), eq(helper), argThat(new TouchPositionMatcher(mDragSource, 1, 2)));
+
+        waitForLongPress();
+
+        // Long press doesn't triggers OnDragStart for a second time.
         verifyNoMoreInteractions(listener);
     }
 }

@@ -26,25 +26,25 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.glance.Button
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.wear.tiles.action.ActionCallback
-import androidx.glance.wear.tiles.action.actionRunCallback
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.padding
 import androidx.glance.layout.height
+import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.glance.wear.tiles.GlanceTileService
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import androidx.glance.wear.tiles.GlanceTileService
+import androidx.glance.wear.tiles.action.ActionCallback
+import androidx.glance.wear.tiles.action.actionRunCallback
 import androidx.glance.wear.tiles.state.updateWearTileState
 
 private val prefsCountKey = intPreferencesKey("count")
@@ -59,21 +59,19 @@ class CountTileService : GlanceTileService() {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier =
-            GlanceModifier.semantics({ contentDescription = "demo of actionRunCallback" })
+                GlanceModifier.semantics({ contentDescription = "demo of actionRunCallback" })
         ) {
-
             Text(
                 text = currentCount.toString(),
-                style = TextStyle(
-                    color = ColorProvider(Color.Gray),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
+                style =
+                    TextStyle(
+                        color = ColorProvider(Color.Gray),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
             )
             Spacer(GlanceModifier.height(20.dp))
-            Row(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Row(horizontalAlignment = Alignment.CenterHorizontally) {
                 Button(
                     text = "+2",
                     modifier = GlanceModifier.padding(5.dp).background(Color.Cyan),
@@ -101,10 +99,7 @@ class CountTileService : GlanceTileService() {
 }
 
 class ClickAddAction : ActionCallback {
-    override suspend fun onAction(
-        context: Context,
-        glanceId: GlanceId
-    ) {
+    override suspend fun onAction(context: Context, glanceId: GlanceId) {
         updateWearTileState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {
                 set(prefsCountKey, (this[prefsCountKey] ?: 0) + 2)
@@ -114,10 +109,7 @@ class ClickAddAction : ActionCallback {
 }
 
 class ClickMultiplyAction : ActionCallback {
-    override suspend fun onAction(
-        context: Context,
-        glanceId: GlanceId
-    ) {
+    override suspend fun onAction(context: Context, glanceId: GlanceId) {
         updateWearTileState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {
                 set(prefsCountKey, (this[prefsCountKey] ?: 0) * 2)
@@ -127,10 +119,7 @@ class ClickMultiplyAction : ActionCallback {
 }
 
 class ClickDivideAction : ActionCallback {
-    override suspend fun onAction(
-        context: Context,
-        glanceId: GlanceId
-    ) {
+    override suspend fun onAction(context: Context, glanceId: GlanceId) {
         updateWearTileState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {
                 set(prefsCountKey, ((this[prefsCountKey] ?: 0) / 2f).toInt())

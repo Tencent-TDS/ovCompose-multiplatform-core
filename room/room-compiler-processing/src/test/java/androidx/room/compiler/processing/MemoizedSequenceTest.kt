@@ -16,8 +16,8 @@
 
 package androidx.room.compiler.processing
 
+import androidx.kruth.assertThat
 import androidx.room.compiler.processing.util.MemoizedSequence
-import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class MemoizedSequenceTest {
@@ -47,48 +47,35 @@ class MemoizedSequenceTest {
         }
         assertThat(startedSequence).isTrue()
         val s3List = memoized.toList()
-        assertThat(
-            s1List
-        ).containsExactlyElementsIn(list)
-        assertThat(
-            s2List
-        ).containsExactlyElementsIn(list)
-        assertThat(
-            s3List
-        ).containsExactlyElementsIn(list)
+        assertThat(s1List).containsExactlyElementsIn(list)
+        assertThat(s2List).containsExactlyElementsIn(list)
+        assertThat(s3List).containsExactlyElementsIn(list)
     }
 
     @Test
     fun empty() {
-        val memoized = MemoizedSequence<Int> {
-            emptySequence()
-        }
+        val memoized = MemoizedSequence<Int> { emptySequence() }
         assertThat(memoized.toList()).isEmpty()
     }
 
     @Test
     fun noSuchElement_empty() {
-        val memoized = MemoizedSequence<Int> {
-            emptySequence()
-        }
-        val result = kotlin.runCatching {
-            memoized.iterator().next()
-        }
-        assertThat(result.exceptionOrNull()).isInstanceOf(NoSuchElementException::class.java)
+        val memoized = MemoizedSequence<Int> { emptySequence() }
+        val result = kotlin.runCatching { memoized.iterator().next() }
+        assertThat(result.exceptionOrNull()).isInstanceOf<NoSuchElementException>()
     }
 
     @Test
     fun noSuchElement_notEmpty() {
-        val iterator = MemoizedSequence {
-            sequenceOf(1, 2, 3)
-        }.iterator()
+        val iterator = MemoizedSequence { sequenceOf(1, 2, 3) }.iterator()
         val collected = mutableListOf<Int>()
-        val result = kotlin.runCatching {
-            while (true) {
-                collected.add(iterator.next())
+        val result =
+            kotlin.runCatching {
+                while (true) {
+                    collected.add(iterator.next())
+                }
             }
-        }
-        assertThat(result.exceptionOrNull()).isInstanceOf(NoSuchElementException::class.java)
+        assertThat(result.exceptionOrNull()).isInstanceOf<NoSuchElementException>()
         assertThat(collected).containsExactly(1, 2, 3)
     }
 }

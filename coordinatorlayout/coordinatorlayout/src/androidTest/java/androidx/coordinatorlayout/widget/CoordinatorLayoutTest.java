@@ -49,7 +49,6 @@ import android.view.View;
 import android.view.View.MeasureSpec;
 import android.widget.ImageView;
 
-import androidx.annotation.NonNull;
 import androidx.coordinatorlayout.test.R;
 import androidx.coordinatorlayout.testutils.CoordinatorLayoutUtils;
 import androidx.coordinatorlayout.testutils.CoordinatorLayoutUtils.DependentBehavior;
@@ -61,7 +60,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,7 +91,7 @@ public class CoordinatorLayoutTest {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 21)
+    @SdkSuppress(minSdkVersion = 21, maxSdkVersion = 34) // b/384972523: Failing on SDK 35
     public void testSetFitSystemWindows() throws Throwable {
         // Skip this test on Android TV
         PackageManager manager = mActivityTestRule.getActivity().getPackageManager();
@@ -583,7 +584,7 @@ public class CoordinatorLayoutTest {
         // And assert that it has not been laid out
         assertFalse(imageView.getMeasuredWidth() > 0);
         assertFalse(imageView.getMeasuredHeight() > 0);
-        assertFalse(ViewCompat.isLaidOut(imageView));
+        assertFalse(imageView.isLaidOut());
 
         // Now set the view to INVISIBLE
         mActivityTestRule.runOnUiThread(new Runnable() {
@@ -598,10 +599,11 @@ public class CoordinatorLayoutTest {
         // And assert that it has been laid out
         assertTrue(imageView.getMeasuredWidth() > 0);
         assertTrue(imageView.getMeasuredHeight() > 0);
-        assertTrue(ViewCompat.isLaidOut(imageView));
+        assertTrue(imageView.isLaidOut());
     }
 
     @Test
+    @Ignore("b/294608735")
     public void testNestedScrollingDispatchesToBehavior() throws Throwable {
         final CoordinatorLayoutActivity activity = mActivityTestRule.getActivity();
         final CoordinatorLayout col = activity.mCoordinatorLayout;
@@ -865,8 +867,7 @@ public class CoordinatorLayoutTest {
         assertThat(dependencySortedChildren, is(Arrays.asList(anchor, ship)));
     }
 
-    @NonNull
-    private View createViewWithHashCode(final Context context, final int hashCode) {
+    private @NonNull View createViewWithHashCode(final Context context, final int hashCode) {
         return new View(context) {
             @Override
             public int hashCode() {

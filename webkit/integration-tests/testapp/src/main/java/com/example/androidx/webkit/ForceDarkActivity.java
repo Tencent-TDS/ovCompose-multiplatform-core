@@ -24,10 +24,11 @@ import android.util.Base64;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * An {@link Activity} to exercise Force Dark functionality.
@@ -37,6 +38,7 @@ public class ForceDarkActivity extends AppCompatActivity {
     private static final String DESCRIPTION =
             "<html><body><h1>Force Dark Mode is %s </h1></body></html>";
 
+    @SuppressWarnings("deprecation") /* b/180503860 */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +59,7 @@ public class ForceDarkActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings("deprecation") /* b/180503860 */
     private void setupWebView(WebView webView, int forceDarkMode) {
         webView.setWebViewClient(new WebViewClient());
         String formattedDescription;

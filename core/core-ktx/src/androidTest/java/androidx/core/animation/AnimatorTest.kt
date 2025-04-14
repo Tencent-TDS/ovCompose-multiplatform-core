@@ -22,7 +22,6 @@ import android.view.View
 import androidx.test.annotation.UiThreadTest
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -37,57 +36,52 @@ class AnimatorTest {
 
     private lateinit var animator: Animator
 
-    @Before fun before() {
+    @Before
+    fun before() {
         animator = ObjectAnimator.ofFloat(view, View.ALPHA, 0f, 1f)
     }
 
-    @Test fun testDoOnStart() {
+    @Test
+    fun testDoOnStart() {
         var called = false
-        animator.doOnStart {
-            called = true
-        }
+        animator.doOnStart { called = true }
 
         animator.listeners.forEach { it.onAnimationStart(animator) }
         assertTrue(called)
     }
 
-    @Test fun testDoOnEnd() {
+    @Test
+    fun testDoOnEnd() {
         var called = false
-        animator.doOnEnd {
-            called = true
-        }
+        animator.doOnEnd { called = true }
 
         animator.listeners.forEach { it.onAnimationEnd(animator) }
         assertTrue(called)
     }
 
-    @Test fun testDoOnCancel() {
+    @Test
+    fun testDoOnCancel() {
         var cancelCalled = false
-        animator.doOnCancel {
-            cancelCalled = true
-        }
+        animator.doOnCancel { cancelCalled = true }
 
         animator.listeners.forEach { it.onAnimationCancel(animator) }
         assertTrue(cancelCalled)
     }
 
-    @Test fun testDoOnRepeat() {
+    @Test
+    fun testDoOnRepeat() {
         var called = false
-        animator.doOnRepeat {
-            called = true
-        }
+        animator.doOnRepeat { called = true }
 
         animator.listeners.forEach { it.onAnimationRepeat(animator) }
         assertTrue(called)
     }
 
     @UiThreadTest
-    @SdkSuppress(minSdkVersion = 19)
-    @Test fun testDoOnPause() {
+    @Test
+    fun testDoOnPause() {
         var called = false
-        animator.doOnPause {
-            called = true
-        }
+        animator.doOnPause { called = true }
 
         // Start and pause and assert doOnPause was called
         animator.start()
@@ -98,12 +92,10 @@ class AnimatorTest {
     }
 
     @UiThreadTest
-    @SdkSuppress(minSdkVersion = 19)
-    @Test fun testDoOnResume() {
+    @Test
+    fun testDoOnResume() {
         var called = false
-        animator.doOnResume {
-            called = true
-        }
+        animator.doOnResume { called = true }
 
         animator.start()
         animator.pause()

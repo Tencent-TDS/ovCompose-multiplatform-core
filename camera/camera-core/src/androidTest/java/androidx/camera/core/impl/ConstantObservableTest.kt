@@ -17,7 +17,7 @@
 package androidx.camera.core.impl
 
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
-import androidx.camera.testing.asFlow
+import androidx.camera.testing.impl.asFlow
 import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
@@ -64,16 +64,16 @@ public class ConstantObservableTest {
 
         // Create on observer of CharSequence, a superclass of String
         val deferredValue = CompletableDeferred<CharSequence?>()
-        val observer: Observable.Observer<CharSequence> = object :
-            Observable.Observer<CharSequence> {
-            override fun onNewData(value: CharSequence?) {
-                deferredValue.complete(value)
-            }
+        val observer: Observable.Observer<CharSequence> =
+            object : Observable.Observer<CharSequence> {
+                override fun onNewData(value: CharSequence?) {
+                    deferredValue.complete(value)
+                }
 
-            override fun onError(t: Throwable) {
-                deferredValue.completeExceptionally(t)
+                override fun onError(t: Throwable) {
+                    deferredValue.completeExceptionally(t)
+                }
             }
-        }
 
         // Add the observer to receive the value
         constantObservable.addObserver(CameraXExecutors.directExecutor(), observer)

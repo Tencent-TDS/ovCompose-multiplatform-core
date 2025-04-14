@@ -20,11 +20,7 @@ package androidx.health.connect.client.impl.converters.records
 import androidx.annotation.RestrictTo
 import androidx.health.platform.client.proto.DataProto
 
-/**
- * Provides conversion to proto value objects.
- *
- * @suppress
- */
+/** Provides conversion to proto value objects. */
 internal fun longVal(value: Long): DataProto.Value =
     DataProto.Value.newBuilder().setLongVal(value).build()
 
@@ -36,6 +32,9 @@ internal fun stringVal(value: String): DataProto.Value =
 
 internal fun enumVal(value: String): DataProto.Value =
     DataProto.Value.newBuilder().setEnumVal(value).build()
+
+internal fun boolVal(value: Boolean): DataProto.Value =
+    DataProto.Value.newBuilder().setBooleanVal(value).build()
 
 internal fun enumValFromInt(value: Int, intToStringMap: Map<Int, String>): DataProto.Value? {
     return intToStringMap[value]?.let(::enumVal)

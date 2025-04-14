@@ -1,5 +1,6 @@
 // CHECKSTYLE:OFF Generated code
 /* This file is auto-generated from RowsFragment.java.  DO NOT MODIFY. */
+
 /*
  * Copyright (C) 2014 The Android Open Source Project
  *
@@ -19,7 +20,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.leanback.paging.PagingDataAdapter;
 import androidx.leanback.widget.ArrayObjectAdapter;
@@ -36,12 +36,13 @@ import androidx.leanback.widget.RowPresenter;
 import androidx.leanback.widget.TitleHelper;
 import androidx.recyclerview.widget.DiffUtil;
 
+import org.jspecify.annotations.NonNull;
+
 public class RowsSupportFragment extends androidx.leanback.app.RowsSupportFragment {
 
     private static final String TAG = "leanback.RowsSupportFragment";
 
     private static final int NUM_ROWS = 10;
-
     // Row heights default to wrap content
     private static final boolean USE_FIXED_ROW_HEIGHT = false;
 
@@ -55,6 +56,7 @@ public class RowsSupportFragment extends androidx.leanback.app.RowsSupportFragme
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+
         setupRows();
         setOnItemViewClickedListener(new ItemViewClickedListener());
         setOnItemViewSelectedListener(new OnItemViewSelectedListener() {

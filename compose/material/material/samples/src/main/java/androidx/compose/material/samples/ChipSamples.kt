@@ -18,10 +18,15 @@ package androidx.compose.material.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.Chip
 import androidx.compose.material.ChipDefaults
@@ -44,9 +49,7 @@ import androidx.compose.ui.unit.dp
 @Sampled
 @Composable
 fun ChipSample() {
-    Chip(onClick = { /* Do something! */ }) {
-        Text("Action Chip")
-    }
+    Chip(onClick = { /* Do something! */ }) { Text("Action Chip") }
 }
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -57,12 +60,7 @@ fun OutlinedChipWithIconSample() {
         onClick = { /* Do something! */ },
         border = ChipDefaults.outlinedBorder,
         colors = ChipDefaults.outlinedChipColors(),
-        leadingIcon = {
-            Icon(
-                Icons.Filled.Settings,
-                contentDescription = "Localized description"
-            )
-        }
+        leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = "Localized description") }
     ) {
         Text("Change settings")
     }
@@ -82,7 +80,8 @@ fun FilterChipSample() {
                 contentDescription = "Localized Description",
                 modifier = Modifier.requiredSize(ChipDefaults.SelectedIconSize)
             )
-        }) {
+        }
+    ) {
         Text("Filter chip")
     }
 }
@@ -103,7 +102,8 @@ fun OutlinedFilterChipSample() {
                 contentDescription = "Localized Description",
                 modifier = Modifier.requiredSize(ChipDefaults.SelectedIconSize)
             )
-        }) {
+        }
+    ) {
         Text("Filter chip")
     }
 }
@@ -143,8 +143,32 @@ fun ChipGroupSingleLineSample() {
         Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
             repeat(9) { index ->
                 Chip(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    onClick = { /* do something*/ }) {
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    onClick = { /* do something*/ }
+                ) {
+                    Text("Chip $index")
+                }
+            }
+        }
+    }
+}
+
+@Sampled
+@OptIn(ExperimentalMaterialApi::class, ExperimentalLayoutApi::class)
+@Composable
+fun ChipGroupReflowSample() {
+    Column {
+        FlowRow(
+            Modifier.fillMaxWidth(1f).wrapContentHeight(align = Alignment.Top),
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            repeat(10) { index ->
+                Chip(
+                    modifier =
+                        Modifier.padding(horizontal = 4.dp)
+                            .align(alignment = Alignment.CenterVertically),
+                    onClick = { /* do something*/ }
+                ) {
                     Text("Chip $index")
                 }
             }

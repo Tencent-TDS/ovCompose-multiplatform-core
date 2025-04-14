@@ -26,10 +26,10 @@ import androidx.glance.appwidget.action.ActionTrampolineType
 import androidx.glance.appwidget.action.createUniqueUri
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import java.io.Serializable
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.Serializable
 
 @RunWith(RobolectricTestRunner::class)
 class ActionCallbackBroadcastReceiverTest {
@@ -55,28 +55,32 @@ class ActionCallbackBroadcastReceiverTest {
     }
 
     private fun createPendingIntent(parameters: ActionParameters, viewId: Int): PendingIntent {
+        val translationContext =
+            TranslationContext(
+                context,
+                appWidgetId = 1,
+                isRtl = false,
+                layoutConfiguration = LayoutConfiguration.create(context, 1),
+                itemPosition = -1,
+                isLazyCollectionDescendant = false,
+                glanceComponents = GlanceComponents.getDefault(context),
+            )
         return PendingIntent.getBroadcast(
             context,
             0,
             ActionCallbackBroadcastReceiver.createIntent(
-                context = context,
-                callbackClass = ActionCallback::class.java,
-                appWidgetId = 1,
-                parameters = parameters
-            ).apply {
-                data = createUniqueUri(
-                    TranslationContext(
-                        context,
-                        appWidgetId = 1,
-                        isRtl = false,
-                        layoutConfiguration = LayoutConfiguration.create(context, 1),
-                        itemPosition = -1,
-                        isLazyCollectionDescendant = false,
-                    ),
-                    viewId = viewId,
-                    type = ActionTrampolineType.CALLBACK,
+                    translationContext = translationContext,
+                    callbackClass = ActionCallback::class.java,
+                    parameters = parameters
                 )
-            },
+                .apply {
+                    data =
+                        createUniqueUri(
+                            translationContext,
+                            viewId = viewId,
+                            type = ActionTrampolineType.CALLBACK,
+                        )
+                },
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
     }

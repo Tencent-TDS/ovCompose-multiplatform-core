@@ -1,6 +1,8 @@
 package com.sdk
 
+import androidx.privacysandbox.activity.core.SdkActivityLauncher
 import com.sdk.PrivacySandboxThrowableParcelConverter.fromThrowableParcel
+import com.sdk.SdkActivityLauncherConverter.toBinder
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -29,14 +31,19 @@ public class MyInterfaceClientProxy(
         }
     }
 
-    public override fun doSomething(firstInterface: MyInterface,
-            secondInterface: MySecondInterface): Unit {
-        remote.doSomething((firstInterface as MyInterfaceClientProxy).remote, (secondInterface as
-                MySecondInterfaceClientProxy).remote)
+    public override fun doSomething(
+        firstInterface: MyInterface,
+        secondInterface: MySecondInterface,
+        sharedUiInterface: MySharedUiInterface,
+    ) {
+        remote.doSomething((firstInterface as MyInterfaceClientProxy).remote, IMySecondInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable((secondInterface as MySecondInterfaceClientProxy).coreLibInfo, secondInterface.remote), IMySharedUiInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable((sharedUiInterface as MySharedUiInterfaceClientProxy).coreLibInfo, sharedUiInterface.remote))
     }
 
-    public override fun doSomethingWithNullableInterface(maybeInterface: MySecondInterface?): Unit {
-        remote.doSomethingWithNullableInterface(maybeInterface?.let { notNullValue -> (notNullValue
-                as MySecondInterfaceClientProxy).remote })
+    public override fun doSomethingWithNullableInterface(maybeInterface: MySecondInterface?, maybeSharedUiInterface: MySharedUiInterface?) {
+        remote.doSomethingWithNullableInterface(maybeInterface?.let { notNullValue -> IMySecondInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable((notNullValue as MySecondInterfaceClientProxy).coreLibInfo, notNullValue.remote) }, maybeSharedUiInterface?.let { notNullValue -> IMySharedUiInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable((notNullValue as MySharedUiInterfaceClientProxy).coreLibInfo, notNullValue.remote) })
+    }
+
+    public override fun doSomethingWithSdkActivityLauncher(launcher: SdkActivityLauncher) {
+        remote.doSomethingWithSdkActivityLauncher(toBinder(launcher))
     }
 }

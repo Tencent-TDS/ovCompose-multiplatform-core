@@ -33,10 +33,11 @@ import android.text.style.TypefaceSpan;
 import android.text.style.UnderlineSpan;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -60,7 +61,6 @@ import java.util.concurrent.TimeUnit;
  * one of the provided builders: {@link TimeDifferenceBuilder} or {@link TimeFormatBuilder}.
  *
  * <p>Note this class is not thread safe.
- *
  */
 @SuppressLint("BanParcelableUsage")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -75,16 +75,16 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
             return false;
         }
         ComplicationText that = (ComplicationText) o;
-        if (mExpression == null) {
-            if (that.mExpression != null) {
+        if (mDynamicText == null) {
+            if (that.mDynamicText != null) {
                 return false;
             }
         } else {
-            if (that.mExpression == null) {
+            if (that.mDynamicText == null) {
                 return false;
             } else if (!Arrays.equals(
-                    mExpression.toDynamicStringByteArray(),
-                    that.mExpression.toDynamicStringByteArray())) {
+                    mDynamicText.toDynamicStringByteArray(),
+                    that.mDynamicText.toDynamicStringByteArray())) {
                 return false;
             }
         }
@@ -110,21 +110,20 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
         return Objects.hash(
                 mSurroundingText,
                 mTimeDependentText,
-                mExpression == null
+                mDynamicText == null
                         ? null
-                        : Arrays.hashCode(mExpression.toDynamicStringByteArray()));
+                        : Arrays.hashCode(mDynamicText.toDynamicStringByteArray()));
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return "ComplicationText{"
                 + "mSurroundingText="
                 + ComplicationData.maybeRedact(mSurroundingText)
                 + ", mTimeDependentText="
                 + mTimeDependentText
-                + ", mExpression="
-                + mExpression
+                + ", mDynamicText="
+                + mDynamicText
                 + "}";
     }
 
@@ -253,24 +252,20 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     private static final String KEY_DIFFERENCE_STYLE = "difference_style";
     private static final String KEY_DIFFERENCE_SHOW_NOW_TEXT = "show_now_text";
     private static final String KEY_DIFFERENCE_MINIMUM_UNIT = "minimum_unit";
-    private static final String KEY_STRING_EXPRESSION = "string_expression";
+    private static final String KEY_DYNAMIC_STRING = "dynamic_string";
     private static final String KEY_FORMAT_FORMAT_STRING = "format_format_string";
     private static final String KEY_FORMAT_STYLE = "format_style";
     private static final String KEY_FORMAT_TIME_ZONE = "format_time_zone";
 
-    @NonNull
-    public static final Parcelable.Creator<ComplicationText> CREATOR =
+    public static final Parcelable.@NonNull Creator<ComplicationText> CREATOR =
             new Parcelable.Creator<ComplicationText>() {
                 @Override
-                @NonNull
-                @SuppressLint("SyntheticAccessor")
-                public ComplicationText createFromParcel(@NonNull Parcel in) {
+                public @NonNull ComplicationText createFromParcel(@NonNull Parcel in) {
                     return new ComplicationText(in);
                 }
 
                 @Override
-                @NonNull
-                public ComplicationText[] newArray(int size) {
+                public ComplicationText @NonNull [] newArray(int size) {
                     return new ComplicationText[size];
                 }
             };
@@ -281,17 +276,17 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
      * #mTimeDependentText} is not null, getText will return this text with {@code ^1} replaced by
      * the time-dependent string.
      */
-    @Nullable private final CharSequence mSurroundingText;
+    private final @Nullable CharSequence mSurroundingText;
 
     /**
      * The time-dependent part of the complication text. If {@link #mSurroundingText} is null, this
      * must be not null and {@link #getTextAt} will return just the time-dependent value relative to
      * the given time.
      */
-    @Nullable private final TimeDependentText mTimeDependentText;
+    private final @Nullable TimeDependentText mTimeDependentText;
 
     /** A {@link DynamicString} which will be evaluated by the system on the WatchFace's behalf. */
-    @Nullable private final DynamicString mExpression;
+    private final @Nullable DynamicString mDynamicText;
 
     /** Used to replace occurrences of ^1 with time dependent text and ignore ^[2-9]. */
     private final CharSequence[] mTemplateValues =
@@ -305,39 +300,39 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     private ComplicationText(
             @Nullable CharSequence surroundingText,
             @Nullable TimeDependentText timeDependentText,
-            @Nullable DynamicString expression) {
+            @Nullable DynamicString dynamicText) {
         mSurroundingText = surroundingText;
         mTimeDependentText = timeDependentText;
-        mExpression = expression;
+        mDynamicText = dynamicText;
         checkFields();
     }
 
     public ComplicationText(@NonNull CharSequence surroundingText) {
-        this(surroundingText, /* timeDependentText= */ null, /* expression= */ null);
+        this(surroundingText, /* timeDependentText= */ null, /* dynamicText= */ null);
     }
 
     public ComplicationText(
             @NonNull CharSequence surroundingText, @NonNull TimeDependentText timeDependentText) {
-        this(surroundingText, timeDependentText, /* expression= */ null);
+        this(surroundingText, timeDependentText, /* dynamicText= */ null);
     }
 
     public ComplicationText(
-            @NonNull CharSequence surroundingText, @NonNull DynamicString expression) {
-        this(surroundingText, /* timeDependentText= */ null, expression);
+            @NonNull CharSequence surroundingText, @NonNull DynamicString dynamicText) {
+        this(surroundingText, /* timeDependentText= */ null, dynamicText);
     }
 
-    public ComplicationText(@NonNull DynamicString expression) {
-        this(/* surroundingText= */ null, /* timeDependentText= */ null, expression);
+    public ComplicationText(@NonNull DynamicString dynamicText) {
+        this(/* surroundingText= */ null, /* timeDependentText= */ null, dynamicText);
     }
 
     private ComplicationText(@NonNull Parcel in) {
         Bundle bundle = in.readBundle(getClass().getClassLoader());
         mSurroundingText = bundle.getCharSequence(KEY_SURROUNDING_STRING);
 
-        if (bundle.containsKey(KEY_STRING_EXPRESSION)) {
-            mExpression = DynamicString.fromByteArray(bundle.getByteArray(KEY_STRING_EXPRESSION));
+        if (bundle.containsKey(KEY_DYNAMIC_STRING)) {
+            mDynamicText = DynamicString.fromByteArray(bundle.getByteArray(KEY_DYNAMIC_STRING));
         } else {
-            mExpression = null;
+            mDynamicText = null;
         }
 
         if (bundle.containsKey(KEY_DIFFERENCE_STYLE)
@@ -370,24 +365,24 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     private static class SerializedForm implements Serializable {
         CharSequence mSurroundingText;
         TimeDependentText mTimeDependentText;
-        DynamicString mExpression;
+        DynamicString mDynamicText;
 
         SerializedForm(
                 @Nullable CharSequence surroundingText,
                 @Nullable TimeDependentText timeDependentText,
-                @Nullable DynamicString expression) {
+                @Nullable DynamicString dynamicText) {
             mSurroundingText = surroundingText;
             mTimeDependentText = timeDependentText;
-            mExpression = expression;
+            mDynamicText = dynamicText;
         }
 
         private void writeObject(ObjectOutputStream oos) throws IOException {
             CharSequenceSerializableHelper.writeToStream(mSurroundingText, oos);
             oos.writeObject(mTimeDependentText);
-            if (mExpression == null) {
+            if (mDynamicText == null) {
                 oos.writeInt(0);
             } else {
-                byte[] bytes = mExpression.toDynamicStringByteArray();
+                byte[] bytes = mDynamicText.toDynamicStringByteArray();
                 oos.writeInt(bytes.length);
                 oos.write(bytes);
             }
@@ -398,22 +393,21 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
             mTimeDependentText = (TimeDependentText) ois.readObject();
             int length = ois.readInt();
             if (length == 0) {
-                mExpression = null;
+                mDynamicText = null;
             } else {
                 byte[] bytes = new byte[length];
                 ois.readFully(bytes);
-                mExpression = DynamicString.fromByteArray(bytes);
+                mDynamicText = DynamicString.fromByteArray(bytes);
             }
         }
 
-        @SuppressLint("SyntheticAccessor")
         Object readResolve() {
-            return new ComplicationText(mSurroundingText, mTimeDependentText, mExpression);
+            return new ComplicationText(mSurroundingText, mTimeDependentText, mDynamicText);
         }
     }
 
     Object writeReplace() {
-        return new SerializedForm(mSurroundingText, mTimeDependentText, mExpression);
+        return new SerializedForm(mSurroundingText, mTimeDependentText, mDynamicText);
     }
 
     private void readObject(ObjectInputStream stream) throws InvalidObjectException {
@@ -424,8 +418,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
      * Returns the {@link TimeUnit} with the provided {@code name}. Returns null if {@code name} is
      * null, or is not a TimeUnit.
      */
-    @Nullable
-    private static TimeUnit timeUnitFromName(@Nullable String name) {
+    private static @Nullable TimeUnit timeUnitFromName(@Nullable String name) {
         if (name == null) {
             return null;
         }
@@ -437,9 +430,10 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     }
 
     private void checkFields() {
-        if (mSurroundingText == null && mTimeDependentText == null && mExpression == null) {
+        if (mSurroundingText == null && mTimeDependentText == null && mDynamicText == null) {
             throw new IllegalStateException(
-                    "One of mSurroundingText, mTimeDependentText and mExpression must be non-null");
+                    "One of mSurroundingText, mTimeDependentText and mDynamicText must be "
+                            + "non-null");
         }
     }
 
@@ -454,8 +448,8 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
         Bundle bundle = new Bundle();
         bundle.putCharSequence(KEY_SURROUNDING_STRING, mSurroundingText);
 
-        if (mExpression != null) {
-            bundle.putByteArray(KEY_STRING_EXPRESSION, mExpression.toDynamicStringByteArray());
+        if (mDynamicText != null) {
+            bundle.putByteArray(KEY_DYNAMIC_STRING, mDynamicText.toDynamicStringByteArray());
         }
 
         if (mTimeDependentText != null) {
@@ -483,16 +477,12 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
         out.writeBundle(bundle);
     }
 
-    /**
-     * Returns the time-dependent part of the complication text.
-     *
-     */
-    @NonNull
+    /** Returns the time-dependent part of the complication text. */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    public TimeDependentText getTimeDependentText() {
-        if (mExpression != null) {
+    public @NonNull TimeDependentText getTimeDependentText() {
+        if (mDynamicText != null) {
             throw new UnsupportedOperationException(
-                    "getTimeDependentText not supported for " + "StringExpressions");
+                    "getTimeDependentText not supported for DynamicText");
         }
         assert mTimeDependentText != null;
         return mTimeDependentText;
@@ -511,12 +501,10 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
      * @param dateTimeMillis milliseconds since epoch, e.g. from {@link System#currentTimeMillis}
      * @return Text appropriate for the given date time.
      */
-    @NonNull
     @Override
-    public CharSequence getTextAt(@NonNull Resources resources, long dateTimeMillis) {
-        if (mExpression != null && mTimeDependentText == null && mSurroundingText == null) {
-            throw new UnsupportedOperationException(
-                    "getTextAt not supported for " + "StringExpressions");
+    public @NonNull CharSequence getTextAt(@NonNull Resources resources, long dateTimeMillis) {
+        if (mDynamicText != null && mTimeDependentText == null && mSurroundingText == null) {
+            throw new UnsupportedOperationException("getTextAt not supported for DynamicText");
         }
 
         if (mTimeDependentText == null) {
@@ -542,15 +530,13 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     }
 
     /** Returns the text within which the time difference is displayed. */
-    @Nullable
-    public CharSequence getSurroundingText() {
+    public @Nullable CharSequence getSurroundingText() {
         return mSurroundingText;
     }
 
     /** Returns the {@link DynamicString} to be evaluated to display this text. */
-    @Nullable
-    public DynamicString getExpression() {
-        return mExpression;
+    public @Nullable DynamicString getDynamicValue() {
+        return mDynamicText;
     }
 
     /** Whether or not this is a placeholder. */
@@ -592,7 +578,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
     }
 
     /** Returns true if the text has a time-dependent component. */
-    boolean isTimeDependent() {
+    public boolean isTimeDependent() {
         return mTimeDependentText != null;
     }
 
@@ -613,8 +599,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
      *
      * @param text the text to be displayed
      */
-    @NonNull
-    public static ComplicationText plainText(@NonNull CharSequence text) {
+    public static @NonNull ComplicationText plainText(@NonNull CharSequence text) {
         return new ComplicationText(text);
     }
 
@@ -672,8 +657,8 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *     since the epoch.
          * @return this builder for chaining.
          */
-        @NonNull
-        public TimeDifferenceBuilder setReferencePeriodStartMillis(long refPeriodStartMillis) {
+        public @NonNull TimeDifferenceBuilder setReferencePeriodStartMillis(
+                long refPeriodStartMillis) {
             if (refPeriodStartMillis < 0) {
                 throw new IllegalArgumentException("Reference period start cannot be negative");
             }
@@ -689,8 +674,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *     since the epoch.
          * @return this builder for chaining.
          */
-        @NonNull
-        public TimeDifferenceBuilder setReferencePeriodEndMillis(long refPeriodEndMillis) {
+        public @NonNull TimeDifferenceBuilder setReferencePeriodEndMillis(long refPeriodEndMillis) {
             if (refPeriodEndMillis < 0) {
                 throw new IllegalArgumentException("Reference period end cannot be negative");
             }
@@ -708,8 +692,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          * @see #DIFFERENCE_STYLE_STOPWATCH
          * @see #DIFFERENCE_STYLE_WORDS_SINGLE_UNIT
          */
-        @NonNull
-        public TimeDifferenceBuilder setStyle(@TimeDifferenceStyle int style) {
+        public @NonNull TimeDifferenceBuilder setStyle(@TimeDifferenceStyle int style) {
             mStyle = style;
             return this;
         }
@@ -733,8 +716,8 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *     with {@code ^1} in place of the time difference.
          * @return this builder for chaining.
          */
-        @NonNull
-        public TimeDifferenceBuilder setSurroundingText(@Nullable CharSequence surroundingText) {
+        public @NonNull TimeDifferenceBuilder setSurroundingText(
+                @Nullable CharSequence surroundingText) {
             mSurroundingText = surroundingText;
             return this;
         }
@@ -746,8 +729,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *
          * <p>The default is true for all styles except for {@link #DIFFERENCE_STYLE_STOPWATCH}.
          */
-        @NonNull
-        public TimeDifferenceBuilder setShowNowText(boolean showNowText) {
+        public @NonNull TimeDifferenceBuilder setShowNowText(boolean showNowText) {
             mShowNowText = showNowText;
             return this;
         }
@@ -768,16 +750,13 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          * #DIFFERENCE_STYLE_SHORT_SINGLE_UNIT}, then a minimum unit of {@link TimeUnit#SECONDS}
          * will have no effect.
          */
-        @NonNull
-        public TimeDifferenceBuilder setMinimumUnit(@Nullable TimeUnit minimumUnit) {
+        public @NonNull TimeDifferenceBuilder setMinimumUnit(@Nullable TimeUnit minimumUnit) {
             mMinimumUnit = minimumUnit;
             return this;
         }
 
         /** Returns {@link ComplicationText} representing the time difference as specified. */
-        @NonNull
-        @SuppressLint("SyntheticAccessor")
-        public ComplicationText build() {
+        public @NonNull ComplicationText build() {
             if (mReferencePeriodEndMillis < mReferencePeriodStartMillis) {
                 throw new IllegalStateException("Reference period end must not be before start.");
             }
@@ -813,8 +792,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          * Sets the format that should be applied to the date. This should be a pattern as used by
          * {@link java.text.SimpleDateFormat SimpleDateFormat}.
          */
-        @NonNull
-        public TimeFormatBuilder setFormat(@Nullable String format) {
+        public @NonNull TimeFormatBuilder setFormat(@Nullable String format) {
             mFormat = format;
             return this;
         }
@@ -828,8 +806,7 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          * @see #FORMAT_STYLE_UPPER_CASE
          * @see #FORMAT_STYLE_LOWER_CASE
          */
-        @NonNull
-        public TimeFormatBuilder setStyle(@TimeFormatStyle int style) {
+        public @NonNull TimeFormatBuilder setStyle(@TimeFormatStyle int style) {
             mStyle = style;
             return this;
         }
@@ -853,8 +830,8 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *     with {@code ^1} in place of the time difference.
          * @return this builder for chaining.
          */
-        @NonNull
-        public TimeFormatBuilder setSurroundingText(@Nullable CharSequence surroundingText) {
+        public @NonNull TimeFormatBuilder setSurroundingText(
+                @Nullable CharSequence surroundingText) {
             mSurroundingText = surroundingText;
             return this;
         }
@@ -865,17 +842,14 @@ public final class ComplicationText implements Parcelable, TimeDependentText, Se
          *
          * @return this builder for chaining.
          */
-        @NonNull
-        public TimeFormatBuilder setTimeZone(
-                @Nullable @SuppressWarnings("UseIcu") TimeZone timeZone) {
+        public @NonNull TimeFormatBuilder setTimeZone(
+                @SuppressWarnings("UseIcu") @Nullable TimeZone timeZone) {
             mTimeZone = timeZone;
             return this;
         }
 
         /** Returns {@link ComplicationText} including the formatted time as specified. */
-        @NonNull
-        @SuppressLint("SyntheticAccessor")
-        public ComplicationText build() {
+        public @NonNull ComplicationText build() {
             return new ComplicationText(
                     mSurroundingText, new TimeFormatText(mFormat, mStyle, mTimeZone));
         }

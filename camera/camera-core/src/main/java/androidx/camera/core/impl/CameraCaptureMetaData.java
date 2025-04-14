@@ -16,13 +16,14 @@
 
 package androidx.camera.core.impl;
 
-import androidx.annotation.RequiresApi;
+
+import static androidx.camera.core.FlashState.NOT_FIRED;
+import static androidx.camera.core.FlashState.UNAVAILABLE;
 
 /**
  * This class defines the enumeration constants used for querying the camera capture mode and
  * results.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraCaptureMetaData {
     private CameraCaptureMetaData() {
     }
@@ -121,6 +122,31 @@ public final class CameraCaptureMetaData {
         LOCKED
     }
 
+    /** AE mode. */
+    public enum AeMode {
+        UNKNOWN,
+        OFF,
+        ON,
+        ON_AUTO_FLASH,
+        ON_ALWAYS_FLASH,
+        ON_AUTO_FLASH_REDEYE,
+        ON_EXTERNAL_FLASH
+    }
+
+    /** AWB mode. */
+    public enum AwbMode {
+        UNKNOWN,
+        OFF,
+        AUTO,
+        INCANDESCENT,
+        FLUORESCENT,
+        WARM_FLUORESCENT,
+        DAYLIGHT,
+        CLOUDY_DAYLIGHT,
+        TWILIGHT,
+        SHADE
+    }
+
     /** Flash state. */
     public enum FlashState {
 
@@ -134,6 +160,22 @@ public final class CameraCaptureMetaData {
         READY,
 
         /** Flash has been fired. */
-        FIRED
+        FIRED;
+
+        /**
+         * Returns the IntDef equivalent.
+         */
+        public @androidx.camera.core.FlashState.FlashState int toFlashState() {
+            switch (this) {
+                case NONE:
+                    return UNAVAILABLE;
+                case READY:
+                    return NOT_FIRED;
+                case FIRED:
+                    return androidx.camera.core.FlashState.FIRED;
+                default:
+                    return androidx.camera.core.FlashState.UNKNOWN;
+            }
+        }
     }
 }

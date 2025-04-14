@@ -22,21 +22,17 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.cachedIn
+import androidx.paging.liveData
 import androidx.paging.rxjava2.cachedIn
 import androidx.paging.rxjava2.flowable
-import androidx.paging.liveData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
-/**
- * No-op ViewModel base class to be used by sample code that doesn't show ViewModel impl
- */
+/** No-op ViewModel base class to be used by sample code that doesn't show ViewModel impl */
 open class BaseViewModel<T : Any> : ViewModel() {
     private lateinit var pagingSourceFactory: () -> PagingSource<String, T>
 
-    private val pager = Pager(
-        config = PagingConfig(pageSize = 40),
-        pagingSourceFactory = pagingSourceFactory
-    )
+    private val pager =
+        Pager(config = PagingConfig(pageSize = 40), pagingSourceFactory = pagingSourceFactory)
 
     val pagingFlow = pager.flow.cachedIn(viewModelScope)
 

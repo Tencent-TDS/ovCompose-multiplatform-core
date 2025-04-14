@@ -31,20 +31,19 @@ import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeVariable
 
-internal class JavacMethodElement(
-    env: JavacProcessingEnv,
-    element: ExecutableElement
-) : JavacExecutableElement(env, element),
-    XMethodElement {
+internal class JavacMethodElement(env: JavacProcessingEnv, element: ExecutableElement) :
+    JavacExecutableElement(env, element), XMethodElement {
     init {
         check(element.kind == ElementKind.METHOD) {
             "Method element is constructed with invalid type: $element"
         }
     }
 
-    override val name: String by lazy {
-        kotlinMetadata?.name ?: jvmName
+    override val propertyName: String? by lazy {
+        if (isKotlinPropertyMethod()) kotlinMetadata?.propertyName else null
     }
+
+    override val name: String by lazy { kotlinMetadata?.name ?: jvmName }
 
     override val jvmName: String
         get() = element.simpleName.toString()
@@ -86,18 +85,25 @@ internal class JavacMethodElement(
     override val returnType: JavacType by lazy {
         env.wrap(
             typeMirror = element.returnType,
-            kotlinType = if (isSuspendFunction()) {
-                // Don't use Kotlin metadata for suspend functions since we want the Java
-                // perspective. In Java, a suspend function returns Object and contains an extra
-                // parameter of type Continuation<? extends T> where T is the actual return type as
-                // declared in the Kotlin source.
-                null
-            } else {
-                kotlinMetadata?.returnType
-            },
+            kotlinType =
+                if (isSuspendFunction()) {
+                    // Don't use Kotlin metadata for suspend functions since we want the Java
+                    // perspective. In Java, a suspend function returns Object and contains an extra
+                    // parameter of type Continuation<? extends T> where T is the actual return type
+                    // as
+                    // declared in the Kotlin source.
+                    null
+                } else {
+                    kotlinMetadata?.returnType
+                },
             elementNullability = element.nullability
         )
     }
+
+    val defaultValue: JavacAnnotationValue? =
+        element.defaultValue?.let {
+            JavacAnnotationValue(env, this, element.defaultValue, returnType)
+        }
 
     override fun asMemberOf(other: XType): XMethodType {
         return if (other !is JavacDeclaredType || enclosingElement.type.isSameType(other)) {
@@ -114,7 +120,7 @@ internal class JavacMethodElement(
 
     override fun isJavaDefault() = element.modifiers.contains(Modifier.DEFAULT)
 
-    override fun isSuspendFunction() = kotlinMetadata?.isSuspend() == true
+    override fun isSuspendFunction() = kotlinMetadata?.isSuspend == true
 
     override fun isExtensionFunction() = kotlinMetadata?.isExtension() == true
 
@@ -123,8 +129,8 @@ internal class JavacMethodElement(
         check(owner is JavacTypeElement)
         if (
             env.backend == XProcessingEnv.Backend.JAVAC &&
-            this.isSuspendFunction() &&
-            other.isSuspendFunction()
+                this.isSuspendFunction() &&
+                other.isSuspendFunction()
         ) {
             // b/222240938 - Special case suspend functions in KAPT
             return suspendOverrides(element, other.element, owner.element, env.typeUtils)
@@ -154,11 +160,9 @@ internal class JavacMethodElement(
                     // if isSameType returns false, check for generics. b/199888180
                     val ourTypeVar = ourParamType as? TypeVariable
                     val theirTypeVar = theirParamType as? TypeVariable
-                    ourTypeVar != null && theirTypeVar != null &&
-                        env.typeUtils.isSameType(
-                            ourTypeVar.lowerBound,
-                            theirTypeVar.lowerBound
-                        )
+                    ourTypeVar != null &&
+                        theirTypeVar != null &&
+                        env.typeUtils.isSameType(ourTypeVar.lowerBound, theirTypeVar.lowerBound)
                 }
             }
         }
@@ -170,13 +174,16 @@ internal class JavacMethodElement(
     @Suppress("UnstableApiUsage")
     private val kotlinDefaultImplClass by lazy {
         val parent = element.enclosingElement as? TypeElement
-        val defaultImplElement = parent?.enclosedElements?.find {
-            MoreElements.isType(it) && it.simpleName.contentEquals(DEFAULT_IMPLS_CLASS_NAME)
-        } as? TypeElement
-        defaultImplElement?.let {
-            env.wrapTypeElement(it)
-        }
+        val defaultImplElement =
+            parent?.enclosedElements?.find {
+                MoreElements.isType(it) && it.simpleName.contentEquals(DEFAULT_IMPLS_CLASS_NAME)
+            } as? TypeElement
+        defaultImplElement?.let { env.wrapTypeElement(it) }
     }
 
     override fun isKotlinPropertyMethod() = kotlinMetadata?.isPropertyFunction() ?: false
+
+    override fun isKotlinPropertySetter() = kotlinMetadata?.isPropertySetter() ?: false
+
+    override fun isKotlinPropertyGetter() = kotlinMetadata?.isPropertyGetter() ?: false
 }

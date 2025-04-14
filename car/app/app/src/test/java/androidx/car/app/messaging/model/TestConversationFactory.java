@@ -19,12 +19,14 @@ package androidx.car.app.messaging.model;
 import android.graphics.Bitmap;
 import android.net.Uri;
 
-import androidx.annotation.NonNull;
 import androidx.car.app.model.CarIcon;
 import androidx.car.app.model.CarText;
 import androidx.car.app.model.ItemList;
+import androidx.car.app.model.ListTemplate;
 import androidx.core.app.Person;
 import androidx.core.graphics.drawable.IconCompat;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,14 +49,17 @@ public final class TestConversationFactory {
                 }
             };
 
+    public static String MULTIMEDIA_MESSAGE_MIME_TYPE = "coolmimetypes/mycooldataformat";
+    public static Uri MULTIMEDIA_MESSAGE_URI = new Uri.Builder().path("foo/bar/test/uri").build();
+
     // region Person
     /**
      * Creates a {@link Person.Builder} instance for testing
      *
      * <p>This method fills in the minimum required data to create a valid {@link Person}.
      */
-    public static Person.Builder createMinimalPersonBuilder() {
-        return new Person.Builder().setName("Person Name");
+    public static Person.Builder createMinimalMessageSenderBuilder() {
+        return new Person.Builder().setName("Person Name").setKey("sender_key");
     }
 
     /**
@@ -62,8 +67,8 @@ public final class TestConversationFactory {
      *
      * <p>This method fills in the minimum required data to create a valid {@link Person}.
      */
-    private static Person createMinimalPerson() {
-        return createMinimalPersonBuilder().build();
+    private static Person createMinimalMessageSender() {
+        return createMinimalMessageSenderBuilder().build();
     }
 
     /**
@@ -72,7 +77,7 @@ public final class TestConversationFactory {
      * <p>This method fills in the minimum required data to create a valid {@link Person}.
      */
     public static Person.Builder createFullyPopulatedPersonBuilder() {
-        return createMinimalPersonBuilder()
+        return createMinimalMessageSenderBuilder()
                 .setKey("Foo Person")
                 .setIcon(TEST_SENDER_ICON)
                 .setUri(TEST_SENDER_URI.toString())
@@ -98,7 +103,6 @@ public final class TestConversationFactory {
      */
     public static CarMessage.Builder createMinimalMessageBuilder() {
         return new CarMessage.Builder()
-                .setSender(createMinimalPerson())
                 .setBody(CarText.create("Message body"));
     }
 
@@ -114,10 +118,33 @@ public final class TestConversationFactory {
     /**
      * Creates a {@link CarMessage.Builder} instance for testing
      *
+     * <p>This method fills in the minimum required data to create a valid {@link CarMessage}.
+     */
+    public static CarMessage.Builder createMinimalMultimediaMessageBuilder() {
+        return new CarMessage.Builder()
+                .setMultimediaMimeType(MULTIMEDIA_MESSAGE_MIME_TYPE)
+                .setMultimediaUri(MULTIMEDIA_MESSAGE_URI);
+    }
+
+    /**
+     * Creates a {@link CarMessage} instance for testing
+     *
+     * <p>This method fills in the minimum required data to create a valid {@link CarMessage}.
+     */
+    public static CarMessage createMinimalMultimediaMessage() {
+        return createMinimalMultimediaMessageBuilder().build();
+    }
+
+    /**
+     * Creates a {@link CarMessage.Builder} instance for testing
+     *
      * <p>This method populates every field in  {@link CarMessage.Builder}.
      */
     public static CarMessage.Builder createFullyPopulatedMessageBuilder() {
         return createMinimalMessageBuilder()
+                .setMultimediaMimeType(MULTIMEDIA_MESSAGE_MIME_TYPE)
+                .setMultimediaUri(MULTIMEDIA_MESSAGE_URI)
+                .setSender(createFullyPopulatedPerson())
                 .setRead(true)
                 .setReceivedTimeEpochMillis(12345);
     }
@@ -143,11 +170,13 @@ public final class TestConversationFactory {
         List<CarMessage> messages = new ArrayList<>(1);
         messages.add(createMinimalMessage());
 
-        return new ConversationItem.Builder()
-                .setId("conversation_id")
-                .setTitle(CarText.create("Conversation Title"))
-                .setMessages(messages)
-                .setConversationCallback(EMPTY_CONVERSATION_CALLBACK);
+        return new ConversationItem.Builder(
+                "conversation_id",
+                CarText.create("Conversation Title"),
+                createMinimalMessageSender(),
+                messages,
+                EMPTY_CONVERSATION_CALLBACK
+        );
     }
 
     /**
@@ -184,6 +213,12 @@ public final class TestConversationFactory {
 
     public static ItemList createItemListWithConversationItem() {
         return new ItemList.Builder().addItem(createMinimalConversationItem()).build();
+    }
+
+    public static ListTemplate createListTemplateWithConversationItem() {
+        return new ListTemplate.Builder()
+            .setSingleList(createItemListWithConversationItem())
+            .build();
     }
 
     private TestConversationFactory() {

@@ -16,9 +16,24 @@
 
 package androidx.compose.foundation.text.selection
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.MagnifierStyle
+import android.os.Build
+import androidx.compose.foundation.PlatformMagnifierFactory
+import androidx.compose.foundation.contextmenu.ContextMenuScope
+import androidx.compose.foundation.contextmenu.ContextMenuState
+import androidx.compose.foundation.isPlatformMagnifierSupported
 import androidx.compose.foundation.magnifier
+import androidx.compose.foundation.text.MenuItemsAvailability
+import androidx.compose.foundation.text.TextContextMenuItems
+import androidx.compose.foundation.text.TextContextMenuItems.Autofill
+import androidx.compose.foundation.text.TextContextMenuItems.Copy
+import androidx.compose.foundation.text.TextContextMenuItems.Cut
+import androidx.compose.foundation.text.TextContextMenuItems.Paste
+import androidx.compose.foundation.text.TextContextMenuItems.SelectAll
+import androidx.compose.foundation.text.TextItem
+import androidx.compose.foundation.text.contextmenu.builder.TextContextMenuBuilderScope
+import androidx.compose.foundation.text.contextmenu.modifier.addTextContextMenuComponentsWithResources
+import androidx.compose.foundation.text.textItem
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,16 +43,18 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 
 internal actual val PointerEvent.isShiftPressed: Boolean
     get() = false
 
 // We use composed{} to read a local, but don't provide inspector info because the underlying
 // magnifier modifier provides more meaningful inspector info.
-@OptIn(ExperimentalFoundationApi::class)
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
     // Avoid tracking animation state on older Android versions that don't support magnifiers.
-    if (!MagnifierStyle.TextDefault.isSupported) {
+    if (!isPlatformMagnifierSupported()) {
         return this
     }
 
@@ -45,21 +62,79 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
         val density = LocalDensity.current
         var magnifierSize by remember { mutableStateOf(IntSize.Zero) }
         animatedSelectionMagnifier(
-            magnifierCenter = {
-                calculateSelectionMagnifierCenterAndroid(manager, magnifierSize)
-            },
+            magnifierCenter = { calculateSelectionMagnifierCenterAndroid(manager, magnifierSize) },
             platformMagnifier = { center ->
                 Modifier.magnifier(
                     sourceCenter = { center() },
                     onSizeChanged = { size ->
-                        magnifierSize = with(density) {
-                            IntSize(size.width.roundToPx(), size.height.roundToPx())
-                        }
+                        magnifierSize =
+                            with(density) {
+                                IntSize(size.width.roundToPx(), size.height.roundToPx())
+                            }
                     },
-                    // TODO(b/202451044) Support fisheye magnifier for eloquent.
-                    style = MagnifierStyle.TextDefault
+                    useTextDefault = true,
+                    platformMagnifierFactory = PlatformMagnifierFactory.getForCurrentPlatform()
                 )
             }
         )
+    }
+}
+
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    manager: TextFieldSelectionManager,
+    coroutineScope: CoroutineScope,
+): Modifier = addTextContextMenuComponentsWithResources { resources ->
+    fun TextContextMenuBuilderScope.textFieldItem(
+        item: TextContextMenuItems,
+        enabled: Boolean,
+        closePredicate: (() -> Boolean)? = null,
+        onClick: () -> Unit
+    ) {
+        textItem(resources, item, enabled) {
+            onClick()
+            if (closePredicate?.invoke() ?: true) close()
+        }
+    }
+
+    fun TextContextMenuBuilderScope.textFieldSuspendItem(
+        item: TextContextMenuItems,
+        enabled: Boolean,
+        onClick: suspend () -> Unit
+    ) {
+        textFieldItem(item, enabled) {
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) { onClick() }
+        }
+    }
+
+    with(manager) {
+        separator()
+        textFieldSuspendItem(Cut, enabled = canCut()) { cut() }
+        textFieldSuspendItem(Copy, enabled = canCopy()) { copy(cancelSelection = textToolbarShown) }
+        textFieldSuspendItem(Paste, enabled = canPaste()) { paste() }
+        textFieldItem(SelectAll, enabled = canSelectAll(), closePredicate = { !textToolbarShown }) {
+            selectAll()
+        }
+        if (Build.VERSION.SDK_INT >= 26) {
+            textFieldItem(Autofill, enabled = canAutofill()) { autofill() }
+        }
+        separator()
+    }
+}
+
+internal fun TextFieldSelectionManager.contextMenuBuilder(
+    contextMenuState: ContextMenuState,
+    itemsAvailability: State<MenuItemsAvailability>
+): ContextMenuScope.() -> Unit = {
+    fun textFieldItem(label: TextContextMenuItems, enabled: Boolean, operation: () -> Unit) {
+        TextItem(contextMenuState, label, enabled, operation)
+    }
+
+    val availability: MenuItemsAvailability = itemsAvailability.value
+    textFieldItem(Cut, enabled = availability.canCut) { cut() }
+    textFieldItem(Copy, enabled = availability.canCopy) { copy(cancelSelection = false) }
+    textFieldItem(Paste, enabled = availability.canPaste) { paste() }
+    textFieldItem(SelectAll, enabled = availability.canSelectAll) { selectAll() }
+    if (Build.VERSION.SDK_INT >= 26) {
+        textFieldItem(Autofill, enabled = availability.canAutofill) { autofill() }
     }
 }

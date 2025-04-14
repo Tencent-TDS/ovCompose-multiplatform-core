@@ -28,7 +28,6 @@ import android.view.SurfaceHolder
 import androidx.wear.watchface.ComplicationSlotsManager
 import androidx.wear.watchface.Renderer
 import androidx.wear.watchface.WatchFace
-import androidx.wear.watchface.WatchFaceService
 import androidx.wear.watchface.WatchFaceType
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.complications.permission.dialogs.sample.ComplicationDeniedActivity
@@ -43,33 +42,34 @@ import java.time.ZonedDateTime
  * Sample watch face using OpenGL with textures loaded on a background thread by [createWatchFace]
  * which are used for rendering on the main thread.
  */
-open class ExampleOpenGLBackgroundInitWatchFaceService() : WatchFaceService() {
+open class ExampleOpenGLBackgroundInitWatchFaceService() : SampleWatchFaceService() {
     private val colorStyleSetting by lazy {
-        UserStyleSetting.ListUserStyleSetting(
-            UserStyleSetting.Id("color_style_setting"),
-            resources,
-            R.string.colors_style_setting,
-            R.string.colors_style_setting_description,
-            icon = null,
-            options =
+        UserStyleSetting.ListUserStyleSetting.Builder(
+                UserStyleSetting.Id("color_style_setting"),
                 listOf(
-                    UserStyleSetting.ListUserStyleSetting.ListOption(
-                        UserStyleSetting.Option.Id("yellow_style"),
-                        resources,
-                        R.string.colors_style_yellow,
-                        R.string.colors_style_yellow_screen_reader,
-                        Icon.createWithResource(this, R.drawable.yellow_style)
-                    ),
-                    UserStyleSetting.ListUserStyleSetting.ListOption(
-                        UserStyleSetting.Option.Id("blue_style"),
-                        resources,
-                        R.string.colors_style_blue,
-                        R.string.colors_style_blue_screen_reader,
-                        Icon.createWithResource(this, R.drawable.blue_style)
-                    )
+                    UserStyleSetting.ListUserStyleSetting.ListOption.Builder(
+                            UserStyleSetting.Option.Id("yellow_style"),
+                            resources,
+                            R.string.colors_style_yellow,
+                            R.string.colors_style_yellow_screen_reader
+                        )
+                        .setIcon { Icon.createWithResource(this, R.drawable.yellow_style) }
+                        .build(),
+                    UserStyleSetting.ListUserStyleSetting.ListOption.Builder(
+                            UserStyleSetting.Option.Id("blue_style"),
+                            resources,
+                            R.string.colors_style_blue,
+                            R.string.colors_style_blue_screen_reader
+                        )
+                        .setIcon { Icon.createWithResource(this, R.drawable.blue_style) }
+                        .build()
                 ),
-            listOf(WatchFaceLayer.BASE, WatchFaceLayer.COMPLICATIONS_OVERLAY)
-        )
+                listOf(WatchFaceLayer.BASE, WatchFaceLayer.COMPLICATIONS_OVERLAY),
+                resources,
+                R.string.colors_style_setting,
+                R.string.colors_style_setting_description
+            )
+            .build()
     }
 
     public override fun createUserStyleSchema() = UserStyleSchema(listOf(colorStyleSetting))

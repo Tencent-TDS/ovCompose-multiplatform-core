@@ -23,12 +23,12 @@ import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.tracing.trace
-import kotlin.concurrent.thread
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
 
 class BackgroundWorkActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,14 +46,14 @@ class BackgroundWorkActivity : AppCompatActivity() {
         var countDownLatch = CountDownLatch(count)
 
         for (i in 0 until count) {
-            var workRequest = OneTimeWorkRequestBuilder<NoOpWorker>()
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .build()
-            WorkManager.getInstance(context).beginWith(workRequest)
-                .enqueue()
-            WorkManager.getInstance(context)
-                .getWorkInfoByIdLiveData(workRequest.id)
-            .observe(this) { workInfo ->
+            var workRequest =
+                OneTimeWorkRequestBuilder<NoOpWorker>()
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .build()
+            WorkManager.getInstance(context).beginWith(workRequest).enqueue()
+            WorkManager.getInstance(context).getWorkInfoByIdLiveData(workRequest.id).observe(
+                this
+            ) { workInfo ->
                 if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
                     countDownLatch.countDown()
                 }

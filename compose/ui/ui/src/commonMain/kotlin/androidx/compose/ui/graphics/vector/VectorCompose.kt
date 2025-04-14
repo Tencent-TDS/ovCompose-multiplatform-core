@@ -90,9 +90,9 @@ fun Group(
  * @param strokeLineJoin The [StrokeJoin] of [stroke]. See [Stroke.join] for details.
  * @param strokeLineMiter The stroke miter value. See [Stroke.miter] for details.
  * @param trimPathStart The fraction of the path that specifies the start of the clipped region of
- * the path. See [PathMeasure.getSegment].
+ *   the path. See [PathMeasure.getSegment].
  * @param trimPathEnd The fraction of the path that specifies the end of the clipped region of the
- * path. See [PathMeasure.getSegment].
+ *   path. See [PathMeasure.getSegment].
  * @param trimPathOffset The amount to offset both [trimPathStart] and [trimPathEnd].
  */
 @Composable
@@ -136,11 +136,11 @@ fun Path(
 
 class VectorApplier(root: VNode) : AbstractApplier<VNode>(root) {
     override fun insertTopDown(index: Int, instance: VNode) {
-        current.asGroup().insertAt(index, instance)
+        // Ignored as the tree is built bottom-up.
     }
 
     override fun insertBottomUp(index: Int, instance: VNode) {
-        // Ignored as the tree is built top-down.
+        current.asGroup().insertAt(index, instance)
     }
 
     override fun remove(index: Int, count: Int) {

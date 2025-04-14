@@ -23,9 +23,8 @@ import static androidx.work.impl.utils.PackageManagerHelper.setComponentEnabled;
 import android.content.Context;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.work.Clock;
 import androidx.work.Configuration;
 import androidx.work.Logger;
 import androidx.work.impl.background.systemalarm.SystemAlarmScheduler;
@@ -34,6 +33,9 @@ import androidx.work.impl.background.systemjob.SystemJobScheduler;
 import androidx.work.impl.background.systemjob.SystemJobService;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.model.WorkSpecDao;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -100,13 +102,13 @@ public class Schedulers {
             List<WorkSpec> contentUriWorkSpecs = null;
             if (Build.VERSION.SDK_INT >= CONTENT_URI_TRIGGER_API_LEVEL) {
                 contentUriWorkSpecs = workSpecDao.getEligibleWorkForSchedulingWithContentUris();
-                markScheduled(workSpecDao, contentUriWorkSpecs);
+                markScheduled(workSpecDao, configuration.getClock(), contentUriWorkSpecs);
             }
 
             // Enqueued workSpecs when scheduling limits are applicable.
             eligibleWorkSpecsForLimitedSlots = workSpecDao.getEligibleWorkForScheduling(
                     configuration.getMaxSchedulerLimit());
-            markScheduled(workSpecDao, eligibleWorkSpecsForLimitedSlots);
+            markScheduled(workSpecDao, configuration.getClock(), eligibleWorkSpecsForLimitedSlots);
             if (contentUriWorkSpecs != null) {
                 eligibleWorkSpecsForLimitedSlots.addAll(contentUriWorkSpecs);
             }
@@ -146,8 +148,7 @@ public class Schedulers {
         }
     }
 
-    @NonNull
-    static Scheduler createBestAvailableBackgroundScheduler(@NonNull Context context,
+    static @NonNull Scheduler createBestAvailableBackgroundScheduler(@NonNull Context context,
             @NonNull WorkDatabase workDatabase, Configuration configuration) {
 
         Scheduler scheduler;
@@ -157,7 +158,7 @@ public class Schedulers {
             setComponentEnabled(context, SystemJobService.class, true);
             Logger.get().debug(TAG, "Created SystemJobScheduler and enabled SystemJobService");
         } else {
-            scheduler = tryCreateGcmBasedScheduler(context);
+            scheduler = tryCreateGcmBasedScheduler(context, configuration.getClock());
             if (scheduler == null) {
                 scheduler = new SystemAlarmScheduler(context);
                 setComponentEnabled(context, SystemAlarmService.class, true);
@@ -167,12 +168,13 @@ public class Schedulers {
         return scheduler;
     }
 
-    @Nullable
-    private static Scheduler tryCreateGcmBasedScheduler(@NonNull Context context) {
+    private static @Nullable Scheduler tryCreateGcmBasedScheduler(@NonNull Context context,
+            Clock clock) {
         try {
             Class<?> klass = Class.forName(GCM_SCHEDULER);
             Scheduler scheduler =
-                    (Scheduler) klass.getConstructor(Context.class).newInstance(context);
+                    (Scheduler) klass.getConstructor(Context.class, Clock.class)
+                            .newInstance(context, clock);
             Logger.get().debug(TAG, "Created " + GCM_SCHEDULER);
             return scheduler;
         } catch (Throwable throwable) {
@@ -184,9 +186,9 @@ public class Schedulers {
     private Schedulers() {
     }
 
-    private static void markScheduled(WorkSpecDao dao, List<WorkSpec> workSpecs) {
+    private static void markScheduled(WorkSpecDao dao, Clock clock, List<WorkSpec> workSpecs) {
         if (workSpecs.size() > 0) {
-            long now = System.currentTimeMillis();
+            long now = clock.currentTimeMillis();
 
             // Mark all the WorkSpecs as scheduled.
             // Calls to Scheduler#schedule() could potentially result in more schedules

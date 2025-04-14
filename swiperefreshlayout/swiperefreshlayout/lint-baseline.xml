@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 7.4.0-alpha08" type="baseline" client="gradle" dependencies="false" name="AGP (7.4.0-alpha08)" variant="all" version="7.4.0-alpha08">
+<issues format="6" by="lint 8.8.0-alpha06" type="baseline" client="gradle" dependencies="false" name="AGP (8.8.0-alpha06)" variant="all" version="8.8.0-alpha06">
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="        return android.os.Build.VERSION.SDK_INT >= 21;"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/swiperefreshlayout/widget/CircleImageView.java"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is never &lt; 21"
+        errorLine1="                &amp;&amp; ((android.os.Build.VERSION.SDK_INT &lt; 21 &amp;&amp; mTarget instanceof AbsListView)"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/swiperefreshlayout/widget/SwipeRefreshLayout.java"/>
+    </issue>
 
     <issue
         id="KotlinPropertyAccess"
@@ -16,15 +34,6 @@
     <issue
         id="UnknownNullness"
         message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
-        errorLine1="    public void draw(Canvas canvas) {"
-        errorLine2="                     ~~~~~~">
-        <location
-            file="src/main/java/androidx/swiperefreshlayout/widget/CircularProgressDrawable.java"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public void setColorFilter(ColorFilter colorFilter) {"
         errorLine2="                               ~~~~~~~~~~~">
         <location
@@ -34,7 +43,7 @@
     <issue
         id="UnknownNullness"
         message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
-        errorLine1="    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {"
+        errorLine1="    public boolean onStartNestedScroll(View child, View target, int axes) {"
         errorLine2="                                       ~~~~">
         <location
             file="src/main/java/androidx/swiperefreshlayout/widget/SwipeRefreshLayout.java"/>
@@ -43,7 +52,7 @@
     <issue
         id="UnknownNullness"
         message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
-        errorLine1="    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {"
+        errorLine1="    public boolean onStartNestedScroll(View child, View target, int axes) {"
         errorLine2="                                                   ~~~~">
         <location
             file="src/main/java/androidx/swiperefreshlayout/widget/SwipeRefreshLayout.java"/>

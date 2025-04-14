@@ -36,6 +36,10 @@ import androidx.wear.watchface.style.UserStyleSchema
 import kotlin.jvm.Throws
 import org.xmlpull.v1.XmlPullParser
 
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 @OptIn(ComplicationExperimental::class)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class XmlSchemaAndComplicationSlotsDefinition(
@@ -113,7 +117,7 @@ public class XmlSchemaAndComplicationSlotsDefinition(
     public class ComplicationSlotStaticData(
         val slotId: Int,
         val accessibilityTraversalIndex: Int?,
-        @ComplicationSlotBoundsType val boundsType: Int,
+        @ComplicationSlotBoundsTypeIntDef val boundsType: Int,
         val bounds: ComplicationSlotBounds,
         val supportedTypes: List<ComplicationType>,
         val defaultDataSourcePolicy: DefaultComplicationDataSourcePolicy,
@@ -125,19 +129,17 @@ public class XmlSchemaAndComplicationSlotsDefinition(
     ) {
         companion object {
             @Suppress("NewApi")
-            private val typesMap by
-                lazy(LazyThreadSafetyMode.NONE) {
-                    mapOf(
-                        "SHORT_TEXT" to ComplicationType.SHORT_TEXT,
-                        "LONG_TEXT" to ComplicationType.LONG_TEXT,
-                        "RANGED_VALUE" to ComplicationType.RANGED_VALUE,
-                        "MONOCHROMATIC_IMAGE" to ComplicationType.MONOCHROMATIC_IMAGE,
-                        "SMALL_IMAGE" to ComplicationType.SMALL_IMAGE,
-                        "PHOTO_IMAGE" to ComplicationType.PHOTO_IMAGE,
-                        "GOAL_PROGRESS" to ComplicationType.GOAL_PROGRESS,
-                        "WEIGHTED_ELEMENTS" to ComplicationType.WEIGHTED_ELEMENTS
-                    )
-                }
+            private val typesMap =
+                mapOf(
+                    "SHORT_TEXT" to ComplicationType.SHORT_TEXT,
+                    "LONG_TEXT" to ComplicationType.LONG_TEXT,
+                    "RANGED_VALUE" to ComplicationType.RANGED_VALUE,
+                    "MONOCHROMATIC_IMAGE" to ComplicationType.MONOCHROMATIC_IMAGE,
+                    "SMALL_IMAGE" to ComplicationType.SMALL_IMAGE,
+                    "PHOTO_IMAGE" to ComplicationType.PHOTO_IMAGE,
+                    "GOAL_PROGRESS" to ComplicationType.GOAL_PROGRESS,
+                    "WEIGHTED_ELEMENTS" to ComplicationType.WEIGHTED_ELEMENTS
+                )
 
             fun inflate(
                 resources: Resources,

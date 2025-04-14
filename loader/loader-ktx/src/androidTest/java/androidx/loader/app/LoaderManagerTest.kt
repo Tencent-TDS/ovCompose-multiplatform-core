@@ -24,12 +24,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -46,9 +46,7 @@ class LoaderManagerTest {
     fun testInitLoader() {
         val countDownLatch = CountDownLatch(1)
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            loaderManager.initLoader(0, StringLoader()) {
-                countDownLatch.countDown()
-            }
+            loaderManager.initLoader(0, StringLoader()) { countDownLatch.countDown() }
         }
         assertThat(countDownLatch.await(1, TimeUnit.SECONDS)).isTrue()
     }
@@ -69,9 +67,7 @@ class LoaderManagerTest {
     fun testRestartLoader() {
         val countDownLatch = CountDownLatch(1)
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            loaderManager.restartLoader(0, StringLoader()) {
-                countDownLatch.countDown()
-            }
+            loaderManager.restartLoader(0, StringLoader()) { countDownLatch.countDown() }
         }
         assertThat(countDownLatch.await(1, TimeUnit.SECONDS)).isTrue()
     }

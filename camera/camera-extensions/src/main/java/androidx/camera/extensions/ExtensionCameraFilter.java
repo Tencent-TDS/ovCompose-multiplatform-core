@@ -18,17 +18,15 @@ package androidx.camera.extensions;
 
 import android.hardware.camera2.CameraCharacteristics;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
-import androidx.camera.camera2.interop.Camera2CameraInfo;
-import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraFilter;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.Identifier;
+import androidx.camera.extensions.internal.ExtensionsUtils;
 import androidx.camera.extensions.internal.VendorExtender;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +36,6 @@ import java.util.Map;
  * A filter that filters camera based on extender implementation. If the implementation is
  * unavailable, the camera will be considered available.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class ExtensionCameraFilter implements CameraFilter {
     private final Identifier mId;
     private final VendorExtender mVendorExtender;
@@ -48,25 +45,21 @@ final class ExtensionCameraFilter implements CameraFilter {
         mVendorExtender = vendorExtender;
     }
 
-    @NonNull
     @Override
-    public Identifier getIdentifier() {
+    public @NonNull Identifier getIdentifier() {
         return mId;
     }
 
-    @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    @NonNull
     @Override
-    public List<CameraInfo> filter(@NonNull List<CameraInfo> cameraInfos) {
+    public @NonNull List<CameraInfo> filter(@NonNull List<CameraInfo> cameraInfos) {
         List<CameraInfo> result = new ArrayList<>();
         for (CameraInfo cameraInfo : cameraInfos) {
             Preconditions.checkArgument(cameraInfo instanceof CameraInfoInternal,
                     "The camera info doesn't contain internal implementation.");
-            String cameraId = Camera2CameraInfo.from(cameraInfo).getCameraId();
-
+            CameraInfoInternal cameraInfoInternal = (CameraInfoInternal) cameraInfo;
+            String cameraId = cameraInfoInternal.getCameraId();
             Map<String, CameraCharacteristics> cameraCharacteristicsMap =
-                    Camera2CameraInfo.from(cameraInfo).getCameraCharacteristicsMap();
-
+                    ExtensionsUtils.getCameraCharacteristicsMap(cameraInfoInternal);
             if (mVendorExtender
                     .isExtensionAvailable(cameraId, cameraCharacteristicsMap)) {
                 result.add(cameraInfo);

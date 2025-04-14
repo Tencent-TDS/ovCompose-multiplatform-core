@@ -21,7 +21,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class ActivityRuleTest {
 
     @Test
@@ -49,21 +52,61 @@ class ActivityRuleTest {
 
     @Test
     fun equalsImpliesHashCode() {
-        val firstRule = ActivityRule.Builder(setOf(FILTER_WITH_ACTIVITY))
-            .setAlwaysExpand(true)
-            .build()
-        val secondRule = ActivityRule.Builder(setOf(FILTER_WITH_ACTIVITY))
-            .setAlwaysExpand(true)
-            .build()
+        val firstRule =
+            ActivityRule.Builder(setOf(FILTER_WITH_ACTIVITY)).setAlwaysExpand(true).build()
+        val secondRule =
+            ActivityRule.Builder(setOf(FILTER_WITH_ACTIVITY)).setAlwaysExpand(true).build()
 
         assertEquals(firstRule, secondRule)
         assertEquals(firstRule.hashCode(), secondRule.hashCode())
+
+        // The hashCode should be consistent to the predetermined value.
+        // Note that the value should be updated whenever hashCode calculation is changed.
+        assertEquals(-883899860, firstRule.hashCode())
+    }
+
+    /**
+     * Verifies that default params are set correctly when creating [ActivityRule] with a builder.
+     */
+    @Test
+    fun testDefaults_ActivityRule_Builder() {
+        val rule = ActivityRule.Builder(HashSet()).build()
+        assertFalse(rule.alwaysExpand)
+    }
+
+    /** Verifies that the params are set correctly when creating [ActivityRule] with a builder. */
+    @Test
+    fun test_ActivityRule_Builder() {
+        val filters = HashSet<ActivityFilter>()
+        filters.add(FILTER_WITH_ACTIVITY)
+
+        val rule = ActivityRule.Builder(filters).setAlwaysExpand(true).setTag(TEST_TAG).build()
+        assertTrue(rule.alwaysExpand)
+        assertEquals(TEST_TAG, rule.tag)
+        assertEquals(filters, rule.filters)
+    }
+
+    @Test
+    fun testToString() {
+        val filters = HashSet<ActivityFilter>()
+        filters.add(FILTER_WITH_ACTIVITY)
+        val alwaysExpand = true
+
+        val ruleString =
+            ActivityRule.Builder(filters)
+                .setAlwaysExpand(alwaysExpand)
+                .setTag(TEST_TAG)
+                .build()
+                .toString()
+
+        assertTrue(ruleString.contains(filters.toString()))
+        assertTrue(ruleString.contains(alwaysExpand.toString()))
+        assertTrue(ruleString.contains(TEST_TAG))
     }
 
     companion object {
-        val FILTER_WITH_ACTIVITY = ActivityFilter(
-            ActivityComponentInfo("package", "className"),
-            null
-        )
+        private const val TEST_TAG = "test"
+        val FILTER_WITH_ACTIVITY =
+            ActivityFilter(ActivityComponentInfo("package", "className"), null)
     }
 }

@@ -16,14 +16,13 @@
 
 package androidx.camera.core.impl;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A report of failed capture for a single image capture.
  *
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class CameraCaptureFailure {
 
     private final Reason mReason;
@@ -38,8 +37,7 @@ public class CameraCaptureFailure {
      * @return int The reason code.
      * @see CameraCaptureFailure.Reason#ERROR
      */
-    @NonNull
-    public Reason getReason() {
+    public @NonNull Reason getReason() {
         return mReason;
     }
 
@@ -50,5 +48,13 @@ public class CameraCaptureFailure {
      */
     public enum Reason {
         ERROR,
+    }
+
+    /**
+     * Returns the capture failure object of the current implementation. In camera2 implementation,
+     * the object is of type {@link android.hardware.camera2.CaptureFailure}.
+     */
+    public @Nullable Object getCaptureFailure() {
+        return null;
     }
 }

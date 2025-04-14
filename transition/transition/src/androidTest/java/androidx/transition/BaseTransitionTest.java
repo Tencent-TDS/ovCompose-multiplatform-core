@@ -17,7 +17,7 @@
 package androidx.transition;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
@@ -27,11 +27,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.testutils.AnimationDurationScaleRule;
 import androidx.transition.test.R;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Rule;
 
@@ -55,7 +55,7 @@ public abstract class BaseTransitionTest extends BaseTest {
         mRoot = (LinearLayout) rule.getActivity().findViewById(R.id.root);
         mTransitionTargets.clear();
         mTransition = createTransition();
-        mListener = mock(Transition.TransitionListener.class);
+        mListener = spy(new TransitionListenerAdapter());
         mTransition.addListener(mListener);
     }
 
@@ -113,7 +113,7 @@ public abstract class BaseTransitionTest extends BaseTest {
 
     void resetListener() {
         mTransition.removeListener(mListener);
-        mListener = mock(Transition.TransitionListener.class);
+        mListener = spy(new TransitionListenerAdapter());
         mTransition.addListener(mListener);
     }
 

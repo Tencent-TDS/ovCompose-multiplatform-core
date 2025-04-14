@@ -43,8 +43,6 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.inspection.ArtTooling;
 import androidx.inspection.ArtTooling.EntryHook;
 import androidx.inspection.ArtTooling.ExitHook;
@@ -81,6 +79,9 @@ import androidx.sqlite.inspection.SqliteInspectorProtocol.TrackDatabasesResponse
 
 import com.google.protobuf.ByteString;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -99,7 +100,6 @@ import java.util.concurrent.Future;
  * Inspector to work with SQLite databases
  */
 @SuppressWarnings({"TryFinallyCanBeTryWithResources", "SameParameterValue"})
-@SuppressLint("SyntheticAccessor")
 final class SqliteInspector extends Inspector {
     private static final String OPEN_DATABASE_COMMAND_SIGNATURE_API_11 = "openDatabase"
             + "("
@@ -183,15 +183,16 @@ final class SqliteInspector extends Inspector {
      */
     private final RoomInvalidationRegistry mRoomInvalidationRegistry;
 
-    @NonNull
-    private final SqlDelightInvalidation mSqlDelightInvalidation;
+    private final List<Invalidation> mInvalidations = new ArrayList<>();
 
     SqliteInspector(@NonNull Connection connection, @NonNull InspectorEnvironment environment) {
         super(connection);
         mEnvironment = environment;
         mIOExecutor = environment.executors().io();
         mRoomInvalidationRegistry = new RoomInvalidationRegistry(mEnvironment);
-        mSqlDelightInvalidation = SqlDelightInvalidation.create(mEnvironment);
+        mInvalidations.add(mRoomInvalidationRegistry);
+        mInvalidations.add(SqlDelightInvalidation.create(mEnvironment.artTooling()));
+        mInvalidations.add(SqlDelight2Invalidation.create(mEnvironment.artTooling()));
 
         mDatabaseRegistry = new DatabaseRegistry(
                 new DatabaseRegistry.Callback() {
@@ -211,7 +212,7 @@ final class SqliteInspector extends Inspector {
     }
 
     @Override
-    public void onReceiveCommand(@NonNull byte[] data, @NonNull CommandCallback callback) {
+    public void onReceiveCommand(byte @NonNull [] data, @NonNull CommandCallback callback) {
         try {
             Command command = Command.parseFrom(data);
             switch (command.getOneOfCase()) {
@@ -277,7 +278,7 @@ final class SqliteInspector extends Inspector {
         // Check for database instances in memory
         for (SQLiteDatabase instance :
                 mEnvironment.artTooling().findInstances(SQLiteDatabase.class)) {
-            /** the race condition here will be handled by mDatabaseRegistry */
+            /* the race condition here will be handled by mDatabaseRegistry */
             if (instance.isOpen()) {
                 onDatabaseOpened(instance);
             } else {
@@ -398,7 +399,6 @@ final class SqliteInspector extends Inspector {
 
         ExitHook<SQLiteDatabase> hook =
                 new ExitHook<SQLiteDatabase>() {
-                    @SuppressLint("SyntheticAccessor")
                     @Override
                     public SQLiteDatabase onExit(SQLiteDatabase database) {
                         try {
@@ -436,9 +436,9 @@ final class SqliteInspector extends Inspector {
     }
 
     private void registerInvalidationHooks(EntryExitMatchingHookRegistry hookRegistry) {
-        /**
+        /*
          * Schedules a task using {@link mScheduledExecutor} and executes it on {@link mIOExecutor}.
-         **/
+         */
         final RequestCollapsingThrottler.DeferredExecutor deferredExecutor =
                 new RequestCollapsingThrottler.DeferredExecutor() {
                     @Override
@@ -671,8 +671,9 @@ final class SqliteInspector extends Inspector {
 
     private void triggerInvalidation(String query) {
         if (getSqlStatementType(query) != DatabaseUtils.STATEMENT_SELECT) {
-            mSqlDelightInvalidation.triggerInvalidations();
-            mRoomInvalidationRegistry.triggerInvalidations();
+            for (Invalidation invalidation : mInvalidations) {
+                invalidation.triggerInvalidations();
+            }
         }
     }
 
@@ -688,7 +689,7 @@ final class SqliteInspector extends Inspector {
 
     @SuppressLint("Recycle") // For: "The cursor should be freed up after use with #close"
     private static Cursor rawQuery(@NonNull SQLiteDatabase database, @NonNull String queryText,
-            @NonNull final String[] params, @Nullable CancellationSignal cancellationSignal) {
+            final String @NonNull [] params, @Nullable CancellationSignal cancellationSignal) {
         SQLiteDatabase.CursorFactory cursorFactory = new SQLiteDatabase.CursorFactory() {
             @Override
             public Cursor newCursor(SQLiteDatabase db, SQLiteCursorDriver driver,
@@ -710,8 +711,7 @@ final class SqliteInspector extends Inspector {
                 cancellationSignal);
     }
 
-    @NonNull
-    private static String[] parseQueryParameterValues(QueryCommand command) {
+    private static String @NonNull [] parseQueryParameterValues(QueryCommand command) {
         String[] params = new String[command.getQueryParameterValuesCount()];
         for (int i = 0; i < command.getQueryParameterValuesCount(); i++) {
             QueryParameterValue param = command.getQueryParameterValues(i);
@@ -745,8 +745,8 @@ final class SqliteInspector extends Inspector {
      *
      * @return null if no database found for the provided id. A database reference otherwise.
      */
-    @Nullable
-    private DatabaseConnection acquireConnection(int databaseId, CommandCallback callback) {
+    private @Nullable DatabaseConnection acquireConnection(int databaseId,
+            CommandCallback callback) {
         DatabaseConnection connection = mDatabaseLockRegistry.getConnection(databaseId);
         if (connection != null) {
             // With WAL enabled, we prefer to use the IO executor. With WAL off we don't have a
@@ -951,8 +951,7 @@ final class SqliteInspector extends Inspector {
                 .build();
     }
 
-    @NonNull
-    private static String stackTraceFromException(Exception exception) {
+    private static @NonNull String stackTraceFromException(Exception exception) {
         StringWriter writer = new StringWriter();
         exception.printStackTrace(new PrintWriter(writer));
         return writer.toString();
@@ -970,8 +969,8 @@ final class SqliteInspector extends Inspector {
      * needs to run queries on the thread that locked it.
      */
     static final class DatabaseConnection {
-        @NonNull final SQLiteDatabase mDatabase;
-        @NonNull final Executor mExecutor;
+        final @NonNull SQLiteDatabase mDatabase;
+        final @NonNull Executor mExecutor;
 
         DatabaseConnection(@NonNull SQLiteDatabase database, @NonNull Executor executor) {
             mDatabase = database;

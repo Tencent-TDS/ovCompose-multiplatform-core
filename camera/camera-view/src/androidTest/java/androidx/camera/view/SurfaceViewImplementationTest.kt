@@ -21,9 +21,9 @@ import android.util.Size
 import android.view.View
 import android.widget.FrameLayout
 import androidx.camera.core.SurfaceRequest
-import androidx.camera.testing.CoreAppTestUtil
-import androidx.camera.testing.fakes.FakeActivity
 import androidx.camera.testing.fakes.FakeCamera
+import androidx.camera.testing.impl.CoreAppTestUtil
+import androidx.camera.testing.impl.fakes.FakeActivity
 import androidx.camera.view.PreviewViewImplementation.OnSurfaceNotInUseListener
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -32,12 +32,12 @@ import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
@@ -109,8 +109,7 @@ class SurfaceViewImplementationTest {
 
         // Act.
         val differentSize: Size by lazy { Size(720, 480) }
-        val differentResolutionSurfaceRequest =
-            SurfaceRequest(differentSize, FakeCamera()) {}
+        val differentResolutionSurfaceRequest = SurfaceRequest(differentSize, FakeCamera()) {}
         mImplementation.testSurfaceRequest(differentResolutionSurfaceRequest)
         val newSurfaceView = mImplementation.mSurfaceView
 
@@ -123,9 +122,7 @@ class SurfaceViewImplementationTest {
         CoreAppTestUtil.checkKeyguard(mContext)
 
         val listenerLatch = CountDownLatch(1)
-        val onSurfaceNotInUseListener = {
-            listenerLatch.countDown()
-        }
+        val onSurfaceNotInUseListener = { listenerLatch.countDown() }
 
         mImplementation.testSurfaceRequest(mSurfaceRequest, onSurfaceNotInUseListener)
 
@@ -135,9 +132,7 @@ class SurfaceViewImplementationTest {
     @Test
     fun onSurfaceNotInUseListener_isCalledWhenSurfaceRequestIsCancelled() {
         val listenerLatch = CountDownLatch(1)
-        val onSurfaceNotInUseListener = {
-            listenerLatch.countDown()
-        }
+        val onSurfaceNotInUseListener = { listenerLatch.countDown() }
 
         // Not attach the mParent to the window so that the Surface cannot be created.
         setContentView(View(mContext))
@@ -168,9 +163,7 @@ class SurfaceViewImplementationTest {
         surfaceRequest: SurfaceRequest,
         listener: OnSurfaceNotInUseListener? = null
     ) {
-        mInstrumentation.runOnMainSync {
-            onSurfaceRequested(surfaceRequest, listener)
-        }
+        mInstrumentation.runOnMainSync { onSurfaceRequested(surfaceRequest, listener) }
 
         surfaceRequest.deferrableSurface.surface.get(1000, TimeUnit.MILLISECONDS)
         surfaceRequest.deferrableSurface.close()

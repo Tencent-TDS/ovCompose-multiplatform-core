@@ -27,36 +27,39 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.psi.PsiMethod
+import java.util.EnumSet
+import java.util.concurrent.TimeUnit
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.uast.UCallExpression
-import java.util.EnumSet
-import java.util.concurrent.TimeUnit
+import org.jetbrains.uast.UQualifiedReferenceExpression
+import org.jetbrains.uast.getParameterForArgument
+import org.jetbrains.uast.skipParenthesizedExprDown
 
-/**
- * Ensures a valid interval duration for a `PeriodicWorkRequest`.
- */
+/** Ensures a valid interval duration for a `PeriodicWorkRequest`. */
 class InvalidPeriodicWorkRequestIntervalDetector : Detector(), SourceCodeScanner {
     companion object {
-        val ISSUE = Issue.create(
-            id = "InvalidPeriodicWorkRequestInterval",
-            briefDescription = "Invalid interval duration",
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "InvalidPeriodicWorkRequestInterval",
+                briefDescription = "Invalid interval duration",
+                explanation =
+                    """
                 The interval duration for a `PeriodicWorkRequest` must be at least 15 minutes.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.FATAL,
-            implementation = Implementation(
-                InvalidPeriodicWorkRequestIntervalDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE)
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.FATAL,
+                implementation =
+                    Implementation(
+                        InvalidPeriodicWorkRequestIntervalDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE)
+                    )
             )
-        )
     }
 
-    override fun getApplicableConstructorTypes() = listOf(
-        "androidx.work.PeriodicWorkRequest.Builder"
-    )
+    override fun getApplicableConstructorTypes() =
+        listOf("androidx.work.PeriodicWorkRequest.Builder")
 
     @Suppress("UNCHECKED_CAST")
     override fun visitConstructor(
@@ -65,23 +68,35 @@ class InvalidPeriodicWorkRequestIntervalDetector : Detector(), SourceCodeScanner
         constructor: PsiMethod
     ) {
         if (node.valueArgumentCount >= 2) {
-            val type = node.valueArguments[1].getExpressionType()?.canonicalText
+            // TestMode.PARENTHESIZED wraps Duration call in parenthesizes
+            val repeatInterval =
+                node.valueArguments
+                    .find { node.getParameterForArgument(it)?.name == "repeatInterval" }
+                    ?.skipParenthesizedExprDown()
+
+            val timeUnit =
+                node.valueArguments
+                    .find { node.getParameterForArgument(it)?.name == "repeatIntervalTimeUnit" }
+                    ?.skipParenthesizedExprDown()
+
+            val type = repeatInterval?.getExpressionType()?.canonicalText
             if ("long" == type) {
-                val value = node.valueArguments[1].evaluate() as? Long
+                val value = repeatInterval.evaluate() as? Long
                 // TimeUnit
-                val units = node.valueArguments[2].evaluate() as? Pair<ClassId, Name>
+                val units = timeUnit?.evaluate() as? Pair<ClassId, Name>
                 if (value != null && units != null) {
                     val (_, timeUnitType) = units
-                    val interval: Long? = when (timeUnitType.identifier) {
-                        "NANOSECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.NANOSECONDS)
-                        "MICROSECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.MICROSECONDS)
-                        "MILLISECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.MILLISECONDS)
-                        "SECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.SECONDS)
-                        "MINUTES" -> value
-                        "HOURS" -> TimeUnit.MINUTES.convert(value, TimeUnit.HOURS)
-                        "DAYS" -> TimeUnit.MINUTES.convert(value, TimeUnit.DAYS)
-                        else -> null
-                    }
+                    val interval: Long? =
+                        when (timeUnitType.identifier) {
+                            "NANOSECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.NANOSECONDS)
+                            "MICROSECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.MICROSECONDS)
+                            "MILLISECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.MILLISECONDS)
+                            "SECONDS" -> TimeUnit.MINUTES.convert(value, TimeUnit.SECONDS)
+                            "MINUTES" -> value
+                            "HOURS" -> TimeUnit.MINUTES.convert(value, TimeUnit.HOURS)
+                            "DAYS" -> TimeUnit.MINUTES.convert(value, TimeUnit.DAYS)
+                            else -> null
+                        }
                     if (interval != null && interval < 15) {
                         context.report(
                             ISSUE,
@@ -89,28 +104,37 @@ class InvalidPeriodicWorkRequestIntervalDetector : Detector(), SourceCodeScanner
                             """
                                 Interval duration for `PeriodicWorkRequest`s must be at least 15 \
                                 minutes.
-                            """.trimIndent()
+                            """
+                                .trimIndent()
                         )
                     }
                 }
             } else if ("java.time.Duration" == type) {
-                val source = node.valueArguments[1].asSourceString()
                 // Look for the most common Duration specification
                 // Example: Duration.ofMinutes(15)
-                val regexp = Regex("Duration.of(\\w+)\\((\\d+)\\)")
-                val matchResult = regexp.matchEntire(source)
-                if (matchResult != null) {
-                    val unit = matchResult.groupValues[1]
-                    val value = matchResult.groupValues[2].toLong()
-                    val interval: Long? = when (unit) {
-                        "Nanos" -> TimeUnit.MINUTES.convert(value, TimeUnit.NANOSECONDS)
-                        "Millis" -> TimeUnit.MINUTES.convert(value, TimeUnit.MILLISECONDS)
-                        "Seconds" -> TimeUnit.MINUTES.convert(value, TimeUnit.SECONDS)
-                        "Minutes" -> value
-                        "Hours" -> TimeUnit.MINUTES.convert(value, TimeUnit.HOURS)
-                        "Days" -> TimeUnit.MINUTES.convert(value, TimeUnit.DAYS)
+
+                val callExpression: UCallExpression? =
+                    when (repeatInterval) {
+                        // ofMinutes(...)
+                        is UCallExpression -> repeatInterval
+                        // Duration.ofMinutes(...)
+                        is UQualifiedReferenceExpression ->
+                            repeatInterval.selector as? UCallExpression
                         else -> null
                     }
+                val unit = callExpression?.methodName
+                val value = callExpression?.valueArguments?.firstOrNull()?.evaluate() as? Long
+                if (value != null) {
+                    val interval: Long? =
+                        when (unit) {
+                            "ofNanos" -> TimeUnit.MINUTES.convert(value, TimeUnit.NANOSECONDS)
+                            "ofMillis" -> TimeUnit.MINUTES.convert(value, TimeUnit.MILLISECONDS)
+                            "ofSeconds" -> TimeUnit.MINUTES.convert(value, TimeUnit.SECONDS)
+                            "ofMinutes" -> value
+                            "ofHours" -> TimeUnit.MINUTES.convert(value, TimeUnit.HOURS)
+                            "ofDays" -> TimeUnit.MINUTES.convert(value, TimeUnit.DAYS)
+                            else -> null
+                        }
                     if (interval != null && interval < 15) {
                         context.report(
                             ISSUE,
@@ -118,7 +142,8 @@ class InvalidPeriodicWorkRequestIntervalDetector : Detector(), SourceCodeScanner
                             """
                                 Interval duration for `PeriodicWorkRequest`s must be at least 15 \
                                 minutes.
-                            """.trimIndent()
+                            """
+                                .trimIndent()
                         )
                     }
                 }

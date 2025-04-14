@@ -19,7 +19,6 @@ package androidx.fragment.app;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 import static androidx.fragment.app.FragmentManager.TAG;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
@@ -39,8 +38,6 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.IntDef;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StyleRes;
 import androidx.lifecycle.LifecycleOwner;
@@ -48,6 +45,9 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewTreeLifecycleOwner;
 import androidx.lifecycle.ViewTreeViewModelStoreOwner;
 import androidx.savedstate.ViewTreeSavedStateRegistryOwner;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -96,7 +96,7 @@ import java.lang.annotation.RetentionPolicy;
  * <p>The simplest use of DialogFragment is as a floating container for the
  * fragment's view hierarchy.  A simple implementation may look like this:
  *
- * <pre>{@code
+ * <pre>
  * public class MyDialogFragment extends DialogFragment {
  *     int mNum;
  *
@@ -153,11 +153,11 @@ import java.lang.annotation.RetentionPolicy;
  *         getDialog().setTitle("Dialog #" + mNum);
  *     }
  * }
- * }</pre>
+ * </pre>
  *
  * <p>An example showDialog() method on the Activity could be:
  *
- * <pre>{@code
+ * <pre>
  * public void showDialog() {
  *     mStackLevel++;
  *
@@ -175,7 +175,7 @@ import java.lang.annotation.RetentionPolicy;
  *     DialogFragment newFragment = MyDialogFragment.newInstance(mStackLevel);
  *     newFragment.show(ft, "dialog");
  * }
- * }</pre>
+ * </pre>
  *
  * <p>This removes any currently shown dialog, creates a new DialogFragment
  * with an argument, and shows it as a new state on the back stack.  When the
@@ -195,7 +195,7 @@ import java.lang.annotation.RetentionPolicy;
  * to display standard alerts to the user that are managed by a fragment.
  * A simple example implementation of this is:
  *
- * <pre>{@code
+ * <pre>
  * public static class MyAlertDialogFragment extends DialogFragment {
  *
  *     public static MyAlertDialogFragment newInstance(int title) {
@@ -220,12 +220,12 @@ import java.lang.annotation.RetentionPolicy;
  *         return super.onCreateDialog(savedInstanceState);
  *     }
  * }
- * }</pre>
+ * </pre>
  *
  * <p>The activity creating this fragment may have the following methods to
  * show the dialog and receive results from it:
  *
- * <pre>{@code
+ * <pre>
  * void showDialog() {
  *     DialogFragment newFragment = MyAlertDialogFragment.newInstance(
  *             R.string.alert_dialog_two_buttons_title);
@@ -241,7 +241,7 @@ import java.lang.annotation.RetentionPolicy;
  *     // Do stuff here.
  *     Log.i("MainActivity", "Negative click!");
  * }
- * }</pre>
+ * </pre>
  *
  * <p>Note that in this case the fragment is not placed on the back stack, it
  * is just added as an indefinitely running fragment.  Because dialogs normally
@@ -260,7 +260,7 @@ import java.lang.annotation.RetentionPolicy;
  *
  * <p>For example, here is a simple dialog fragment:
  *
- * <pre>{@code
+ * <pre>
  * public static class MyDialogFragment extends DialogFragment {
  *     static MyDialogFragment newInstance() {
  *         return new MyDialogFragment();
@@ -283,26 +283,26 @@ import java.lang.annotation.RetentionPolicy;
  *         return v;
  *     }
  * }
- * }</pre>
+ * </pre>
  *
  * <p>An instance of this fragment can be created and shown as a dialog:
  *
- * <pre>{@code
+ * <pre>
  * void showDialog() {
  *     // Create the fragment and show it as a dialog.
  *     DialogFragment newFragment = MyDialogFragment.newInstance();
  *     newFragment.show(getSupportFragmentManager(), "dialog");
  * }
- * }</pre>
+ * </pre>
  *
  * <p>It can also be added as content in a view hierarchy:
  *
- * <pre>{@code
+ * <pre>
  * FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
  * DialogFragment newFragment = MyDialogFragment.newInstance();
  * ft.add(R.id.embedded, newFragment);
  * ft.commit();
- * }</pre>
+ * </pre>
  */
 public class DialogFragment extends Fragment
         implements DialogInterface.OnCancelListener, DialogInterface.OnDismissListener {
@@ -351,7 +351,6 @@ public class DialogFragment extends Fragment
 
     private Handler mHandler;
     private Runnable mDismissRunnable = new Runnable() {
-        @SuppressLint("SyntheticAccessor")
         @Override
         public void run() {
             mOnDismissListener.onDismiss(mDialog);
@@ -360,7 +359,6 @@ public class DialogFragment extends Fragment
 
     private DialogInterface.OnCancelListener mOnCancelListener =
             new DialogInterface.OnCancelListener() {
-        @SuppressLint("SyntheticAccessor")
         @Override
         public void onCancel(@Nullable DialogInterface dialog) {
             if (mDialog != null) {
@@ -371,7 +369,6 @@ public class DialogFragment extends Fragment
 
     private DialogInterface.OnDismissListener mOnDismissListener =
             new DialogInterface.OnDismissListener() {
-        @SuppressLint("SyntheticAccessor")
         @Override
         public void onDismiss(@Nullable DialogInterface dialog) {
             if (mDialog != null) {
@@ -387,7 +384,6 @@ public class DialogFragment extends Fragment
     private int mBackStackId = -1;
     private boolean mCreatingDialog;
     private Observer<LifecycleOwner> mObserver = new Observer<LifecycleOwner>() {
-        @SuppressLint("SyntheticAccessor")
         @Override
         public void onChanged(LifecycleOwner lifecycleOwner) {
             if (lifecycleOwner != null && mShowsDialog) {
@@ -407,8 +403,7 @@ public class DialogFragment extends Fragment
         }
     };
 
-    @Nullable
-    private Dialog mDialog;
+    private @Nullable Dialog mDialog;
     private boolean mViewDestroyed;
     private boolean mDismissed;
     private boolean mShownByMe;
@@ -628,8 +623,7 @@ public class DialogFragment extends Fragment
      *
      * @see #requireDialog()
      */
-    @Nullable
-    public Dialog getDialog() {
+    public @Nullable Dialog getDialog() {
         return mDialog;
     }
 
@@ -640,13 +634,31 @@ public class DialogFragment extends Fragment
      * {@link #onCreateDialog(Bundle)}) or has been destroyed (after {@link #onDestroyView()}.
      * @see #getDialog()
      */
-    @NonNull
-    public final Dialog requireDialog() {
+    public final @NonNull Dialog requireDialog() {
         Dialog dialog = getDialog();
         if (dialog == null) {
             throw new IllegalStateException("DialogFragment " + this + " does not have a Dialog.");
         }
         return dialog;
+    }
+
+    /**
+     * Return the {@link ComponentDialog} this fragment is currently controlling.
+     *
+     * @throws IllegalStateException if the Dialog found is not a ComponentDialog or
+     * if Dialog has not yet been created (before {@link #onCreateDialog(Bundle)})
+     * or has been destroyed (after {@link #onDestroyView()}.
+     *
+     * @see #requireDialog()
+     */
+    public final @NonNull ComponentDialog requireComponentDialog() {
+        Dialog dialog = requireDialog();
+        if (!(dialog instanceof ComponentDialog)) {
+            throw new IllegalStateException("DialogFragment " + this
+                    + " did not return a ComponentDialog instance from "
+                    + "requireDialog(). The actual Dialog is " + dialog);
+        }
+        return (ComponentDialog) dialog;
     }
 
     @StyleRes
@@ -765,14 +777,12 @@ public class DialogFragment extends Fragment
         }
     }
 
-    @NonNull
     @Override
-    FragmentContainer createFragmentContainer() {
+    @NonNull FragmentContainer createFragmentContainer() {
         final FragmentContainer fragmentContainer = super.createFragmentContainer();
         return new FragmentContainer() {
-            @Nullable
             @Override
-            public View onFindViewById(int id) {
+            public @Nullable View onFindViewById(int id) {
                 if (fragmentContainer.onHasView()) {
                     return fragmentContainer.onFindViewById(id);
                 }
@@ -786,8 +796,7 @@ public class DialogFragment extends Fragment
         };
     }
 
-    @Nullable
-    View onFindViewById(int id) {
+    @Nullable View onFindViewById(int id) {
         if (mDialog != null) {
             return mDialog.findViewById(id);
         }
@@ -806,8 +815,7 @@ public class DialogFragment extends Fragment
      * {@link Fragment#onGetLayoutInflater(Bundle)}, without the dialog theme, will be returned.
      */
     @Override
-    @NonNull
-    public LayoutInflater onGetLayoutInflater(@Nullable Bundle savedInstanceState) {
+    public @NonNull LayoutInflater onGetLayoutInflater(@Nullable Bundle savedInstanceState) {
         LayoutInflater layoutInflater = super.onGetLayoutInflater(savedInstanceState);
         if (!mShowsDialog || mCreatingDialog) {
             if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
@@ -872,8 +880,7 @@ public class DialogFragment extends Fragment
      * @return Return a new Dialog instance to be displayed by the Fragment.
      */
     @MainThread
-    @NonNull
-    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+    public @NonNull Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
             Log.d(TAG, "onCreateDialog called for DialogFragment " + this);
         }

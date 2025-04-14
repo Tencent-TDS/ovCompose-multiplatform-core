@@ -31,11 +31,12 @@ import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,86 +51,76 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @Preview
 @Composable
 fun SpringBackScrollingDemo() {
     Column(Modifier.fillMaxHeight()) {
-        Text(
-            "<== Scroll horizontally ==>",
-            modifier = Modifier.padding(40.dp),
-            fontSize = 20.sp
-        )
+        Text("<== Scroll horizontally ==>", modifier = Modifier.padding(40.dp), fontSize = 20.sp)
 
-        var scrollPosition by remember { mutableStateOf(0f) }
-        val itemWidth = remember { mutableStateOf(0f) }
+        var scrollPosition by remember { mutableFloatStateOf(0f) }
+        var itemWidth by remember { mutableFloatStateOf(0f) }
         val mutatorMutex = remember { MutatorMutex() }
         var animation by remember { mutableStateOf(AnimationState(scrollPosition)) }
 
-        val gesture = Modifier.pointerInput(Unit) {
-            coroutineScope {
-                while (true) {
-                    val velocityTracker = VelocityTracker()
-                    var latestVelocityX = 0f
-                    mutatorMutex.mutate(MutatePriority.UserInput) {
-                        awaitPointerEventScope {
-                            val pointerId = awaitFirstDown().id
-                            horizontalDrag(pointerId) {
-                                scrollPosition += it.positionChange().x
-                                velocityTracker.addPosition(
-                                    it.uptimeMillis,
-                                    it.position
-                                )
-                            }
-                        }
-                        latestVelocityX = velocityTracker.calculateVelocity().x
-                    }
-                    // Now finger lifted, get fling going
-                    launch {
-                        mutatorMutex.mutate {
-                            animation = AnimationState(scrollPosition, latestVelocityX)
-                            val target = exponentialDecay<Float>()
-                                .calculateTargetValue(scrollPosition, latestVelocityX)
-                            val springBackTarget: Float = calculateSpringBackTarget(
-                                target,
-                                latestVelocityX,
-                                itemWidth.value
-                            )
-
-                            animation.animateDecay(exponentialDecay()) {
-                                scrollPosition = this.value
-                                // Spring back as soon as the target position is crossed.
-                                if ((this.velocity > 0 && value > springBackTarget) ||
-                                    (this.velocity < 0 && value < springBackTarget)
-                                ) {
-                                    cancelAnimation()
+        val gesture =
+            Modifier.pointerInput(Unit) {
+                coroutineScope {
+                    while (true) {
+                        val velocityTracker = VelocityTracker()
+                        var latestVelocityX = 0f
+                        mutatorMutex.mutate(MutatePriority.UserInput) {
+                            awaitPointerEventScope {
+                                val pointerId = awaitFirstDown().id
+                                horizontalDrag(pointerId) {
+                                    scrollPosition += it.positionChange().x
+                                    velocityTracker.addPosition(it.uptimeMillis, it.position)
                                 }
                             }
+                            latestVelocityX = velocityTracker.calculateVelocity().x
+                        }
+                        // Now finger lifted, get fling going
+                        launch {
+                            mutatorMutex.mutate {
+                                animation = AnimationState(scrollPosition, latestVelocityX)
+                                val target =
+                                    exponentialDecay<Float>()
+                                        .calculateTargetValue(scrollPosition, latestVelocityX)
+                                val springBackTarget: Float =
+                                    calculateSpringBackTarget(target, latestVelocityX, itemWidth)
 
-                            // The previous animation is either finished or interrupted (via
-                            // cancelAnimation(). If interrupted, spring back.
-                            if (!animation.isFinished) {
-                                animation.animateTo(
-                                    springBackTarget,
-                                    SpringSpec(
-                                        dampingRatio = 0.8f,
-                                        stiffness = 200f
-                                    ),
-                                    sequentialAnimation = true
-                                ) {
+                                animation.animateDecay(exponentialDecay()) {
                                     scrollPosition = this.value
+                                    // Spring back as soon as the target position is crossed.
+                                    if (
+                                        (this.velocity > 0 && value > springBackTarget) ||
+                                            (this.velocity < 0 && value < springBackTarget)
+                                    ) {
+                                        cancelAnimation()
+                                    }
+                                }
+
+                                // The previous animation is either finished or interrupted (via
+                                // cancelAnimation(). If interrupted, spring back.
+                                if (!animation.isFinished) {
+                                    animation.animateTo(
+                                        springBackTarget,
+                                        SpringSpec(dampingRatio = 0.8f, stiffness = 200f),
+                                        sequentialAnimation = true
+                                    ) {
+                                        scrollPosition = this.value
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
         Canvas(gesture.fillMaxWidth().height(400.dp)) {
-            itemWidth.value = size.width / 2f
+            itemWidth = size.width / 2f
             if (DEBUG) {
                 println(
                     "Anim, Spring back scrolling, redrawing with new" +
@@ -188,13 +179,14 @@ private fun DrawScope.drawRects(animScroll: Float) {
     )
 }
 
-private val colors = listOf(
-    Color(0xFFdaf8e3),
-    Color(0xFF97ebdb),
-    Color(0xFF00c2c7),
-    Color(0xFF0086ad),
-    Color(0xFF005582),
-    Color(0xFF0086ad),
-    Color(0xFF00c2c7),
-    Color(0xFF97ebdb)
-)
+private val colors =
+    listOf(
+        Color(0xFFdaf8e3),
+        Color(0xFF97ebdb),
+        Color(0xFF00c2c7),
+        Color(0xFF0086ad),
+        Color(0xFF005582),
+        Color(0xFF0086ad),
+        Color(0xFF00c2c7),
+        Color(0xFF97ebdb)
+    )

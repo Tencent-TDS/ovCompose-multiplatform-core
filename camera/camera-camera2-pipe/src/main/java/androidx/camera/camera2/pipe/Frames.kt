@@ -14,50 +14,52 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe
 
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
-import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 
 /**
  * A [FrameNumber] is the identifier that represents a specific exposure by the Camera. FrameNumbers
  * increase within a specific CameraCaptureSession, and are not created until the HAL begins
  * processing a request.
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @JvmInline
-value class FrameNumber(val value: Long)
+public value class FrameNumber(public val value: Long)
 
 /** [FrameInfo] is a wrapper around [TotalCaptureResult]. */
-interface FrameInfo : UnsafeWrapper {
-    val metadata: FrameMetadata
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public interface FrameInfo : UnsafeWrapper {
+    public val metadata: FrameMetadata
 
     /**
      * If this [FrameInfo] was produced from a logical camera there will be metadata associated with
      * the physical streams that were sent to the camera.
      */
-    operator fun get(camera: CameraId): FrameMetadata?
+    public operator fun get(camera: CameraId): FrameMetadata?
 
-    val camera: CameraId
-    val frameNumber: FrameNumber
-    val requestMetadata: RequestMetadata
+    public val camera: CameraId
+    public val frameNumber: FrameNumber
+    public val requestMetadata: RequestMetadata
 }
 
 /** [FrameMetadata] is a wrapper around [CaptureResult]. */
-interface FrameMetadata : Metadata, UnsafeWrapper {
-    operator fun <T> get(key: CaptureResult.Key<T>): T?
-    fun <T> getOrDefault(key: CaptureResult.Key<T>, default: T): T
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public interface FrameMetadata : Metadata, UnsafeWrapper {
+    public operator fun <T> get(key: CaptureResult.Key<T>): T?
 
-    val camera: CameraId
-    val frameNumber: FrameNumber
+    public fun <T> getOrDefault(key: CaptureResult.Key<T>, default: T): T
+
+    public val camera: CameraId
+    public val frameNumber: FrameNumber
 
     /**
      * Extra metadata will override values defined by the wrapped CaptureResult object. This is
      * exposed separately to allow other systems to know what is altered relative to Camera2.
      */
-    val extraMetadata: Map<*, Any?>
+    public val extraMetadata: Map<*, Any?>
 }
 
 /**
@@ -67,7 +69,8 @@ interface FrameMetadata : Metadata, UnsafeWrapper {
  * [Request.Listener.onComplete] method to be delayed so that the transform can be run on future
  * metadata.
  */
-data class MetadataTransform(
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public data class MetadataTransform(
     /**
      * This defines the number of historical [TotalCaptureResult] objects this transform is allowed
      * to look at. Setting this value to > 0 increases the number of [TotalCaptureResult] the
@@ -96,8 +99,9 @@ data class MetadataTransform(
         check(future >= 0)
     }
 
-    interface TransformFn {
-        fun computeOverridesFor(
+    @JvmDefaultWithCompatibility
+    public interface TransformFn {
+        public fun computeOverridesFor(
             result: FrameInfo,
             camera: CameraId,
             related: List<FrameInfo?>

@@ -20,16 +20,17 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.util.SparseArray;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
  * Utilities for working with {@link android.os.Bundle}.
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class BundleUtil {
@@ -70,7 +71,7 @@ public final class BundleUtil {
      *
      * <p>Values of type Bundle are compared using {@link #deepEquals}.
      */
-    private static boolean bundleValueEquals(@Nullable Object one, @Nullable Object two) {
+    public static boolean bundleValueEquals(@Nullable Object one, @Nullable Object two) {
         if (one == null && two == null) {
             return true;
         }
@@ -237,8 +238,7 @@ public final class BundleUtil {
      *
      * <p>Values which are Bundles, Lists or Arrays are deeply copied themselves.
      */
-    @NonNull
-    public static Bundle deepCopy(@NonNull Bundle bundle) {
+    public static @NonNull Bundle deepCopy(@NonNull Bundle bundle) {
         // Write bundle to bytes
         Parcel parcel = Parcel.obtain();
         try {
@@ -248,7 +248,7 @@ public final class BundleUtil {
             // Read bundle from bytes
             parcel.unmarshall(serializedMessage, 0, serializedMessage.length);
             parcel.setDataPosition(0);
-            return parcel.readBundle();
+            return parcel.readBundle(BundleUtil.class.getClassLoader());
         } finally {
             parcel.recycle();
         }

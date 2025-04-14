@@ -16,8 +16,8 @@
 
 package androidx.compose.ui.focus
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.InspectorInfo
  * request focus state changes.
  *
  * @sample androidx.compose.ui.samples.RequestFocusSample
- *
  * @see FocusRequester
  * @see Modifier.focusRequester
  */
@@ -49,16 +48,14 @@ interface FocusRequesterModifier : Modifier.Element {
 fun Modifier.focusRequester(focusRequester: FocusRequester): Modifier =
     this then FocusRequesterElement(focusRequester)
 
-@OptIn(ExperimentalComposeUiApi::class)
-private data class FocusRequesterElement(
-    val focusRequester: FocusRequester
-) : ModifierNodeElement<FocusRequesterModifierNodeImpl>() {
-    override fun create() = FocusRequesterModifierNodeImpl(focusRequester)
+private data class FocusRequesterElement(val focusRequester: FocusRequester) :
+    ModifierNodeElement<FocusRequesterNode>() {
+    override fun create() = FocusRequesterNode(focusRequester)
 
-    override fun update(node: FocusRequesterModifierNodeImpl) = node.apply {
-        focusRequester.focusRequesterNodes -= this
-        focusRequester = this@FocusRequesterElement.focusRequester
-        focusRequester.focusRequesterNodes += this
+    override fun update(node: FocusRequesterNode) {
+        node.focusRequester.focusRequesterNodes -= node
+        node.focusRequester = focusRequester
+        node.focusRequester.focusRequesterNodes += node
     }
 
     override fun InspectorInfo.inspectableProperties() {
@@ -67,10 +64,8 @@ private data class FocusRequesterElement(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
-private class FocusRequesterModifierNodeImpl(
-    var focusRequester: FocusRequester
-) : FocusRequesterModifierNode, Modifier.Node() {
+private class FocusRequesterNode(var focusRequester: FocusRequester) :
+    FocusRequesterModifierNode, Modifier.Node() {
     override fun onAttach() {
         super.onAttach()
         focusRequester.focusRequesterNodes += this

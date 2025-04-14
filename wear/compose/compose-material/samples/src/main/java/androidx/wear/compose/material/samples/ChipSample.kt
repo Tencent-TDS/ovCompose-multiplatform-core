@@ -40,19 +40,20 @@ fun ChipWithIconAndLabel() {
     Chip(
         onClick = { /* Do something */ },
         enabled = true,
-        // When we have only primary label we can have up to 2 lines of text
+        // Primary label can have up to 3 lines of text
         label = {
             Text(
-                text = "Main label can span over 2 lines",
-                maxLines = 2, overflow = TextOverflow.Ellipsis
+                text = "Main label can span up to 3 lines",
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
         },
         icon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),
                 contentDescription = "airplane",
-                modifier = Modifier.size(ChipDefaults.IconSize)
-                    .wrapContentSize(align = Alignment.Center),
+                modifier =
+                    Modifier.size(ChipDefaults.IconSize).wrapContentSize(align = Alignment.Center),
             )
         }
     )
@@ -64,19 +65,20 @@ fun OutlinedChipWithIconAndLabel() {
     OutlinedChip(
         onClick = { /* Do something */ },
         enabled = true,
-        // When we have only primary label we can have up to 2 lines of text
+        // Primary label can have up to 3 lines of text
         label = {
             Text(
-                text = "Main label can span over 2 lines",
-                maxLines = 2, overflow = TextOverflow.Ellipsis
+                text = "Main label can span up to 3 lines",
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
         },
         icon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),
                 contentDescription = "airplane",
-                modifier = Modifier.size(ChipDefaults.IconSize)
-                    .wrapContentSize(align = Alignment.Center),
+                modifier =
+                    Modifier.size(ChipDefaults.IconSize).wrapContentSize(align = Alignment.Center),
             )
         }
     )
@@ -88,17 +90,17 @@ fun ChipWithIconAndLabels() {
     Chip(
         onClick = { /* Do something */ },
         enabled = true,
-        // When we have both label and secondary label present limit both to 1 line of text
-        label = { Text(text = "Main label", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        // Primary label has maximum 3 lines, Secondary label has maximum 2 lines.
+        label = { Text(text = "Main label", maxLines = 3, overflow = TextOverflow.Ellipsis) },
         secondaryLabel = {
-            Text(text = "secondary label", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = "secondary label", maxLines = 2, overflow = TextOverflow.Ellipsis)
         },
         icon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),
                 contentDescription = "airplane",
-                modifier = Modifier.size(ChipDefaults.IconSize)
-                    .wrapContentSize(align = Alignment.Center),
+                modifier =
+                    Modifier.size(ChipDefaults.IconSize).wrapContentSize(align = Alignment.Center),
             )
         }
     )
@@ -111,9 +113,7 @@ fun CompactChipWithIconAndLabel() {
         onClick = { /* Do something */ },
         enabled = true,
         // CompactChip label should be no more than 1 line of text
-        label = {
-            Text("Single line label", maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
+        label = { Text("Single line label", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         icon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),
@@ -166,9 +166,7 @@ fun OutlinedCompactChipWithIconAndLabel() {
         onClick = { /* Do something */ },
         enabled = true,
         // CompactChip label should be no more than 1 line of text
-        label = {
-            Text("Single line label", maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
+        label = { Text("Single line label", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         icon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),

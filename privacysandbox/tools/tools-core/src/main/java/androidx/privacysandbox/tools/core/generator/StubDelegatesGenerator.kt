@@ -19,7 +19,9 @@ package androidx.privacysandbox.tools.core.generator
 import androidx.privacysandbox.tools.core.generator.GenerationTarget.SERVER
 import androidx.privacysandbox.tools.core.generator.SpecNames.contextClass
 import androidx.privacysandbox.tools.core.generator.SpecNames.contextPropertyName
-import androidx.privacysandbox.tools.core.generator.SpecNames.delicateCoroutinesApiClass
+import androidx.privacysandbox.tools.core.generator.SpecNames.coroutineScopeClass
+import androidx.privacysandbox.tools.core.generator.SpecNames.dispatchersMainClass
+import androidx.privacysandbox.tools.core.generator.SpecNames.launchMethod
 import androidx.privacysandbox.tools.core.model.AnnotatedInterface
 import androidx.privacysandbox.tools.core.model.Method
 import androidx.privacysandbox.tools.core.model.Types
@@ -42,43 +44,56 @@ class StubDelegatesGenerator(
             ClassName(packageName, TransportCancellationGenerator.className)
     }
 
+    private val coroutineScopePropertyName = "coroutineScope"
+
     /**
      * Generates a StubDelegate for this interface.
      *
      * This allows a server-side interface to be called by a remote ClientProxy.
      *
-     * If  [target] is [GenerationTarget.SERVER] (ie. this will run on the SDK-side) includes a
+     * If [target] is [GenerationTarget.SERVER] (ie. this will run on the SDK-side) includes a
      * Context that will be the SDK context.
      */
     fun generate(annotatedInterface: AnnotatedInterface, target: GenerationTarget): FileSpec {
         val className = annotatedInterface.stubDelegateNameSpec().simpleName
-        val aidlBaseClassName = ClassName(
-            annotatedInterface.type.packageName, annotatedInterface.aidlName(), "Stub"
-        )
+        val aidlBaseClassName =
+            ClassName(annotatedInterface.type.packageName, annotatedInterface.aidlName(), "Stub")
 
-        val classSpec = TypeSpec.classBuilder(className).build {
-            superclass(aidlBaseClassName)
+        val classSpec =
+            TypeSpec.classBuilder(className).build {
+                superclass(aidlBaseClassName)
 
-            primaryConstructor(
-                buildList {
-                    add(
-                        PropertySpec.builder(
-                            "delegate",
-                            annotatedInterface.type.poetTypeName(),
-                        ).addModifiers(KModifier.PUBLIC).build()
-                    )
-                    if (target == SERVER) {
+                primaryConstructor(
+                    buildList {
                         add(
-                            PropertySpec.builder(contextPropertyName, contextClass)
-                                .addModifiers(KModifier.PUBLIC).build()
+                            PropertySpec.builder(
+                                    "delegate",
+                                    annotatedInterface.type.poetTypeName(),
+                                )
+                                .addModifiers(KModifier.PUBLIC)
+                                .build()
                         )
-                    }
-                },
-                KModifier.INTERNAL,
-            )
+                        if (target == SERVER) {
+                            add(
+                                PropertySpec.builder(contextPropertyName, contextClass)
+                                    .addModifiers(KModifier.PUBLIC)
+                                    .build()
+                            )
+                        }
+                    },
+                    KModifier.INTERNAL,
+                )
 
-            addFunctions(annotatedInterface.methods.map(::toFunSpec))
-        }
+                val coroutineProperty =
+                    PropertySpec.builder(coroutineScopePropertyName, coroutineScopeClass)
+                        .addModifiers(KModifier.PRIVATE)
+                        .initializer(
+                            CodeBlock.of("%T(%T)", coroutineScopeClass, dispatchersMainClass)
+                        )
+                        .build()
+                addProperty(coroutineProperty)
+                addFunctions(annotatedInterface.methods.map(::toFunSpec))
+            }
 
         return FileSpec.builder(annotatedInterface.type.packageName, className).build {
             addType(classSpec)
@@ -92,16 +107,10 @@ class StubDelegatesGenerator(
 
     private fun toSuspendFunSpec(method: Method): FunSpec {
         return FunSpec.builder(method.name).build {
-            addModifiers(KModifier.OVERRIDE)
+            addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
             addParameters(getParameters(method))
             addCode {
-                addStatement("@OptIn(%T::class)", delicateCoroutinesApiClass)
-                addControlFlow(
-                    "val job = %T.%M(%T)",
-                    SpecNames.globalScopeClass,
-                    SpecNames.launchMethod,
-                    SpecNames.dispatchersMainClass
-                ) {
+                addControlFlow("val job = %L.%M", coroutineScopePropertyName, launchMethod) {
                     addControlFlow("try") {
                         addStatement {
                             if (method.returnType != Types.unit) {
@@ -114,9 +123,7 @@ class StubDelegatesGenerator(
                         } else {
                             addStatement(
                                 "transactionCallback.onSuccess(%L)",
-                                binderCodeConverter.convertToBinderCode(
-                                    method.returnType, "result"
-                                )
+                                binderCodeConverter.convertToBinderCode(method.returnType, "result")
                             )
                         }
                     }
@@ -138,33 +145,48 @@ class StubDelegatesGenerator(
         }
     }
 
-    private fun toNonSuspendFunSpec(method: Method) = FunSpec.builder(method.name).build {
-        addModifiers(KModifier.OVERRIDE)
-        addParameters(getParameters(method))
-        addStatement { add(getDelegateCallBlock(method)) }
-    }
+    private fun toNonSuspendFunSpec(method: Method) =
+        FunSpec.builder(method.name).build {
+            addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
+            addParameters(getParameters(method))
+            addCode(
+                CodeBlock.builder().build {
+                    addControlFlow("%L.%M", coroutineScopePropertyName, launchMethod) {
+                        addStatement { add(getDelegateCallBlock(method)) }
+                    }
+                }
+            )
+        }
 
     private fun getParameters(method: Method) = buildList {
-        addAll(method.parameters.map { parameter ->
-            ParameterSpec(
-                parameter.name,
-                binderCodeConverter.convertToBinderType(parameter.type)
-            )
-        })
-        if (method.isSuspend) add(
-            ParameterSpec(
-                "transactionCallback", ClassName(
-                    basePackageName,
-                    wrapWithListIfNeeded(method.returnType).transactionCallbackName()
+        addAll(
+            method.parameters.map { parameter ->
+                ParameterSpec(
+                    parameter.name,
+                    binderCodeConverter.convertToBinderType(parameter.type)
+                )
+            }
+        )
+        if (method.isSuspend)
+            add(
+                ParameterSpec(
+                    "transactionCallback",
+                    ClassName(
+                        basePackageName,
+                        wrapWithListIfNeeded(method.returnType).transactionCallbackName()
+                    )
                 )
             )
-        )
     }
 
-    private fun getDelegateCallBlock(method: Method) = CodeBlock.builder().build {
-        add("delegate.${method.name}(")
-        add(method.parameters.map { binderCodeConverter.convertToModelCode(it.type, it.name) }
-            .joinToCode())
-        add(")")
-    }
+    private fun getDelegateCallBlock(method: Method) =
+        CodeBlock.builder().build {
+            add("delegate.${method.name}(")
+            add(
+                method.parameters
+                    .map { binderCodeConverter.convertToModelCode(it.type, it.name) }
+                    .joinToCode()
+            )
+            add(")")
+        }
 }

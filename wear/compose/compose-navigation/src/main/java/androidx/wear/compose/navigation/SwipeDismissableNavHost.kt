@@ -16,42 +16,25 @@
 
 package androidx.wear.compose.navigation
 
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-import androidx.compose.foundation.layout.Box
+import android.os.Build
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.SaveableStateHolder
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation.NavGraph
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.Navigator
 import androidx.navigation.createGraph
-import androidx.navigation.compose.LocalOwnersProvider
-import androidx.navigation.get
-import androidx.wear.compose.material.SwipeToDismissValue
-import androidx.wear.compose.material.SwipeToDismissBox
-import androidx.wear.compose.material.SwipeToDismissBoxState
-import androidx.wear.compose.material.SwipeToDismissKeys
-import androidx.wear.compose.material.edgeSwipeToDismiss
-import androidx.wear.compose.material.rememberSwipeToDismissBoxState
+import androidx.wear.compose.foundation.BasicSwipeToDismissBox
+import androidx.wear.compose.foundation.LocalSwipeToDismissBackgroundScrimColor
+import androidx.wear.compose.foundation.LocalSwipeToDismissContentScrimColor
+import androidx.wear.compose.foundation.SwipeToDismissBoxState
+import androidx.wear.compose.foundation.edgeSwipeToDismiss
+import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 
 /**
- * Provides a place in the Compose hierarchy for self-contained navigation to occur,
- * with backwards navigation provided by a swipe gesture.
+ * Provides a place in the Compose hierarchy for self-contained navigation to occur, with backwards
+ * navigation provided by a swipe gesture.
  *
  * Once this is called, any Composable within the given [NavGraphBuilder] can be navigated to from
  * the provided [navController].
@@ -59,20 +42,30 @@ import androidx.wear.compose.material.rememberSwipeToDismissBoxState
  * The builder passed into this method is [remember]ed. This means that for this NavHost, the
  * contents of the builder cannot be changed.
  *
- * Content is displayed within a [SwipeToDismissBox], showing the current navigation level.
- * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in
- * the background.
+ * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in the
+ * background. BackgroundScrimColor and ContentScrimColor of it are taken from
+ * [LocalSwipeToDismissBackgroundScrimColor] and [LocalSwipeToDismissContentScrimColor].
+ *
+ * Below API level 36, content of the current navigation level is displayed within a
+ * [BasicSwipeToDismissBox] to detect swipe back gestures.
+ *
+ * API level 36 onwards, [SwipeDismissableNavHost] listens to platform predictive back events for
+ * navigation, and [BasicSwipeToDismissBox] is not used for swipe gesture detection.
  *
  * Example of a [SwipeDismissableNavHost] alternating between 2 screens:
+ *
  * @sample androidx.wear.compose.navigation.samples.SimpleNavHost
  *
  * Example of a [SwipeDismissableNavHost] for which a destination has a named argument:
- * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
  *
+ * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
  * @param navController The navController for this host
  * @param startDestination The route for the start destination
  * @param modifier The modifier to be applied to the layout
- * @param state State containing information about ongoing swipe and animation.
+ * @param userSwipeEnabled [Boolean] Whether swipe-to-dismiss gesture is enabled.
+ * @param state State containing information about ongoing swipe and animation. This parameter is
+ *   unused API level 36 onwards, because the platform supports predictive back and
+ *   [SwipeDismissableNavHost] uses platform gestures to detect the back gestures.
  * @param route The route for the graph
  * @param builder The builder used to construct the graph
  */
@@ -81,22 +74,24 @@ public fun SwipeDismissableNavHost(
     navController: NavHostController,
     startDestination: String,
     modifier: Modifier = Modifier,
+    userSwipeEnabled: Boolean = true,
     state: SwipeDismissableNavHostState = rememberSwipeDismissableNavHostState(),
     route: String? = null,
     builder: NavGraphBuilder.() -> Unit
-) =
+): Unit =
     SwipeDismissableNavHost(
         navController,
         remember(route, startDestination, builder) {
             navController.createGraph(startDestination, route, builder)
         },
         modifier,
+        userSwipeEnabled,
         state = state,
     )
 
 /**
- * Provides a place in the Compose hierarchy for self-contained navigation to occur,
- * with backwards navigation provided by a swipe gesture.
+ * Provides a place in the Compose hierarchy for self-contained navigation to occur, with backwards
+ * navigation provided by a swipe gesture.
  *
  * Once this is called, any Composable within the given [NavGraphBuilder] can be navigated to from
  * the provided [navController].
@@ -104,21 +99,30 @@ public fun SwipeDismissableNavHost(
  * The builder passed into this method is [remember]ed. This means that for this NavHost, the
  * contents of the builder cannot be changed.
  *
- * Content is displayed within a [SwipeToDismissBox], showing the current navigation level.
- * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in
- * the background.
+ * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in the
+ * background. BackgroundScrimColor and ContentScrimColor of it are taken from
+ * [LocalSwipeToDismissBackgroundScrimColor] and [LocalSwipeToDismissContentScrimColor].
+ *
+ * Below API level 36, content of the current navigation level is displayed within a
+ * [BasicSwipeToDismissBox] to detect swipe back gestures.
+ *
+ * API level 36 onwards, [SwipeDismissableNavHost] listens to platform predictive back events for
+ * navigation, and [BasicSwipeToDismissBox] is not used for swipe gesture detection.
  *
  * Example of a [SwipeDismissableNavHost] alternating between 2 screens:
+ *
  * @sample androidx.wear.compose.navigation.samples.SimpleNavHost
  *
  * Example of a [SwipeDismissableNavHost] for which a destination has a named argument:
- * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
  *
+ * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
  * @param navController [NavHostController] for this host
  * @param graph Graph for this host
  * @param modifier [Modifier] to be applied to the layout
- * @param state State containing information about ongoing swipe and animation.
- *
+ * @param userSwipeEnabled [Boolean] Whether swipe-to-dismiss gesture is enabled.
+ * @param state State containing information about ongoing swipe and animation. This parameter is
+ *   unused API level 36 onwards, because the platform supports predictive back and
+ *   [SwipeDismissableNavHost] uses platform gestures to detect the back gestures.
  * @throws IllegalArgumentException if no WearNavigation.Destination is on the navigation backstack.
  */
 @Composable
@@ -126,156 +130,183 @@ public fun SwipeDismissableNavHost(
     navController: NavHostController,
     graph: NavGraph,
     modifier: Modifier = Modifier,
+    userSwipeEnabled: Boolean = true,
     state: SwipeDismissableNavHostState = rememberSwipeDismissableNavHostState(),
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
-        "SwipeDismissableNavHost requires a ViewModelStoreOwner to be provided " +
-            "via LocalViewModelStoreOwner"
-    }
-    val onBackPressedDispatcherOwner = LocalOnBackPressedDispatcherOwner.current
-    val onBackPressedDispatcher = onBackPressedDispatcherOwner?.onBackPressedDispatcher
-
-    // Setup the navController with proper owners
-    navController.setLifecycleOwner(lifecycleOwner)
-    navController.setViewModelStore(viewModelStoreOwner.viewModelStore)
-    if (onBackPressedDispatcher != null) {
-        navController.setOnBackPressedDispatcher(onBackPressedDispatcher)
-    }
-    // Ensure that the NavController only receives back events while
-    // the NavHost is in composition
-    DisposableEffect(navController) {
-        navController.enableOnBackPressed(true)
-        onDispose {
-            navController.enableOnBackPressed(false)
-        }
-    }
-
-    // Then set the graph
-    navController.graph = graph
-
-    val stateHolder = rememberSaveableStateHolder()
-
-    // Find the WearNavigator, returning early if it isn't found
-    // (such as is the case when using TestNavHostController).
-    val wearNavigator = navController.navigatorProvider.get<Navigator<out NavDestination>>(
-        WearNavigator.NAME
-    ) as? WearNavigator ?: return
-
-    val backStack by wearNavigator.backStack.collectAsState()
-    val transitionsInProgress by wearNavigator.transitionsInProgress.collectAsState()
-    var initialContent by remember { mutableStateOf(true) }
-
-    val previous = if (backStack.size <= 1) null else backStack[backStack.lastIndex - 1]
-    // Get the current navigation backstack entry. If the backstack is empty, it could be because
-    // no WearNavigator.Destinations were added to the navigation backstack (be sure to build
-    // the NavGraph using androidx.wear.compose.navigation.composable) or because the last entry
-    // was popped prior to navigating (instead, use navigate with popUpTo).
-    val current = if (backStack.isNotEmpty()) backStack.last() else throw IllegalArgumentException(
-        "The WearNavigator backstack is empty, there is no navigation destination to display."
-    )
-
-    val swipeState = state.swipeToDismissBoxState
-    LaunchedEffect(swipeState.currentValue) {
-        // This effect operates when the swipe gesture is complete:
-        // 1) Resets the screen offset (otherwise, the next destination is draw off-screen)
-        // 2) Pops the navigation back stack to return to the previous level
-        if (swipeState.currentValue == SwipeToDismissValue.Dismissed) {
-            swipeState.snapTo(SwipeToDismissValue.Default)
-            navController.popBackStack()
-        }
-    }
-    LaunchedEffect(swipeState.isAnimationRunning) {
-        // This effect marks the transitions completed when swipe animations finish,
-        // so that the navigation backstack entries can go to Lifecycle.State.RESUMED.
-        if (swipeState.isAnimationRunning == false) {
-            transitionsInProgress.forEach { entry ->
-                wearNavigator.onTransitionComplete(entry)
-            }
-        }
-    }
-
-    SwipeToDismissBox(
-        state = swipeState,
-        modifier = Modifier,
-        hasBackground = previous != null,
-        backgroundKey = previous?.id ?: SwipeToDismissKeys.Background,
-        contentKey = current.id,
-        content = { isBackground ->
-            BoxedStackEntryContent(if (isBackground) previous else current, stateHolder, modifier)
-        }
-    )
-
-    DisposableEffect(previous, current) {
-        if (initialContent) {
-            // There are no animations for showing the initial content, so mark transitions complete,
-            // allowing the navigation backstack entry to go to Lifecycle.State.RESUMED.
-            transitionsInProgress.forEach { entry ->
-                wearNavigator.onTransitionComplete(entry)
-            }
-            initialContent = false
-        }
-        onDispose {
-            transitionsInProgress.forEach { entry ->
-                wearNavigator.onTransitionComplete(entry)
-            }
-        }
+    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        PredictiveBackNavHost(
+            navController = navController,
+            graph = graph,
+            modifier = modifier,
+            userSwipeEnabled = userSwipeEnabled,
+        )
+    } else {
+        BasicSwipeToDismissBoxNavHost(
+            navController = navController,
+            graph = graph,
+            modifier = modifier,
+            userSwipeEnabled = userSwipeEnabled,
+            state = state,
+        )
     }
 }
+
+/**
+ * Provides a place in the Compose hierarchy for self-contained navigation to occur, with backwards
+ * navigation provided by a swipe gesture.
+ *
+ * Once this is called, any Composable within the given [NavGraphBuilder] can be navigated to from
+ * the provided [navController].
+ *
+ * The builder passed into this method is [remember]ed. This means that for this NavHost, the
+ * contents of the builder cannot be changed.
+ *
+ * Content is displayed within a [BasicSwipeToDismissBox], showing the current navigation level.
+ * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in the
+ * background. BackgroundScrimColor and ContentScrimColor of it are taken from
+ * [LocalSwipeToDismissBackgroundScrimColor] and [LocalSwipeToDismissContentScrimColor].
+ *
+ * Example of a [SwipeDismissableNavHost] alternating between 2 screens:
+ *
+ * @sample androidx.wear.compose.navigation.samples.SimpleNavHost
+ *
+ * Example of a [SwipeDismissableNavHost] for which a destination has a named argument:
+ *
+ * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
+ * @param navController The navController for this host
+ * @param startDestination The route for the start destination
+ * @param modifier The modifier to be applied to the layout
+ * @param state State containing information about ongoing swipe and animation.
+ * @param route The route for the graph
+ * @param builder The builder used to construct the graph
+ */
+@Deprecated(
+    "This overload is provided for backwards compatibility. " +
+        "A newer overload is available with an additional userSwipeEnabled param.",
+    level = DeprecationLevel.HIDDEN
+)
+@Composable
+public fun SwipeDismissableNavHost(
+    navController: NavHostController,
+    startDestination: String,
+    modifier: Modifier = Modifier,
+    state: SwipeDismissableNavHostState = rememberSwipeDismissableNavHostState(),
+    route: String? = null,
+    builder: NavGraphBuilder.() -> Unit
+): Unit =
+    SwipeDismissableNavHost(
+        navController = navController,
+        startDestination = startDestination,
+        modifier = modifier,
+        userSwipeEnabled = true,
+        state = state,
+        route = route,
+        builder = builder
+    )
+
+/**
+ * Provides a place in the Compose hierarchy for self-contained navigation to occur, with backwards
+ * navigation provided by a swipe gesture.
+ *
+ * Once this is called, any Composable within the given [NavGraphBuilder] can be navigated to from
+ * the provided [navController].
+ *
+ * The builder passed into this method is [remember]ed. This means that for this NavHost, the
+ * contents of the builder cannot be changed.
+ *
+ * Content is displayed within a [BasicSwipeToDismissBox], showing the current navigation level.
+ * During a swipe-to-dismiss gesture, the previous navigation level (if any) is shown in the
+ * background. BackgroundScrimColor and ContentScrimColor of it are taken from
+ * [LocalSwipeToDismissBackgroundScrimColor] and [LocalSwipeToDismissContentScrimColor].
+ *
+ * Example of a [SwipeDismissableNavHost] alternating between 2 screens:
+ *
+ * @sample androidx.wear.compose.navigation.samples.SimpleNavHost
+ *
+ * Example of a [SwipeDismissableNavHost] for which a destination has a named argument:
+ *
+ * @sample androidx.wear.compose.navigation.samples.NavHostWithNamedArgument
+ * @param navController [NavHostController] for this host
+ * @param graph Graph for this host
+ * @param modifier [Modifier] to be applied to the layout
+ * @param state State containing information about ongoing swipe and animation.
+ * @throws IllegalArgumentException if no WearNavigation.Destination is on the navigation backstack.
+ */
+@Deprecated(
+    "This overload is provided for backwards compatibility. " +
+        "A newer overload is available with an additional userSwipeEnabled param.",
+    level = DeprecationLevel.HIDDEN
+)
+@Composable
+public fun SwipeDismissableNavHost(
+    navController: NavHostController,
+    graph: NavGraph,
+    modifier: Modifier = Modifier,
+    state: SwipeDismissableNavHostState = rememberSwipeDismissableNavHostState(),
+): Unit =
+    SwipeDismissableNavHost(
+        navController = navController,
+        graph = graph,
+        modifier = modifier,
+        userSwipeEnabled = true,
+        state = state
+    )
 
 /**
  * State for [SwipeDismissableNavHost]
  *
- * @param swipeToDismissBoxState State for [SwipeToDismissBox], which is used to support the
- * swipe-to-dismiss gesture in [SwipeDismissableNavHost] and can also be used to support
- * edge-swiping, using [edgeSwipeToDismiss].
+ * @param swipeToDismissBoxState State for [BasicSwipeToDismissBox], which is used to support the
+ *   swipe-to-dismiss gesture in [SwipeDismissableNavHost] and can also be used to support
+ *   edge-swiping, using [edgeSwipeToDismiss].
  */
 public class SwipeDismissableNavHostState(
     internal val swipeToDismissBoxState: SwipeToDismissBoxState
-)
+) {
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        "This overload is provided for backward compatibility. " +
+            "A newer overload is available which uses SwipeToDismissBoxState " +
+            "from androidx.wear.compose.foundation package."
+    )
+    public constructor(
+        swipeToDismissBoxState: androidx.wear.compose.material.SwipeToDismissBoxState
+    ) : this(swipeToDismissBoxState.foundationState)
+}
 
 /**
  * Create a [SwipeToDismissBoxState] and remember it.
  *
- * @param swipeToDismissBoxState State for [SwipeToDismissBox], which is used to support the
- * swipe-to-dismiss gesture in [SwipeDismissableNavHost] and can also be used to support
- * edge-swiping, using [edgeSwipeToDismiss].
+ * @param swipeToDismissBoxState State for [BasicSwipeToDismissBox], which is used to support the
+ *   swipe-to-dismiss gesture in [SwipeDismissableNavHost] and can also be used to support
+ *   edge-swiping, using [edgeSwipeToDismiss]. This parameter is unused after API 36, because the
+ *   platform supports edge-swiping via predictive back gesture, and [SwipeDismissableNavHost] drops
+ *   the use of [BasicSwipeToDismissBox] in favour of predictive back based navigation.
  */
 @Composable
 public fun rememberSwipeDismissableNavHostState(
-    swipeToDismissBoxState: SwipeToDismissBoxState = rememberSwipeToDismissBoxState(),
+    swipeToDismissBoxState: SwipeToDismissBoxState = rememberSwipeToDismissBoxState()
 ): SwipeDismissableNavHostState {
-    return remember(swipeToDismissBoxState) {
-        SwipeDismissableNavHostState(swipeToDismissBoxState)
-    }
+    return remember(swipeToDismissBoxState) { SwipeDismissableNavHostState(swipeToDismissBoxState) }
+}
+
+@Suppress("DEPRECATION")
+@Deprecated(
+    "This overload is provided for backward compatibility. A newer overload is available " +
+        "which uses SwipeToDismissBoxState from androidx.wear.compose.foundation package.",
+    level = DeprecationLevel.HIDDEN
+)
+@Composable
+public fun rememberSwipeDismissableNavHostState(
+    swipeToDismissBoxState: androidx.wear.compose.material.SwipeToDismissBoxState =
+        androidx.wear.compose.material.rememberSwipeToDismissBoxState()
+): SwipeDismissableNavHostState {
+    return remember(swipeToDismissBoxState) { SwipeDismissableNavHostState(swipeToDismissBoxState) }
 }
 
 @Composable
-private fun BoxedStackEntryContent(
-    entry: NavBackStackEntry?,
-    saveableStateHolder: SaveableStateHolder,
-    modifier: Modifier = Modifier,
-) {
-    if (entry != null) {
-        var lifecycleState by remember {
-            mutableStateOf(entry.lifecycle.currentState)
-        }
-        DisposableEffect(entry.lifecycle) {
-            val observer = LifecycleEventObserver { _, event ->
-                lifecycleState = event.targetState
-            }
-            entry.lifecycle.addObserver(observer)
-            onDispose {
-                entry.lifecycle.removeObserver(observer)
-            }
-        }
-        if (lifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
-            Box(modifier, propagateMinConstraints = true) {
-                val destination = entry.destination as WearNavigator.Destination
-                entry.LocalOwnersProvider(saveableStateHolder) {
-                    destination.content(entry)
-                }
-            }
-        }
-    }
+internal fun isRoundDevice(): Boolean {
+    val configuration = LocalConfiguration.current
+    return remember(configuration) { configuration.isScreenRound }
 }
+
+internal const val TAG = "SwipeDismissableNavHost"

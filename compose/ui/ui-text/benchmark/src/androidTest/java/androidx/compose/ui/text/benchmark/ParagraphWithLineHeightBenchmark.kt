@@ -26,6 +26,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
@@ -43,29 +44,24 @@ import org.junit.runners.Parameterized
 class ParagraphWithLineHeightBenchmark(
     private val textLength: Int,
     private val addNewLine: Boolean,
-    private val applyLineHeight: Boolean,
-    private val lineHeightStyle: LineHeightStyle?
+    private val applyLineHeight: Boolean
 ) {
     companion object {
         @JvmStatic
-        @Parameterized.Parameters(
-            name = "length={0} newLine={1} applyLineHeight={2} lineHeightStyle={3}"
-        )
-        fun initParameters(): List<Array<Any?>> = cartesian(
-            arrayOf(16),
-            // add new line
-            arrayOf(true),
-            // apply line height
-            arrayOf(false, true),
-            arrayOf(LineHeightStyle.Default)
-        )
+        @Parameterized.Parameters(name = "length={0} newLine={1} applyLineHeight={2}")
+        fun initParameters(): List<Array<Any?>> =
+            cartesian(
+                arrayOf(16),
+                // add new line
+                arrayOf(true),
+                // apply line height
+                arrayOf(false, true)
+            )
     }
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule()
+    @get:Rule val benchmarkRule = BenchmarkRule()
 
-    @get:Rule
-    val textBenchmarkRule = TextBenchmarkTestRule(Alphabet.Latin)
+    @get:Rule val textBenchmarkRule = TextBenchmarkTestRule(Alphabet.Latin)
 
     private lateinit var instrumentationContext: Context
 
@@ -76,49 +72,51 @@ class ParagraphWithLineHeightBenchmark(
     @Before
     fun setup() {
         instrumentationContext = InstrumentationRegistry.getInstrumentation().context
-        width = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            textBenchmarkRule.widthDp,
-            instrumentationContext.resources.displayMetrics
-        )
+        width =
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                textBenchmarkRule.widthDp,
+                instrumentationContext.resources.displayMetrics
+            )
     }
 
     private fun text(textGenerator: RandomTextGenerator): String {
         return textGenerator.nextParagraph(textLength) + if (addNewLine) "\n" else ""
     }
 
-    private fun paragraph(
-        text: String,
-        width: Float
-    ): Paragraph {
+    private fun paragraph(text: String, width: Float): Paragraph {
         return Paragraph(
             paragraphIntrinsics = paragraphIntrinsics(text),
-            constraints = Constraints(maxWidth = ceil(width).toInt())
+            constraints = Constraints(maxWidth = ceil(width).toInt()),
+            overflow = TextOverflow.Clip
         )
     }
 
     private fun paragraphIntrinsics(text: String): ParagraphIntrinsics {
         @Suppress("DEPRECATION")
-        val style = if (applyLineHeight) {
-            TextStyle(
-                fontSize = fontSize,
-                lineHeight = fontSize * 2,
-                lineHeightStyle = lineHeightStyle,
-                platformStyle = PlatformTextStyle(includeFontPadding = false)
-            )
-        } else {
-            TextStyle(
-                fontSize = fontSize,
-                lineHeightStyle = lineHeightStyle,
-                platformStyle = PlatformTextStyle(includeFontPadding = false)
-            )
-        }
+        val style =
+            if (applyLineHeight) {
+                TextStyle(
+                    fontSize = fontSize,
+                    lineHeight = fontSize * 2,
+                    lineHeightStyle = LineHeightStyle.Default,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                )
+            } else {
+                TextStyle(
+                    fontSize = fontSize,
+                    lineHeightStyle = LineHeightStyle.Default,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                )
+            }
 
         return ParagraphIntrinsics(
             text = text,
-            density = Density(density = instrumentationContext.resources.displayMetrics.density),
             style = style,
-            fontFamilyResolver = createFontFamilyResolver(instrumentationContext)
+            annotations = listOf(),
+            density = Density(density = instrumentationContext.resources.displayMetrics.density),
+            fontFamilyResolver = createFontFamilyResolver(instrumentationContext),
+            placeholders = listOf()
         )
     }
 
@@ -126,7 +124,7 @@ class ParagraphWithLineHeightBenchmark(
     fun construct() {
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
-                val text = runWithTimingDisabled {
+                val text = runWithMeasurementDisabled {
                     // create a new paragraph and use a smaller width to get
                     // some line breaking in the result
                     text(textGenerator)

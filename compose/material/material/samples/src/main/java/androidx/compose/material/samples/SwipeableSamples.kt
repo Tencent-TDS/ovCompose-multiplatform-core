@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("Deprecation")
 
 package androidx.compose.material.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -30,7 +32,6 @@ import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -52,19 +53,18 @@ fun SwipeableSample() {
     val anchors = mapOf(0f to "A", sizePx / 2 to "B", sizePx to "C")
 
     Box(
-        modifier = Modifier
-            .width(width)
-            .swipeable(
-                state = swipeableState,
-                anchors = anchors,
-                thresholds = { _, _ -> FractionalThreshold(0.5f) },
-                orientation = Orientation.Horizontal
-            )
-            .background(Color.Black)
+        modifier =
+            Modifier.width(width)
+                .swipeable(
+                    state = swipeableState,
+                    anchors = anchors,
+                    thresholds = { _, _ -> FractionalThreshold(0.5f) },
+                    orientation = Orientation.Horizontal
+                )
+                .background(Color.Black)
     ) {
         Box(
-            Modifier
-                .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
+            Modifier.offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
                 .size(squareSize)
                 .background(Color.Red),
             contentAlignment = Alignment.Center

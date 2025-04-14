@@ -16,33 +16,22 @@
 
 package androidx.webkit.internal;
 
-import androidx.annotation.NonNull;
 import androidx.webkit.ScriptHandler;
 
 import org.chromium.support_lib_boundary.ScriptHandlerBoundaryInterface;
 import org.chromium.support_lib_boundary.util.BoundaryInterfaceReflectionUtil;
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.InvocationHandler;
 
 /**
  * Internal implementation of {@link androidx.webkit.ScriptHandler}.
  */
-public class ScriptHandlerImpl extends ScriptHandler {
-    private ScriptHandlerBoundaryInterface mBoundaryInterface;
+public class ScriptHandlerImpl implements ScriptHandler {
+    private final ScriptHandlerBoundaryInterface mBoundaryInterface;
 
     private ScriptHandlerImpl(@NonNull ScriptHandlerBoundaryInterface boundaryInterface) {
         mBoundaryInterface = boundaryInterface;
-    }
-
-    /**
-     * Create an AndroidX ScriptHandler from the given InvocationHandler.
-     */
-    public static @NonNull ScriptHandlerImpl toScriptHandler(
-            @NonNull /* ScriptHandler */ InvocationHandler invocationHandler) {
-        final ScriptHandlerBoundaryInterface boundaryInterface =
-                BoundaryInterfaceReflectionUtil.castToSuppLibClass(
-                        ScriptHandlerBoundaryInterface.class, invocationHandler);
-        return new ScriptHandlerImpl(boundaryInterface);
     }
 
     /**
@@ -53,5 +42,16 @@ public class ScriptHandlerImpl extends ScriptHandler {
         // If this method is called, the feature must exist, so no need to check feature
         // DOCUMENT_START_JAVASCRIPT.
         mBoundaryInterface.remove();
+    }
+
+    /**
+     * Create an AndroidX ScriptHandler from the given InvocationHandler.
+     */
+    public static @NonNull ScriptHandlerImpl toScriptHandler(
+            /* ScriptHandler */ @NonNull InvocationHandler invocationHandler) {
+        final ScriptHandlerBoundaryInterface boundaryInterface =
+                BoundaryInterfaceReflectionUtil.castToSuppLibClass(
+                        ScriptHandlerBoundaryInterface.class, invocationHandler);
+        return new ScriptHandlerImpl(boundaryInterface);
     }
 }

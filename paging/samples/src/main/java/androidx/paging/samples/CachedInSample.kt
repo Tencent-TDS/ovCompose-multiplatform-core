@@ -18,7 +18,6 @@
 
 package androidx.paging.samples
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.annotation.Sampled
@@ -36,23 +35,23 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 private class UiModel(@Suppress("UNUSED_PARAMETER") string: String)
+
 private class MyPagingAdapter : BasePagingAdapter<UiModel>()
+
 private class MyViewModel : BaseViewModel<UiModel>()
 
 private lateinit var pagingSourceFactory: () -> PagingSource<String, String>
 
 @Sampled
-@SuppressLint("SyntheticAccessor")
 fun cachedInSample() {
     class MyViewModel : ViewModel() {
-        val flow = Pager(
-            config = PagingConfig(pageSize = 40),
-            pagingSourceFactory = pagingSourceFactory
-        ).flow
-            // Loads and transformations before the cachedIn operation will be cached, so that
-            // multiple observers get the same data. This is true either for simultaneous
-            // observers, or e.g. an Activity re-subscribing after being recreated
-            .cachedIn(viewModelScope)
+        val flow =
+            Pager(config = PagingConfig(pageSize = 40), pagingSourceFactory = pagingSourceFactory)
+                .flow
+                // Loads and transformations before the cachedIn operation will be cached, so that
+                // multiple observers get the same data. This is true either for simultaneous
+                // observers, or e.g. an Activity re-subscribing after being recreated
+                .cachedIn(viewModelScope)
     }
 
     class MyActivity : AppCompatActivity() {
@@ -70,9 +69,7 @@ fun cachedInSample() {
                         // example un-cached transformation
                         pagingData.map { UiModel(it) }
                     }
-                    .collectLatest {
-                        pagingAdapter.submitData(it)
-                    }
+                    .collectLatest { pagingAdapter.submitData(it) }
             }
         }
     }

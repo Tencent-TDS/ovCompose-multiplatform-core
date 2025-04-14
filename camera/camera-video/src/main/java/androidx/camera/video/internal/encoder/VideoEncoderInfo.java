@@ -18,24 +18,39 @@ package androidx.camera.video.internal.encoder;
 
 import android.util.Range;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * VideoEncoderInfo provides video encoder related information and capabilities.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface VideoEncoderInfo extends EncoderInfo {
+    /** Return if the supported width height can be swapped. */
+    boolean canSwapWidthHeight();
+
     /** Returns if the size is supported. */
     boolean isSizeSupported(int width, int height);
 
+    /**
+     * Returns if the size is supported when the width height is allowed swapping.
+     *
+     * <p>This is basically equivalent to
+     * <pre>{@code
+     * isSizeSupport(width, height)
+     *         || (canSwapWidthHeight() && isSizeSupported(height, width))
+     * }</pre>
+     */
+    default boolean isSizeSupportedAllowSwapping(int width, int height) {
+        //noinspection SuspiciousNameCombination
+        return isSizeSupported(width, height)
+                || (canSwapWidthHeight() && isSizeSupported(height, width));
+    }
+
     /** Returns the range of supported video widths. */
-    @NonNull
-    Range<Integer> getSupportedWidths();
+    @NonNull Range<Integer> getSupportedWidths();
 
     /** Returns the range of supported video heights. */
-    @NonNull
-    Range<Integer> getSupportedHeights();
+    @NonNull Range<Integer> getSupportedHeights();
 
     /**
      * Returns the range of supported video widths for a video height.
@@ -44,8 +59,7 @@ public interface VideoEncoderInfo extends EncoderInfo {
      * @see #getSupportedHeights()
      * @see #getHeightAlignment()
      */
-    @NonNull
-    Range<Integer> getSupportedWidthsFor(int height);
+    @NonNull Range<Integer> getSupportedWidthsFor(int height);
 
     /**
      * Returns the range of supported video heights for a video width.
@@ -54,8 +68,7 @@ public interface VideoEncoderInfo extends EncoderInfo {
      * @see #getSupportedWidths()
      * @see #getWidthAlignment()
      */
-    @NonNull
-    Range<Integer> getSupportedHeightsFor(int width);
+    @NonNull Range<Integer> getSupportedHeightsFor(int width);
 
     /**
      * Returns the alignment requirement for video width (in pixels).
@@ -74,6 +87,13 @@ public interface VideoEncoderInfo extends EncoderInfo {
     /**
      * Returns the video encoder's bitrate range.
      */
-    @NonNull
-    Range<Integer> getSupportedBitrateRange();
+    @NonNull Range<Integer> getSupportedBitrateRange();
+
+    /** A finder that can find a {@link VideoEncoderInfo}. */
+    interface Finder {
+
+        /** Finds a {@link VideoEncoderInfo} for the given MIME type. */
+        @Nullable
+        VideoEncoderInfo find(@NonNull String mimeType);
+    }
 }

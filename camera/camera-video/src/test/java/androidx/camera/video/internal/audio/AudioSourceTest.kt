@@ -16,14 +16,15 @@
 
 package androidx.camera.video.internal.audio
 
+import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.MediaRecorder
 import android.os.Build
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.ioExecutor
 import androidx.camera.core.impl.utils.futures.Futures.immediateFailedFuture
 import androidx.camera.core.impl.utils.futures.Futures.immediateFuture
-import androidx.camera.testing.mocks.helpers.CallTimes
-import androidx.camera.testing.mocks.helpers.CallTimesAtLeast
+import androidx.camera.testing.impl.mocks.helpers.CallTimes
+import androidx.camera.testing.impl.mocks.helpers.CallTimesAtLeast
 import androidx.camera.video.internal.BufferProvider
 import androidx.camera.video.internal.FakeBufferProvider
 import androidx.camera.video.internal.encoder.FakeInputBuffer
@@ -65,20 +66,28 @@ class AudioSourceTest {
     @Test
     fun canStartAndStopAudioSource() {
         // Arrange.
-        val audioStream = createAudioStream()
+        val audioDataProvider = createAudioDataProvider(audioRecordingDelayMillis = 1)
+        val audioStream = createAudioStream(audioDataProvider = audioDataProvider)
         val bufferProvider = createBufferProvider()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider
+            )
 
         // Act.
         audioSource.start()
 
         // Assert: Audio stream is started.
         audioStream.verifyStartCall(CallTimes(1), COMMON_TIMEOUT_MS)
-        // Assert: Buffers are continuously written.
+
+        // Since the AudioSource's read call might not be synchronized to the AudioStream
+        // immediately, waiting for the AudioStream to produce more data than required to ensure
+        // that the AudioSource has data to be read.
         val verifyCount = 3
+        audioStream.verifyReadCall(CallTimesAtLeast(verifyCount + 1), COMMON_TIMEOUT_MS)
+
+        // Assert: Buffers are continuously written.
         bufferProvider.verifySubmittedBufferCall(
             CallTimesAtLeast(verifyCount),
             COMMON_TIMEOUT_MS
@@ -114,10 +123,11 @@ class AudioSourceTest {
         // Arrange.
         val audioStream = createAudioStream()
         val bufferProvider1 = createBufferProvider()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider1,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider1,
+            )
         audioSource.start()
         bufferProvider1.verifySubmittedBufferCall(CallTimesAtLeast(3), COMMON_TIMEOUT_MS)
 
@@ -135,11 +145,12 @@ class AudioSourceTest {
         val audioStream = createAudioStream()
         val bufferProvider = createBufferProvider(initState = BufferProvider.State.INACTIVE)
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioSource.start()
@@ -156,11 +167,12 @@ class AudioSourceTest {
         val audioStream = createAudioStream()
         val bufferProvider = createBufferProvider(initState = BufferProvider.State.INACTIVE)
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioSource.start()
@@ -182,11 +194,12 @@ class AudioSourceTest {
         val audioStream = createAudioStream()
         val bufferProvider = createBufferProvider(initState = BufferProvider.State.ACTIVE)
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioSource.start()
@@ -203,10 +216,11 @@ class AudioSourceTest {
         // Arrange.
         val audioStream = createAudioStream()
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioStream.isSilenced = true
@@ -223,15 +237,14 @@ class AudioSourceTest {
         // Arrange.
         val audioStream = createAudioStream()
         val error = RuntimeException()
-        val bufferProvider = createBufferProvider(bufferFactory = {
-            immediateFailedFuture(error)
-        })
+        val bufferProvider = createBufferProvider(bufferFactory = { immediateFailedFuture(error) })
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioSource.start()
@@ -246,16 +259,18 @@ class AudioSourceTest {
     fun failedToStartAudioStream_retryStart() {
         // Arrange.
         val error = AudioStream.AudioStreamException()
-        val audioStream = createAudioStream(
-            exceptionOnStart = error,
-            exceptionOnStartMaxTimes = 1,
-        )
+        val audioStream =
+            createAudioStream(
+                exceptionOnStart = error,
+                exceptionOnStartMaxTimes = 1,
+            )
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            audioStreamFactory = { _, _ -> audioStream },
-            audioSourceCallback = audioSourceCallback,
-            retryStartIntervalMs = 200L
-        )
+        val audioSource =
+            createAudioSource(
+                audioStreamFactory = { _, _ -> audioStream },
+                audioSourceCallback = audioSourceCallback,
+                retryStartIntervalMs = 200L
+            )
 
         // Act.
         audioSource.start()
@@ -272,10 +287,11 @@ class AudioSourceTest {
         // Arrange.
         val bufferProvider = createBufferProvider()
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act.
         audioSource.mute(true)
@@ -299,14 +315,46 @@ class AudioSourceTest {
     }
 
     @Test
+    fun start_canStartMuted() {
+        // Arrange.
+        val bufferProvider = createBufferProvider()
+        val audioSourceCallback = createAudioSourceCallback()
+        val audioSource =
+            createAudioSource(
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
+
+        // Act.
+        audioSource.start(true)
+
+        // Assert.
+        audioSourceCallback.verifyOnSilenceStateChanged(CallTimes(1), COMMON_TIMEOUT_MS) {
+            assertThat(it.single()).isTrue()
+        }
+        // Assert: Ensure the content is silence.
+        val verifyCount = 3
+        bufferProvider.verifySubmittedBufferCall(
+            CallTimesAtLeast(verifyCount),
+            COMMON_TIMEOUT_MS
+        ) { submittedBuffers ->
+            // Assert: Ensure buffers are written correctly.
+            for (i in 0 until verifyCount) {
+                verifyBufferIsSilence(submittedBuffers[i].byteBuffer)
+            }
+        }
+    }
+
+    @Test
     fun canSwitchBetweenMuteAndUnMute() {
         // Arrange.
         val bufferProvider = createBufferProvider()
         val audioSourceCallback = createAudioSourceCallback()
-        val audioSource = createAudioSource(
-            bufferProvider = bufferProvider,
-            audioSourceCallback = audioSourceCallback,
-        )
+        val audioSource =
+            createAudioSource(
+                bufferProvider = bufferProvider,
+                audioSourceCallback = audioSourceCallback,
+            )
 
         // Act: Default un-mute.
         audioSource.start()
@@ -332,15 +380,25 @@ class AudioSourceTest {
         audioDataProvider: (Int) -> FakeAudioStream.AudioData = createAudioDataProvider(),
         exceptionOnStart: AudioStream.AudioStreamException? = null,
         exceptionOnStartMaxTimes: Int = Int.MAX_VALUE,
-    ) = FakeAudioStream(
-        audioDataProvider,
-        exceptionOnStart = exceptionOnStart,
-        exceptionOnStartMaxTimes = exceptionOnStartMaxTimes
-    )
+    ) =
+        FakeAudioStream(
+            audioDataProvider,
+            exceptionOnStart = exceptionOnStart,
+            exceptionOnStartMaxTimes = exceptionOnStartMaxTimes
+        )
 
-    private fun createAudioDataProvider(): (Int) -> FakeAudioStream.AudioData = { index ->
+    @SuppressLint("BanThreadSleep") // Needed to simulate the audio recording delays.
+    private fun createAudioDataProvider(
+        audioRecordingDelayMillis: Long = 0
+    ): (Int) -> FakeAudioStream.AudioData = { index ->
         val byteBuffer = ByteBuffer.allocate(BYTE_BUFFER_CAPACITY).put(0, index.toByte())
         val timestampNs = index.toLong()
+
+        // Simulate the audio recording delays.
+        if (audioRecordingDelayMillis > 0) {
+            Thread.sleep(audioRecordingDelayMillis)
+        }
+
         FakeAudioStream.AudioData(byteBuffer, timestampNs)
     }
 
@@ -350,10 +408,11 @@ class AudioSourceTest {
             val inputBuffer = FakeInputBuffer(BYTE_BUFFER_CAPACITY)
             immediateFuture(inputBuffer)
         }
-    ): FakeBufferProvider = FakeBufferProvider(
-        state = initState,
-        bufferFactory = bufferFactory,
-    )
+    ): FakeBufferProvider =
+        FakeBufferProvider(
+            state = initState,
+            bufferFactory = bufferFactory,
+        )
 
     private fun createAudioSource(
         audioSettings: AudioSettings = createAudioSettings(),
@@ -363,24 +422,28 @@ class AudioSourceTest {
         audioSourceCallback: FakeAudioSourceCallback = createAudioSourceCallback(),
         callbackExecutor: Executor = ioExecutor(),
         retryStartIntervalMs: Long = AudioSource.DEFAULT_START_RETRY_INTERVAL_MS,
-    ): AudioSource = AudioSource(
-        audioSettings,
-        executor,
-        /*attributionContext=*/null,
-        audioStreamFactory,
-        retryStartIntervalMs,
-    ).apply {
-        setAudioSourceCallback(callbackExecutor, audioSourceCallback)
-        setBufferProvider(bufferProvider)
-        audioSourcesToRelease.add(this)
-    }
+    ): AudioSource =
+        AudioSource(
+                audioSettings,
+                executor,
+                /*attributionContext=*/ null,
+                audioStreamFactory,
+                retryStartIntervalMs,
+            )
+            .apply {
+                setAudioSourceCallback(callbackExecutor, audioSourceCallback)
+                setBufferProvider(bufferProvider)
+                audioSourcesToRelease.add(this)
+            }
 
-    private fun createAudioSettings() = AudioSettings.builder()
-        .setAudioSource(AUDIO_SOURCE)
-        .setSampleRate(SAMPLE_RATE)
-        .setChannelCount(CHANNEL_COUNT)
-        .setAudioFormat(AUDIO_FORMAT)
-        .build()
+    private fun createAudioSettings() =
+        AudioSettings.builder()
+            .setAudioSource(AUDIO_SOURCE)
+            .setCaptureSampleRate(SAMPLE_RATE)
+            .setEncodeSampleRate(SAMPLE_RATE)
+            .setChannelCount(CHANNEL_COUNT)
+            .setAudioFormat(AUDIO_FORMAT)
+            .build()
 
     private fun createAudioSourceCallback() = FakeAudioSourceCallback()
 

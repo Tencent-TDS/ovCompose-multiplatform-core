@@ -14,121 +14,93 @@
  * limitations under the License.
  */
 
-import androidx.build.AndroidXComposePlugin
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
+import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
-    id("AndroidXPaparazziPlugin")
 }
 
-AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+androidXMultiplatform {
+    androidTarget()
+    jvmStubs()
+    linuxX64Stubs()
 
-dependencies {
+    defaultPlatform(PlatformIdentifier.ANDROID)
 
-    if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
-        /*
-         * When updating dependencies, make sure to make the an an analogous update in the
-         * corresponding block below
-         */
-        api("androidx.compose.animation:animation-core:1.2.1")
-        api(project(":compose:foundation:foundation"))
-        api(project(":compose:material:material-icons-core"))
-        api(project(":compose:material:material-ripple"))
-        api("androidx.compose.runtime:runtime:1.2.1")
-        api("androidx.compose.ui:ui:1.2.1")
-        api("androidx.compose.ui:ui-text:1.2.1")
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlinStdlib)
+                api("androidx.compose.animation:animation-core:1.7.5")
+                api("androidx.compose.foundation:foundation:1.7.5")
+                api("androidx.compose.ui:ui-text:1.7.5")
+                api("androidx.compose.material:material-ripple:1.7.5")
+                api("androidx.compose.runtime:runtime:1.7.5")
+                api("androidx.compose.ui:ui:1.7.5")
 
-        implementation(libs.kotlinStdlibCommon)
-        implementation("androidx.compose.animation:animation:1.2.1")
-        implementation("androidx.compose.foundation:foundation-layout:1.2.1")
-        implementation("androidx.compose.ui:ui-util:1.2.1")
-
-        // TODO: remove next 3 dependencies when b/202810604 is fixed
-        implementation("androidx.savedstate:savedstate:1.2.0")
-        implementation("androidx.lifecycle:lifecycle-runtime:2.6.0")
-        implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.0")
-
-        testImplementation(libs.testRules)
-        testImplementation(libs.testRunner)
-        testImplementation(libs.junit)
-        testImplementation(libs.truth)
-
-        androidTestImplementation(project(":compose:material:material:material-samples"))
-        androidTestImplementation(project(":compose:test-utils"))
-        androidTestImplementation(project(":test:screenshot:screenshot"))
-        androidTestImplementation(libs.testRules)
-        androidTestImplementation(libs.testRunner)
-        androidTestImplementation(libs.junit)
-        androidTestImplementation(libs.truth)
-        androidTestImplementation(libs.dexmakerMockito)
-        androidTestImplementation(libs.mockitoCore)
-        androidTestImplementation(libs.mockitoKotlin)
-        androidTestImplementation(libs.testUiautomator)
-
-        lintPublish project(":compose:material:material-lint")
-
-        samples(project(":compose:material:material:material-samples"))
-    }
-}
-
-if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
-    androidXComposeMultiplatform {
-        android()
-        desktop()
-    }
-
-    kotlin {
-
-        /*
-         * When updating dependencies, make sure to make the an an analogous update in the
-         * corresponding block above
-         */
-        sourceSets {
-            commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
-                api(project(":compose:animation:animation-core"))
-                api(project(":compose:foundation:foundation"))
-                api(project(":compose:material:material-icons-core"))
-                api(project(":compose:material:material-ripple"))
-                api(project(":compose:runtime:runtime"))
-                api(project(":compose:ui:ui"))
-                api(project(":compose:ui:ui-text"))
-
-                implementation(project(":compose:animation:animation"))
-                implementation(project(":compose:foundation:foundation-layout"))
-                implementation(project(":compose:ui:ui-util"))
+                implementation("androidx.compose.animation:animation-core:1.7.5")
+                implementation("androidx.compose.animation:animation:1.7.5")
+                implementation("androidx.compose.foundation:foundation-layout:1.7.5")
+                implementation("androidx.compose.ui:ui-util:1.7.5")
             }
+        }
 
-            androidMain.dependencies {
-                api("androidx.annotation:annotation:1.1.0")
+        commonTest {
+            dependencies {
+            }
+        }
+
+        jvmMain {
+            dependsOn(commonMain)
+            dependencies {
+            }
+        }
+
+        androidMain {
+            dependsOn(jvmMain)
+            dependencies {
+                api("androidx.annotation:annotation:1.8.1")
+                api("androidx.annotation:annotation-experimental:1.4.1")
 
                 // TODO: remove next 3 dependencies when b/202810604 is fixed
-                implementation("androidx.savedstate:savedstate:1.2.0")
-                implementation("androidx.lifecycle:lifecycle-runtime:2.6.0")
-                implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.0")
+                implementation("androidx.savedstate:savedstate:1.2.1")
+                implementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
+                implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.1")
             }
+        }
 
-            desktopMain.dependencies {
-                implementation(libs.kotlinStdlib)
-            }
+        commonStubsMain {
+            dependsOn(commonMain)
+        }
 
-            // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
-            //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
-            //  level dependencies block instead:
-            //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
+        jvmStubsMain {
+            dependsOn(commonStubsMain)
+        }
 
-            androidAndroidTest.dependencies {
+        linuxx64StubsMain {
+            dependsOn(commonStubsMain)
+        }
+
+        androidInstrumentedTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(project(":compose:foundation:foundation"))
                 implementation(project(":compose:material:material:material-samples"))
                 implementation(project(":compose:test-utils"))
+                implementation("androidx.compose.ui:ui-test:1.6.0")
+                implementation("androidx.compose.ui:ui-test-junit4:1.6.0")
                 implementation(project(":test:screenshot:screenshot"))
 
                 implementation(libs.testRules)
@@ -140,31 +112,38 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.mockitoKotlin)
                 implementation(libs.testUiautomator)
             }
+        }
 
-            desktopTest.dependencies {
-                implementation(project(":compose:ui:ui-test-junit4"))
-                implementation(libs.truth)
+        androidUnitTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
                 implementation(libs.junit)
-                implementation(libs.skikoCurrentOs)
+                implementation(libs.truth)
             }
         }
     }
-    dependencies {
-        samples(project(":compose:material:material:material-samples"))
-    }
+}
+
+dependencies {
+    lintChecks(project(":compose:material:material-lint"))
+    lintPublish(project(":compose:material:material-lint"))
 }
 
 androidx {
     name = "Compose Material Components"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    mavenVersion = LibraryVersions.COMPOSE
     inceptionYear = "2018"
     description = "Compose Material Design Components library"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    samples(project(":compose:material:material:material-samples"))
+    addGoldenImageAssets()
 }
 
-// Screenshot tests related setup
 android {
-    sourceSets.androidTest.assets.srcDirs +=
-            project.rootDir.absolutePath + "/../../golden/compose/material/material"
-    namespace "androidx.compose.material"
+    compileSdk = 35
+    namespace = "androidx.compose.material"
 }

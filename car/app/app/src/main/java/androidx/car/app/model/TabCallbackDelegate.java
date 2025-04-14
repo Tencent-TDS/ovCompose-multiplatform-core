@@ -17,23 +17,26 @@
 package androidx.car.app.model;
 
 import android.annotation.SuppressLint;
+import android.os.Looper;
 
-import androidx.annotation.NonNull;
 import androidx.car.app.OnDoneCallback;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.RequiresCarApi;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A host-side delegate for sending
  * {@link androidx.car.app.model.TabTemplate.TabCallback} events to the car app.
  */
 @CarProtocol
-@ExperimentalCarApi
 @RequiresCarApi(6)
 public interface TabCallbackDelegate {
     /**
      * Notifies that the user has selected a tab.
+     *
+     * <p>Note that the callback relates to UI events and will be executed on the main thread
+     * using {@link Looper#getMainLooper()}.
      *
      * @param tabContentId the content ID of the selected tab
      * @param callback   the {@link OnDoneCallback} to trigger when the client finishes handling

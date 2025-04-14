@@ -16,7 +16,13 @@
 
 package androidx.camera.core.processing;
 
+import androidx.annotation.IntRange;
 import androidx.camera.core.SurfaceProcessor;
+import androidx.camera.core.impl.utils.futures.Futures;
+
+import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An internal {@link SurfaceProcessor} that is releasable.
@@ -38,4 +44,13 @@ public interface SurfaceProcessorInternal extends SurfaceProcessor {
      * @see Node#release()
      */
     void release();
+
+    /**
+     * Takes a snapshot of the next available frame and write it to JPEG outputs.
+     */
+    default @NonNull ListenableFuture<Void> snapshot(
+            @IntRange(from = 0, to = 100) int jpegQuality,
+            @IntRange(from = 0, to = 359) int rotationDegrees) {
+        return Futures.immediateFuture(null);
+    }
 }

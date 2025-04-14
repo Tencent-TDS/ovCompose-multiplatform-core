@@ -16,7 +16,9 @@
 
 package androidx.camera.extensions.impl.advanced;
 
-import android.annotation.SuppressLint;
+import android.hardware.camera2.params.DynamicRangeProfiles;
+
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -26,7 +28,6 @@ import java.util.List;
  *
  * @since 1.2
  */
-@SuppressLint("UnknownNullness")
 public interface Camera2OutputConfigImpl {
     /**
      * Gets thd id of this output config. The id can be used to identify the stream in vendor
@@ -43,11 +44,20 @@ public interface Camera2OutputConfigImpl {
     /**
      * Gets the physical camera id. Returns null if not specified.
      */
-    String getPhysicalCameraId();
+    @Nullable String getPhysicalCameraId();
+
+    /**
+     * Gets the dynamic range profile.
+     *
+     * @since 1.5
+     */
+    default long getDynamicRangeProfile() {
+        return DynamicRangeProfiles.STANDARD;
+    }
 
     /**
      * If non-null, enable surface sharing and add the surface constructed by the return
      * Camera2OutputConfig.
      */
-    List<Camera2OutputConfigImpl> getSurfaceSharingOutputConfigs();
+    @Nullable List<Camera2OutputConfigImpl> getSurfaceSharingOutputConfigs();
 }

@@ -16,8 +16,9 @@
 
 package androidx.camera.core;
 
-import static androidx.camera.core.MirrorMode.MIRROR_MODE_FRONT_ON;
-import static androidx.camera.core.MirrorMode.MIRROR_MODE_OFF;
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_ON_FRONT_ONLY;
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_UNSPECIFIED;
+import static androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -30,29 +31,38 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.Pair;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.impl.CameraFactory;
+import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
 import androidx.camera.core.impl.ImageAnalysisConfig;
+import androidx.camera.core.impl.MutableOptionsBundle;
+import androidx.camera.core.impl.SessionConfig;
+import androidx.camera.core.impl.StreamSpec;
 import androidx.camera.core.impl.TagBundle;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
 import androidx.camera.core.internal.utils.SizeUtil;
-import androidx.camera.testing.CameraUtil;
-import androidx.camera.testing.CameraXUtil;
+import androidx.camera.core.resolutionselector.AspectRatioStrategy;
+import androidx.camera.core.resolutionselector.ResolutionFilter;
+import androidx.camera.core.resolutionselector.ResolutionSelector;
+import androidx.camera.core.resolutionselector.ResolutionStrategy;
 import androidx.camera.testing.fakes.FakeAppConfig;
 import androidx.camera.testing.fakes.FakeCamera;
-import androidx.camera.testing.fakes.FakeCameraFactory;
 import androidx.camera.testing.fakes.FakeCameraInfoInternal;
-import androidx.camera.testing.fakes.FakeImageReaderProxy;
+import androidx.camera.testing.impl.CameraUtil;
+import androidx.camera.testing.impl.CameraXUtil;
+import androidx.camera.testing.impl.fakes.FakeCameraFactory;
+import androidx.camera.testing.impl.fakes.FakeImageReaderProxy;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.google.common.collect.Iterables;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +72,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.internal.DoNotInstrument;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -88,6 +99,8 @@ public class ImageAnalysisTest {
     private static final long TIMESTAMP_1 = 1;
     private static final long TIMESTAMP_2 = 2;
     private static final long TIMESTAMP_3 = 3;
+    public static final androidx.camera.core.impl.Config.Option<Integer> TEST_OPTION =
+            androidx.camera.core.impl.Config.Option.create("test.testOption", int.class);
 
     private Handler mCallbackHandler;
     private Handler mBackgroundHandler;
@@ -120,7 +133,7 @@ public class ImageAnalysisTest {
 
         CameraInternal camera = new FakeCamera();
 
-        CameraFactory.Provider cameraFactoryProvider = (ignored1, ignored2, ignored3) -> {
+        CameraFactory.Provider cameraFactoryProvider = (ignored1, ignored2, ignored3, ignored4) -> {
             FakeCameraFactory cameraFactory = new FakeCameraFactory();
             cameraFactory.insertDefaultBackCamera(camera.getCameraInfoInternal().getCameraId(),
                     () -> camera);
@@ -155,82 +168,129 @@ public class ImageAnalysisTest {
 
     @Test
     public void canSetQueueDepth() {
-        assertThat(getMergedImageAnalysisConfig(null, null, QUEUE_DEPTH,
-                false).getImageQueueDepth()).isEqualTo(QUEUE_DEPTH);
+        mImageAnalysis = new ImageAnalysis.Builder().setImageQueueDepth(QUEUE_DEPTH).build();
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        assertThat(mergedConfig.getImageQueueDepth()).isEqualTo(QUEUE_DEPTH);
     }
 
     @Test
     public void defaultMirrorModeIsOff() {
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
-        assertThat(imageAnalysis.getMirrorModeInternal()).isEqualTo(MIRROR_MODE_OFF);
+        assertThat(imageAnalysis.getMirrorModeInternal()).isEqualTo(MIRROR_MODE_UNSPECIFIED);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void setMirrorMode_throwException() {
-        new ImageAnalysis.Builder().setMirrorMode(MIRROR_MODE_FRONT_ON);
+        new ImageAnalysis.Builder().setMirrorMode(MIRROR_MODE_ON_FRONT_ONLY);
     }
 
     @Test
+    @SuppressWarnings("deprecation") // legacy resolution API
     public void setAnalyzerWithResolution_doesNotOverridesUseCaseResolution_legacyApi() {
-        assertThat(getMergedImageAnalysisConfig(APP_RESOLUTION, ANALYZER_RESOLUTION, -1,
-                false).getTargetResolution()).isEqualTo(APP_RESOLUTION);
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+        builder.setTargetResolution(APP_RESOLUTION);
+        mImageAnalysis = builder.build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        assertThat(mergedConfig.getTargetResolution()).isEqualTo(APP_RESOLUTION);
     }
 
     @Test
     public void setAnalyzerWithResolution_doesNotOverridesUseCaseResolution_resolutionSelector() {
-        ImageAnalysisConfig config = getMergedImageAnalysisConfig(APP_RESOLUTION,
-                ANALYZER_RESOLUTION, -1, true);
-        assertThat(config.getResolutionSelector().getPreferredResolution()).isEqualTo(
-                APP_RESOLUTION);
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+        setResolutionSelectorToImageAnalysisBuilder(builder, AspectRatio.RATIO_4_3, APP_RESOLUTION,
+                null);
+        mImageAnalysis = builder.build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        ResolutionSelector resolutionSelector = mergedConfig.getResolutionSelector();
+        // Checks APP_RESOLUTION is correctly set as ResolutionStrategy bound size
+        assertThat(resolutionSelector.getResolutionStrategy().getBoundSize())
+                .isEqualTo(APP_RESOLUTION);
+        // Checks that no ResolutionFilter is inserted when app has its own ResolutionSelector
+        assertThat(resolutionSelector.getResolutionFilter()).isNull();
+    }
+
+    @Test
+    public void setAnalyzerWithResolution_filterPrioritizesResolutionCorrectly() {
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+        mImageAnalysis = builder.build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        ResolutionFilter resolutionFilter =
+                mergedConfig.getResolutionSelector().getResolutionFilter();
+        List<Size> originalList = Arrays.asList(APP_RESOLUTION, ANALYZER_RESOLUTION,
+                FLIPPED_ANALYZER_RESOLUTION);
+        List<Size> expectedResult = Arrays.asList(FLIPPED_ANALYZER_RESOLUTION, APP_RESOLUTION,
+                ANALYZER_RESOLUTION);
+        assertThat(resolutionFilter.filter(originalList, 0)).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void setAnalyzerWithResolution_doesNotOverridesAppResolutionFilter() {
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+        ResolutionFilter appResolutionFilter = new ResolutionFilter() {
+            @Override
+            public @NonNull List<Size> filter(@NonNull List<Size> supportedSizes,
+                    int rotationDegrees) {
+                return Collections.singletonList(APP_RESOLUTION);
+            }
+        };
+        setResolutionSelectorToImageAnalysisBuilder(builder, AspectRatio.RATIO_4_3, APP_RESOLUTION,
+                appResolutionFilter);
+        mImageAnalysis = builder.build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        assertThat(mergedConfig.getResolutionSelector().getResolutionFilter())
+                .isSameInstanceAs(appResolutionFilter);
     }
 
     @Test
     public void setAnalyzerWithResolution_usedAsDefaultUseCaseResolution_legacyApi() {
-        assertThat(
-                getMergedImageAnalysisConfig(null, ANALYZER_RESOLUTION, -1,
-                        false).getTargetResolution()).isEqualTo(FLIPPED_ANALYZER_RESOLUTION);
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+        mImageAnalysis = builder.build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        assertThat(mergedConfig.getTargetResolution()).isEqualTo(FLIPPED_ANALYZER_RESOLUTION);
     }
 
     @Test
     public void setAnalyzerWithResolution_usedAsDefaultUseCaseResolution_resolutionSelector() {
-        ImageAnalysisConfig config = getMergedImageAnalysisConfig(null,
-                ANALYZER_RESOLUTION, -1, true);
-        assertThat(config.getResolutionSelector().getPreferredResolution()).isEqualTo(
-                ANALYZER_RESOLUTION);
+        mImageAnalysis = new ImageAnalysis.Builder().build();
+        setAnalyzerToImageAnalysis(ANALYZER_RESOLUTION);
+        ImageAnalysisConfig mergedConfig = getMergedImageAnalysisConfig();
+        Size boundSize =
+                mergedConfig.getResolutionSelector().getResolutionStrategy().getBoundSize();
+        assertThat(boundSize).isEqualTo(FLIPPED_ANALYZER_RESOLUTION);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void noAppOrAnalyzerResolution_noMergedOption_legacyApi() {
-        getMergedImageAnalysisConfig(null, null, -1, false).getTargetResolution();
+        mImageAnalysis = new ImageAnalysis.Builder().build();
+        getMergedImageAnalysisConfig().getTargetResolution();
     }
 
-    @NonNull
-    private ImageAnalysisConfig getMergedImageAnalysisConfig(
-            @Nullable Size appResolution,
-            @Nullable Size analyzerResolution,
-            int queueDepth,
-            boolean useResolutionSelector) {
-        // Arrange: set up ImageAnalysis.
-        ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
+    private void setResolutionSelectorToImageAnalysisBuilder(ImageAnalysis.@NonNull Builder builder,
+            @AspectRatio.Ratio int aspectRatio, @Nullable Size boundSize,
+            @Nullable ResolutionFilter resolutionFilter) {
+        ResolutionSelector.Builder selectorBuilder = new ResolutionSelector.Builder();
 
-        // Sets preferred resolution by ResolutionSelector or legacy API
-        if (useResolutionSelector) {
-            ResolutionSelector.Builder resolutionSelectorBuilder = new ResolutionSelector.Builder();
-            if (appResolution != null) {
-                resolutionSelectorBuilder.setPreferredResolution(appResolution);
-            }
-            builder.setResolutionSelector(resolutionSelectorBuilder.build());
-        } else {
-            if (appResolution != null) {
-                builder.setTargetResolution(appResolution);
-            }
+        selectorBuilder.setAspectRatioStrategy(new AspectRatioStrategy(aspectRatio,
+                AspectRatioStrategy.FALLBACK_RULE_AUTO));
+
+        if (boundSize != null) {
+            selectorBuilder.setResolutionStrategy(new ResolutionStrategy(boundSize,
+                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER));
         }
 
-        if (queueDepth >= 0) {
-            builder.setImageQueueDepth(QUEUE_DEPTH);
+        if (resolutionFilter != null) {
+            selectorBuilder.setResolutionFilter(resolutionFilter);
         }
 
-        mImageAnalysis = builder.build();
+        builder.setResolutionSelector(selectorBuilder.build());
+    }
+
+    private void setAnalyzerToImageAnalysis(@Nullable Size analyzerResolution) {
         // Analyzer that overrides the resolution.
         ImageAnalysis.Analyzer analyzer = new ImageAnalysis.Analyzer() {
             @Override
@@ -246,14 +306,16 @@ public class ImageAnalysisTest {
 
         // Act: set the analyzer.
         mImageAnalysis.setAnalyzer(mBackgroundExecutor, analyzer);
-
-        return (ImageAnalysisConfig) mImageAnalysis.mergeConfigs(
-                new FakeCameraInfoInternal(90, CameraSelector.LENS_FACING_BACK), null,
-                null);
     }
 
-    @NonNull
-    private ImageAnalysisConfig createDefaultConfig() {
+    private @NonNull ImageAnalysisConfig getMergedImageAnalysisConfig() {
+        CameraInfoInternal cameraInfoInternal = new FakeCameraInfoInternal(90,
+                CameraSelector.LENS_FACING_BACK);
+        return (ImageAnalysisConfig) mImageAnalysis.mergeConfigs(cameraInfoInternal, null,
+                new ImageAnalysis.Defaults().getConfig());
+    }
+
+    private @NonNull ImageAnalysisConfig createDefaultConfig() {
         ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
         builder.setDefaultResolution(DEFAULT_RESOLUTION);
         return builder.getUseCaseConfig();
@@ -431,6 +493,39 @@ public class ImageAnalysisTest {
     }
 
     @Test
+    public void sessionConfigMatchesStreamSpec() {
+        mImageAnalysis = new ImageAnalysis.Builder()
+                .setSessionOptionUnpacker((resolution, config, builder) -> {
+                }).build();
+        StreamSpec streamSpec = StreamSpec.builder(new Size(640, 480))
+                .setSessionType(SESSION_TYPE_HIGH_SPEED)
+                .setExpectedFrameRateRange(Range.create(30, 60))
+                .build();
+
+        mImageAnalysis.bindToCamera(new FakeCamera(), null, null, null);
+        mImageAnalysis.updateSuggestedStreamSpec(streamSpec, null);
+
+        SessionConfig sessionConfig = mImageAnalysis.getSessionConfig();
+        assertThat(sessionConfig.getSessionType()).isEqualTo(SESSION_TYPE_HIGH_SPEED);
+        assertThat(sessionConfig.getExpectedFrameRateRange()).isEqualTo(Range.create(30, 60));
+    }
+
+    @Test
+    public void sessionConfigHasStreamSpecImplementationOptions_whenUpdateStreamSpecImplOptions()
+            throws CameraUseCaseAdapter.CameraException {
+        setUpImageAnalysisWithStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST);
+        int newImplementationOptionValue = 6;
+        MutableOptionsBundle streamSpecOptions = MutableOptionsBundle.create();
+        streamSpecOptions.insertOption(TEST_OPTION, newImplementationOptionValue);
+        mImageAnalysis.updateSuggestedStreamSpecImplementationOptions(streamSpecOptions);
+        assertThat(
+                mImageAnalysis.getSessionConfig().getImplementationOptions().retrieveOption(
+                        TEST_OPTION
+                )).isEqualTo(newImplementationOptionValue);
+    }
+
+    @SuppressWarnings("deprecation") // test for legacy resolution API
+    @Test
     public void throwException_whenSetBothTargetResolutionAndAspectRatio() {
         assertThrows(IllegalArgumentException.class,
                 () -> new ImageAnalysis.Builder()
@@ -439,6 +534,7 @@ public class ImageAnalysisTest {
                         .build());
     }
 
+    @SuppressWarnings("deprecation") // test for legacy resolution API
     @Test
     public void throwException_whenSetTargetResolutionWithResolutionSelector() {
         assertThrows(IllegalArgumentException.class,
@@ -448,6 +544,7 @@ public class ImageAnalysisTest {
                         .build());
     }
 
+    @SuppressWarnings("deprecation") // test for legacy resolution API
     @Test
     public void throwException_whenSetTargetAspectRatioWithResolutionSelector() {
         assertThrows(IllegalArgumentException.class,

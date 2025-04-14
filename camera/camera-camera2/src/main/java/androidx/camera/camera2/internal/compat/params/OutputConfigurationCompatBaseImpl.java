@@ -18,15 +18,17 @@ package androidx.camera.camera2.internal.compat.params;
 
 import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
+import android.hardware.camera2.params.DynamicRangeProfiles;
+import android.hardware.camera2.params.OutputConfiguration;
 import android.os.Build;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,7 +39,6 @@ import java.util.Objects;
 /**
  * Implementation of the OutputConfiguration compat methods for API 21 and above.
  */
-@RequiresApi(21) // Needed for LegacyCameraDevice reflection
 class OutputConfigurationCompatBaseImpl implements
         OutputConfigurationCompat.OutputConfigurationCompatImpl {
     static final String TAG = "OutputConfigCompat";
@@ -75,10 +76,19 @@ class OutputConfigurationCompatBaseImpl implements
         ((OutputConfigurationParamsApi21) mObject).mPhysicalCameraId = physicalCameraId;
     }
 
-    @Nullable
     @Override
-    public String getPhysicalCameraId() {
+    public @Nullable String getPhysicalCameraId() {
         return ((OutputConfigurationParamsApi21) mObject).mPhysicalCameraId;
+    }
+
+    @Override
+    public void setMirrorMode(int mirrorMode) {
+        //No-op
+    }
+
+    @Override
+    public int getMirrorMode() {
+        return OutputConfiguration.MIRROR_MODE_AUTO;
     }
 
     /**
@@ -144,12 +154,21 @@ class OutputConfigurationCompatBaseImpl implements
         return OutputConfigurationParamsApi21.MAX_SURFACES_COUNT;
     }
 
+    @Override
+    public long getDynamicRangeProfile() {
+        return ((OutputConfigurationParamsApi21) mObject).mDynamicRangeProfile;
+    }
+
+    @Override
+    public void setDynamicRangeProfile(long profile) {
+        ((OutputConfigurationParamsApi21) mObject).mDynamicRangeProfile = profile;
+    }
+
     /**
      * Get the {@link Surface} associated with this {@link OutputConfigurationCompat}.
      */
     @Override
-    @Nullable
-    public Surface getSurface() {
+    public @Nullable Surface getSurface() {
         List<Surface> surfaces = ((OutputConfigurationParamsApi21) mObject).mSurfaces;
         if (surfaces.size() == 0) {
             return null;
@@ -162,8 +181,7 @@ class OutputConfigurationCompatBaseImpl implements
      * Get the immutable list of surfaces associated with this {@link OutputConfigurationCompat}.
      */
     @Override
-    @NonNull
-    public List<Surface> getSurfaces() {
+    public @NonNull List<Surface> getSurfaces() {
         // mSurfaces is a singleton list, so return it directly.
         return ((OutputConfigurationParamsApi21) mObject).mSurfaces;
     }
@@ -174,9 +192,8 @@ class OutputConfigurationCompatBaseImpl implements
         return OutputConfigurationCompat.SURFACE_GROUP_ID_NONE;
     }
 
-    @Nullable
     @Override
-    public Object getOutputConfiguration() {
+    public @Nullable Object getOutputConfiguration() {
         return null;
     }
 
@@ -207,7 +224,6 @@ class OutputConfigurationCompatBaseImpl implements
         return mObject.hashCode();
     }
 
-    @RequiresApi(21)
     private static final class OutputConfigurationParamsApi21 {
         /**
          * Maximum number of surfaces supported by one {@link OutputConfigurationCompat}.
@@ -227,9 +243,9 @@ class OutputConfigurationCompatBaseImpl implements
         final int mConfiguredFormat;
         // Surface generation ID to distinguish changes to Surface native internals
         final int mConfiguredGenerationId;
-        @Nullable
-        String mPhysicalCameraId;
+        @Nullable String mPhysicalCameraId;
         boolean mIsShared = false;
+        long mDynamicRangeProfile = DynamicRangeProfiles.STANDARD;
 
         OutputConfigurationParamsApi21(@NonNull Surface surface) {
             Preconditions.checkNotNull(surface, "Surface must not be null");
@@ -310,6 +326,7 @@ class OutputConfigurationCompatBaseImpl implements
                     || mConfiguredFormat != otherOutputConfig.mConfiguredFormat
                     || mConfiguredGenerationId != otherOutputConfig.mConfiguredGenerationId
                     || mIsShared != otherOutputConfig.mIsShared
+                    || mDynamicRangeProfile != otherOutputConfig.mDynamicRangeProfile
                     || !Objects.equals(mPhysicalCameraId, otherOutputConfig.mPhysicalCameraId)) {
                 return false;
             }
@@ -337,7 +354,8 @@ class OutputConfigurationCompatBaseImpl implements
             // (h * 31) XOR mPhysicalCameraId.hashCode()
             h = ((h << 5) - h)
                     ^ (mPhysicalCameraId == null ? 0 : mPhysicalCameraId.hashCode());
-
+            // (h * 31) XOR mDynamicRangeProfile
+            h = ((h << 5) - h) ^ Long.hashCode(mDynamicRangeProfile);
             return h;
         }
     }

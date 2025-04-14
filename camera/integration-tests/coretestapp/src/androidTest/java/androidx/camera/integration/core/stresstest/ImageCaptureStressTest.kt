@@ -29,11 +29,11 @@ import androidx.camera.integration.core.util.StressTestUtil.STRESS_TEST_OPERATIO
 import androidx.camera.integration.core.util.StressTestUtil.launchCameraXActivityAndWaitForPreviewReady
 import androidx.camera.integration.core.waitForViewfinderIdle
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.testing.CameraPipeConfigTestRule
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.CoreAppTestUtil
-import androidx.camera.testing.LabTestRule
-import androidx.camera.testing.StressTestRule
+import androidx.camera.testing.impl.CameraPipeConfigTestRule
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.CoreAppTestUtil
+import androidx.camera.testing.impl.LabTestRule
+import androidx.camera.testing.impl.StressTestRule
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
@@ -68,14 +68,16 @@ class ImageCaptureStressTest(
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @get:Rule
-    val cameraPipeConfigTestRule = CameraPipeConfigTestRule(
-        active = implName == CameraPipeConfig::class.simpleName,
-    )
+    val cameraPipeConfigTestRule =
+        CameraPipeConfigTestRule(
+            active = implName == CameraPipeConfig::class.simpleName,
+        )
 
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(cameraConfig)
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(cameraConfig)
+        )
 
     @get:Rule
     val permissionRule: GrantPermissionRule =
@@ -83,19 +85,15 @@ class ImageCaptureStressTest(
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
         )
 
-    @get:Rule
-    val labTest: LabTestRule = LabTestRule()
+    @get:Rule val labTest: LabTestRule = LabTestRule()
 
-    @get:Rule
-    val repeatRule = RepeatRule()
+    @get:Rule val repeatRule = RepeatRule()
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private lateinit var cameraProvider: ProcessCameraProvider
 
     companion object {
-        @ClassRule
-        @JvmField
-        val stressTest = StressTestRule()
+        @ClassRule @JvmField val stressTest = StressTestRule()
 
         @JvmStatic
         @Parameterized.Parameters(name = "config = {0}, cameraId = {2}")
@@ -132,7 +130,7 @@ class ImageCaptureStressTest(
     fun tearDown(): Unit = runBlocking {
         if (::cameraProvider.isInitialized) {
             withContext(Dispatchers.Main) {
-                cameraProvider.shutdown()[10000, TimeUnit.MILLISECONDS]
+                cameraProvider.shutdownAsync()[10000, TimeUnit.MILLISECONDS]
             }
         }
 
@@ -235,9 +233,7 @@ class ImageCaptureStressTest(
         with(activityScenario) {
             use {
                 // Checks whether multiple images can be captured successfully
-                repeat(STRESS_TEST_OPERATION_REPEAT_COUNT) {
-                    takePictureAndWaitForImageSavedIdle()
-                }
+                repeat(STRESS_TEST_OPERATION_REPEAT_COUNT) { takePictureAndWaitForImageSavedIdle() }
             }
         }
     }
@@ -263,9 +259,7 @@ class ImageCaptureStressTest(
         }
     }
 
-    /**
-     * Randomly delay for seconds between 1 and the specified number. Default is 3 seconds.
-     */
+    /** Randomly delay for seconds between 1 and the specified number. Default is 3 seconds. */
     private fun randomDelaySeconds(maxDelaySeconds: Int = 3) = runBlocking {
         require(maxDelaySeconds > 0) {
             "The specified max delay seconds value should be larger than 1."

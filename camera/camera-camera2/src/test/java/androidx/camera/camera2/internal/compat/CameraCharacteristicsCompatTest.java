@@ -16,17 +16,20 @@
 
 package androidx.camera.camera2.internal.compat;
 
+import static android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
-import androidx.annotation.RequiresApi;
+import androidx.test.filters.SdkSuppress;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -100,7 +103,7 @@ public class CameraCharacteristicsCompatTest {
     }
 
     @Config(minSdk = 28)
-    @RequiresApi(28)
+    @SdkSuppress(minSdkVersion = 28)
     @Test
     public void getPhysicalCameraIds_invokeCameraCharacteristics_api28() {
         CameraCharacteristics cameraCharacteristics = mock(CameraCharacteristics.class);
@@ -134,5 +137,31 @@ public class CameraCharacteristicsCompatTest {
         assertThat(characteristicsCompat.get(CameraCharacteristics.SENSOR_ORIENTATION))
                 .isEqualTo(SENSOR_ORIENTATION_VAL);
         verify(cameraCharacteristics, times(2)).get(CameraCharacteristics.SENSOR_ORIENTATION);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getStreamConfigurationMapCompat_assertionError() {
+        CameraCharacteristics cameraCharacteristics = spy(mCharacteristics);
+        when(cameraCharacteristics.get(SCALER_STREAM_CONFIGURATION_MAP)).thenThrow(
+                new AssertionError(
+                        "At least one stream configuration for IMPLEMENTATION_DEFINED must exist"));
+        CameraCharacteristicsCompat characteristicsCompat =
+                CameraCharacteristicsCompat.toCameraCharacteristicsCompat(cameraCharacteristics,
+                        CAMERA_ID_0);
+
+        characteristicsCompat.getStreamConfigurationMapCompat();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getStreamConfigurationMapCompat_nullPointerException() {
+        CameraCharacteristics cameraCharacteristics = spy(mCharacteristics);
+        when(cameraCharacteristics.get(SCALER_STREAM_CONFIGURATION_MAP)).thenThrow(
+                new NullPointerException(
+                        "At least one of color/depth/heic configurations must not be null"));
+        CameraCharacteristicsCompat characteristicsCompat =
+                CameraCharacteristicsCompat.toCameraCharacteristicsCompat(cameraCharacteristics,
+                        CAMERA_ID_0);
+
+        characteristicsCompat.getStreamConfigurationMapCompat();
     }
 }

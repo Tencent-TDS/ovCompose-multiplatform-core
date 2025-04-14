@@ -18,7 +18,7 @@ package androidx.work.impl.background.gcm;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
+import androidx.work.Clock;
 import androidx.work.Logger;
 import androidx.work.impl.Scheduler;
 import androidx.work.impl.model.WorkSpec;
@@ -27,6 +27,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.Task;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * The {@link androidx.work.WorkManager} scheduler which uses
@@ -38,18 +40,18 @@ public class GcmScheduler implements Scheduler {
     private final GcmNetworkManager mNetworkManager;
     private final GcmTaskConverter mTaskConverter;
 
-    public GcmScheduler(@NonNull Context context) {
+    public GcmScheduler(@NonNull Context context, @NonNull Clock clock) {
         boolean isPlayServicesAvailable = GoogleApiAvailability.getInstance()
                 .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS;
         if (!isPlayServicesAvailable) {
             throw new IllegalStateException("Google Play Services not available");
         }
         mNetworkManager = GcmNetworkManager.getInstance(context);
-        mTaskConverter = new GcmTaskConverter();
+        mTaskConverter = new GcmTaskConverter(clock);
     }
 
     @Override
-    public void schedule(@NonNull WorkSpec... workSpecs) {
+    public void schedule(WorkSpec @NonNull ... workSpecs) {
         for (WorkSpec workSpec : workSpecs) {
             Task task = mTaskConverter.convert(workSpec);
             Logger.get().debug(TAG, "Scheduling " + workSpec + "with " + task);

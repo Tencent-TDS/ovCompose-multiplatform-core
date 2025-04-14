@@ -35,10 +35,10 @@ import androidx.camera.core.impl.CameraStateRegistry
 import androidx.camera.core.impl.Observable
 import androidx.camera.core.impl.utils.MainThreadAsyncHandler
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.CameraUtil.PreTestCameraIdList
 import androidx.camera.testing.fakes.FakeCamera
-import androidx.camera.testing.fakes.FakeCameraCoordinator
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.CameraUtil.PreTestCameraIdList
+import androidx.camera.testing.impl.fakes.FakeCameraCoordinator
 import androidx.core.os.HandlerCompat
 import androidx.lifecycle.Observer
 import androidx.test.core.app.ApplicationProvider
@@ -69,9 +69,10 @@ import org.mockito.Mockito
 internal class Camera2CameraImplStateTest {
 
     @get:Rule
-    val cameraRule = CameraUtil.grantCameraPermissionAndPreTest(
-        PreTestCameraIdList(Camera2Config.defaultConfig())
-    )
+    val cameraRule =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            PreTestCameraIdList(Camera2Config.defaultConfig())
+        )
 
     private lateinit var cameraId: String
     private lateinit var camera: Camera2CameraImpl
@@ -97,10 +98,7 @@ internal class Camera2CameraImplStateTest {
         val cameraManager = TestCameraManager()
         initializeCamera(cameraManager)
 
-        assertCameraStateAfterAction(
-            action = {},
-            expectedState = create(CameraState.Type.CLOSED)
-        )
+        assertCameraStateAfterAction(action = {}, expectedState = create(CameraState.Type.CLOSED))
     }
 
     @Test
@@ -148,11 +146,12 @@ internal class Camera2CameraImplStateTest {
 
     @Test
     fun shouldEmitClosedState_afterOpeningCameraThrowsDNDException() {
-        val cameraManager = TestCameraManager(
-            onOpenCamera = {
-                throw CameraAccessExceptionCompat(CAMERA_UNAVAILABLE_DO_NOT_DISTURB)
-            }
-        )
+        val cameraManager =
+            TestCameraManager(
+                onOpenCamera = {
+                    throw CameraAccessExceptionCompat(CAMERA_UNAVAILABLE_DO_NOT_DISTURB)
+                }
+            )
         initializeCamera(cameraManager)
 
         assertCameraStateAfterAction(
@@ -177,7 +176,7 @@ internal class Camera2CameraImplStateTest {
 
     @Test
     fun shouldEmitOpeningState_whenOpeningCameraEncountersRecoverableError() {
-        val cameraManager = TestCameraManager(onOpenCamera = { })
+        val cameraManager = TestCameraManager(onOpenCamera = {})
         initializeCamera(cameraManager)
 
         assertCameraStateAfterAction(
@@ -218,12 +217,13 @@ internal class Camera2CameraImplStateTest {
     @Test
     fun shouldEmitPendingOpenState_afterReachingMaxReopenAttempts() {
         val semaphore = Semaphore(0)
-        val cameraManager = TestCameraManager(
-            onOpenCamera = {
-                semaphore.release()
-                throw SecurityException()
-            }
-        )
+        val cameraManager =
+            TestCameraManager(
+                onOpenCamera = {
+                    semaphore.release()
+                    throw SecurityException()
+                }
+            )
         initializeCamera(cameraManager)
 
         assertCameraStateAfterAction(
@@ -245,10 +245,8 @@ internal class Camera2CameraImplStateTest {
 
         assertCameraStateAfterAction(
             action = { cameraManager.triggerDisconnect() },
-            expectedState = create(
-                CameraState.Type.OPENING,
-                CameraState.StateError.create(ERROR_CAMERA_IN_USE)
-            )
+            expectedState =
+                create(CameraState.Type.OPENING, CameraState.StateError.create(ERROR_CAMERA_IN_USE))
         )
 
         // Clean up
@@ -340,10 +338,7 @@ internal class Camera2CameraImplStateTest {
         val cameraManagerCompat = CameraManagerCompat.from(cameraManager)
 
         // Build camera info
-        val camera2CameraInfo = Camera2CameraInfoImpl(
-            cameraId,
-            cameraManagerCompat
-        )
+        val camera2CameraInfo = Camera2CameraInfoImpl(cameraId, cameraManagerCompat)
 
         cameraCoordinator = FakeCameraCoordinator()
 
@@ -351,16 +346,19 @@ internal class Camera2CameraImplStateTest {
         cameraStateRegistry = CameraStateRegistry(cameraCoordinator, 1)
 
         // Initialize camera instance
-        camera = Camera2CameraImpl(
-            cameraManagerCompat,
-            cameraId,
-            camera2CameraInfo,
-            cameraCoordinator,
-            cameraStateRegistry,
-            CameraXExecutors.directExecutor(),
-            cameraHandler,
-            DisplayInfoManager.getInstance(ApplicationProvider.getApplicationContext())
-        )
+        camera =
+            Camera2CameraImpl(
+                ApplicationProvider.getApplicationContext(),
+                cameraManagerCompat,
+                cameraId,
+                camera2CameraInfo,
+                cameraCoordinator,
+                cameraStateRegistry,
+                CameraXExecutors.directExecutor(),
+                cameraHandler,
+                DisplayInfoManager.getInstance(ApplicationProvider.getApplicationContext()),
+                -1L
+            )
     }
 
     private fun Camera2CameraImpl.awaitCameraOpen() {
@@ -373,17 +371,18 @@ internal class Camera2CameraImplStateTest {
 
     private fun Camera2CameraImpl.awaitInternalState(state: CameraInternal.State) = runBlocking {
         val receivedState = CompletableDeferred<Unit>()
-        val observer = object : Observable.Observer<CameraInternal.State> {
-            override fun onNewData(value: CameraInternal.State?) {
-                if (value == state) {
-                    receivedState.complete(Unit)
+        val observer =
+            object : Observable.Observer<CameraInternal.State> {
+                override fun onNewData(value: CameraInternal.State?) {
+                    if (value == state) {
+                        receivedState.complete(Unit)
+                    }
+                }
+
+                override fun onError(t: Throwable) {
+                    // No-op
                 }
             }
-
-            override fun onError(t: Throwable) {
-                // No-op
-            }
-        }
         cameraState.addObserver(CameraXExecutors.directExecutor(), observer)
 
         try {
@@ -412,11 +411,12 @@ internal class Camera2CameraImplStateTest {
         expectedStatePredicate: ((CameraState) -> Boolean)
     ) = runBlocking {
         val nextStateReceived = CompletableDeferred<Unit>()
-        val stateObserver = Observer<CameraState> { state ->
-            if (expectedStatePredicate.invoke(state)) {
-                nextStateReceived.complete(Unit)
+        val stateObserver =
+            Observer<CameraState> { state ->
+                if (expectedStatePredicate.invoke(state)) {
+                    nextStateReceived.complete(Unit)
+                }
             }
-        }
 
         withContext(Dispatchers.Main) {
             camera.cameraInfo.cameraState.observeForever(stateObserver)
@@ -436,10 +436,11 @@ internal class Camera2CameraImplStateTest {
     class TestCameraManager(private val onOpenCamera: (() -> Unit)? = null) :
         CameraManagerCompat.CameraManagerCompatImpl {
 
-        private val forwardCameraManager = CameraManagerCompat.CameraManagerCompatImpl.from(
-            ApplicationProvider.getApplicationContext(),
-            MainThreadAsyncHandler.getInstance()
-        )
+        private val forwardCameraManager =
+            CameraManagerCompat.CameraManagerCompatImpl.from(
+                ApplicationProvider.getApplicationContext(),
+                MainThreadAsyncHandler.getInstance()
+            )
         private var stateCallback: CameraDevice.StateCallback? = null
 
         override fun getCameraIdList(): Array<String> {

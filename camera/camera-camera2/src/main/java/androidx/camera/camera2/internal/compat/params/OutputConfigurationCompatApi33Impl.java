@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ package androidx.camera.camera2.internal.compat.params;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Implementation of the OutputConfiguration compat methods for API 33 and above.
@@ -44,6 +46,32 @@ public class OutputConfigurationCompatApi33Impl extends OutputConfigurationCompa
     static OutputConfigurationCompatApi33Impl wrap(
             @NonNull OutputConfiguration outputConfiguration) {
         return new OutputConfigurationCompatApi33Impl(outputConfiguration);
+    }
+
+    @Override
+    public int getMirrorMode() {
+        return ((OutputConfiguration) getOutputConfiguration()).getMirrorMode();
+    }
+
+    @Override
+    public void setMirrorMode(int mirrorMode) {
+        ((OutputConfiguration) getOutputConfiguration()).setMirrorMode(mirrorMode);
+    }
+
+    @Override
+    public long getDynamicRangeProfile() {
+        return ((OutputConfiguration) getOutputConfiguration()).getDynamicRangeProfile();
+    }
+
+    @Override
+    public void setDynamicRangeProfile(long profile) {
+        ((OutputConfiguration) getOutputConfiguration()).setDynamicRangeProfile(profile);
+    }
+
+    @Override
+    public @NonNull Object getOutputConfiguration() {
+        Preconditions.checkArgument(mObject instanceof OutputConfiguration);
+        return mObject;
     }
 
     @Override

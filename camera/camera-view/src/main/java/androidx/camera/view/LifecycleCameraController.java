@@ -16,19 +16,13 @@
 
 package androidx.camera.view;
 
-import static androidx.annotation.RestrictTo.Scope.TESTS;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
-import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraEffect;
@@ -39,6 +33,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A controller that provides most of the CameraX features.
@@ -63,13 +60,11 @@ import com.google.common.util.concurrent.ListenableFuture;
  *     controller.setZoomRatio(.5F);
  * </code></pre>
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class LifecycleCameraController extends CameraController {
 
     private static final String TAG = "CamLifecycleController";
 
-    @Nullable
-    private LifecycleOwner mLifecycleOwner;
+    private @Nullable LifecycleOwner mLifecycleOwner;
 
     public LifecycleCameraController(@NonNull Context context) {
         super(context);
@@ -124,8 +119,7 @@ public final class LifecycleCameraController extends CameraController {
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     @Override
-    @Nullable
-    Camera startCamera() {
+    @Nullable Camera startCamera() {
         if (mLifecycleOwner == null) {
             Log.d(TAG, "Lifecycle is not set.");
             return null;
@@ -154,11 +148,11 @@ public final class LifecycleCameraController extends CameraController {
 
     /**
      */
-    @RestrictTo(TESTS)
+    @VisibleForTesting
     @SuppressWarnings("FutureReturnValueIgnored")
     void shutDownForTests() {
         if (mCameraProvider != null) {
-            mCameraProvider.shutdown();
+            mCameraProvider.shutdownAsync();
         }
     }
 }

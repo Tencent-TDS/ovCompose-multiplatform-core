@@ -34,22 +34,124 @@ import java.time.ZoneOffset
  *
  * @sample androidx.health.connect.client.samples.ReadExerciseSessions
  */
-public class ExerciseSessionRecord(
+class ExerciseSessionRecord
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+internal constructor(
     override val startTime: Instant,
     override val startZoneOffset: ZoneOffset?,
     override val endTime: Instant,
     override val endZoneOffset: ZoneOffset?,
+    override val metadata: Metadata,
     /** Type of exercise (e.g. walking, swimming). Required field. */
-    @property:ExerciseTypes public val exerciseType: Int,
+    @property:ExerciseTypes val exerciseType: Int,
     /** Title of the session. Optional field. */
-    public val title: String? = null,
+    val title: String? = null,
     /** Additional notes for the session. Optional field. */
-    public val notes: String? = null,
-    override val metadata: Metadata = Metadata.EMPTY,
+    val notes: String? = null,
+    /**
+     * [ExerciseSegment]s of the session. Optional field. Time in segments should be within the
+     * parent session, and should not overlap with each other.
+     */
+    val segments: List<ExerciseSegment> = emptyList(),
+    /**
+     * [ExerciseLap]s of the session. Optional field. Time in laps should be within the parent
+     * session, and should not overlap with each other.
+     */
+    val laps: List<ExerciseLap> = emptyList(),
+
+    /**
+     * [ExerciseRouteResult] [ExerciseRouteResult] of the session. Location data points of
+     * [ExerciseRoute] should be within the parent session, and should be before the end time of the
+     * session.
+     */
+    val exerciseRouteResult: ExerciseRouteResult = ExerciseRouteResult.NoData(),
+    val plannedExerciseSessionId: String? = null
 ) : IntervalRecord {
+
+    @JvmOverloads
+    constructor(
+        startTime: Instant,
+        startZoneOffset: ZoneOffset?,
+        endTime: Instant,
+        endZoneOffset: ZoneOffset?,
+        metadata: Metadata,
+        /** Type of exercise (e.g. walking, swimming). Required field. */
+        exerciseType: Int,
+        /** Title of the session. Optional field. */
+        title: String? = null,
+        /** Additional notes for the session. Optional field. */
+        notes: String? = null,
+        segments: List<ExerciseSegment> = emptyList(),
+        laps: List<ExerciseLap> = emptyList(),
+        exerciseRoute: ExerciseRoute? = null,
+        /**
+         * The planned exercise session this workout was based upon. Optional field. Requires
+         * [androidx.health.connect.client.HealthConnectFeatures.FEATURE_PLANNED_EXERCISE].
+         */
+        plannedExerciseSessionId: String? = null,
+    ) : this(
+        startTime,
+        startZoneOffset,
+        endTime,
+        endZoneOffset,
+        metadata,
+        exerciseType,
+        title,
+        notes,
+        segments,
+        laps,
+        exerciseRoute?.let { ExerciseRouteResult.Data(it) } ?: ExerciseRouteResult.NoData(),
+        plannedExerciseSessionId,
+    )
 
     init {
         require(startTime.isBefore(endTime)) { "startTime must be before endTime." }
+        if (segments.isNotEmpty()) {
+            var sortedSegments = segments.sortedWith { a, b -> a.startTime.compareTo(b.startTime) }
+            for (i in 0 until sortedSegments.lastIndex) {
+                require(!sortedSegments[i].endTime.isAfter(sortedSegments[i + 1].startTime)) {
+                    "segments can not overlap."
+                }
+            }
+            // check all segments are within parent session duration
+            require(!sortedSegments.first().startTime.isBefore(startTime)) {
+                "segments can not be out of parent time range."
+            }
+            require(!sortedSegments.last().endTime.isAfter(endTime)) {
+                "segments can not be out of parent time range."
+            }
+            for (segment in sortedSegments) {
+                require(segment.isCompatibleWith(exerciseType)) {
+                    "segmentType and sessionType is not compatible."
+                }
+            }
+        }
+        if (laps.isNotEmpty()) {
+            val sortedLaps = laps.sortedWith { a, b -> a.startTime.compareTo(b.startTime) }
+            for (i in 0 until sortedLaps.lastIndex) {
+                require(!sortedLaps[i].endTime.isAfter(sortedLaps[i + 1].startTime)) {
+                    "laps can not overlap."
+                }
+            }
+            // check all laps are within parent session duration
+            require(!sortedLaps.first().startTime.isBefore(startTime)) {
+                "laps can not be out of parent time range."
+            }
+            require(!sortedLaps.last().endTime.isAfter(endTime)) {
+                "laps can not be out of parent time range."
+            }
+        }
+        if (
+            exerciseRouteResult is ExerciseRouteResult.Data &&
+                exerciseRouteResult.exerciseRoute.route.isNotEmpty()
+        ) {
+            val route = exerciseRouteResult.exerciseRoute.route
+            val minTime = route.minBy { it.time }.time
+            val maxTime = route.maxBy { it.time }.time
+            require(!minTime.isBefore(startTime) && maxTime.isBefore(endTime)) {
+                "route can not be out of parent time range."
+            }
+        }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -64,20 +166,27 @@ public class ExerciseSessionRecord(
         if (endTime != other.endTime) return false
         if (endZoneOffset != other.endZoneOffset) return false
         if (metadata != other.metadata) return false
+        if (segments != other.segments) return false
+        if (laps != other.laps) return false
+        if (exerciseRouteResult != other.exerciseRouteResult) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = 0
-        result = 31 * result + exerciseType.hashCode()
+        var result = exerciseType.hashCode()
         result = 31 * result + title.hashCode()
         result = 31 * result + notes.hashCode()
         result = 31 * result + (startZoneOffset?.hashCode() ?: 0)
         result = 31 * result + endTime.hashCode()
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
+        result = 31 * result + exerciseRouteResult.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "ExerciseSessionRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, exerciseType=$exerciseType, title=$title, notes=$notes, metadata=$metadata, segments=$segments, laps=$laps, exerciseRouteResult=$exerciseRouteResult)"
     }
 
     companion object {
@@ -263,11 +372,7 @@ public class ExerciseSessionRecord(
             EXERCISE_TYPE_STRING_TO_INT_MAP.entries.associateBy({ it.value }, { it.key })
     }
 
-    /**
-     * List of supported activities on Health Platform.
-     *
-     * @suppress
-     */
+    /** List of supported activities on Health Platform. */
     @Retention(AnnotationRetention.SOURCE)
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(

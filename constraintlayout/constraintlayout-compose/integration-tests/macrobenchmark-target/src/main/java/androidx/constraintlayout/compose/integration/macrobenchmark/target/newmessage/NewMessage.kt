@@ -16,7 +16,7 @@
 
 @file:OptIn(ExperimentalMotionApi::class)
 
-package androidx.compose.integration.macrobenchmark.target.motionlayout.newmessage
+package androidx.constraintlayout.compose.integration.macrobenchmark.target.newmessage
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.components.TestableButton
 import androidx.compose.material.Button
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
@@ -40,15 +39,14 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -65,56 +63,63 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
 import androidx.constraintlayout.compose.ExperimentalMotionApi
+import androidx.constraintlayout.compose.InvalidationStrategy
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionLayoutScope
 import androidx.constraintlayout.compose.MotionScene
 import androidx.constraintlayout.compose.Visibility
+import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.components.TestableButton
 
 // Copied from ComposeMail project
 
 @Preview
 @Composable
 fun NewMotionMessagePreview() {
-    NewMotionMessageWithControls(useDsl = false)
+    NewMotionMessageWithControls(useDsl = false, optimize = false)
 }
 
 @Preview
 @Composable
 fun NewMotionMessagePreviewWithDsl() {
-    NewMotionMessageWithControls(useDsl = true)
+    NewMotionMessageWithControls(useDsl = true, optimize = false)
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMotionApi::class)
+@Preview
 @Composable
-fun NewMotionMessageWithControls(
-    useDsl: Boolean
-) {
+fun NewMotionMessagePreviewWithDslOptimized() {
+    NewMotionMessageWithControls(useDsl = true, optimize = true)
+}
+
+@OptIn(ExperimentalMotionApi::class)
+@Composable
+fun NewMotionMessageWithControls(useDsl: Boolean, optimize: Boolean) {
     val initialLayout = NewMessageLayout.Full
     val newMessageState = rememberNewMessageState(initialLayoutState = initialLayout)
-    val motionScene = if (useDsl) {
-        messageMotionSceneDsl(initialState = initialLayout)
-    } else {
-        messageMotionScene(initialState = initialLayout)
-    }
+    val motionScene =
+        if (useDsl) {
+            messageMotionSceneDsl(initialState = initialLayout)
+        } else {
+            messageMotionScene(initialState = initialLayout)
+        }
     Column(Modifier.semantics { testTagsAsResourceId = true }) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TestableButton(
-                onClick = newMessageState::setToFab,
-                text = "Fab"
-            )
-            TestableButton(
-                onClick = newMessageState::setToFull,
-                text = "Full"
-            )
-            TestableButton(
-                onClick = newMessageState::setToMini,
-                text = "Mini"
-            )
+            TestableButton(onClick = newMessageState::setToFab, text = "Fab")
+            TestableButton(onClick = newMessageState::setToFull, text = "Full")
+            TestableButton(onClick = newMessageState::setToMini, text = "Mini")
         }
+        val invalidationStrategy =
+            remember(newMessageState, optimize) {
+                if (optimize) {
+                    InvalidationStrategy { newMessageState.currentState }
+                } else {
+                    InvalidationStrategy.DefaultInvalidationStrategy
+                }
+            }
         NewMessageButton(
             modifier = Modifier.fillMaxSize(),
             motionScene = motionScene,
             state = newMessageState,
+            invalidationStrategy = invalidationStrategy,
         )
     }
 }
@@ -123,11 +128,12 @@ fun NewMotionMessageWithControls(
 @Composable
 private fun messageMotionSceneDsl(initialState: NewMessageLayout): MotionScene {
     val startState = remember { initialState }
-    val endState = when (startState) {
-        NewMessageLayout.Fab -> NewMessageLayout.Full
-        NewMessageLayout.Mini -> NewMessageLayout.Fab
-        NewMessageLayout.Full -> NewMessageLayout.Fab
-    }
+    val endState =
+        when (startState) {
+            NewMessageLayout.Fab -> NewMessageLayout.Full
+            NewMessageLayout.Mini -> NewMessageLayout.Fab
+            NewMessageLayout.Full -> NewMessageLayout.Fab
+        }
 
     val primary = MaterialTheme.colors.primary
     val primaryVariant = MaterialTheme.colors.primaryVariant
@@ -142,143 +148,146 @@ private fun messageMotionSceneDsl(initialState: NewMessageLayout): MotionScene {
         val title = createRefFor("title")
         val content = createRefFor("content")
 
-        val fab = constraintSet(NewMessageLayout.Fab.name) {
-            constrain(box) {
-                width = Dimension.value(50.dp)
-                height = Dimension.value(50.dp)
-                end.linkTo(parent.end, 12.dp)
-                bottom.linkTo(parent.bottom, 12.dp)
-                customColor("background", primary)
+        val fab =
+            constraintSet(NewMessageLayout.Fab.name) {
+                constrain(box) {
+                    width = Dimension.value(50.dp)
+                    height = Dimension.value(50.dp)
+                    end.linkTo(parent.end, 12.dp)
+                    bottom.linkTo(parent.bottom, 12.dp)
+                    customColor("background", primary)
+                }
+                constrain(minIcon) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
+
+                    end.linkTo(editClose.start, 8.dp)
+                    top.linkTo(editClose.top)
+                    customColor("content", onPrimary)
+                }
+                constrain(editClose) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
+
+                    centerTo(box)
+
+                    customColor("content", onPrimary)
+                }
+                constrain(title) {
+                    width = Dimension.fillToConstraints
+                    top.linkTo(box.top)
+                    bottom.linkTo(editClose.bottom)
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(minIcon.start, 8.dp)
+                    customColor("content", onPrimary)
+
+                    visibility = Visibility.Gone
+                }
+                constrain(content) {
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(box.end, 8.dp)
+
+                    top.linkTo(editClose.bottom, 8.dp)
+                    bottom.linkTo(box.bottom, 8.dp)
+
+                    visibility = Visibility.Gone
+                }
             }
-            constrain(minIcon) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
+        val full =
+            constraintSet(NewMessageLayout.Full.name) {
+                constrain(box) {
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                    start.linkTo(parent.start, 12.dp)
+                    end.linkTo(parent.end, 12.dp)
+                    bottom.linkTo(parent.bottom, 12.dp)
+                    top.linkTo(parent.top, 40.dp)
+                    customColor("background", surface)
+                }
+                constrain(minIcon) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
 
-                end.linkTo(editClose.start, 8.dp)
-                top.linkTo(editClose.top)
-                customColor("content", onPrimary)
+                    end.linkTo(editClose.start, 8.dp)
+                    top.linkTo(editClose.top)
+                    customColor("content", onSurface)
+                }
+                constrain(editClose) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
+
+                    end.linkTo(box.end, 4.dp)
+                    top.linkTo(box.top, 4.dp)
+                    customColor("content", onSurface)
+                }
+                constrain(title) {
+                    width = Dimension.fillToConstraints
+                    top.linkTo(box.top)
+                    bottom.linkTo(editClose.bottom)
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(minIcon.start, 8.dp)
+                    customColor("content", onSurface)
+                }
+                constrain(content) {
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(box.end, 8.dp)
+                    top.linkTo(editClose.bottom, 8.dp)
+                    bottom.linkTo(box.bottom, 8.dp)
+                }
             }
-            constrain(editClose) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
+        val mini =
+            constraintSet(NewMessageLayout.Mini.name) {
+                constrain(box) {
+                    width = Dimension.value(220.dp)
+                    height = Dimension.value(50.dp)
 
-                centerTo(box)
+                    end.linkTo(parent.end, 12.dp)
+                    bottom.linkTo(parent.bottom, 12.dp)
 
-                customColor("content", onPrimary)
+                    customColor("background", primaryVariant)
+                }
+                constrain(minIcon) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
+
+                    end.linkTo(editClose.start, 8.dp)
+                    top.linkTo(editClose.top)
+
+                    rotationZ = 180f
+
+                    customColor("content", onPrimary)
+                }
+                constrain(editClose) {
+                    width = Dimension.value(40.dp)
+                    height = Dimension.value(40.dp)
+
+                    end.linkTo(box.end, 4.dp)
+                    top.linkTo(box.top, 4.dp)
+                    customColor("content", onPrimary)
+                }
+                constrain(title) {
+                    width = Dimension.fillToConstraints
+                    top.linkTo(box.top)
+                    bottom.linkTo(editClose.bottom)
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(minIcon.start, 8.dp)
+                    customColor("content", onPrimary)
+                }
+                constrain(content) {
+                    width = Dimension.fillToConstraints
+                    start.linkTo(box.start, 8.dp)
+                    end.linkTo(box.end, 8.dp)
+
+                    top.linkTo(editClose.bottom, 8.dp)
+                    bottom.linkTo(box.bottom, 8.dp)
+
+                    visibility = Visibility.Gone
+                }
             }
-            constrain(title) {
-                width = Dimension.fillToConstraints
-                top.linkTo(box.top)
-                bottom.linkTo(editClose.bottom)
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(minIcon.start, 8.dp)
-                customColor("content", onPrimary)
-
-                visibility = Visibility.Gone
-            }
-            constrain(content) {
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(box.end, 8.dp)
-
-                top.linkTo(editClose.bottom, 8.dp)
-                bottom.linkTo(box.bottom, 8.dp)
-
-                visibility = Visibility.Gone
-            }
-        }
-        val full = constraintSet(NewMessageLayout.Full.name) {
-            constrain(box) {
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-                start.linkTo(parent.start, 12.dp)
-                end.linkTo(parent.end, 12.dp)
-                bottom.linkTo(parent.bottom, 12.dp)
-                top.linkTo(parent.top, 40.dp)
-                customColor("background", surface)
-            }
-            constrain(minIcon) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
-
-                end.linkTo(editClose.start, 8.dp)
-                top.linkTo(editClose.top)
-                customColor("content", onSurface)
-            }
-            constrain(editClose) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
-
-                end.linkTo(box.end, 4.dp)
-                top.linkTo(box.top, 4.dp)
-                customColor("content", onSurface)
-            }
-            constrain(title) {
-                width = Dimension.fillToConstraints
-                top.linkTo(box.top)
-                bottom.linkTo(editClose.bottom)
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(minIcon.start, 8.dp)
-                customColor("content", onSurface)
-            }
-            constrain(content) {
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(box.end, 8.dp)
-                top.linkTo(editClose.bottom, 8.dp)
-                bottom.linkTo(box.bottom, 8.dp)
-            }
-        }
-        val mini = constraintSet(NewMessageLayout.Mini.name) {
-            constrain(box) {
-                width = Dimension.value(220.dp)
-                height = Dimension.value(50.dp)
-
-                end.linkTo(parent.end, 12.dp)
-                bottom.linkTo(parent.bottom, 12.dp)
-
-                customColor("background", primaryVariant)
-            }
-            constrain(minIcon) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
-
-                end.linkTo(editClose.start, 8.dp)
-                top.linkTo(editClose.top)
-
-                rotationZ = 180f
-
-                customColor("content", onPrimary)
-            }
-            constrain(editClose) {
-                width = Dimension.value(40.dp)
-                height = Dimension.value(40.dp)
-
-                end.linkTo(box.end, 4.dp)
-                top.linkTo(box.top, 4.dp)
-                customColor("content", onPrimary)
-            }
-            constrain(title) {
-                width = Dimension.fillToConstraints
-                top.linkTo(box.top)
-                bottom.linkTo(editClose.bottom)
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(minIcon.start, 8.dp)
-                customColor("content", onPrimary)
-            }
-            constrain(content) {
-                width = Dimension.fillToConstraints
-                start.linkTo(box.start, 8.dp)
-                end.linkTo(box.end, 8.dp)
-
-                top.linkTo(editClose.bottom, 8.dp)
-                bottom.linkTo(box.bottom, 8.dp)
-
-                visibility = Visibility.Gone
-            }
-        }
 
         fun constraintSetFor(layoutState: NewMessageLayout) =
             when (layoutState) {
@@ -286,10 +295,7 @@ private fun messageMotionSceneDsl(initialState: NewMessageLayout): MotionScene {
                 NewMessageLayout.Mini -> mini
                 NewMessageLayout.Fab -> fab
             }
-        defaultTransition(
-            from = constraintSetFor(startState),
-            to = constraintSetFor(endState)
-        )
+        defaultTransition(from = constraintSetFor(startState), to = constraintSetFor(endState))
     }
 }
 
@@ -297,11 +303,12 @@ private fun messageMotionSceneDsl(initialState: NewMessageLayout): MotionScene {
 @Composable
 private fun messageMotionScene(initialState: NewMessageLayout): MotionScene {
     val startState = remember { initialState }
-    val endState = when (startState) {
-        NewMessageLayout.Fab -> NewMessageLayout.Full
-        NewMessageLayout.Mini -> NewMessageLayout.Fab
-        NewMessageLayout.Full -> NewMessageLayout.Fab
-    }
+    val endState =
+        when (startState) {
+            NewMessageLayout.Fab -> NewMessageLayout.Full
+            NewMessageLayout.Mini -> NewMessageLayout.Fab
+            NewMessageLayout.Full -> NewMessageLayout.Fab
+        }
 
     val startStateName = startState.name
     val endStateName = endState.name
@@ -313,7 +320,7 @@ private fun messageMotionScene(initialState: NewMessageLayout): MotionScene {
 
     return MotionScene(
         content =
-        """
+            """
         {
           ConstraintSets: {
             ${NewMessageLayout.Fab.name}: {
@@ -472,17 +479,16 @@ private fun messageMotionScene(initialState: NewMessageLayout): MotionScene {
 
 @OptIn(ExperimentalMotionApi::class)
 @Composable
-internal fun MotionLayoutScope.MotionMessageContent(
-    state: NewMessageState
-) {
+internal fun MotionLayoutScope.MotionMessageContent(state: NewMessageState) {
     val currentState = state.currentState
     val focusManager = LocalFocusManager.current
-    val dialogName = remember(currentState) {
-        when (currentState) {
-            NewMessageLayout.Mini -> "Draft"
-            else -> "Message"
+    val dialogName =
+        remember(currentState) {
+            when (currentState) {
+                NewMessageLayout.Mini -> "Draft"
+                else -> "Message"
+            }
         }
-    }
     Surface(
         modifier = Modifier.layoutId("box"),
         color = customColor(id = "box", name = "background"),
@@ -491,10 +497,11 @@ internal fun MotionLayoutScope.MotionMessageContent(
     ) {}
     ColorableIconButton(
         modifier = Modifier.layoutId("editClose"),
-        imageVector = when (currentState) {
-            NewMessageLayout.Fab -> Icons.Default.Edit
-            else -> Icons.Default.Close
-        },
+        imageVector =
+            when (currentState) {
+                NewMessageLayout.Fab -> Icons.Default.Edit
+                else -> Icons.Default.Close
+            },
         color = customColor("editClose", "content"),
         enabled = true
     ) {
@@ -520,29 +527,34 @@ internal fun MotionLayoutScope.MotionMessageContent(
         color = customColor("title", "content"),
         style = MaterialTheme.typography.h6
     )
-    MessageWidget(modifier = Modifier.layoutId("content"), onDelete = {
-        focusManager.clearFocus()
-        state.setToFab()
-    })
-//            MessageWidgetCol(
-//                modifier = Modifier
-//                    .layoutId("content")
-//                    .padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
-//            )
+    MessageWidget(
+        modifier = Modifier.layoutId("content"),
+        onDelete = {
+            focusManager.clearFocus()
+            state.setToFab()
+        }
+    )
+    //            MessageWidgetCol(
+    //                modifier = Modifier
+    //                    .layoutId("content")
+    //                    .padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
+    //            )
 }
 
 @Composable
 private fun NewMessageButton(
-    modifier: Modifier = Modifier,
     motionScene: MotionScene,
-    state: NewMessageState
+    state: NewMessageState,
+    invalidationStrategy: InvalidationStrategy,
+    modifier: Modifier = Modifier,
 ) {
     val currentStateName = state.currentState.name
     MotionLayout(
         motionScene = motionScene,
         animationSpec = tween(700),
         constraintSetName = currentStateName,
-        modifier = modifier
+        modifier = modifier,
+        invalidationStrategy = invalidationStrategy
     ) {
         MotionMessageContent(state = state)
     }
@@ -584,27 +596,19 @@ internal fun MessageWidgetCol(modifier: Modifier) {
             modifier = Modifier.fillMaxWidth(),
             value = "",
             onValueChange = {},
-            placeholder = {
-                Text("Recipients")
-            }
+            placeholder = { Text("Recipients") }
         )
         TextField(
             modifier = Modifier.fillMaxWidth(),
             value = "",
             onValueChange = {},
-            placeholder = {
-                Text("Subject")
-            }
+            placeholder = { Text("Subject") }
         )
         TextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(weight = 2.0f, fill = true),
+            modifier = Modifier.fillMaxWidth().weight(weight = 2.0f, fill = true),
             value = "",
             onValueChange = {},
-            placeholder = {
-                Text("Message")
-            }
+            placeholder = { Text("Message") }
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -615,7 +619,7 @@ internal fun MessageWidgetCol(modifier: Modifier) {
                     Text(text = "Send")
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = Icons.AutoMirrored.Default.Send,
                         contentDescription = "Send Mail",
                     )
                 }
@@ -638,10 +642,7 @@ private fun MessageWidgetPreview() {
 }
 
 @Composable
-internal fun MessageWidget(
-    modifier: Modifier,
-    onDelete: () -> Unit = {}
-) {
+internal fun MessageWidget(modifier: Modifier, onDelete: () -> Unit = {}) {
     val constraintSet = remember {
         ConstraintSet(
             """
@@ -677,7 +678,8 @@ internal fun MessageWidget(
                       end: ['parent', 'end', 0]
                     }
                 }
-            """.trimIndent()
+            """
+                .trimIndent()
         )
     }
     ConstraintLayout(
@@ -688,27 +690,19 @@ internal fun MessageWidget(
             modifier = Modifier.layoutId("recipient"),
             value = "",
             onValueChange = {},
-            label = {
-                CheapText("To")
-            }
+            label = { CheapText("To") }
         )
         OutlinedTextField(
             modifier = Modifier.layoutId("subject"),
             value = "",
             onValueChange = {},
-            label = {
-                CheapText("Subject")
-            }
+            label = { CheapText("Subject") }
         )
         OutlinedTextField(
-            modifier = Modifier
-                .layoutId("message")
-                .fillMaxHeight(),
+            modifier = Modifier.layoutId("message").fillMaxHeight(),
             value = "",
             onValueChange = {},
-            label = {
-                CheapText("Message")
-            }
+            label = { CheapText("Message") }
         )
         Button(
             modifier = Modifier.layoutId("send"),
@@ -717,15 +711,12 @@ internal fun MessageWidget(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CheapText(text = "Send")
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Default.Send,
                     contentDescription = "Send Mail",
                 )
             }
         }
-        Button(
-            modifier = Modifier.layoutId("delete"),
-            onClick = onDelete
-        ) {
+        Button(modifier = Modifier.layoutId("delete"), onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = "Delete Draft",
@@ -734,9 +725,7 @@ internal fun MessageWidget(
     }
 }
 
-/**
- * [Text] Composable constrained to one line for better animation performance.
- */
+/** [Text] Composable constrained to one line for better animation performance. */
 @Composable
 private fun CheapText(
     text: String,

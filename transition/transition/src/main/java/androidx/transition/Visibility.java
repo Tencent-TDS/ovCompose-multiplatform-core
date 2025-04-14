@@ -29,10 +29,12 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.content.res.TypedArrayUtils;
+import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -99,8 +101,6 @@ public abstract class Visibility extends Transition {
     public Visibility() {
     }
 
-    @SuppressLint("RestrictedApi") // remove once core lib would be released with the new
-    // LIBRARY_GROUP_PREFIX restriction. tracking in b/127286008
     public Visibility(@NonNull Context context, @NonNull AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, Styleable.VISIBILITY_TRANSITION);
@@ -139,9 +139,8 @@ public abstract class Visibility extends Transition {
         return mMode;
     }
 
-    @Nullable
     @Override
-    public String[] getTransitionProperties() {
+    public String @Nullable [] getTransitionProperties() {
         return sTransitionProperties;
     }
 
@@ -242,9 +241,8 @@ public abstract class Visibility extends Transition {
         return visInfo;
     }
 
-    @Nullable
     @Override
-    public Animator createAnimator(@NonNull ViewGroup sceneRoot,
+    public @Nullable Animator createAnimator(@NonNull ViewGroup sceneRoot,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         VisibilityInfo visInfo = getVisibilityChangeInfo(startValues, endValues);
         if (visInfo.mVisibilityChange
@@ -276,10 +274,10 @@ public abstract class Visibility extends Transition {
      * overall transition for this scene change. A null value means no animation
      * should be run.
      */
-    @Nullable
     @SuppressWarnings("UnusedParameters")
-    public Animator onAppear(@NonNull ViewGroup sceneRoot, @Nullable TransitionValues startValues,
-            int startVisibility, @Nullable TransitionValues endValues, int endVisibility) {
+    public @Nullable Animator onAppear(@NonNull ViewGroup sceneRoot,
+            @Nullable TransitionValues startValues, int startVisibility,
+            @Nullable TransitionValues endValues, int endVisibility) {
         if ((mMode & MODE_IN) != MODE_IN || endValues == null) {
             return null;
         }
@@ -314,8 +312,7 @@ public abstract class Visibility extends Transition {
      * overall transition for this scene change. A null value means no animation
      * should be run.
      */
-    @Nullable
-    public Animator onAppear(@NonNull ViewGroup sceneRoot, @NonNull View view,
+    public @Nullable Animator onAppear(@NonNull ViewGroup sceneRoot, @NonNull View view,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         return null;
     }
@@ -335,9 +332,8 @@ public abstract class Visibility extends Transition {
      * overall transition for this scene change. A null value means no animation
      * should be run.
      */
-    @Nullable
     @SuppressWarnings("UnusedParameters")
-    public Animator onDisappear(@NonNull ViewGroup sceneRoot,
+    public @Nullable Animator onDisappear(@NonNull ViewGroup sceneRoot,
             @Nullable TransitionValues startValues, int startVisibility,
             @Nullable TransitionValues endValues, int endVisibility) {
         if ((mMode & MODE_OUT) != MODE_OUT) {
@@ -428,39 +424,21 @@ public abstract class Visibility extends Transition {
                 sceneRoot.getLocationOnScreen(loc);
                 overlayView.offsetLeftAndRight((screenX - loc[0]) - overlayView.getLeft());
                 overlayView.offsetTopAndBottom((screenY - loc[1]) - overlayView.getTop());
-                ViewGroupUtils.getOverlay(sceneRoot).add(overlayView);
+                ViewCompat.addOverlayView(sceneRoot, overlayView);
             }
             Animator animator = onDisappear(sceneRoot, overlayView, startValues, endValues);
             if (!reusingOverlayView) {
                 if (animator == null) {
-                    ViewGroupUtils.getOverlay(sceneRoot).remove(overlayView);
+                    sceneRoot.getOverlay().remove(overlayView);
                 } else {
                     startView.setTag(R.id.save_overlay_view, overlayView);
-                    final View finalOverlayView = overlayView;
-                    final ViewGroup overlayHost = sceneRoot;
-                    addListener(new TransitionListenerAdapter() {
 
-                        @Override
-                        public void onTransitionPause(@NonNull Transition transition) {
-                            ViewGroupUtils.getOverlay(overlayHost).remove(finalOverlayView);
-                        }
+                    OverlayListener listener = new OverlayListener(sceneRoot, overlayView,
+                            startView);
 
-                        @Override
-                        public void onTransitionResume(@NonNull Transition transition) {
-                            if (finalOverlayView.getParent() == null) {
-                                ViewGroupUtils.getOverlay(overlayHost).add(finalOverlayView);
-                            } else {
-                                cancel();
-                            }
-                        }
-
-                        @Override
-                        public void onTransitionEnd(@NonNull Transition transition) {
-                            startView.setTag(R.id.save_overlay_view, null);
-                            ViewGroupUtils.getOverlay(overlayHost).remove(finalOverlayView);
-                            transition.removeListener(this);
-                        }
-                    });
+                    animator.addListener(listener);
+                    animator.addPauseListener(listener);
+                    getRootTransition().addListener(listener);
                 }
             }
             return animator;
@@ -474,8 +452,7 @@ public abstract class Visibility extends Transition {
                 DisappearListener disappearListener = new DisappearListener(viewToKeep,
                         endVisibility, true);
                 animator.addListener(disappearListener);
-                AnimatorUtils.addPauseListener(animator, disappearListener);
-                addListener(disappearListener);
+                getRootTransition().addListener(disappearListener);
             } else {
                 ViewUtils.setTransitionVisibility(viewToKeep, originalVisibility);
             }
@@ -500,8 +477,7 @@ public abstract class Visibility extends Transition {
      * overall transition for this scene change. A null value means no animation
      * should be run.
      */
-    @Nullable
-    public Animator onDisappear(@NonNull ViewGroup sceneRoot, @NonNull View view,
+    public @Nullable Animator onDisappear(@NonNull ViewGroup sceneRoot, @NonNull View view,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         return null;
     }
@@ -525,7 +501,7 @@ public abstract class Visibility extends Transition {
     }
 
     private static class DisappearListener extends AnimatorListenerAdapter
-            implements TransitionListener, AnimatorUtils.AnimatorPauseListenerCompat {
+            implements TransitionListener {
 
         private final View mView;
         private final int mFinalVisibility;
@@ -542,24 +518,6 @@ public abstract class Visibility extends Transition {
             mSuppressLayout = suppressLayout;
             // Prevent a layout from including mView in its calculation.
             suppressLayout(true);
-        }
-
-        // This overrides both AnimatorListenerAdapter and
-        // AnimatorUtilsApi14.AnimatorPauseListenerCompat
-        @Override
-        public void onAnimationPause(Animator animation) {
-            if (!mCanceled) {
-                ViewUtils.setTransitionVisibility(mView, mFinalVisibility);
-            }
-        }
-
-        // This overrides both AnimatorListenerAdapter and
-        // AnimatorUtilsApi14.AnimatorPauseListenerCompat
-        @Override
-        public void onAnimationResume(Animator animation) {
-            if (!mCanceled) {
-                ViewUtils.setTransitionVisibility(mView, View.VISIBLE);
-            }
         }
 
         @Override
@@ -581,13 +539,29 @@ public abstract class Visibility extends Transition {
         }
 
         @Override
+        public void onAnimationStart(@NonNull Animator animation, boolean isReverse) {
+            if (isReverse) {
+                ViewUtils.setTransitionVisibility(mView, View.VISIBLE);
+                if (mParent != null) {
+                    mParent.invalidate();
+                }
+            }
+        }
+
+        @Override
+        public void onAnimationEnd(@NonNull Animator animation, boolean isReverse) {
+            if (!isReverse) {
+                hideViewWhenNotCanceled();
+            }
+        }
+
+        @Override
         public void onTransitionStart(@NonNull Transition transition) {
             // Do nothing
         }
 
         @Override
         public void onTransitionEnd(@NonNull Transition transition) {
-            hideViewWhenNotCanceled();
             transition.removeListener(this);
         }
 
@@ -598,11 +572,17 @@ public abstract class Visibility extends Transition {
         @Override
         public void onTransitionPause(@NonNull Transition transition) {
             suppressLayout(false);
+            if (!mCanceled) {
+                ViewUtils.setTransitionVisibility(mView, mFinalVisibility);
+            }
         }
 
         @Override
         public void onTransitionResume(@NonNull Transition transition) {
             suppressLayout(true);
+            if (!mCanceled) {
+                ViewUtils.setTransitionVisibility(mView, View.VISIBLE);
+            }
         }
 
         private void hideViewWhenNotCanceled() {
@@ -622,6 +602,84 @@ public abstract class Visibility extends Transition {
                 mLayoutSuppressed = suppress;
                 ViewGroupUtils.suppressLayout(mParent, suppress);
             }
+        }
+    }
+
+    private class OverlayListener extends AnimatorListenerAdapter implements TransitionListener {
+        private final ViewGroup mOverlayHost;
+        private final View mOverlayView;
+        private final View mStartView;
+        private boolean mHasOverlay = true;
+
+        OverlayListener(ViewGroup overlayHost, View overlayView, View startView) {
+            mOverlayHost = overlayHost;
+            mOverlayView = overlayView;
+            mStartView = startView;
+        }
+
+        @Override
+        public void onAnimationPause(Animator animation) {
+            mOverlayHost.getOverlay().remove(mOverlayView);
+        }
+
+        @Override
+        public void onAnimationResume(Animator animation) {
+            if (mOverlayView.getParent() == null) {
+                ViewCompat.addOverlayView(mOverlayHost, mOverlayView);
+            } else {
+                cancel();
+            }
+        }
+
+        @Override
+        public void onAnimationStart(@NonNull Animator animation, boolean isReverse) {
+            if (isReverse) {
+                mStartView.setTag(R.id.save_overlay_view, mOverlayView);
+                ViewCompat.addOverlayView(mOverlayHost, mOverlayView);
+                mHasOverlay = true;
+            }
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            removeFromOverlay();
+        }
+
+        @Override
+        public void onAnimationEnd(@NonNull Animator animation, boolean isReverse) {
+            if (!isReverse) {
+                removeFromOverlay();
+            }
+        }
+
+        @Override
+        public void onTransitionEnd(@NonNull Transition transition) {
+            transition.removeListener(this);
+        }
+
+        @Override
+        public void onTransitionStart(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionPause(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionResume(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionCancel(@NonNull Transition transition) {
+            if (mHasOverlay) {
+                removeFromOverlay();
+            }
+        }
+
+        private void removeFromOverlay() {
+            mStartView.setTag(R.id.save_overlay_view, null);
+            mOverlayHost.getOverlay().remove(mOverlayView);
+            mHasOverlay = false;
         }
     }
 }

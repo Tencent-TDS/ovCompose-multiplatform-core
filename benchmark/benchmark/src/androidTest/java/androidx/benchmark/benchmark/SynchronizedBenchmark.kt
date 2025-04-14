@@ -20,36 +20,28 @@ import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.atomic.AtomicInteger
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class SynchronizedBenchmark {
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule()
+    @get:Rule val benchmarkRule = BenchmarkRule()
 
-    @Volatile
-    private var volatileInt = 0
+    @Volatile private var volatileInt = 0
 
     private val atomicInt = AtomicInteger(0)
 
     @Test
     fun atomicIncrementBenchmark() {
-        benchmarkRule.measureRepeated {
-            atomicInt.getAndIncrement()
-        }
+        benchmarkRule.measureRepeated { atomicInt.getAndIncrement() }
     }
 
     @Test
     fun synchronizedIncrementBenchmark() {
-        benchmarkRule.measureRepeated {
-            synchronized(this@SynchronizedBenchmark) {
-                volatileInt++
-            }
-        }
+        benchmarkRule.measureRepeated { synchronized(this@SynchronizedBenchmark) { volatileInt++ } }
     }
 }

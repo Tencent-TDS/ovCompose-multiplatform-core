@@ -38,7 +38,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -50,8 +51,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.isActive
 import java.util.Calendar
+import kotlinx.coroutines.isActive
 
 private class Time(hours: State<Int>, minutes: State<Int>, seconds: State<Int>) {
     val hours by hours
@@ -63,9 +64,9 @@ private class Time(hours: State<Int>, minutes: State<Int>, seconds: State<Int>) 
 @Composable
 fun AnimatedClockDemo() {
     val calendar = remember { Calendar.getInstance() }
-    val seconds = remember { mutableStateOf(calendar[Calendar.SECOND]) }
-    val minutes = remember { mutableStateOf(calendar[Calendar.MINUTE]) }
-    val hours = remember { mutableStateOf(calendar[Calendar.HOUR_OF_DAY]) }
+    val seconds = remember { mutableIntStateOf(calendar[Calendar.SECOND]) }
+    val minutes = remember { mutableIntStateOf(calendar[Calendar.MINUTE]) }
+    val hours = remember { mutableIntStateOf(calendar[Calendar.HOUR_OF_DAY]) }
     LaunchedEffect(key1 = Unit) {
         // Start from 23:59:50 to give an impressive animation for all numbers
         calendar.set(2020, 10, 10, 23, 59, 50)
@@ -74,9 +75,9 @@ fun AnimatedClockDemo() {
         while (isActive) {
             withInfiniteAnimationFrameMillis {
                 calendar.timeInMillis = it - firstFrameTime + initialTime
-                seconds.value = calendar[Calendar.SECOND]
-                minutes.value = calendar[Calendar.MINUTE]
-                hours.value = calendar[Calendar.HOUR_OF_DAY]
+                seconds.intValue = calendar[Calendar.SECOND]
+                minutes.intValue = calendar[Calendar.MINUTE]
+                hours.intValue = calendar[Calendar.HOUR_OF_DAY]
             }
         }
     }
@@ -106,45 +107,49 @@ private const val moveDuration = 700
 
 @Composable
 private fun NumberColumn(maxDigit: Int, digit: Int) {
-    val offsetY: Dp = animateDpAsState(
-        targetValue = ((9 - digit) * digitHeight).dp,
-        animationSpec = tween(moveDuration),
-    ).value
-    var circleOffset by remember { mutableStateOf(0f) }
+    val offsetY: Dp =
+        animateDpAsState(
+                targetValue = ((9 - digit) * digitHeight).dp,
+                animationSpec = tween(moveDuration),
+            )
+            .value
+    var circleOffset by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(digit) {
         if (digit == 0) return@LaunchedEffect // Don't animate for 0 as direction is reversed
-        animate(
-            initialValue = 0f,
-            targetValue = -1f,
-            animationSpec = tween(moveDuration)
-        ) { animationValue, _ -> circleOffset = animationValue }
+        animate(initialValue = 0f, targetValue = -1f, animationSpec = tween(moveDuration)) {
+            animationValue,
+            _ ->
+            circleOffset = animationValue
+        }
         animate(
             initialValue = -1f,
             targetValue = 0f,
             animationSpec = spring(dampingRatio = 0.6f)
-        ) { animationValue, _ -> circleOffset = animationValue }
+        ) { animationValue, _ ->
+            circleOffset = animationValue
+        }
     }
-    var circleStretch by remember { mutableStateOf(1f) }
+    var circleStretch by remember { mutableFloatStateOf(1f) }
     LaunchedEffect(digit) {
         if (digit == 0) return@LaunchedEffect // Don't animate for 0 as direction is reversed
-        animate(
-            initialValue = 1f,
-            targetValue = 2f,
-            animationSpec = tween(moveDuration)
-        ) { animationValue, _ -> circleStretch = animationValue }
-        animate(
-            initialValue = 2f,
-            targetValue = 1f,
-            animationSpec = spring(dampingRatio = 0.6f)
-        ) { animationValue, _ -> circleStretch = animationValue }
+        animate(initialValue = 1f, targetValue = 2f, animationSpec = tween(moveDuration)) {
+            animationValue,
+            _ ->
+            circleStretch = animationValue
+        }
+        animate(initialValue = 2f, targetValue = 1f, animationSpec = spring(dampingRatio = 0.6f)) {
+            animationValue,
+            _ ->
+            circleStretch = animationValue
+        }
     }
     Box(modifier = Modifier.padding(4.dp)) {
         // Draw an elevation shadow for the rounded column
         Surface(
             shape = RoundedCornerShape((digitHeight / 2).dp),
-            modifier = Modifier
-                .offset(y = offsetY)
-                .size(digitHeight.dp, ((maxDigit + 1) * digitHeight).dp),
+            modifier =
+                Modifier.offset(y = offsetY)
+                    .size(digitHeight.dp, ((maxDigit + 1) * digitHeight).dp),
             elevation = 12.dp
         ) {}
         // Draw circle that follows focused digit
@@ -153,10 +158,8 @@ private fun NumberColumn(maxDigit: Int, digit: Int) {
                 color = Color(0xffd2e7d6),
                 size = Size(24.dp.toPx(), (digitHeight * circleStretch).dp.toPx()),
                 topLeft = Offset(0f, ((9f + circleOffset) * digitHeight).dp.toPx()),
-                cornerRadius = CornerRadius(
-                    (digitHeight / 2).dp.toPx(),
-                    (digitHeight / 2).dp.toPx()
-                )
+                cornerRadius =
+                    CornerRadius((digitHeight / 2).dp.toPx(), (digitHeight / 2).dp.toPx())
             )
         }
         // Draw all the digits up to count

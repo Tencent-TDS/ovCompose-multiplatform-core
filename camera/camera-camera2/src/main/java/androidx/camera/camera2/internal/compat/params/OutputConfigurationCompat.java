@@ -22,19 +22,19 @@ import android.os.Build;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.camera2.internal.compat.ApiCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 /**
  * Helper for accessing features in OutputConfiguration in a backwards compatible fashion.
  */
-@RequiresApi(21)
 public final class OutputConfigurationCompat {
 
     /**
@@ -116,6 +116,11 @@ public final class OutputConfigurationCompat {
         }
     }
 
+    @RequiresApi(33)
+    public OutputConfigurationCompat(@NonNull OutputConfiguration outputConfiguration) {
+        mImpl = OutputConfigurationCompatApi33Impl.wrap(outputConfiguration);
+    }
+
     private OutputConfigurationCompat(@NonNull OutputConfigurationCompatImpl impl) {
         mImpl = impl;
     }
@@ -131,8 +136,7 @@ public final class OutputConfigurationCompat {
      * @return an equivalent {@link OutputConfigurationCompat} object, or {@code null} if not
      * supported.
      */
-    @Nullable
-    public static OutputConfigurationCompat wrap(@Nullable Object outputConfiguration) {
+    public static @Nullable OutputConfigurationCompat wrap(@Nullable Object outputConfiguration) {
         if (outputConfiguration == null) {
             return null;
         }
@@ -200,12 +204,29 @@ public final class OutputConfigurationCompat {
     }
 
     /**
+     * Returns mirror mode of {@link OutputConfiguration}.
+     * @return {@link OutputConfiguration#getMirrorMode()}
+     * @see OutputConfiguration#getMirrorMode()
+     */
+    public int getMirrorMode() {
+        return mImpl.getMirrorMode();
+    }
+
+    /**
+     * Sets mirror mode of {@link OutputConfiguration}.
+     * @param mirrorMode mirror mode to set for {@link OutputConfiguration}.
+     * @see OutputConfiguration#setMirrorMode(int)
+     */
+    public void setMirrorMode(int mirrorMode) {
+        mImpl.setMirrorMode(mirrorMode);
+    }
+
+    /**
      * Retrieve the physical camera ID set by {@link #setPhysicalCameraId(String)}.
      *
      */
     @RestrictTo(Scope.LIBRARY)
-    @Nullable
-    public String getPhysicalCameraId() {
+    public @Nullable String getPhysicalCameraId() {
         return mImpl.getPhysicalCameraId();
     }
 
@@ -320,8 +341,7 @@ public final class OutputConfigurationCompat {
      * the
      * first one as specified in the constructor or {@link OutputConfigurationCompat#addSurface}.
      */
-    @Nullable
-    public Surface getSurface() {
+    public @Nullable Surface getSurface() {
         return mImpl.getSurface();
     }
 
@@ -333,8 +353,7 @@ public final class OutputConfigurationCompat {
      * the constructor and {@link OutputConfigurationCompat#addSurface}. The list should not be
      * modified.
      */
-    @NonNull
-    public List<Surface> getSurfaces() {
+    public @NonNull List<Surface> getSurfaces() {
         return mImpl.getSurfaces();
     }
 
@@ -346,6 +365,53 @@ public final class OutputConfigurationCompat {
      */
     public int getSurfaceGroupId() {
         return mImpl.getSurfaceGroupId();
+    }
+
+    /**
+     * Return current dynamic range profile.
+     *
+     * <p>On API level 32 and lower, this value will return what is set by
+     * {@link #setDynamicRangeProfile(long)}, but when the output configuration is used in a
+     * {@link SessionConfigurationCompat} that is used to
+     * {@link androidx.camera.camera2.internal.compat.CameraDeviceCompat#createCaptureSession(
+     * SessionConfigurationCompat) create a capture session}, the value will be ignored and
+     * camera will run the output as {@code STANDARD} dynamic range.
+     */
+    public long getDynamicRangeProfile() {
+        return mImpl.getDynamicRangeProfile();
+    }
+
+    /**
+     * Set a specific device supported dynamic range profile.
+     *
+     * <p>Clients can choose from any profile advertised as supported in
+     * {@link
+     * android.hardware.camera2.CameraCharacteristics#REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES}
+     * queried using
+     * {@link android.hardware.camera2.params.DynamicRangeProfiles#getSupportedProfiles()}. If this
+     * is not explicitly set, then the default profile will be
+     * {@link android.hardware.camera2.params.DynamicRangeProfiles#STANDARD}.
+     *
+     * <p>Do note that invalid combinations between the registered output surface pixel format and
+     * the configured dynamic range profile will cause capture session initialization failure.
+     * Invalid combinations include any 10-bit dynamic range profile advertised in
+     * {@link android.hardware.camera2.params.DynamicRangeProfiles#getSupportedProfiles()}
+     * combined with an output Surface pixel format
+     * different from {@link android.graphics.ImageFormat#PRIVATE} (the default for Surfaces
+     * initialized by {@link android.view.SurfaceView}, {@link android.view.TextureView},
+     * {@link android.media.MediaRecorder}, {@link android.media.MediaCodec} etc.) or
+     * {@link android.graphics.ImageFormat#YCBCR_P010}.
+     *
+     * <p>On API level 32 and lower, the only supported dynamic range is
+     * {@link android.hardware.camera2.params.DynamicRangeProfiles#STANDARD}. On those API
+     * levels, any other values will be ignored when the output configuring is used in a
+     * {@link SessionConfigurationCompat} that is used to
+     * {@link androidx.camera.camera2.internal.compat.CameraDeviceCompat#createCaptureSession(
+     * SessionConfigurationCompat) create a capture session}, and the
+     * dynamic range used by the camera will remain {@code STANDARD} dynamic range.
+     */
+    public void setDynamicRangeProfile(long profile) {
+        mImpl.setDynamicRangeProfile(profile);
     }
 
     /**
@@ -433,16 +499,18 @@ public final class OutputConfigurationCompat {
      * @return an equivalent android.hardware.camera2.params.OutputConfiguration object, or {@code
      * null} if not supported.
      */
-    @Nullable
-    public Object unwrap() {
+    public @Nullable Object unwrap() {
         return mImpl.getOutputConfiguration();
     }
 
     interface OutputConfigurationCompatImpl {
         void enableSurfaceSharing();
 
-        @Nullable
-        String getPhysicalCameraId();
+        int getMirrorMode();
+
+        void setMirrorMode(int mirrorMode);
+
+        @Nullable String getPhysicalCameraId();
 
         void setPhysicalCameraId(@Nullable String physicalCameraId);
 
@@ -452,18 +520,20 @@ public final class OutputConfigurationCompat {
 
         int getMaxSharedSurfaceCount();
 
+        long getDynamicRangeProfile();
+
+        void setDynamicRangeProfile(long profile);
+
         void setStreamUseCase(long streamUseCase);
 
         long getStreamUseCase();
 
-        @Nullable
-        Surface getSurface();
+        @Nullable Surface getSurface();
 
         List<Surface> getSurfaces();
 
         int getSurfaceGroupId();
 
-        @Nullable
-        Object getOutputConfiguration();
+        @Nullable Object getOutputConfiguration();
     }
 }

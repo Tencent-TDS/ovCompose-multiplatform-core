@@ -280,7 +280,8 @@ public class Motion implements TypedValues {
      * x coordinate of "time" 0.0 mPoints[point.length-1] is filled with the y coordinate of "time"
      * 1.0
      *
-     * @param points array to fill (should be 2x the number of mPoints
+     * @param points     array to fill (should be 2x pointCount)
+     * @param pointCount truncate mPoints to this length. Must be > 1 and <= mPoints.length
      */
     public void buildPath(float[] points, int pointCount) {
         float mils = 1.0f / (pointCount - 1);
@@ -1572,7 +1573,6 @@ public class Motion implements TypedValues {
         vmat.setTranslationVelocity(osc_x, osc_y, position);
         vmat.setScaleVelocity(osc_sx, osc_sy, position);
         vmat.applyTransform(locationX, locationY, width, height, mAnchorDpDt);
-        return;
     }
 
     // @TODO: add description
@@ -1647,6 +1647,7 @@ public class Motion implements TypedValues {
      * ...
      * length
      *
+     * @param type if type is -1, skip all keyframes with type != -1
      * @param info is a data structure array of int that holds info on each keyframe
      * @return Number of keyFrames found
      */

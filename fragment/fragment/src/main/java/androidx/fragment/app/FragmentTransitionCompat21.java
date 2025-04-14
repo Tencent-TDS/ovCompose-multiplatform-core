@@ -21,13 +21,14 @@ import android.graphics.Rect;
 import android.transition.Transition;
 import android.transition.TransitionManager;
 import android.transition.TransitionSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.core.os.CancellationSignal;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -144,8 +145,8 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
 
     @Override
     public void scheduleHideFragmentView(@NonNull Object exitTransitionObj,
-            @NonNull final View fragmentView,
-            @NonNull final ArrayList<View> exitingViews) {
+            final @NonNull View fragmentView,
+            final @NonNull ArrayList<View> exitingViews) {
         Transition exitTransition = (Transition) exitTransitionObj;
         exitTransition.addListener(new Transition.TransitionListener() {
             @Override
@@ -221,11 +222,32 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
     }
 
     @Override
-    public void scheduleRemoveTargets(@NonNull final Object overallTransitionObj,
-            @Nullable final Object enterTransition, @Nullable final ArrayList<View> enteringViews,
-            @Nullable final Object exitTransition, @Nullable final ArrayList<View> exitingViews,
-            @Nullable final Object sharedElementTransition,
-            @Nullable final ArrayList<View> sharedElementsIn) {
+    public boolean isSeekingSupported() {
+        if (FragmentManager.isLoggingEnabled(Log.INFO)) {
+            Log.i(FragmentManager.TAG,
+                    "Predictive back not available using Framework Transitions. Please switch"
+                            + " to AndroidX Transition 1.5.0 or higher to enable seeking.");
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isSeekingSupported(@NonNull Object transition) {
+        if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+            Log.v(FragmentManager.TAG,
+                    "Predictive back not available for framework transition "
+                            + transition + ". Please switch to AndroidX Transition 1.5.0 or higher "
+                            + "to enable seeking.");
+        }
+        return false;
+    }
+
+    @Override
+    public void scheduleRemoveTargets(final @NonNull Object overallTransitionObj,
+            final @Nullable Object enterTransition, final @Nullable ArrayList<View> enteringViews,
+            final @Nullable Object exitTransition, final @Nullable ArrayList<View> exitingViews,
+            final @Nullable Object sharedElementTransition,
+            final @Nullable ArrayList<View> sharedElementsIn) {
         final Transition overallTransition = (Transition) overallTransitionObj;
         overallTransition.addListener(new Transition.TransitionListener() {
             @Override
@@ -269,10 +291,11 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
      *
      * Destroying the view of the Fragment is how the Transition gets canceled.
      */
+    @SuppressWarnings("deprecation")
     @Override
-    public void setListenerForTransitionEnd(@NonNull final Fragment outFragment,
-            @NonNull Object transition, @NonNull final CancellationSignal signal,
-            @NonNull final Runnable transitionCompleteRunnable) {
+    public void setListenerForTransitionEnd(final @NonNull Fragment outFragment,
+            @NonNull Object transition, final androidx.core.os.@NonNull CancellationSignal signal,
+            final @NonNull Runnable transitionCompleteRunnable) {
         ((Transition) transition).addListener(new Transition.TransitionListener() {
             @Override
             public void onTransitionStart(Transition transition) { }
@@ -350,7 +373,7 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
     }
 
     @Override
-    public void setEpicenter(@NonNull Object transitionObj, @NonNull final Rect epicenter) {
+    public void setEpicenter(@NonNull Object transitionObj, final @NonNull Rect epicenter) {
         if (transitionObj != null) {
             Transition transition = (Transition) transitionObj;
             transition.setEpicenterCallback(new Transition.EpicenterCallback() {

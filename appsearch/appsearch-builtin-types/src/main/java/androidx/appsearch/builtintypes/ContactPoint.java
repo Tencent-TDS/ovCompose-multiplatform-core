@@ -16,11 +16,14 @@
 
 package androidx.appsearch.builtintypes;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchSchema.StringPropertyConfig;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +49,7 @@ public class ContactPoint extends Thing {
             "telephone")
     private final List<String> mTelephones;
 
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     ContactPoint(
             @NonNull String namespace,
             @NonNull String id,
@@ -57,12 +61,13 @@ public class ContactPoint extends Thing {
             @Nullable String description,
             @Nullable String image,
             @Nullable String url,
+            @NonNull List<PotentialAction> potentialActions,
             @NonNull String label,
             @NonNull List<String> addresses,
             @NonNull List<String> emails,
             @NonNull List<String> telephones) {
         super(namespace, id, documentScore, creationTimestampMillis, documentTtlMillis, name,
-                alternateNames, description, image, url);
+                alternateNames, description, image, url, potentialActions);
         mLabel = label;
         mAddresses = Collections.unmodifiableList(addresses);
         mEmails = Collections.unmodifiableList(emails);
@@ -74,8 +79,7 @@ public class ContactPoint extends Thing {
      *
      * <p>Possible values are "Home", "Work", "Other", or any user defined custom label.
      */
-    @NonNull
-    public String getLabel() {
+    public @NonNull String getLabel() {
         return mLabel;
     }
 
@@ -83,24 +87,22 @@ public class ContactPoint extends Thing {
      * Returns a list of flattened postal addresses associated with this contact point. For
      * example, "123 Main St, Any town, USA".
      */
-    @NonNull
-    public List<String> getAddresses() {
+    public @NonNull List<String> getAddresses() {
         return mAddresses;
     }
 
     /** Returns a list of the email addresses of this {@link ContactPoint}. */
-    @NonNull
-    public List<String> getEmails() {
+    public @NonNull List<String> getEmails() {
         return mEmails;
     }
 
     /** Returns a list of the telephone numbers of this {@link ContactPoint}. */
-    @NonNull
-    public List<String> getTelephones() {
+    public @NonNull List<String> getTelephones() {
         return mTelephones;
     }
 
     /** Builder for {@link ContactPoint}. */
+    @Document.BuilderProducer
     public static final class Builder extends BuilderImpl<Builder> {
         /**
          * Constructor for {@link ContactPoint.Builder}.
@@ -146,30 +148,26 @@ public class ContactPoint extends Thing {
         }
 
         /** Sets the flattened postal addresses. */
-        @NonNull
-        public T setAddresses(@NonNull List<String> addresses) {
+        public @NonNull T setAddresses(@NonNull List<String> addresses) {
             mAddresses = Preconditions.checkNotNull(addresses);
             return (T) this;
         }
 
         /** Sets the email addresses. */
-        @NonNull
-        public T setEmails(@NonNull List<String> emails) {
+        public @NonNull T setEmails(@NonNull List<String> emails) {
             mEmails = Preconditions.checkNotNull(emails);
             return (T) this;
         }
 
         /** Sets the telephone numbers. */
-        @NonNull
-        public T setTelephones(@NonNull List<String> telephones) {
+        public @NonNull T setTelephones(@NonNull List<String> telephones) {
             mTelephones = Preconditions.checkNotNull(telephones);
             return (T) this;
         }
 
         /** Builds the {@link ContactPoint}. */
-        @NonNull
         @Override
-        public ContactPoint build() {
+        public @NonNull ContactPoint build() {
             return new ContactPoint(
                     /*namespace=*/ mNamespace,
                     /*id=*/ mId,
@@ -181,6 +179,7 @@ public class ContactPoint extends Thing {
                     /*description=*/ mDescription,
                     /*image=*/ mImage,
                     /*url=*/ mUrl,
+                    /*potentialActions=*/ mPotentialActions,
                     /*label=*/ mLabel,
                     /*addresses=*/ new ArrayList<>(mAddresses),
                     /*emails=*/ new ArrayList<>(mEmails),

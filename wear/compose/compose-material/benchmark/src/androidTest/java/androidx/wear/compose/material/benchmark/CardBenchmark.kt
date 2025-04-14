@@ -25,6 +25,7 @@ import androidx.compose.testutils.benchmark.benchmarkFirstDraw
 import androidx.compose.testutils.benchmark.benchmarkFirstLayout
 import androidx.compose.testutils.benchmark.benchmarkFirstMeasure
 import androidx.compose.testutils.benchmark.benchmarkLayoutPerf
+import androidx.compose.testutils.benchmark.benchmarkToFirstPixel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.wear.compose.material.MaterialTheme
@@ -34,17 +35,19 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Benchmark for Wear Compose Card.
- */
+/** Benchmark for Wear Compose Card. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class CardChipBenchmark {
 
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     private val cardCaseFactory = { CardTestCase() }
+
+    @Test
+    fun first_pixel() {
+        benchmarkRule.benchmarkToFirstPixel(cardCaseFactory)
+    }
 
     @Test
     fun first_compose() {
@@ -83,12 +86,8 @@ internal class CardTestCase : LayeredComposeTestCase() {
     override fun MeasuredContent() {
         TitleCard(
             onClick = {},
-            time = {
-                Text("now")
-            },
-            title = {
-                Text("TitleCard")
-            },
+            time = { Text("now") },
+            title = { Text("TitleCard") },
         ) {
             Text("body")
         }
@@ -96,8 +95,6 @@ internal class CardTestCase : LayeredComposeTestCase() {
 
     @Composable
     override fun ContentWrappers(content: @Composable () -> Unit) {
-        MaterialTheme {
-            content()
-        }
+        MaterialTheme { content() }
     }
 }

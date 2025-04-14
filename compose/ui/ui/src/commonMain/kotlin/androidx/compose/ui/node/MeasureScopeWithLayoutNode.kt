@@ -36,11 +36,13 @@ internal fun getChildrenOfVirtualChildren(scope: IntrinsicMeasureScope): List<Li
 
 private fun LayoutNode.isInLookaheadPass(): Boolean {
     return when (layoutState) {
-        LayoutState.LookaheadMeasuring, LayoutState.LookaheadLayingOut -> true
-        LayoutState.Measuring, LayoutState.LayingOut -> false
+        LayoutState.LookaheadMeasuring,
+        LayoutState.LookaheadLayingOut -> true
+        LayoutState.Measuring,
+        LayoutState.LayingOut -> false
         LayoutState.Idle -> {
             // idle means intrinsics are being asked, we need to check the parent
-            requireNotNull(parent).isInLookaheadPass()
+            requireNotNull(parent) { "no parent for idle node" }.isInLookaheadPass()
         }
     }
 }

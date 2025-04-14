@@ -19,8 +19,12 @@ package androidx.wear.compose.integration.macrobenchmark.target
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,13 +39,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,8 +58,18 @@ import androidx.navigation.NavHostController
 import androidx.wear.compose.foundation.CurvedLayout
 import androidx.wear.compose.foundation.CurvedModifier
 import androidx.wear.compose.foundation.CurvedTextStyle
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
+import androidx.wear.compose.foundation.SwipeToReveal
 import androidx.wear.compose.foundation.basicCurvedText
+import androidx.wear.compose.foundation.expandableButton
+import androidx.wear.compose.foundation.expandableItem
+import androidx.wear.compose.foundation.expandableItems
+import androidx.wear.compose.foundation.hierarchicalFocus
+import androidx.wear.compose.foundation.hierarchicalFocusRequester
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.padding
+import androidx.wear.compose.foundation.rememberExpandableState
+import androidx.wear.compose.foundation.rememberRevealState
 import androidx.wear.compose.material.AppCard
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.Card
@@ -73,11 +89,13 @@ import androidx.wear.compose.material.OutlinedButton
 import androidx.wear.compose.material.OutlinedChip
 import androidx.wear.compose.material.OutlinedCompactButton
 import androidx.wear.compose.material.OutlinedCompactChip
-import androidx.wear.compose.material.Picker
+import androidx.wear.compose.material.PickerGroup
+import androidx.wear.compose.material.PickerGroupItem
 import androidx.wear.compose.material.PlaceholderDefaults
 import androidx.wear.compose.material.PositionIndicator
 import androidx.wear.compose.material.RadioButton
 import androidx.wear.compose.material.Scaffold
+import androidx.wear.compose.material.SelectableChip
 import androidx.wear.compose.material.SplitToggleChip
 import androidx.wear.compose.material.Stepper
 import androidx.wear.compose.material.StepperDefaults
@@ -95,32 +113,40 @@ import androidx.wear.compose.material.dialog.Alert
 import androidx.wear.compose.material.dialog.Confirmation
 import androidx.wear.compose.material.placeholder
 import androidx.wear.compose.material.placeholderShimmer
+import androidx.wear.compose.material.rememberPickerGroupState
 import androidx.wear.compose.material.rememberPickerState
 import androidx.wear.compose.material.rememberPlaceholderState
 import androidx.wear.compose.material.scrollAway
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 private val ALERT_DIALOG = "alert-dialog"
-private val CONFIRMATION_DIALOG = "confirmation-dialog"
 private val BUTTONS = "buttons"
 private val CARDS = "cards"
-private val CHIPS = "chips"
-private val RADIO_BUTTON = "radio-button"
 private val CHECKBOX = "checkbox"
-private val SWITCH = "switch"
+private val CHIPS = "chips"
+private val CONFIRMATION_DIALOG = "confirmation-dialog"
 private val DIALOGS = "dialogs"
+private val EXPANDABLES = "expandables"
+private val EXPAND_ITEMS = "ExpandItems"
+private val EXPAND_TEXT = "ExpandText"
+private val HIERARCHICAL_FOCUS_COORDINATOR = "HierarchicalFocusCoordinator"
 private val PICKER = "picker"
+private val PLACEHOLDERS = "placeholders"
+private val PROGRESS_INDICATOR = "progress-indicator"
+private val PROGRESS_INDICATOR_INDETERMINATE = "progress-indicator-indeterminate"
 private val PROGRESSINDICATORS = "progressindicators"
+private val RADIO_BUTTON = "radio-button"
+private val SELECTABLE_CHIP = "selectable-chip"
 private val SLIDER = "slider"
 private val START_INDEX = "start-index"
 private val STEPPER = "stepper"
 private val SWIPE_DISMISS = "swipe-dismiss"
-private val PROGRESS_INDICATOR = "progress-indicator"
-private val PROGRESS_INDICATOR_INDETERMINATE = "progress-indicator-indeterminate"
-private val PLACEHOLDERS = "placeholders"
+private val SWIPE_TO_REVEAL = "swipe-to-reveal"
+private val SWITCH = "switch"
 
 class BaselineActivity : ComponentActivity() {
 
@@ -134,9 +160,7 @@ class BaselineActivity : ComponentActivity() {
             MaterialTheme {
                 Scaffold(
                     timeText = {
-                        TimeText(
-                            modifier = Modifier.scrollAway(scrollState = scrollState)
-                        )
+                        TimeText(modifier = Modifier.scrollAway(scrollState = scrollState))
                     },
                     positionIndicator = { PositionIndicator(scrollState = scrollState) },
                     vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) },
@@ -144,14 +168,13 @@ class BaselineActivity : ComponentActivity() {
                     SwipeDismissableNavHost(
                         navController = navController,
                         startDestination = START_INDEX,
-                        modifier = Modifier
-                            .background(MaterialTheme.colors.background)
-                            .semantics { contentDescription = SWIPE_DISMISS }
+                        modifier =
+                            Modifier.background(MaterialTheme.colors.background).semantics {
+                                contentDescription = SWIPE_DISMISS
+                            }
                     ) {
                         composable(START_INDEX) { StartIndex(navController, scrollState) }
-                        composable(DIALOGS) {
-                            Dialogs(navController)
-                        }
+                        composable(DIALOGS) { Dialogs(navController) }
                         composable(ALERT_DIALOG) {
                             Alert(
                                 title = { Text("Alert") },
@@ -168,7 +191,9 @@ class BaselineActivity : ComponentActivity() {
                         composable(BUTTONS) { Buttons() }
                         composable(CARDS) { Cards() }
                         composable(CHIPS) { Chips() }
-                        composable(PICKER) { Picker(scrollState) }
+                        composable(EXPANDABLES) { Expandables() }
+                        composable(HIERARCHICAL_FOCUS_COORDINATOR) { FocusCoordinator() }
+                        composable(PICKER) { Picker() }
                         composable(PLACEHOLDERS) { Placeholders() }
                         composable(PROGRESSINDICATORS) { ProgressIndicators(navController) }
                         composable(PROGRESS_INDICATOR) {
@@ -190,6 +215,7 @@ class BaselineActivity : ComponentActivity() {
                         }
                         composable(SLIDER) { Slider() }
                         composable(STEPPER) { Stepper() }
+                        composable(SWIPE_TO_REVEAL) { SwipeToReveal() }
                     }
                 }
             }
@@ -202,31 +228,38 @@ fun StartIndex(navController: NavHostController, scrollState: ScrollState) {
     Box {
         CurvedTexts()
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(state = scrollState)
-                .padding(vertical = 32.dp)
-                .semantics { contentDescription = CONTENT_DESCRIPTION },
+            modifier =
+                Modifier.fillMaxSize()
+                    .verticalScroll(state = scrollState)
+                    .padding(vertical = 32.dp)
+                    .semantics { contentDescription = CONTENT_DESCRIPTION },
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Widget(navController, BUTTONS, "Btn", BUTTONS)
-                Widget(navController, CARDS, "Card", CARDS)
-                Widget(navController, PLACEHOLDERS, "Plc", PLACEHOLDERS)
+                Widget(navController, BUTTONS, "B", BUTTONS)
+                Widget(navController, CARDS, "CA", CARDS)
+                Widget(navController, CHIPS, "CH", CHIPS)
+                Widget(navController, DIALOGS, "D", DIALOGS)
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Widget(navController, CHIPS, "Chip", CHIPS)
-                Widget(navController, DIALOGS, "Dlg", DIALOGS)
-                Widget(navController, PICKER, "Pick", PICKER)
+                Widget(navController, EXPANDABLES, "E", EXPANDABLES)
+                Widget(
+                    navController,
+                    HIERARCHICAL_FOCUS_COORDINATOR,
+                    "HF",
+                    HIERARCHICAL_FOCUS_COORDINATOR
+                )
+                Widget(navController, PICKER, "PI", PICKER)
+                Widget(navController, PLACEHOLDERS, "PL", PLACEHOLDERS)
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Widget(navController, PROGRESSINDICATORS,
-                    "Prog", PROGRESSINDICATORS)
-                Widget(navController, SLIDER, "Sldr", SLIDER)
-                Widget(navController, STEPPER, "Stpr", STEPPER)
+                Widget(navController, PROGRESSINDICATORS, "PR", PROGRESSINDICATORS)
+                Widget(navController, SLIDER, "SL", SLIDER)
+                Widget(navController, STEPPER, "ST", STEPPER)
+                Widget(navController, SWIPE_TO_REVEAL, "SW", SWIPE_TO_REVEAL)
             }
         }
     }
@@ -243,18 +276,14 @@ fun Dialogs(navController: NavHostController) {
             onClick = { navController.navigate(ALERT_DIALOG) },
             colors = ChipDefaults.primaryChipColors(),
             label = { Text(ALERT_DIALOG) },
-            modifier = Modifier.semantics {
-                contentDescription = ALERT_DIALOG
-            },
+            modifier = Modifier.semantics { contentDescription = ALERT_DIALOG },
         )
         Spacer(Modifier.height(4.dp))
         CompactChip(
             onClick = { navController.navigate(CONFIRMATION_DIALOG) },
             colors = ChipDefaults.primaryChipColors(),
             label = { Text(CONFIRMATION_DIALOG) },
-            modifier = Modifier.semantics {
-                contentDescription = CONFIRMATION_DIALOG
-            },
+            modifier = Modifier.semantics { contentDescription = CONFIRMATION_DIALOG },
         )
     }
 }
@@ -276,9 +305,7 @@ fun Buttons() {
             OutlinedCompactButton(onClick = {}) { Text("OCB") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            ToggleButton(
-                checked = true,
-                onCheckedChange = {}) { Text("TB") }
+            ToggleButton(checked = true, onCheckedChange = {}) { Text("TB") }
         }
     }
 }
@@ -291,14 +318,10 @@ fun Cards() {
     ) {
         ListHeader { Text("Cards") }
         Card(onClick = {}) { Text("Card") }
-        AppCard(onClick = {},
-            appName = { Text("AppName") }, title = {},
-            time = { Text("02:34") }) {
+        AppCard(onClick = {}, appName = { Text("AppName") }, title = {}, time = { Text("02:34") }) {
             Text("AppCard")
         }
-        TitleCard(onClick = {}, title = { Text("Title") }) {
-            Text("TitleCard")
-        }
+        TitleCard(onClick = {}, title = { Text("Title") }) { Text("TitleCard") }
     }
 }
 
@@ -315,11 +338,7 @@ fun Chips() {
                 colors = ChipDefaults.primaryChipColors(),
                 label = { Text("C") }
             )
-            OutlinedChip(
-                modifier = Modifier.height(32.dp),
-                onClick = {},
-                label = { Text("OC") }
-            )
+            OutlinedChip(modifier = Modifier.height(32.dp), onClick = {}, label = { Text("OC") })
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             CompactChip(onClick = {}, label = { Text("CC") })
@@ -333,8 +352,7 @@ fun Chips() {
                 label = { Text("R") },
                 toggleControl = {
                     Icon(
-                        imageVector =
-                        ToggleChipDefaults.radioIcon(checked = radioState),
+                        imageVector = ToggleChipDefaults.radioIcon(checked = radioState),
                         contentDescription = null
                     )
                 }
@@ -346,8 +364,7 @@ fun Chips() {
                 label = { Text("S") },
                 toggleControl = {
                     Icon(
-                        imageVector =
-                        ToggleChipDefaults.switchIcon(checked = switchState),
+                        imageVector = ToggleChipDefaults.switchIcon(checked = switchState),
                         contentDescription = null
                     )
                 }
@@ -359,8 +376,7 @@ fun Chips() {
                 label = { Text("C") },
                 toggleControl = {
                     Icon(
-                        imageVector =
-                        ToggleChipDefaults.checkboxIcon(checked = checkboxState),
+                        imageVector = ToggleChipDefaults.checkboxIcon(checked = checkboxState),
                         contentDescription = null
                     )
                 }
@@ -400,38 +416,115 @@ fun Chips() {
                 onClick = {},
                 toggleControl = {
                     Icon(
-                        imageVector =
-                        ToggleChipDefaults.radioIcon(checked = true),
+                        imageVector = ToggleChipDefaults.radioIcon(checked = true),
                         contentDescription = null
                     )
                 }
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            var selectedState by remember { mutableStateOf(false) }
+            SelectableChip(
+                selected = selectedState,
+                onClick = { selectedState = !selectedState },
+                label = { Text("S") },
+                modifier = Modifier.semantics { contentDescription = SELECTABLE_CHIP }
             )
         }
     }
 }
 
 @Composable
-fun Picker(scrollState: ScrollState) {
+fun Expandables() {
+    val expandableItemsState = rememberExpandableState()
+    val expandableTextState = rememberExpandableState()
+
+    ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
+        item { CompactChip(label = { Text("Expandables") }, onClick = {}) }
+        expandableItems(expandableItemsState, 2) { it ->
+            CompactChip(label = { Text("$it") }, onClick = {})
+        }
+        expandableButton(expandableItemsState) {
+            CompactChip(
+                label = { Text("Show more") },
+                onClick = { expandableItemsState.expanded = true },
+                modifier = Modifier.semantics { contentDescription = EXPAND_ITEMS }
+            )
+        }
+        expandableItem(expandableTextState) { expanded ->
+            Text(
+                "Some long text goes here " +
+                    "that will span across multiple lines and " +
+                    "we don't want to always show all of it " +
+                    "so we have an expand button",
+                maxLines = if (expanded) 10 else 1
+            )
+        }
+        expandableButton(expandableTextState) {
+            CompactChip(
+                label = { Text("Show more") },
+                onClick = { expandableTextState.expanded = true },
+                modifier = Modifier.semantics { contentDescription = EXPAND_TEXT }
+            )
+        }
+    }
+}
+
+@Composable
+fun FocusCoordinator() {
+    var selected by remember { mutableIntStateOf(0) }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Row(Modifier.fillMaxWidth()) {
+            repeat(5) { ix ->
+                var focused by remember { mutableStateOf(false) }
+                Text(
+                    text = "$ix",
+                    modifier =
+                        Modifier.weight(1f)
+                            .clickable { selected = ix }
+                            .onFocusChanged { focused = it.isFocused }
+                            .hierarchicalFocus(selected == ix)
+                            .hierarchicalFocusRequester()
+                            .focusable()
+                            .then(
+                                if (focused) {
+                                    Modifier.border(BorderStroke(2.dp, Color.Red))
+                                } else {
+                                    Modifier
+                                }
+                            )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Picker() {
+    val pickerGroupState = rememberPickerGroupState()
+    val pickerStateHour = rememberPickerState(initialNumberOfOptions = 24)
+    val pickerStateMinute = rememberPickerState(initialNumberOfOptions = 60)
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(state = scrollState)
-            .padding(vertical = 16.dp)
-            .semantics { contentDescription = CONTENT_DESCRIPTION },
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ListHeader { Text("Pickers") }
-        val items = listOf("One", "Two", "Three", "Four", "Five")
-        val state = rememberPickerState(items.size)
-        val contentDescription by remember {
-            derivedStateOf { "${state.selectedOption + 1 }" }
-        }
-        Picker(
-            state = state,
-            contentDescription = contentDescription,
-            option = { Text(items[it]) },
-            modifier = Modifier.size(100.dp, 100.dp),
+        Spacer(modifier = Modifier.size(30.dp))
+        Text(text = if (pickerGroupState.selectedIndex == 0) "Hours" else "Minutes")
+        Spacer(modifier = Modifier.size(10.dp))
+        PickerGroup(
+            PickerGroupItem(
+                pickerState = pickerStateHour,
+                option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
+                modifier = Modifier.size(80.dp, 100.dp)
+            ),
+            PickerGroupItem(
+                pickerState = pickerStateMinute,
+                option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
+                modifier = Modifier.size(80.dp, 100.dp)
+            ),
+            pickerGroupState = pickerGroupState,
+            autoCenter = false
         )
     }
 }
@@ -441,9 +534,7 @@ fun Picker(scrollState: ScrollState) {
 fun Placeholders() {
     var labelText by remember { mutableStateOf("") }
     var iconContent: @Composable () -> Unit = { Checkbox(true) }
-    val chipPlaceholderState = rememberPlaceholderState {
-        labelText.isNotEmpty()
-    }
+    val chipPlaceholderState = rememberPlaceholderState { labelText.isNotEmpty() }
 
     Chip(
         onClick = { /* Do something */ },
@@ -453,27 +544,22 @@ fun Placeholders() {
                 text = labelText,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .placeholder(chipPlaceholderState)
+                modifier = Modifier.fillMaxWidth().placeholder(chipPlaceholderState)
             )
         },
         icon = {
             Box(
-                modifier = Modifier
-                    .size(ChipDefaults.IconSize)
-                    .placeholder(chipPlaceholderState),
+                modifier = Modifier.size(ChipDefaults.IconSize).placeholder(chipPlaceholderState),
             ) {
                 iconContent()
             }
         },
-        colors = PlaceholderDefaults.placeholderChipColors(
-            originalChipColors = ChipDefaults.primaryChipColors(),
-            placeholderState = chipPlaceholderState
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .placeholderShimmer(chipPlaceholderState)
+        colors =
+            PlaceholderDefaults.placeholderChipColors(
+                originalChipColors = ChipDefaults.primaryChipColors(),
+                placeholderState = chipPlaceholderState
+            ),
+        modifier = Modifier.fillMaxWidth().placeholderShimmer(chipPlaceholderState)
     )
     LaunchedEffect(Unit) {
         delay(50)
@@ -482,9 +568,7 @@ fun Placeholders() {
         labelText = "A label"
     }
     if (!chipPlaceholderState.isShowContent) {
-        LaunchedEffect(chipPlaceholderState) {
-            chipPlaceholderState.startPlaceholderAnimation()
-        }
+        LaunchedEffect(chipPlaceholderState) { chipPlaceholderState.startPlaceholderAnimation() }
     }
 }
 
@@ -500,22 +584,14 @@ fun ProgressIndicators(navController: NavHostController) {
             onClick = { navController.navigate(PROGRESS_INDICATOR) },
             colors = ChipDefaults.primaryChipColors(),
             label = { Text(PROGRESS_INDICATOR) },
-            modifier = Modifier.semantics {
-                contentDescription = PROGRESS_INDICATOR
-            },
+            modifier = Modifier.semantics { contentDescription = PROGRESS_INDICATOR },
         )
         Spacer(Modifier.height(4.dp))
         CompactChip(
-            onClick = {
-                navController.navigate(
-                    PROGRESS_INDICATOR_INDETERMINATE
-                )
-            },
+            onClick = { navController.navigate(PROGRESS_INDICATOR_INDETERMINATE) },
             colors = ChipDefaults.primaryChipColors(),
             label = { Text(PROGRESS_INDICATOR_INDETERMINATE) },
-            modifier = Modifier.semantics {
-                contentDescription = PROGRESS_INDICATOR_INDETERMINATE
-            },
+            modifier = Modifier.semantics { contentDescription = PROGRESS_INDICATOR_INDETERMINATE },
         )
     }
 }
@@ -527,22 +603,12 @@ fun Slider() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ListHeader { Text("Sliders") }
-        var value by remember { mutableStateOf(4.5f) }
+        var value by remember { mutableFloatStateOf(4.5f) }
         InlineSlider(
             value = value,
             onValueChange = { value = it },
-            increaseIcon = {
-                Icon(
-                    InlineSliderDefaults.Increase,
-                    "Increase"
-                )
-            },
-            decreaseIcon = {
-                Icon(
-                    InlineSliderDefaults.Decrease,
-                    "Decrease"
-                )
-            },
+            increaseIcon = { Icon(InlineSliderDefaults.Increase, "Increase") },
+            decreaseIcon = { Icon(InlineSliderDefaults.Decrease, "Decrease") },
             valueRange = 3f..6f,
             steps = 5,
             segmented = false
@@ -552,7 +618,7 @@ fun Slider() {
 
 @Composable
 fun Stepper() {
-    var value by remember { mutableStateOf(2f) }
+    var value by remember { mutableFloatStateOf(2f) }
     Stepper(
         value = value,
         onValueChange = { value = it },
@@ -560,7 +626,43 @@ fun Stepper() {
         decreaseIcon = { Icon(StepperDefaults.Decrease, "Decrease") },
         valueRange = 1f..4f,
         steps = 7
-    ) { Text("Value: $value") }
+    ) {
+        Text("Value: $value")
+    }
+}
+
+@OptIn(ExperimentalWearFoundationApi::class)
+@Composable
+fun SwipeToReveal() {
+    val state = rememberRevealState()
+    SwipeToReveal(
+        state = state,
+        primaryAction = {
+            Box(
+                modifier = Modifier.fillMaxSize().clickable { /* Add the primary action */ },
+            ) {
+                if (abs(state.offset) > state.revealThreshold) {
+                    Spacer(Modifier.size(5.dp))
+                    Text("Clear")
+                }
+            }
+        },
+        undoAction = {
+            Chip(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { /* Add undo action here */ },
+                colors = ChipDefaults.secondaryChipColors(),
+                label = { Text(text = "Undo") }
+            )
+        }
+    ) {
+        Chip(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /* the click action associated with chip */ },
+            colors = ChipDefaults.secondaryChipColors(),
+            label = { Text(text = "Swipe Me") }
+        )
+    }
 }
 
 @Composable
@@ -569,22 +671,16 @@ fun CurvedTexts() {
     CurvedLayout(anchor = 235f) {
         basicCurvedText(
             "Basic",
-            CurvedTextStyle(
-                fontSize = 16.sp,
-                color = Color.White,
-                background = background
-            ),
+            CurvedTextStyle(fontSize = 16.sp, color = Color.White, background = background),
             modifier = CurvedModifier.padding(2.dp)
         )
     }
-    CurvedLayout(anchor = 310f) {
-        curvedText(text = "Curved")
-    }
+    CurvedLayout(anchor = 310f) { curvedText(text = "Curved") }
 }
 
 @Composable
 fun Widget(navController: NavHostController, destination: String, text: String, desc: String) {
-    Button(
+    CompactButton(
         onClick = { navController.navigate(destination) },
         modifier = Modifier.semantics { contentDescription = desc }
     ) {

@@ -35,8 +35,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.leanback.test.R;
 import androidx.leanback.testutils.LeakDetector;
@@ -55,6 +53,8 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -206,10 +206,9 @@ public class BrowseSupportFragmentTest {
         BrowseSupportFragment.MainFragmentAdapter<MyFragment> mMainFragmentAdapter =
                 new BrowseSupportFragment.MainFragmentAdapter<>(this);
 
-        @Nullable
         @Override
-        public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                @Nullable Bundle savedInstanceState) {
+        public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
+                @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             return new FrameLayout(container.getContext());
         }
 
@@ -390,16 +389,23 @@ public class BrowseSupportFragmentTest {
             leakDetector.observeObject(gridView.getChildAt(i));
         }
         gridView = null;
-        EmptyFragment emptyFragment = new EmptyFragment();
-        mActivity.getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_frame, emptyFragment)
-                .addToBackStack("BK")
-                .commit();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        mActivity.getSupportFragmentManager().beginTransaction()
+                               .replace(R.id.main_frame, new EmptyFragment())
+                               .addToBackStack("BK")
+                               .commit();
+                    }
+                }
+        );
 
         PollingCheck.waitFor(1000, new PollingCheck.PollingCheckCondition() {
             @Override
             public boolean canProceed() {
-                return emptyFragment.isResumed();
+                return mActivity.getSupportFragmentManager()
+                        .findFragmentById(R.id.main_frame).isResumed();
             }
         });
         leakDetector.assertNoLeak();

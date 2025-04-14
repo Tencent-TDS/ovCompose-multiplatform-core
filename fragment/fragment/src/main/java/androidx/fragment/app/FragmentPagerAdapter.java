@@ -22,10 +22,11 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager.widget.PagerAdapter;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -52,18 +53,18 @@ import java.lang.annotation.RetentionPolicy;
  * <p>Here is an example implementation of a pager containing fragments of
  * lists:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/java/com/example/android/supportv4/app/FragmentPagerSupport.java
+ * {@sample samples/Support4Demos/src/main/java/com/example/android/supportv4/app/FragmentPagerSupport.java
  *      complete}
  *
  * <p>The <code>R.layout.fragment_pager</code> resource of the top-level fragment is:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/res/layout/fragment_pager.xml
+ * {@sample samples/Support4Demos/src/main/res/layout/fragment_pager.xml
  *      complete}
  *
  * <p>The <code>R.layout.fragment_pager_list</code> resource containing each
  * individual fragment's layout is:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/res/layout/fragment_pager_list.xml
+ * {@sample samples/Support4Demos/src/main/res/layout/fragment_pager_list.xml
  *      complete}
  *
  * @deprecated Switch to {@link androidx.viewpager2.widget.ViewPager2} and use
@@ -143,8 +144,7 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
     /**
      * Return the Fragment associated with a specified position.
      */
-    @NonNull
-    public abstract Fragment getItem(int position);
+    public abstract @NonNull Fragment getItem(int position);
 
     @Override
     public void startUpdate(@NonNull ViewGroup container) {
@@ -155,9 +155,8 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
     }
 
     @SuppressWarnings({"ReferenceEquality", "deprecation"})
-    @NonNull
     @Override
-    public Object instantiateItem(@NonNull ViewGroup container, int position) {
+    public @NonNull Object instantiateItem(@NonNull ViewGroup container, int position) {
         if (mCurTransaction == null) {
             mCurTransaction = mFragmentManager.beginTransaction();
         }
@@ -261,8 +260,7 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
     }
 
     @Override
-    @Nullable
-    public Parcelable saveState() {
+    public @Nullable Parcelable saveState() {
         return null;
     }
 

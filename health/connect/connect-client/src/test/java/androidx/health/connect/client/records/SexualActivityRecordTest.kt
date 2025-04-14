@@ -16,8 +16,11 @@
 
 package androidx.health.connect.client.records
 
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
+import java.time.Instant
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -26,12 +29,27 @@ class SexualActivityRecordTest {
 
     @Test
     fun protectionEnums_existInMapping() {
-        val allEnums =
-            SexualActivityRecord.Companion::class.allIntDefEnumsWithPrefix("PROTECTION_USED")
+        val allEnums = getAllIntDefEnums<SexualActivityRecord>("""PROTECTION_USED.*(?<!UNKNOWN)$""")
 
         Truth.assertThat(SexualActivityRecord.PROTECTION_USED_STRING_TO_INT_MAP.values)
             .containsExactlyElementsIn(allEnums)
         Truth.assertThat(SexualActivityRecord.PROTECTION_USED_INT_TO_STRING_MAP.keys)
             .containsExactlyElementsIn(allEnums)
+    }
+
+    @Test
+    fun toString_containsMembers() {
+        assertThat(
+                SexualActivityRecord(
+                        time = Instant.ofEpochMilli(1234L),
+                        zoneOffset = null,
+                        protectionUsed = SexualActivityRecord.PROTECTION_USED_PROTECTED,
+                        metadata = Metadata.manualEntry(),
+                    )
+                    .toString()
+            )
+            .isEqualTo(
+                "SexualActivityRecord(time=1970-01-01T00:00:01.234Z, zoneOffset=null, protectionUsed=1, metadata=Metadata(id='', dataOrigin=DataOrigin(packageName=''), lastModifiedTime=1970-01-01T00:00:00Z, clientRecordId=null, clientRecordVersion=0, device=null, recordingMethod=3))"
+            )
     }
 }

@@ -18,7 +18,6 @@ package androidx.window.embedding
 
 import android.content.res.Configuration
 import androidx.annotation.RestrictTo
-import androidx.window.core.ExperimentalWindowApi
 import androidx.window.layout.WindowLayoutInfo
 import androidx.window.layout.WindowMetrics
 
@@ -27,8 +26,9 @@ import androidx.window.layout.WindowMetrics
  * [SplitController.setSplitAttributesCalculator] and references the corresponding [SplitRule] by
  * [splitRuleTag] if [SplitPairRule.tag] is specified.
  */
-@ExperimentalWindowApi
-class SplitAttributesCalculatorParams @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
+class SplitAttributesCalculatorParams
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+constructor(
     /** The parent container's [WindowMetrics] */
     val parentWindowMetrics: WindowMetrics,
     /** The parent container's [Configuration] */
@@ -43,19 +43,18 @@ class SplitAttributesCalculatorParams @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP
      */
     val defaultSplitAttributes: SplitAttributes,
     /**
-     * Whether the [parentWindowMetrics] satisfies the dimensions and aspect
-     * ratios requirements specified in the [SplitRule], which are:
-     *  - [SplitRule.minWidthDp]
-     *  - [SplitRule.minHeightDp]
-     *  - [SplitRule.minSmallestWidthDp]
-     *  - [SplitRule.maxAspectRatioInPortrait]
-     *  - [SplitRule.maxAspectRatioInLandscape]
+     * Whether the [parentWindowMetrics] satisfies the dimensions and aspect ratios requirements
+     * specified in the [SplitRule], which are:
+     * - [SplitRule.minWidthDp]
+     * - [SplitRule.minHeightDp]
+     * - [SplitRule.minSmallestWidthDp]
+     * - [SplitRule.maxAspectRatioInPortrait]
+     * - [SplitRule.maxAspectRatioInLandscape]
      */
-    @get: JvmName("areDefaultConstraintsSatisfied")
-    val areDefaultConstraintsSatisfied: Boolean,
+    @get:JvmName("areDefaultConstraintsSatisfied") val areDefaultConstraintsSatisfied: Boolean,
     /**
-     * The [tag of `SplitRule`][SplitRule.tag] to apply this [SplitAttributes], which is `null`
-     * if the tag is not set.
+     * The [tag of `SplitRule`][SplitRule.tag] to apply this [SplitAttributes], which is `null` if
+     * the tag is not set.
      *
      * @see SplitPairRule.Builder.setTag
      * @see SplitPlaceholderRule.Builder.setTag

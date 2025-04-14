@@ -21,21 +21,21 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.core.os.CancellationSignal;
 import androidx.core.view.OneShotPreDrawListener;
 import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 
 /**
  */
@@ -78,7 +78,7 @@ public abstract class FragmentTransitionImpl {
      * containing the bounds relative to the screen that the view is in.
      */
     protected void getBoundsOnScreen(View view, Rect epicenter) {
-        if (!ViewCompat.isAttachedToWindow(view)) {
+        if (!view.isAttachedToWindow()) {
             return;
         }
 
@@ -148,6 +148,51 @@ public abstract class FragmentTransitionImpl {
      */
     public abstract void beginDelayedTransition(@NonNull ViewGroup sceneRoot,
             @Nullable Object transition);
+
+    /**
+     * Returns {@code true} if the Transition is seekable.
+     */
+    public boolean isSeekingSupported() {
+        if (FragmentManager.isLoggingEnabled(Log.INFO)) {
+            Log.i(FragmentManager.TAG,
+                    "Older versions of AndroidX Transition do not support seeking. Add dependency "
+                            + "on AndroidX Transition 1.5.0 or higher to enable seeking.");
+        }
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if the Transition is seekable.
+     */
+    public boolean isSeekingSupported(@NonNull Object transition) {
+        return false;
+    }
+
+    /**
+     * Allows for controlling a seekable transition
+     */
+    public @Nullable Object controlDelayedTransition(@NonNull ViewGroup sceneRoot,
+            @NonNull Object transition) {
+        return null;
+    }
+
+    /**
+     * Uses given progress to set the current play time of the transition.
+     */
+    public void setCurrentPlayTime(@NonNull Object transitionController, float progress) { }
+
+    /**
+     * Animate the transition to end.
+     */
+    public void animateToEnd(@NonNull Object transitionController) { }
+
+    /**
+     * Animate the transition to start.
+     */
+    public void animateToStart(
+            @NonNull Object transitionController,
+            @NonNull Runnable completeRunnable) {
+    }
 
     /**
      * Prepares for setting the shared element names by gathering the names of the incoming
@@ -227,8 +272,36 @@ public abstract class FragmentTransitionImpl {
      * @param transitionCompleteRunnable used to notify the FragmentManager when a transition is
      *                                   complete
      */
-    public void setListenerForTransitionEnd(@NonNull final Fragment outFragment,
-            @NonNull Object transition, @NonNull CancellationSignal signal,
+    @SuppressWarnings("deprecation") // TODO(b/309499026): Migrate to platform-provided class.
+    public void setListenerForTransitionEnd(final @NonNull Fragment outFragment,
+            @NonNull Object transition, androidx.core.os.@NonNull CancellationSignal signal,
+            @NonNull Runnable transitionCompleteRunnable) {
+        setListenerForTransitionEnd(
+                outFragment, transition, signal, null, transitionCompleteRunnable
+        );
+    }
+
+    /**
+     * Set a listener for Transition end events. The default behavior immediately completes the
+     * transition.
+     *
+     * Use this when the given transition is seeking. The cancelRunnable should handle
+     * cleaning up the transition when seeking is cancelled.
+     *
+     * If the transition is not seeking, you should use
+     * {@link #setListenerForTransitionEnd(Fragment, Object, androidx.core.os.CancellationSignal, Runnable)}.
+     *
+     * @param outFragment The first fragment that is exiting
+     * @param transition all transitions to be executed on a single container
+     * @param signal used indicate the desired behavior on transition cancellation
+     * @param cancelRunnable runnable to handle the logic when the signal is cancelled
+     * @param transitionCompleteRunnable used to notify the FragmentManager when a transition is
+     *                                   complete
+     */
+    @SuppressWarnings("deprecation")
+    public void setListenerForTransitionEnd(final @NonNull Fragment outFragment,
+            @NonNull Object transition, androidx.core.os.@NonNull CancellationSignal signal,
+            @Nullable Runnable cancelRunnable,
             @NonNull Runnable transitionCompleteRunnable) {
         transitionCompleteRunnable.run();
     }

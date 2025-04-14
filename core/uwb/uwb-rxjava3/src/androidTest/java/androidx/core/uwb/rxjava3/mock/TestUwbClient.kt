@@ -20,11 +20,13 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.common.api.internal.ApiKey
 import com.google.android.gms.nearby.uwb.RangingCapabilities
+import com.google.android.gms.nearby.uwb.RangingControleeParameters
 import com.google.android.gms.nearby.uwb.RangingMeasurement
 import com.google.android.gms.nearby.uwb.RangingParameters
 import com.google.android.gms.nearby.uwb.RangingPosition
 import com.google.android.gms.nearby.uwb.RangingSessionCallback
 import com.google.android.gms.nearby.uwb.UwbAddress
+import com.google.android.gms.nearby.uwb.UwbAvailabilityObserver
 import com.google.android.gms.nearby.uwb.UwbClient
 import com.google.android.gms.nearby.uwb.UwbComplexChannel
 import com.google.android.gms.nearby.uwb.UwbDevice
@@ -42,12 +44,15 @@ public class TestUwbClient(
 ) : UwbClient {
     var stopRangingCalled = false
         private set
+
     private lateinit var callback: RangingSessionCallback
     private var startedRanging = false
+
     companion object {
-        val rangingPosition = RangingPosition(
-            RangingMeasurement(1, 1.0F), null, null, 20)
+        val rangingPosition =
+            RangingPosition(RangingMeasurement(1, 1.0F), null, null, 20, -50, null)
     }
+
     override fun getApiKey(): ApiKey<zze> {
         TODO("Not yet implemented")
     }
@@ -73,6 +78,26 @@ public class TestUwbClient(
     }
 
     override fun removeControlee(p0: UwbAddress): Task<Void> {
+        TODO("Not yet implemented")
+    }
+
+    override fun reconfigureRangingInterval(p0: Int): Task<Void> {
+        TODO("Not yet implemented")
+    }
+
+    override fun reconfigureRangeDataNtf(p0: Int, p1: Int, p2: Int): Task<Void> {
+        TODO("Not yet implemented")
+    }
+
+    override fun addControleeWithSessionParams(p0: RangingControleeParameters): Task<Void> {
+        TODO("Not yet implemented")
+    }
+
+    override fun subscribeToUwbAvailability(p0: UwbAvailabilityObserver): Task<Void> {
+        TODO("Not yet implemented")
+    }
+
+    override fun unsubscribeFromUwbAvailability(): Task<Void> {
         TODO("Not yet implemented")
     }
 

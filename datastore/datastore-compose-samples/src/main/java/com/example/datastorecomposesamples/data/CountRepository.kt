@@ -27,27 +27,24 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.datastorecomposesamples.CountPreferences
 import java.io.File
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 data class CountState(val count: Int)
 
 private const val COUNT_STATE_NAME = "count_state"
 
-private val Context.preferencesDataStore by preferencesDataStore(
-    name = COUNT_STATE_NAME
-)
+private val Context.preferencesDataStore by preferencesDataStore(name = COUNT_STATE_NAME)
 
-/**
- * Repository class for managing the DataStores.
- */
-class CountRepository private constructor(
+/** Repository class for managing the DataStores. */
+class CountRepository
+private constructor(
     private val dataStore: DataStore<Preferences>,
     private val protoDataStore: DataStore<CountPreferences>
 ) {
@@ -57,9 +54,13 @@ class CountRepository private constructor(
         private var instance: CountRepository? = null
 
         fun getInstance(context: Context): CountRepository {
-            instance?.let { return it }
+            instance?.let {
+                return it
+            }
             synchronized(this) {
-                instance?.let { return it }
+                instance?.let {
+                    return it
+                }
                 val protoDataStore =
                     DataStoreFactory.create(serializer = CountSerializer) {
                         File(context.filesDir, PROTO_STORE_FILE_NAME)
@@ -78,29 +79,29 @@ class CountRepository private constructor(
         val COUNT = intPreferencesKey("count")
     }
 
-    val countStateFlow: Flow<CountState> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                Log.e(TAG, "Error reading preferences.", exception)
-                emit(emptyPreferences())
-            } else {
-                throw exception
+    val countStateFlow: Flow<CountState> =
+        dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(TAG, "Error reading preferences.", exception)
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
             }
-        }.map { preferences ->
-            CountState(preferences[PreferencesKeys.COUNT] ?: 0)
-        }
+            .map { preferences -> CountState(preferences[PreferencesKeys.COUNT] ?: 0) }
 
-    val countProtoStateFlow: Flow<CountState> = protoDataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                Log.e(TAG, "Error reading proto.", exception)
-                emit(CountPreferences.getDefaultInstance())
-            } else {
-                throw exception
+    val countProtoStateFlow: Flow<CountState> =
+        protoDataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(TAG, "Error reading proto.", exception)
+                    emit(CountPreferences.getDefaultInstance())
+                } else {
+                    throw exception
+                }
             }
-        }.map { proto ->
-            CountState(proto.count)
-        }
+            .map { proto -> CountState(proto.count) }
 
     fun incrementPreferenceCount() {
         scope.launch {

@@ -16,8 +16,8 @@
 
 package androidx.privacysandbox.tools.core.generator
 
-import androidx.privacysandbox.tools.internal.GeneratedPublicApi
 import androidx.privacysandbox.tools.core.model.AnnotatedInterface
+import androidx.privacysandbox.tools.internal.GeneratedPublicApi
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -47,14 +47,16 @@ class ServiceFactoryFileGenerator(private val generateStubs: Boolean = false) {
             returns(ClassName(service.type.packageName, service.type.simpleName))
             if (generateStubs) {
                 addAnnotation(
-                    AnnotationSpec.builder(Suppress::class).addMember("%S", "UNUSED_PARAMETER")
+                    AnnotationSpec.builder(Suppress::class)
+                        .addMember("%S", "UNUSED_PARAMETER")
                         .build()
                 )
                 addStatement("throw RuntimeException(%S)", "Stub!")
             } else {
                 addStatement(
                     "return %T(%T.Stub.asInterface(binder))",
-                    service.clientProxyNameSpec(), service.aidlInterfaceNameSpec()
+                    service.clientProxyNameSpec(),
+                    service.aidlInterfaceNameSpec()
                 )
             }
         }

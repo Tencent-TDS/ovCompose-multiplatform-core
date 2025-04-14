@@ -18,12 +18,15 @@ package androidx.camera.video.internal.audio;
 
 import static androidx.camera.video.internal.audio.AudioUtils.channelCountToChannelConfig;
 import static androidx.camera.video.internal.audio.AudioUtils.channelCountToChannelMask;
-import static androidx.camera.video.internal.audio.AudioUtils.frameCountToDurationNs;
+import static androidx.camera.video.internal.audio.AudioUtils.computeInterpolatedTimeNs;
 import static androidx.camera.video.internal.audio.AudioUtils.sizeToFrameCount;
 import static androidx.core.util.Preconditions.checkArgument;
 import static androidx.core.util.Preconditions.checkState;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -32,8 +35,6 @@ import android.media.AudioRecordingConfiguration;
 import android.media.AudioTimestamp;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.camera.core.Logger;
@@ -44,6 +45,9 @@ import androidx.camera.video.internal.compat.Api31Impl;
 import androidx.camera.video.internal.compat.quirk.AudioTimestampFramePositionIncorrectQuirk;
 import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -57,24 +61,22 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>This class is not thread safe, it should be used on the same thread.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class AudioStreamImpl implements AudioStream {
     private static final String TAG = "AudioStreamImpl";
+    private static final long DIFF_LIMIT_FROM_SYSTEM_TIME_NS = MILLISECONDS.toNanos(500L);
 
-    final AudioRecord mAudioRecord;
+    private @NonNull AudioRecord mAudioRecord;
     private final AudioSettings mSettings;
     private final AtomicBoolean mIsReleased = new AtomicBoolean(false);
     private final AtomicBoolean mIsStarted = new AtomicBoolean(false);
     private final AtomicReference<Boolean> mNotifiedSilenceState = new AtomicReference<>(null);
     private final int mBufferSize;
     private final int mBytesPerFrame;
-    @Nullable
-    private AudioStreamCallback mAudioStreamCallback;
-    @Nullable
-    private Executor mCallbackExecutor;
+    private @Nullable AudioStreamCallback mAudioStreamCallback;
+    private @Nullable Executor mCallbackExecutor;
     private long mTotalFramesRead;
-    @Nullable
-    private AudioManager.AudioRecordingCallback mAudioRecordingCallback;
+    private AudioManager.@Nullable AudioRecordingCallback mAudioRecordingCallback;
+    private boolean mShouldFallbackToSystemTime = false;
 
     /**
      * Creates an AudioStreamImpl for the given settings.
@@ -100,51 +102,27 @@ public class AudioStreamImpl implements AudioStream {
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     public AudioStreamImpl(@NonNull AudioSettings settings, @Nullable Context attributionContext)
             throws IllegalArgumentException, AudioStreamException {
-        if (!isSettingsSupported(settings.getSampleRate(), settings.getChannelCount(),
+        if (!isSettingsSupported(settings.getCaptureSampleRate(), settings.getChannelCount(),
                 settings.getAudioFormat())) {
             throw new UnsupportedOperationException(String.format(
                     "The combination of sample rate %d, channel count %d and audio format"
                             + " %d is not supported.",
-                    settings.getSampleRate(), settings.getChannelCount(),
+                    settings.getCaptureSampleRate(), settings.getChannelCount(),
                     settings.getAudioFormat()));
         }
 
         mSettings = settings;
         mBytesPerFrame = settings.getBytesPerFrame();
 
-        int minBufferSize = getMinBufferSize(settings.getSampleRate(), settings.getChannelCount(),
-                settings.getAudioFormat());
+        int minBufferSize = getMinBufferSize(settings.getCaptureSampleRate(),
+                settings.getChannelCount(), settings.getAudioFormat());
         // The minBufferSize should be a positive value since the settings had already been checked
         // by the isSettingsSupported().
         Preconditions.checkState(minBufferSize > 0);
         mBufferSize = minBufferSize * 2;
 
-        if (Build.VERSION.SDK_INT >= 23) {
-            AudioFormat audioFormatObj = new AudioFormat.Builder()
-                    .setSampleRate(settings.getSampleRate())
-                    .setChannelMask(channelCountToChannelMask(settings.getChannelCount()))
-                    .setEncoding(settings.getAudioFormat())
-                    .build();
-            AudioRecord.Builder audioRecordBuilder = Api23Impl.createAudioRecordBuilder();
-            if (Build.VERSION.SDK_INT >= 31 && attributionContext != null) {
-                Api31Impl.setContext(audioRecordBuilder, attributionContext);
-            }
-            Api23Impl.setAudioSource(audioRecordBuilder, settings.getAudioSource());
-            Api23Impl.setAudioFormat(audioRecordBuilder, audioFormatObj);
-            Api23Impl.setBufferSizeInBytes(audioRecordBuilder, mBufferSize);
-            mAudioRecord = Api23Impl.build(audioRecordBuilder);
-        } else {
-            mAudioRecord = new AudioRecord(settings.getAudioSource(),
-                    settings.getSampleRate(),
-                    channelCountToChannelConfig(settings.getChannelCount()),
-                    settings.getAudioFormat(),
-                    mBufferSize);
-        }
-
-        if (mAudioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
-            mAudioRecord.release();
-            throw new AudioStreamException("Unable to initialize AudioRecord");
-        }
+        mAudioRecord = createAudioRecord(mBufferSize, mSettings, attributionContext);
+        checkAudioRecordInitialStateOrReleaseAndThrow(mAudioRecord);
     }
 
     @Override
@@ -153,6 +131,12 @@ public class AudioStreamImpl implements AudioStream {
         if (mIsStarted.getAndSet(true)) {
             return;
         }
+
+        if (hasAudioTimestampQuirk()) {
+            // Check if the re-created AudioRecord is in the correct state.
+            checkAudioRecordInitialStateOrReleaseAndThrow(mAudioRecord);
+        }
+
         mAudioRecord.startRecording();
         if (mAudioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
             mIsStarted.set(false);
@@ -160,6 +144,7 @@ public class AudioStreamImpl implements AudioStream {
                     + mAudioRecord.getRecordingState());
         }
         mTotalFramesRead = 0;
+        mShouldFallbackToSystemTime = false;
         mNotifiedSilenceState.set(null);
         boolean isSilenced = false;
         if (Build.VERSION.SDK_INT >= 29) {
@@ -170,6 +155,7 @@ public class AudioStreamImpl implements AudioStream {
         notifySilenced(isSilenced);
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void stop() {
         checkNotReleasedOrThrow();
@@ -180,6 +166,15 @@ public class AudioStreamImpl implements AudioStream {
         if (mAudioRecord.getRecordingState() != AudioRecord.RECORDSTATE_STOPPED) {
             Logger.w(TAG, "Failed to stop AudioRecord with state: "
                     + mAudioRecord.getRecordingState());
+        }
+
+        if (hasAudioTimestampQuirk()) {
+            // Release and re-create the AudioRecord to workaround the negative frame position
+            // issue. Note that the context is passed as null here because the current known
+            // problematic devices are all below API 31. If this is not the case in the future, a
+            // different approach might be needed.
+            mAudioRecord.release();
+            mAudioRecord = createAudioRecord(mBufferSize, mSettings, null);
         }
     }
 
@@ -206,9 +201,8 @@ public class AudioStreamImpl implements AudioStream {
      *
      * @throws IllegalStateException if the stream has not been started or has been released.
      */
-    @NonNull
     @Override
-    public PacketInfo read(@NonNull ByteBuffer byteBuffer) {
+    public @NonNull PacketInfo read(@NonNull ByteBuffer byteBuffer) {
         checkNotReleasedOrThrow();
         checkStartedOrThrow();
 
@@ -257,12 +251,19 @@ public class AudioStreamImpl implements AudioStream {
 
     private long generatePresentationTimeNs() {
         long presentationTimeNs = -1;
-        if (Build.VERSION.SDK_INT >= 24 && !hasAudioTimestampQuirk()) {
+        if (Build.VERSION.SDK_INT >= 24 && !mShouldFallbackToSystemTime) {
             AudioTimestamp audioTimestamp = new AudioTimestamp();
             if (Api24Impl.getTimestamp(mAudioRecord, audioTimestamp,
                     AudioTimestamp.TIMEBASE_MONOTONIC) == AudioRecord.SUCCESS) {
-                presentationTimeNs = computeInterpolatedTimeNs(mSettings.getSampleRate(),
+                presentationTimeNs = computeInterpolatedTimeNs(mSettings.getCaptureSampleRate(),
                         mTotalFramesRead, audioTimestamp);
+
+                // Once timestamp difference is out of limit, fallback to system time.
+                long timestampDiff = Math.abs(presentationTimeNs - System.nanoTime());
+                if (timestampDiff > DIFF_LIMIT_FROM_SYSTEM_TIME_NS) {
+                    mShouldFallbackToSystemTime = true;
+                    presentationTimeNs = -1;
+                }
             } else {
                 Logger.w(TAG, "Unable to get audio timestamp");
             }
@@ -281,24 +282,76 @@ public class AudioStreamImpl implements AudioStream {
         checkState(mIsStarted.get(), "AudioStream has not been started.");
     }
 
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    private static @NonNull AudioRecord createAudioRecord(int bufferSizeInByte,
+            @NonNull AudioSettings settings, @Nullable Context context)
+            throws IllegalArgumentException {
+        if (Build.VERSION.SDK_INT >= 23) {
+            AudioFormat audioFormatObj = createAudioFormat(settings);
+            AudioRecord.Builder audioRecordBuilder = Api23Impl.createAudioRecordBuilder();
+            if (Build.VERSION.SDK_INT >= 31 && context != null) {
+                Api31Impl.setContext(audioRecordBuilder, context);
+            }
+            Api23Impl.setAudioSource(audioRecordBuilder, settings.getAudioSource());
+            Api23Impl.setAudioFormat(audioRecordBuilder, audioFormatObj);
+            Api23Impl.setBufferSizeInBytes(audioRecordBuilder, bufferSizeInByte);
+            try {
+                return Api23Impl.build(audioRecordBuilder);
+            } catch (UnsupportedOperationException e) {
+                throw new IllegalArgumentException(e);
+            }
+        } else {
+            return new AudioRecord(settings.getAudioSource(),
+                    settings.getCaptureSampleRate(),
+                    channelCountToChannelConfig(settings.getChannelCount()),
+                    settings.getAudioFormat(),
+                    bufferSizeInByte);
+        }
+    }
+
+    @NonNull
+    private static AudioFormat createAudioFormat(@NonNull AudioSettings settings)
+            throws IllegalArgumentException {
+        return createAudioFormat(settings.getCaptureSampleRate(), settings.getChannelCount(),
+                settings.getAudioFormat());
+    }
+
+    @NonNull
+    private static AudioFormat createAudioFormat(int sampleRate, int channelCount,
+            int audioFormat) throws IllegalArgumentException {
+        return new AudioFormat.Builder()
+                .setSampleRate(sampleRate)
+                .setChannelMask(channelCountToChannelMask(channelCount))
+                .setEncoding(audioFormat)
+                .build();
+    }
+
+    private static void checkAudioRecordInitialStateOrReleaseAndThrow(
+            @NonNull AudioRecord audioRecord) throws AudioStreamException {
+        if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+            audioRecord.release();
+            throw new AudioStreamException("Unable to initialize AudioRecord");
+        }
+    }
+
     /** Check if the combination of sample rate, channel count and audio format is supported. */
     public static boolean isSettingsSupported(int sampleRate, int channelCount, int audioFormat) {
         if (sampleRate <= 0 || channelCount <= 0) {
             return false;
         }
-        return getMinBufferSize(sampleRate, channelCount, audioFormat) > 0;
+        if (getMinBufferSize(sampleRate, channelCount, audioFormat) <= 0) {
+            return false;
+        }
+        try {
+            createAudioFormat(sampleRate, channelCount, audioFormat);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+        return true;
     }
 
     private static boolean hasAudioTimestampQuirk() {
         return DeviceQuirks.get(AudioTimestampFramePositionIncorrectQuirk.class) != null;
-    }
-
-    private static long computeInterpolatedTimeNs(int sampleRate, long framePosition,
-            @NonNull AudioTimestamp timestamp) {
-        long frameDiff = framePosition - timestamp.framePosition;
-        long compensateTimeInNanoSec = frameCountToDurationNs(frameDiff, sampleRate);
-        long resultInNanoSec = timestamp.nanoTime + compensateTimeInNanoSec;
-        return resultInNanoSec < 0 ? 0 : resultInNanoSec;
     }
 
     private static int getMinBufferSize(int sampleRate, int channelCount, int audioFormat) {

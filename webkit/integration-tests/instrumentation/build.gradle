@@ -1,0 +1,61 @@
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
+
+plugins {
+    id("AndroidXPlugin")
+    id("com.android.library")
+}
+
+android {
+    namespace = "androidx.webkit.instrumentation"
+
+    flavorDimensions = ["targetSdk"]
+
+    productFlavors {
+        targetSdk32 {
+            dimension = "targetSdk"
+
+        }
+        targetSdkLatest {
+            dimension = "targetSdk"
+            // uses default config
+        }
+    }
+}
+
+androidComponents {
+    beforeVariants(selector().withFlavor("targetSdk", "targetSdk32")) { variant ->
+        variant.androidTest.targetSdk = 32
+    }
+}
+
+dependencies {
+    api(libs.jspecify)
+    androidTestImplementation(project(":webkit:webkit"))
+    androidTestImplementation(project(":webkit:integration-tests:common"))
+
+    androidTestImplementation(libs.okhttpMockwebserver)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
+    androidTestImplementation("androidx.appcompat:appcompat:1.1.0")
+    androidTestImplementation("androidx.concurrent:concurrent-futures:1.0.0")
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
+
+    // Hamcrest matchers:
+    androidTestImplementation(libs.bundles.espressoContrib)
+}
+
+androidx {
+    type = type = SoftwareType.INTERNAL_TEST_LIBRARY
+    additionalDeviceTestApkKeys.add("chrome")
+}

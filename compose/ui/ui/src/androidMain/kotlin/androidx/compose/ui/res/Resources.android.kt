@@ -17,18 +17,32 @@
 package androidx.compose.ui.res
 
 import android.content.res.Resources
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import android.util.TypedValue
+import androidx.annotation.DrawableRes
+import androidx.collection.MutableIntObjectMap
 
-/**
- * A composable function that returns the [Resources]. It will be recomposed when [Configuration]
- * gets updated.
- */
-@Composable
-@ReadOnlyComposable
-internal fun resources(): Resources {
-    LocalConfiguration.current
-    return LocalContext.current.resources
+internal class ResourceIdCache {
+
+    private val resIdPathMap = MutableIntObjectMap<TypedValue>()
+
+    /**
+     * Resolve the path of the provided resource identifier within the given resources object. This
+     * first checks its internal cache before attempting to resolve the resource with the Android
+     * resource system
+     */
+    fun resolveResourcePath(res: Resources, @DrawableRes id: Int): TypedValue {
+        synchronized(this) {
+            var value = resIdPathMap[id]
+            if (value == null) {
+                value = TypedValue()
+                res.getValue(id, value, true)
+                resIdPathMap.put(id, value)
+            }
+            return value
+        }
+    }
+
+    fun clear() {
+        synchronized(this) { resIdPathMap.clear() }
+    }
 }

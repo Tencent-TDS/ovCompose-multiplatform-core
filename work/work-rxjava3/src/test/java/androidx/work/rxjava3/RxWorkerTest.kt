@@ -18,16 +18,21 @@ package androidx.work.rxjava3
 
 import android.content.Context
 import androidx.work.Data
+import androidx.work.DefaultWorkerFactory
 import androidx.work.ForegroundUpdater
 import androidx.work.ListenableWorker
 import androidx.work.ProgressUpdater
-import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.work.impl.utils.SerialExecutorImpl
 import androidx.work.impl.utils.SynchronousExecutor
 import androidx.work.impl.utils.taskexecutor.TaskExecutor
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.EmptyCoroutineContext
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert
@@ -35,10 +40,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.mockito.Mockito.mock
-import java.util.UUID
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
 
 @RunWith(JUnit4::class)
 class RxWorkerTest {
@@ -54,11 +55,10 @@ class RxWorkerTest {
     @Test
     fun cancelForwarding() {
         val latch = CountDownLatch(1)
-        val worker = Single
-            .never<ListenableWorker.Result>()
-            .doOnDispose {
-                latch.countDown()
-            }.toWorker(createWorkerParams(syncExecutor))
+        val worker =
+            Single.never<ListenableWorker.Result>()
+                .doOnDispose { latch.countDown() }
+                .toWorker(createWorkerParams(syncExecutor))
         val future = worker.startWork()
         future.cancel(false)
         if (!latch.await(1, TimeUnit.MINUTES)) {
@@ -69,9 +69,8 @@ class RxWorkerTest {
     @Test
     fun failedWork() {
         val error: Throwable = RuntimeException("a random error")
-        val worker = Single
-            .error<ListenableWorker.Result>(error)
-            .toWorker(createWorkerParams(syncExecutor))
+        val worker =
+            Single.error<ListenableWorker.Result>(error).toWorker(createWorkerParams(syncExecutor))
         val future = worker.startWork()
         try {
             future.get()
@@ -85,9 +84,7 @@ class RxWorkerTest {
     fun verifyCorrectDefaultScheduler() {
         var executorDidRun = false
         var runnerDidRun = false
-        val runner = Runnable {
-            runnerDidRun = true
-        }
+        val runner = Runnable { runnerDidRun = true }
         val executor = Executor {
             executorDidRun = true
             it.run()
@@ -107,15 +104,18 @@ class RxWorkerTest {
             it.run()
         }
         var testSchedulerDidRun = false
-        val testScheduler = Schedulers.from {
-            testSchedulerDidRun = true
-            it.run()
-        }
+        val testScheduler =
+            Schedulers.from {
+                testSchedulerDidRun = true
+                it.run()
+            }
         val params = createWorkerParams(executor)
-        val worker = object : RxWorker(mock(Context::class.java), params) {
-            override fun createWork() = Single.just(result)
-            override fun getBackgroundScheduler() = testScheduler
-        }
+        val worker =
+            object : RxWorker(mock(Context::class.java), params) {
+                override fun createWork() = Single.just(result)
+
+                override fun getBackgroundScheduler() = testScheduler
+            }
         assertThat(worker.startWork().get(), `is`(result))
         assertThat(executorDidRun, `is`(false))
         assertThat(testSchedulerDidRun, `is`(true))
@@ -125,19 +125,21 @@ class RxWorkerTest {
         executor: Executor = SynchronousExecutor(),
         progressUpdater: ProgressUpdater = mock(ProgressUpdater::class.java),
         foregroundUpdater: ForegroundUpdater = mock(ForegroundUpdater::class.java)
-    ) = WorkerParameters(
-        UUID.randomUUID(),
-        Data.EMPTY,
-        emptyList(),
-        WorkerParameters.RuntimeExtras(),
-        1,
-        0,
-        executor,
-        InstantWorkTaskExecutor(),
-        WorkerFactory.getDefaultWorkerFactory(),
-        progressUpdater,
-        foregroundUpdater
-    )
+    ) =
+        WorkerParameters(
+            UUID.randomUUID(),
+            Data.EMPTY,
+            emptyList(),
+            WorkerParameters.RuntimeExtras(),
+            1,
+            0,
+            executor,
+            EmptyCoroutineContext,
+            InstantWorkTaskExecutor(),
+            DefaultWorkerFactory,
+            progressUpdater,
+            foregroundUpdater
+        )
 
     private fun Single<ListenableWorker.Result>.toWorker(
         params: WorkerParameters = createWorkerParams()

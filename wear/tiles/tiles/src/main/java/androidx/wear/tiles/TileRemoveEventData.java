@@ -16,14 +16,14 @@
 
 package androidx.wear.tiles;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Holder for Tiles' TileRemoveEvent class, to be parceled and transferred to a Tile Service.
  *
  * <p>All this does is to serialize TileRemoveEvent as a protobuf and transmit it.
- *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class TileRemoveEventData extends ProtoParcelable {
@@ -31,7 +31,7 @@ public final class TileRemoveEventData extends ProtoParcelable {
     public static final Creator<TileRemoveEventData> CREATOR =
             newCreator(TileRemoveEventData.class, TileRemoveEventData::new);
 
-    public TileRemoveEventData(@NonNull byte[] params, int version) {
+    public TileRemoveEventData(byte @NonNull [] params, int version) {
         super(params, version);
     }
 }

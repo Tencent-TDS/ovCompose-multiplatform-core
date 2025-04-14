@@ -19,27 +19,15 @@ package androidx.compose.ui.test
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getAllSemanticsNodes
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.input.TextInputForTests
 
 /**
  * Provides necessary services to facilitate testing.
  *
  * This is typically implemented by entities like test rule.
  */
-@InternalTestApi
-interface TestOwner {
-    /**
-     * Clock that drives frames and recompositions in compose tests.
-     */
+internal interface TestOwner {
+    /** Clock that drives frames and recompositions in compose tests. */
     val mainClock: MainTestClock
-
-    /**
-     * Runs [action] on the main thread to perform text input via the [TextInputForTests] for the
-     * active text input service for the given semantics node.
-     */
-    @OptIn(ExperimentalTextApi::class)
-    fun performTextInput(node: SemanticsNode, action: TextInputForTests.() -> Unit)
 
     /**
      * Runs the given [action] on the ui thread.
@@ -52,46 +40,45 @@ interface TestOwner {
     /**
      * Collects all [RootForTest]s from all compose hierarchies.
      *
-     * This is a blocking call. Returns only after compose is idle.
-     *
-     * Can crash in case it hits time out. This is not supposed to be handled as it
-     * surfaces only in incorrect tests.
+     * This method is the choke point where all assertions and interactions must go through when
+     * testing composables and where we thus have the opportunity to automatically reach quiescence.
+     * This is done by calling [ComposeUiTest.waitForIdle] before getting and returning the
+     * registered roots.
      *
      * @param atLeastOneRootExpected Whether the caller expects that at least one compose root is
-     * present in the tested app. This affects synchronization efforts / timeouts of this API.
+     *   present in the tested app. This affects synchronization efforts / timeouts of this API.
      */
     fun getRoots(atLeastOneRootExpected: Boolean): Set<RootForTest>
 }
 
-@InternalTestApi
-fun createTestContext(owner: TestOwner): TestContext {
-    return TestContext(owner)
-}
-
-@OptIn(InternalTestApi::class)
-class TestContext internal constructor(internal val testOwner: TestOwner) {
-
-    /**
-     * Stores the [InputDispatcherState] of each [RootForTest]. The state will be restored in an
-     * [InputDispatcher] when it is created for an owner that has a state stored. To avoid leaking
-     * the [RootForTest], the [identityHashCode] of the root is used as the key instead of the
-     * actual object.
-     */
-    internal val states = mutableMapOf<Int, InputDispatcherState>()
-
-    /**
-     * Collects all [SemanticsNode]s from all compose hierarchies.
-     *
-     * This is a blocking call. Returns only after compose is idle.
-     *
-     * Can crash in case it hits time out. This is not supposed to be handled as it
-     * surfaces only in incorrect tests.
-     */
-    internal fun getAllSemanticsNodes(
-        atLeastOneRootRequired: Boolean,
-        useUnmergedTree: Boolean
-    ): Iterable<SemanticsNode> {
-        val roots = testOwner.getRoots(atLeastOneRootRequired).also {
+/**
+ * Collects all [SemanticsNode]s from all compose hierarchies, and returns the [transform]ed
+ * results.
+ *
+ * Set [useUnmergedTree] to `true` to search through the unmerged semantics tree.
+ *
+ * Set [skipDeactivatedNodes] to `false` to include
+ * [deactivated][androidx.compose.ui.node.LayoutNode.isDeactivated] nodes in the search.
+ *
+ * Use [atLeastOneRootRequired] to treat not finding any compose hierarchies at all as an error. If
+ * no hierarchies are found, we will wait 2 seconds to accommodate cases where composable content is
+ * set asynchronously. On the other hand, if you expect or know that there is no composable content,
+ * set [atLeastOneRootRequired] to `false` and no error will be thrown if there are no compose
+ * roots, and the wait for compose roots will be reduced to .5 seconds.
+ *
+ * This method will wait for quiescence before collecting all SemanticsNodes. Collection happens on
+ * the main thread and the [transform]ation of all SemanticsNodes to a result is done while on the
+ * main thread. This allows us to transform the result using methods that must be called on the main
+ * thread, without switching back and forth between the main thread and the test thread.
+ */
+internal fun <R> TestOwner.getAllSemanticsNodes(
+    atLeastOneRootRequired: Boolean,
+    useUnmergedTree: Boolean,
+    skipDeactivatedNodes: Boolean = true,
+    transform: (Iterable<SemanticsNode>) -> R
+): R {
+    val roots =
+        getRoots(atLeastOneRootRequired).also {
             check(!atLeastOneRootRequired || it.isNotEmpty()) {
                 "No compose hierarchies found in the app. Possible reasons include: " +
                     "(1) the Activity that calls setContent did not launch; " +
@@ -102,8 +89,14 @@ class TestContext internal constructor(internal val testOwner: TestOwner) {
             }
         }
 
-        return roots.flatMap {
-            it.semanticsOwner.getAllSemanticsNodes(mergingEnabled = !useUnmergedTree)
-        }
+    return runOnUiThread {
+        transform.invoke(
+            roots.flatMap {
+                it.semanticsOwner.getAllSemanticsNodes(
+                    mergingEnabled = !useUnmergedTree,
+                    skipDeactivatedNodes = skipDeactivatedNodes
+                )
+            }
+        )
     }
 }

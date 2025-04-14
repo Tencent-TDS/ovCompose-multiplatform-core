@@ -21,86 +21,91 @@ import androidx.room.compiler.processing.XEquality
 import androidx.room.compiler.processing.XExecutableParameterElement
 import androidx.room.compiler.processing.XMemberContainer
 import androidx.room.compiler.processing.XType
+import androidx.room.compiler.processing.ksp.KSTypeVarianceResolverScope
 import androidx.room.compiler.processing.ksp.KspAnnotated
-import androidx.room.compiler.processing.ksp.KspJvmTypeResolutionScope
 import androidx.room.compiler.processing.ksp.KspMethodElement
 import androidx.room.compiler.processing.ksp.KspProcessingEnv
 import androidx.room.compiler.processing.ksp.KspType
-import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeReference
 
 internal class KspSyntheticReceiverParameterElement(
     val env: KspProcessingEnv,
     override val enclosingElement: KspMethodElement,
     val receiverType: KSTypeReference,
-) : XExecutableParameterElement,
+) :
+    XExecutableParameterElement,
     XEquality,
     XAnnotated by KspAnnotated.create(
         env = env,
-        delegate = null, // does not matter, this is synthetic and has no annotations.
-        filter = KspAnnotated.UseSiteFilter.NO_USE_SITE
+        delegate = receiverType, // for @receiver use-site annotations
+        filter = KspAnnotated.UseSiteFilter.NO_USE_SITE_OR_RECEIVER
     ) {
+
+    override fun isContinuationParam() = false
+
+    override fun isReceiverParam() = true
+
+    override fun isKotlinPropertyParam() = false
+
+    override fun isVarArgs() = false
 
     override val name: String by lazy {
         // KAPT uses `$this$<functionName>`
         "$" + "this" + "$" + enclosingElement.name
     }
 
-    override val equalityItems: Array<out Any?> by lazy {
-        arrayOf(enclosingElement, receiverType)
-    }
+    override val jvmName = name
+
+    override val equalityItems: Array<out Any?> by lazy { arrayOf(enclosingElement, receiverType) }
 
     override val hasDefaultValue: Boolean
         get() = false
 
-    private fun jvmTypeResolutionScope(container: KSDeclaration?): KspJvmTypeResolutionScope {
-        return KspJvmTypeResolutionScope.MethodParameter(
-            kspExecutableElement = enclosingElement,
-            parameterIndex = 0, // Receiver param is the 1st one
-            annotated = enclosingElement.declaration,
-            container = container
-        )
-    }
-
-    override val type: KspType by lazy {
-        asMemberOf(enclosingElement.enclosingElement.type?.ksType)
-    }
+    override val type: KspType by lazy { createAsMemberOf(closestMemberContainer.type) }
 
     override val fallbackLocationText: String
         get() = "receiver parameter of ${enclosingElement.fallbackLocationText}"
 
     // Not applicable
-    override val docComment: String? get() = null
+    override val docComment: String?
+        get() = null
 
     override val closestMemberContainer: XMemberContainer by lazy {
         enclosingElement.closestMemberContainer
     }
 
     override fun asMemberOf(other: XType): KspType {
-        if (closestMemberContainer.type?.isSameType(other) != false) {
-            return type
+        return if (closestMemberContainer.type?.isSameType(other) != false) {
+            type
+        } else {
+            createAsMemberOf(other)
         }
-        check(other is KspType)
-        return asMemberOf(other.ksType)
     }
 
-    private fun asMemberOf(ksType: KSType?): KspType {
-        val asMemberReceiverType = receiverType.resolve().let {
-            if (ksType == null || it.isError) {
-                return@let it
+    private fun createAsMemberOf(container: XType?): KspType {
+        check(container is KspType?)
+        val asMemberReceiverType =
+            receiverType.resolve().let {
+                if (container?.ksType == null || it.isError) {
+                    return@let it
+                }
+                val asMember =
+                    enclosingElement.declaration.asMemberOf((container as KspType).ksType)
+                checkNotNull(asMember.extensionReceiverType)
             }
-            val asMember = enclosingElement.declaration.asMemberOf(ksType)
-            checkNotNull(asMember.extensionReceiverType)
-        }
         return env.wrap(
-            originatingReference = receiverType,
-            ksType = asMemberReceiverType,
-        ).withJvmTypeResolver(
-            jvmTypeResolutionScope(
-                container = ksType?.declaration
+                originatingReference = receiverType,
+                ksType = asMemberReceiverType,
             )
-        )
+            .copyWithScope(
+                KSTypeVarianceResolverScope.MethodParameter(
+                    kspExecutableElement = enclosingElement,
+                    parameterIndex = 0, // Receiver param is the 1st one
+                    annotated = enclosingElement.declaration,
+                    container = container?.ksType?.declaration,
+                    asMemberOf = container
+                )
+            )
     }
 
     override fun kindName(): String {
@@ -113,6 +118,10 @@ internal class KspSyntheticReceiverParameterElement(
 
     override fun equals(other: Any?): Boolean {
         return XEquality.equals(this, other)
+    }
+
+    override fun toString(): String {
+        return name
     }
 
     override fun hashCode(): Int {

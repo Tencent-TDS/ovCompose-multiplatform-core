@@ -17,6 +17,7 @@
 package androidx.camera.camera2.pipe
 
 import android.content.Context
+import androidx.annotation.RestrictTo
 import androidx.camera.camera2.pipe.core.Threads
 
 /**
@@ -26,8 +27,9 @@ import androidx.camera.camera2.pipe.core.Threads
  * [CameraContext] is primarily used to share resources between [CameraBackend] factories and
  * between [CameraController] instances.
  */
-interface CameraContext {
-    val appContext: Context
-    val threads: Threads
-    val cameraBackends: CameraBackends
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public interface CameraContext {
+    public val appContext: Context
+    public val threads: Threads
+    public val cameraBackends: CameraBackends
 }

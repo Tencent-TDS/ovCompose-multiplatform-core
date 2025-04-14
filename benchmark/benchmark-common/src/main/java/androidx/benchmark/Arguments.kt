@@ -16,28 +16,21 @@
 
 package androidx.benchmark
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.annotation.VisibleForTesting
 import androidx.test.platform.app.InstrumentationRegistry
 
-/**
- * This allows tests to override arguments from code
- *
- * @hide
- */
-@RestrictTo(RestrictTo.Scope.TESTS)
-public var argumentSource: Bundle? = null
+/** This allows tests to override arguments from code */
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+@get:RestrictTo(RestrictTo.Scope.LIBRARY)
+@set:RestrictTo(RestrictTo.Scope.LIBRARY)
+@VisibleForTesting
+var argumentSource: Bundle? = null
 
-/**
- * Allows tests to override profiler
- */
-@RestrictTo(RestrictTo.Scope.TESTS)
-internal var profilerOverride: Profiler? = null
-
-/**
- * @hide
- */
+@Suppress("NullableBooleanElvis") // suggestion makes boolean argument defaults less clear
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 object Arguments {
     // public properties are shared by micro + macro benchmarks
@@ -46,12 +39,26 @@ object Arguments {
     /**
      * Set to true to enable androidx.tracing.perfetto tracepoints (such as composition tracing)
      *
-     * Note this only affects Macrobenchmarks currently, and only when StartupMode.COLD is not used,
-     * since enabling the tracepoints wakes the target process
-     *
-     * Currently internal/experimental
+     * Note that when StartupMode.COLD is used, additional work must be performed during target app
+     * startup to initialize tracing.
      */
-    val fullTracingEnable: Boolean
+    val perfettoSdkTracingEnable: Boolean
+        get() = perfettoSdkTracingEnableOverride ?: _perfettoSdkTracingEnable
+
+    private val _perfettoSdkTracingEnable: Boolean
+    @VisibleForTesting var perfettoSdkTracingEnableOverride: Boolean? = null
+
+    /**
+     * Base URL for help articles for Startup Insights.
+     *
+     * This property should only be used while the Startup Insights feature is under development. It
+     * can be overridden for testing purposes using [startupInsightsHelpUrlBaseOverride].
+     */
+    val startupInsightsHelpUrlBase: String?
+        get() = startupInsightsHelpUrlBaseOverride ?: _startupInsightsHelpUrlBase
+
+    private val _startupInsightsHelpUrlBase: String?
+    @VisibleForTesting var startupInsightsHelpUrlBaseOverride: String? = null
 
     val enabledRules: Set<RuleType>
 
@@ -63,47 +70,101 @@ object Arguments {
 
     val enableCompilation: Boolean
     val killProcessDelayMillis: Long
-    val enableStartupProfiles: Boolean
-    val strictStartupProfiles: Boolean
     val dryRunMode: Boolean
+    val dropShadersEnable: Boolean
+    val dropShadersThrowOnFailure: Boolean
+    val skipBenchmarksOnEmulator: Boolean
+    val saveProfileWaitMillis: Long
+    val killExistingPerfettoRecordings: Boolean
 
     // internal properties are microbenchmark only
     internal val outputEnable: Boolean
     internal val startupMode: Boolean
     internal val iterations: Int?
-    private val _profiler: Profiler?
     internal val profiler: Profiler?
-        get() = if (profilerOverride != null) profilerOverride else _profiler
-    internal val profilerSampleFrequency: Int
+    internal val profilerDefault: Boolean
+    internal val profilerSampleFrequencyHz: Int
     internal val profilerSampleDurationSeconds: Long
+    internal val profilerSkipWhenDurationRisksAnr: Boolean
+    internal val profilerPerfCompareEnable: Boolean
     internal val thermalThrottleSleepDurationSeconds: Long
+    val cpuEventCounterEnable: Boolean // non-internal, checked in CpuEventCounterBenchmark
+    internal val cpuEventCounterMask: Int
+    internal val requireAot: Boolean
+    internal val requireJitDisabledIfRooted: Boolean
+    val throwOnMainThreadMeasureRepeated: Boolean // non-internal, used in BenchmarkRule
+    val measureRepeatedOnMainThrowOnDeadline: Boolean // non-internal, used in BenchmarkRule
 
     internal var error: String? = null
     internal val additionalTestOutputDir: String?
+
+    private val targetPackageName: String?
+
+    val payload: Map<String, String>
 
     private const val prefix = "androidx.benchmark."
 
     private fun Bundle.getBenchmarkArgument(key: String, defaultValue: String? = null) =
         getString(prefix + key, defaultValue)
 
-    private fun Bundle.getProfiler(outputIsEnabled: Boolean): Profiler? {
+    private fun Bundle.getBenchmarkArgumentsWithPrefix(key: String): Map<String, String> {
+        val combinedPrefix = "$prefix$key."
+        val bundle = this
+        return buildMap {
+            bundle
+                .keySet()
+                .filter { it.startsWith(combinedPrefix) }
+                .forEach { put(it.substringAfter(combinedPrefix), getString(it, null)) }
+        }
+    }
+
+    private fun Bundle.getProfiler(outputIsEnabled: Boolean): Pair<Profiler?, Boolean> {
         val argumentName = "profiling.mode"
-        val argumentValue = getBenchmarkArgument(argumentName, "")
+        val argumentValue = getBenchmarkArgument(argumentName, "DEFAULT_VAL")
+        if (argumentValue == "DEFAULT_VAL") {
+            return if (Build.VERSION.SDK_INT <= 21) {
+                // Have observed stack corruption on API 21, we haven't spent the time to find out
+                // why, or if it's better on other low API levels. See b/300658578
+                // TODO: consider adding warning here
+                null to true
+            } else if (DeviceInfo.methodTracingAffectsMeasurements) {
+                // We warn here instead of in Errors since this doesn't affect all measurements -
+                // BenchmarkState throws rather than measuring incorrectly, and the first benchmark
+                // can still measure with a trace safely
+                InstrumentationResults.scheduleIdeWarningOnNextReport(
+                    """
+                    NOTE: Your device is running a version of ART where method tracing is known to
+                    affect performance measurement after trace capture, so method tracing is
+                    off by default.
+
+                    To use method tracing, either flash this device, use a different device, or
+                    enable method tracing with MicrobenchmarkConfig / instrumentation argument, and
+                    only run one test at a time.
+
+                    For more information, see https://issuetracker.google.com/issues/316174880
+                    """
+                        .trimIndent()
+                )
+                null to true
+            } else MethodTracing to true
+        }
+
         val profiler = Profiler.getByName(argumentValue)
-        if (profiler == null &&
-            argumentValue.isNotEmpty() &&
-            // 'none' is documented as noop (and works better in gradle than
-            // an empty string, if a value must be specified)
-            argumentValue.trim().lowercase() != "none"
+        if (
+            profiler == null &&
+                argumentValue.isNotEmpty() &&
+                // 'none' is documented as noop (and works better in gradle than
+                // an empty string, if a value must be specified)
+                argumentValue.trim().lowercase() != "none"
         ) {
             error = "Could not parse $prefix$argumentName=$argumentValue"
-            return null
+            return null to false
         }
         if (profiler?.requiresLibraryOutputDir == true && !outputIsEnabled) {
             error = "Output is not enabled, so cannot profile with mode $argumentValue"
-            return null
+            return null to false
         }
-        return profiler
+        return profiler to false
     }
 
     // note: initialization may happen at any time
@@ -112,79 +173,148 @@ object Arguments {
 
         dryRunMode = arguments.getBenchmarkArgument("dryRunMode.enable")?.toBoolean() ?: false
 
-        startupMode = !dryRunMode &&
-            (arguments.getBenchmarkArgument("startupMode.enable")?.toBoolean() ?: false)
+        startupMode =
+            !dryRunMode &&
+                (arguments.getBenchmarkArgument("startupMode.enable")?.toBoolean() ?: false)
 
-        outputEnable = !dryRunMode &&
-            (arguments.getBenchmarkArgument("output.enable")?.toBoolean() ?: true)
+        outputEnable =
+            !dryRunMode && (arguments.getBenchmarkArgument("output.enable")?.toBoolean() ?: true)
 
-        iterations =
-            arguments.getBenchmarkArgument("iterations")?.toInt()
+        iterations = arguments.getBenchmarkArgument("iterations")?.toInt()
 
-        fullTracingEnable =
-            (arguments.getBenchmarkArgument("fullTracing.enable")?.toBoolean() ?: false)
+        targetPackageName = arguments.getBenchmarkArgument("targetPackageName", defaultValue = null)
+
+        _perfettoSdkTracingEnable =
+            arguments.getBenchmarkArgument("perfettoSdkTracing.enable")?.toBoolean()
+                // fullTracing.enable is the legacy/compat name
+                ?: arguments.getBenchmarkArgument("fullTracing.enable")?.toBoolean()
+                ?: false
+
+        _startupInsightsHelpUrlBase =
+            arguments.getBenchmarkArgument("startupInsights.helpUrlBase", defaultValue = null)
 
         // Transform comma-delimited list into set of suppressed errors
         // E.g. "DEBUGGABLE, UNLOCKED" -> setOf("DEBUGGABLE", "UNLOCKED")
-        suppressedErrors = arguments.getBenchmarkArgument("suppressErrors", "")
-            .split(',')
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .toSet()
+        suppressedErrors =
+            arguments
+                .getBenchmarkArgument("suppressErrors", "")
+                .split(',')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .toSet()
 
-        enabledRules = arguments.getBenchmarkArgument(
-            key = "enabledRules",
-            defaultValue = RuleType.values().joinToString(separator = ",") { it.toString() }
-        ).run {
-            if (this.lowercase() == "none") {
-                emptySet()
-            } else {
-                // parse comma-delimited list
-                try {
-                    this.split(',')
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
-                        .map { arg ->
-                            RuleType.values().find { arg.lowercase() == it.toString().lowercase() }
-                                ?: throw Throwable("unable to find $arg")
+        skipBenchmarksOnEmulator =
+            arguments.getBenchmarkArgument("skipBenchmarksOnEmulator")?.toBoolean() ?: false
+
+        enabledRules =
+            arguments
+                .getBenchmarkArgument(
+                    key = "enabledRules",
+                    defaultValue = RuleType.values().joinToString(separator = ",") { it.toString() }
+                )
+                .run {
+                    if (this.lowercase() == "none") {
+                        emptySet()
+                    } else {
+                        // parse comma-delimited list
+                        try {
+                            this.split(',')
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                                .map { arg ->
+                                    RuleType.values().find {
+                                        arg.lowercase() == it.toString().lowercase()
+                                    } ?: throw Throwable("unable to find $arg")
+                                }
+                                .toSet()
+                        } catch (e: Throwable) {
+                            // defer parse error, so it doesn't show up as a missing class
+                            val allRules = RuleType.values()
+                            val allRulesString = allRules.joinToString(",") { it.toString() }
+                            error =
+                                "unable to parse enabledRules='$this', should be 'None' or" +
+                                    " comma-separated list of supported ruletypes: $allRulesString"
+                            allRules
+                                .toSet() // don't filter tests, so we have an opportunity to throw
                         }
-                        .toSet()
-                } catch (e: Throwable) {
-                    // defer parse error, so it doesn't show up as a missing class
-                    val allRules = RuleType.values()
-                    val allRulesString = allRules.joinToString(",") { it.toString() }
-                    error = "unable to parse enabledRules='$this', should be 'None' or" +
-                        " comma-separated list of supported ruletypes: $allRulesString"
-                    allRules.toSet() // don't filter tests, so we have an opportunity to throw
+                    }
                 }
-            }
-        }
 
         // compilation defaults to disabled if dryRunMode is on
         enableCompilation =
             arguments.getBenchmarkArgument("compilation.enabled")?.toBoolean() ?: !dryRunMode
 
-        _profiler = arguments.getProfiler(outputEnable)
-        profilerSampleFrequency =
-            arguments.getBenchmarkArgument("profiling.sampleFrequency")?.ifBlank { null }
-                ?.toInt()
+        val profilerState = arguments.getProfiler(outputEnable)
+        profiler = profilerState.first
+        profilerDefault = profilerState.second
+        profilerSampleFrequencyHz =
+            arguments.getBenchmarkArgument("profiling.sampleFrequency")?.ifBlank { null }?.toInt()
                 ?: 1000
         profilerSampleDurationSeconds =
-            arguments.getBenchmarkArgument("profiling.sampleDurationSeconds")?.ifBlank { null }
-                ?.toLong()
-                ?: 5
-        if (_profiler != null) {
+            arguments
+                .getBenchmarkArgument("profiling.sampleDurationSeconds")
+                ?.ifBlank { null }
+                ?.toLong() ?: 5
+        profilerSkipWhenDurationRisksAnr =
+            arguments.getBenchmarkArgument("profiling.skipWhenDurationRisksAnr")?.toBoolean()
+                ?: true
+        profilerPerfCompareEnable =
+            arguments.getBenchmarkArgument("profiling.perfCompare.enable")?.toBoolean() ?: false
+        if (profiler != null) {
             Log.d(
                 BenchmarkState.TAG,
-                "Profiler ${_profiler.javaClass.simpleName}, freq " +
-                    "$profilerSampleFrequency, duration $profilerSampleDurationSeconds"
+                "Profiler ${profiler.javaClass.simpleName}, freq " +
+                    "$profilerSampleFrequencyHz, duration $profilerSampleDurationSeconds"
             )
         }
 
+        val cpuEventsDesired =
+            arguments.getBenchmarkArgument("cpuEventCounter.enable")?.toBoolean() ?: false
+        cpuEventCounterEnable =
+            when {
+                !cpuEventsDesired -> {
+                    false // not attempting to use
+                }
+                dryRunMode -> {
+                    Log.d(
+                        BenchmarkState.TAG,
+                        "Ignoring request for cpuEventCounter due to dryRunMode=true"
+                    )
+                    false
+                }
+                !DeviceInfo.supportsCpuEventCounters -> {
+                    Log.d(
+                        BenchmarkState.TAG,
+                        "Ignoring request for cpuEventCounter due to unrooted device"
+                    )
+                    false
+                }
+                else -> true
+            }
+        cpuEventCounterMask =
+            if (cpuEventCounterEnable) {
+                arguments
+                    .getBenchmarkArgument(
+                        "cpuEventCounter.events",
+                        "Instructions,CpuCycles,BranchMisses"
+                    )
+                    .split(",")
+                    .map { eventName -> CpuEventCounter.Event.valueOf(eventName) }
+                    .getFlags()
+            } else {
+                0x0
+            }
+        if (cpuEventCounterEnable && cpuEventCounterMask == 0x0) {
+            error =
+                "Must set a cpu event counters mask to use counters." +
+                    " See CpuEventCounters.Event for flag definitions."
+        }
+
         thermalThrottleSleepDurationSeconds =
-            arguments.getBenchmarkArgument("thermalThrottle.sleepDurationSeconds")?.ifBlank { null }
-                ?.toLong()
-                ?: 90
+            arguments
+                .getBenchmarkArgument("thermalThrottle.sleepDurationSeconds")
+                ?.ifBlank { null }
+                ?.toLong() ?: 90
 
         additionalTestOutputDir = arguments.getString("additionalTestOutputDir")
         Log.d(BenchmarkState.TAG, "additionalTestOutputDir=$additionalTestOutputDir")
@@ -192,11 +322,53 @@ object Arguments {
         killProcessDelayMillis =
             arguments.getBenchmarkArgument("killProcessDelayMillis")?.toLong() ?: 0L
 
-        enableStartupProfiles =
-            arguments.getBenchmarkArgument("startupProfiles.enable")?.toBoolean() ?: false
+        saveProfileWaitMillis =
+            arguments.getBenchmarkArgument("saveProfileWaitMillis")?.toLong() ?: 1_000L
 
-        strictStartupProfiles =
-            arguments.getBenchmarkArgument("startupProfiles.strict")?.toBoolean() ?: false
+        dropShadersEnable =
+            arguments.getBenchmarkArgument("dropShaders.enable")?.toBoolean() ?: true
+        dropShadersThrowOnFailure =
+            arguments.getBenchmarkArgument("dropShaders.throwOnFailure")?.toBoolean() ?: true
+
+        measureRepeatedOnMainThrowOnDeadline =
+            arguments
+                .getBenchmarkArgument("measureRepeatedOnMainThread.throwOnDeadline")
+                ?.toBoolean() ?: true
+
+        requireAot = arguments.getBenchmarkArgument("requireAot")?.toBoolean() ?: false
+        requireJitDisabledIfRooted =
+            arguments.getBenchmarkArgument("requireJitDisabledIfRooted")?.toBoolean() ?: false
+
+        throwOnMainThreadMeasureRepeated =
+            arguments.getBenchmarkArgument("throwOnMainThreadMeasureRepeated")?.toBoolean() ?: false
+
+        killExistingPerfettoRecordings =
+            arguments.getBenchmarkArgument("killExistingPerfettoRecordings")?.toBoolean()
+                // below is a temporary workaround for compat, see b/399818365
+                ?: arguments.getString("killExistingPerfettoRecordings")?.toBoolean()
+                ?: true
+
+        if (arguments.getString("orchestratorService") != null) {
+            InstrumentationResults.scheduleIdeWarningOnNextReport(
+                """
+                    AndroidX Benchmark does not support running with the AndroidX Test Orchestrator.
+
+                    AndroidX benchmarks (micro and macro) produce one JSON file per test module,
+                    which together with Test Orchestrator restarting the process frequently causes
+                    benchmark output JSON files to be repeatedly overwritten during the test.
+                    """
+                    .trimIndent()
+            )
+        }
+        payload = arguments.getBenchmarkArgumentsWithPrefix("output.payload")
+    }
+
+    fun macrobenchMethodTracingEnabled(): Boolean {
+        return when {
+            dryRunMode -> false
+            profilerDefault -> false // don't enable tracing by default in macrobench
+            else -> profiler == MethodTracing
+        }
     }
 
     fun throwIfError() {
@@ -204,4 +376,21 @@ object Arguments {
             throw AssertionError(error)
         }
     }
+
+    /**
+     * Retrieves the target app package name from the instrumentation runner arguments. Note that
+     * this is supported only when MacrobenchmarkRule and BaselineProfileRule are used with the
+     * baseline profile gradle plugin. This feature requires AGP 8.3.0-alpha10 as minimum version.
+     */
+    fun getTargetPackageNameOrThrow(): String =
+        targetPackageName
+            ?: throw IllegalArgumentException(
+                """
+        Can't retrieve the target package name from instrumentation arguments.
+        This feature requires the baseline profile gradle plugin with minimum version 1.3.0-alpha01
+        and the Android Gradle Plugin minimum version 8.3.0-alpha10.
+        Please ensure your project has the correct versions in order to use this feature.
+    """
+                    .trimIndent()
+            )
 }

@@ -16,11 +16,9 @@
 
 package androidx.wear.tiles.material;
 
-import static androidx.wear.tiles.ColorBuilders.argb;
-
 import androidx.annotation.ColorInt;
-import androidx.annotation.NonNull;
-import androidx.wear.tiles.ColorBuilders.ColorProp;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Represents the background and content colors used in a chip Tiles component.
@@ -28,12 +26,17 @@ import androidx.wear.tiles.ColorBuilders.ColorProp;
  * <p>See {@link ChipDefaults#PRIMARY_COLORS} for the default colors used in a primary styled {@link
  * Chip}. See {@link ChipDefaults#SECONDARY_COLORS} for the default colors used in a secondary
  * styled {@link Chip}.
+ *
+ * @deprecated Use the new class {@link androidx.wear.protolayout.material.ChipColors} which
+ *     provides the same API and functionality.
  */
+@Deprecated
+@SuppressWarnings("deprecation")
 public class ChipColors {
-    @NonNull private final ColorProp mBackgroundColor;
-    @NonNull private final ColorProp mIconColor;
-    @NonNull private final ColorProp mContentColor;
-    @NonNull private final ColorProp mSecondaryContentColor;
+    private final androidx.wear.tiles.ColorBuilders.@NonNull ColorProp mBackgroundColor;
+    private final androidx.wear.tiles.ColorBuilders.@NonNull ColorProp mIconColor;
+    private final androidx.wear.tiles.ColorBuilders.@NonNull ColorProp mContentColor;
+    private final androidx.wear.tiles.ColorBuilders.@NonNull ColorProp mSecondaryContentColor;
 
     /**
      * Constructor for the {@link ChipColors} object.
@@ -52,10 +55,10 @@ public class ChipColors {
             @ColorInt int iconColor,
             @ColorInt int contentColor,
             @ColorInt int secondaryContentColor) {
-        mBackgroundColor = argb(backgroundColor);
-        mIconColor = argb(iconColor);
-        mContentColor = argb(contentColor);
-        mSecondaryContentColor = argb(secondaryContentColor);
+        mBackgroundColor = androidx.wear.tiles.ColorBuilders.argb(backgroundColor);
+        mIconColor = androidx.wear.tiles.ColorBuilders.argb(iconColor);
+        mContentColor = androidx.wear.tiles.ColorBuilders.argb(contentColor);
+        mSecondaryContentColor = androidx.wear.tiles.ColorBuilders.argb(secondaryContentColor);
     }
 
     /**
@@ -67,10 +70,10 @@ public class ChipColors {
      *     Should be in ARGB format.
      */
     public ChipColors(@ColorInt int backgroundColor, @ColorInt int contentColor) {
-        mBackgroundColor = argb(backgroundColor);
-        mIconColor = argb(contentColor);
-        mContentColor = argb(contentColor);
-        mSecondaryContentColor = argb(contentColor);
+        mBackgroundColor = androidx.wear.tiles.ColorBuilders.argb(backgroundColor);
+        mIconColor = androidx.wear.tiles.ColorBuilders.argb(contentColor);
+        mContentColor = androidx.wear.tiles.ColorBuilders.argb(contentColor);
+        mSecondaryContentColor = androidx.wear.tiles.ColorBuilders.argb(contentColor);
     }
 
     /**
@@ -83,10 +86,10 @@ public class ChipColors {
      *     component.
      */
     public ChipColors(
-            @NonNull ColorProp backgroundColor,
-            @NonNull ColorProp iconColor,
-            @NonNull ColorProp contentColor,
-            @NonNull ColorProp secondaryContentColor) {
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp backgroundColor,
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp iconColor,
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp contentColor,
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp secondaryContentColor) {
         mBackgroundColor = backgroundColor;
         mIconColor = iconColor;
         mContentColor = contentColor;
@@ -99,7 +102,9 @@ public class ChipColors {
      * @param backgroundColor The background color to be used for a chip Tiles component.
      * @param contentColor The content color to be used for all items inside a chip Tiles component.
      */
-    public ChipColors(@NonNull ColorProp backgroundColor, @NonNull ColorProp contentColor) {
+    public ChipColors(
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp backgroundColor,
+            androidx.wear.tiles.ColorBuilders.@NonNull ColorProp contentColor) {
         mBackgroundColor = backgroundColor;
         mIconColor = contentColor;
         mContentColor = contentColor;
@@ -110,8 +115,7 @@ public class ChipColors {
      * Returns a {@link ChipColors} object, using the current Primary colors from the given {@link
      * Colors}.
      */
-    @NonNull
-    public static ChipColors primaryChipColors(@NonNull Colors colors) {
+    public static @NonNull ChipColors primaryChipColors(@NonNull Colors colors) {
         return new ChipColors(colors.getPrimary(), colors.getOnPrimary());
     }
 
@@ -119,32 +123,27 @@ public class ChipColors {
      * Returns a {@link ChipColors} object, using the current Surface colors from the given {@link
      * Colors}.
      */
-    @NonNull
-    public static ChipColors secondaryChipColors(@NonNull Colors colors) {
+    public static @NonNull ChipColors secondaryChipColors(@NonNull Colors colors) {
         return new ChipColors(colors.getSurface(), colors.getOnSurface());
     }
 
     /** The background color to be used on a chip Tiles components. */
-    @NonNull
-    public ColorProp getBackgroundColor() {
+    public androidx.wear.tiles.ColorBuilders.@NonNull ColorProp getBackgroundColor() {
         return mBackgroundColor;
     }
 
     /** The icon color to be used on a chip Tiles components. */
-    @NonNull
-    public ColorProp getIconColor() {
+    public androidx.wear.tiles.ColorBuilders.@NonNull ColorProp getIconColor() {
         return mIconColor;
     }
 
     /** The main text color to be used on a chip Tiles components. */
-    @NonNull
-    public ColorProp getContentColor() {
+    public androidx.wear.tiles.ColorBuilders.@NonNull ColorProp getContentColor() {
         return mContentColor;
     }
 
     /** The label text color to be used on a chip Tiles components. */
-    @NonNull
-    public ColorProp getSecondaryContentColor() {
+    public androidx.wear.tiles.ColorBuilders.@NonNull ColorProp getSecondaryContentColor() {
         return mSecondaryContentColor;
     }
 }

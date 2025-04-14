@@ -23,15 +23,11 @@ import androidx.paging.PagingState
 import androidx.paging.rxjava2.RxPagingSource
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
-import retrofit2.HttpException
 import java.io.IOException
+import retrofit2.HttpException
 
 private class RxBackendService {
-    data class RemoteResult(
-        val items: List<Item>,
-        val prev: String,
-        val next: String
-    )
+    data class RemoteResult(val items: List<Item>, val prev: String, val next: String)
 
     @Suppress("UNUSED_PARAMETER")
     fun searchUsers(searchTerm: String, pageKey: String?): Single<RemoteResult> {
@@ -45,10 +41,8 @@ fun rxPagingSourceSample() {
      * Sample RxPagingSource which loads `Item`s from network requests via Retrofit to a backend
      * service, which uses String tokens to load pages (each response has a next/previous token).
      */
-    class MyPagingSource(
-        val myBackend: RxBackendService,
-        val searchTerm: String
-    ) : RxPagingSource<String, Item>() {
+    class MyPagingSource(val myBackend: RxBackendService, val searchTerm: String) :
+        RxPagingSource<String, Item>() {
         override fun loadSingle(params: LoadParams<String>): Single<LoadResult<String, Item>> {
             return myBackend
                 // Single-based network load

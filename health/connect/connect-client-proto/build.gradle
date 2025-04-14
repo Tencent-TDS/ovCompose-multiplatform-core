@@ -14,72 +14,42 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
-
-/*
- * All the following content was derived from :datastore:datastore-core.
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
  */
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
+    id("AndroidXRepackagePlugin")
     id("java-library")
     id("com.google.protobuf")
 }
 
+repackage {
+    // Must match what is in health/connect/connect-client-external-protobuf/build.gradle
+    addRelocation {
+        sourcePackage = "com.google.protobuf"
+        targetPackage =  "androidx.health.platform.client.proto"
+    }
+}
+
 dependencies {
-    implementation(libs.protobufLite)
+    // Must be compileOnly to not bring in protobufLite in runtime
+    // Repackaged protobufLite brought in by
+    // project(":health:connect:connect-client-external-protobuf") and used at runtime
+    compileOnly(libs.protobufLite)
+    api(project(":health:connect:connect-client-external-protobuf"))
 }
-
-sourceSets {
-    main.java.srcDirs += "$buildDir/generated/source/proto"
-}
-
-protobuf {
-    protoc {
-        artifact = libs.protobufCompiler.get()
-    }
-    generateProtoTasks {
-        ofSourceSet("main").each { task ->
-            sourceSets.main.java.srcDir(task)
-        }
-        all().each { task ->
-            task.builtins {
-                java {
-                    option "lite"
-                }
-            }
-        }
-    }
-}
-
-afterEvaluate {
-    lint {
-        lintOptions {
-            // protobuf generates unannotated and synthetic accessor methods
-            disable("UnknownNullness", "SyntheticAccessor")
-        }
-    }
-}
-
-// Create export artifact for for JarJaring
-def preferencesProtoJarJarTask = tasks.register("exportJar", Jar) {
-    archiveBaseName.set("export")
-    from(sourceSets.main.output)
-    // The proto-lite dependency includes .proto files, which are not used by datastore. When apps
-    // depend on datastore as well as proto-lite directly, these files conflict since jarjar only
-    // renames the java classes. Remove them here since they are unused.
-    exclude("**/*.proto")
-
-    from(zipTree(configurations.detachedConfiguration(
-            dependencies.create(libs.protobufLite.get())).getSingleFile()))
-}
-
-def jarjarConf = configurations.register("export")
-artifacts.add(jarjarConf.name, preferencesProtoJarJarTask.flatMap { it.archiveFile })
 
 androidx {
-    name = "AndroidX Health Connect Client Proto"
-    publish = Publish.NONE
+    name = "Health Connect Client Proto"
+    type = SoftwareType.PUBLISHED_PROTO_LIBRARY
     inceptionYear = "2022"
     description = "Proto files for health-connect-client"
 }

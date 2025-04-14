@@ -14,21 +14,41 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
-    id("kotlin")
 }
 
-dependencies {
-    api(libs.kotlinStdlib)
-    api(libs.kotlinCoroutinesCore)
-    api(libs.kotlinCoroutinesTest)
-    api(libs.junit)
+androidXMultiplatform {
+    ios()
+    jvm()
+    linux()
+    mac()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                api(libs.kotlinStdlib)
+                api(libs.kotlinCoroutinesCore)
+                api(libs.kotlinCoroutinesTest)
+            }
+        }
+        jvmMain {
+            dependencies {
+                api(libs.junit)
+            }
+        }
+    }
 }
 
 androidx {
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.INTERNAL_TEST_LIBRARY
 }

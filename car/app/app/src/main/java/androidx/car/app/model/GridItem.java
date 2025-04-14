@@ -24,16 +24,16 @@ import android.annotation.SuppressLint;
 import android.os.Looper;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.Screen;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
-import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.model.constraints.CarIconConstraints;
 import androidx.car.app.model.constraints.CarTextConstraints;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -47,8 +47,6 @@ import java.util.Objects;
 public final class GridItem implements Item {
     /**
      * The type of images supported within grid items.
-     *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @IntDef(value = {IMAGE_TYPE_ICON, IMAGE_TYPE_LARGE})
@@ -78,18 +76,14 @@ public final class GridItem implements Item {
     public static final int IMAGE_TYPE_LARGE = (1 << 1);
 
     private final boolean mIsLoading;
-    @Nullable
-    private final CarText mTitle;
-    @Nullable
-    private final CarText mText;
-    @Nullable
-    private final CarIcon mImage;
+    private final @Nullable CarText mTitle;
+    private final @Nullable CarText mText;
+    private final @Nullable CarIcon mImage;
     @GridItemImageType
     private final int mImageType;
-    @Nullable
-    private final OnClickDelegate mOnClickDelegate;
-    @Nullable
-    private final Badge mBadge;
+    private final @Nullable OnClickDelegate mOnClickDelegate;
+    private final @Nullable Badge mBadge;
+    private final boolean mIndexable;
 
     /**
      * Returns whether the grid item is in a loading state.
@@ -105,8 +99,7 @@ public final class GridItem implements Item {
      *
      * @see Builder#setTitle(CharSequence)
      */
-    @Nullable
-    public CarText getTitle() {
+    public @Nullable CarText getTitle() {
         return mTitle;
     }
 
@@ -116,8 +109,7 @@ public final class GridItem implements Item {
      *
      * @see Builder#setText(CharSequence)
      */
-    @Nullable
-    public CarText getText() {
+    public @Nullable CarText getText() {
         return mText;
     }
 
@@ -126,8 +118,7 @@ public final class GridItem implements Item {
      *
      * @see Builder#setImage(CarIcon)
      */
-    @Nullable
-    public CarIcon getImage() {
+    public @Nullable CarIcon getImage() {
         return mImage;
     }
 
@@ -141,8 +132,7 @@ public final class GridItem implements Item {
      * Returns the {@link OnClickDelegate} to be called back when the grid item is clicked or
      * {@code null} if the grid item is non-clickable.
      */
-    @Nullable
-    public OnClickDelegate getOnClickDelegate() {
+    public @Nullable OnClickDelegate getOnClickDelegate() {
         return mOnClickDelegate;
     }
 
@@ -153,15 +143,22 @@ public final class GridItem implements Item {
      * @see Builder#setBadge(Badge)
      */
     @ExperimentalCarApi
-    @Nullable
-    @RequiresCarApi(7)
-    public Badge getBadge() {
+    public @Nullable Badge getBadge() {
         return mBadge;
     }
 
+    /**
+     * Returns whether this item can be included in indexed lists.
+     *
+     * @see Builder#setIndexable(boolean)
+     */
+    @ExperimentalCarApi
+    public boolean isIndexable() {
+        return mIndexable;
+    }
+
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         return "[title: "
                 + CarText.toShortString(mTitle)
                 + ", text: "
@@ -177,8 +174,15 @@ public final class GridItem implements Item {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mIsLoading, mTitle, mImage, mImageType, mOnClickDelegate == null,
-                mBadge);
+        return Objects.hash(
+                mIsLoading,
+                mTitle,
+                mImage,
+                mImageType,
+                mOnClickDelegate == null,
+                mBadge,
+                mIndexable
+        );
     }
 
     @Override
@@ -197,7 +201,8 @@ public final class GridItem implements Item {
                 && Objects.equals(mImage, otherGridItem.mImage)
                 && Objects.equals(mOnClickDelegate == null, otherGridItem.mOnClickDelegate == null)
                 && Objects.equals(mBadge, otherGridItem.mBadge)
-                && mImageType == otherGridItem.mImageType;
+                && mImageType == otherGridItem.mImageType
+                && mIndexable == otherGridItem.mIndexable;
     }
 
     GridItem(Builder builder) {
@@ -208,6 +213,7 @@ public final class GridItem implements Item {
         mImageType = builder.mImageType;
         mOnClickDelegate = builder.mOnClickDelegate;
         mBadge = builder.mBadge;
+        mIndexable = builder.mIndexable;
     }
 
     /** Constructs an empty instance, used by serialization code. */
@@ -219,23 +225,20 @@ public final class GridItem implements Item {
         mImageType = IMAGE_TYPE_LARGE;
         mOnClickDelegate = null;
         mBadge = null;
+        mIndexable = true;
     }
 
     /** A builder of {@link GridItem}. */
     public static final class Builder {
-        @Nullable
-        CarText mTitle;
-        @Nullable
-        CarText mText;
-        @Nullable
-        CarIcon mImage;
+        @Nullable CarText mTitle;
+        @Nullable CarText mText;
+        @Nullable CarIcon mImage;
         @GridItemImageType
         int mImageType = IMAGE_TYPE_LARGE;
-        @Nullable
-        OnClickDelegate mOnClickDelegate;
+        @Nullable OnClickDelegate mOnClickDelegate;
         boolean mIsLoading;
-        @Nullable
-        Badge mBadge;
+        @Nullable Badge mBadge;
+        boolean mIndexable = true;
 
         /**
          * Sets whether the item is in a loading state.
@@ -245,8 +248,7 @@ public final class GridItem implements Item {
          * the new template content to the host once the data is ready. If set to {@code false},
          * the UI shows the item  contents.
          */
-        @NonNull
-        public Builder setLoading(boolean isLoading) {
+        public @NonNull Builder setLoading(boolean isLoading) {
             mIsLoading = isLoading;
             return this;
         }
@@ -254,40 +256,36 @@ public final class GridItem implements Item {
         /**
          * Sets the title of the {@link GridItem}.
          *
-         * <p>Only {@link DistanceSpan}s and {@link DurationSpan}s are supported in the input
-         * string.
+         * <p>{@code title} must conform to {@link CarTextConstraints.TEXT_ONLY} in Car API 7 and
+         * below, and {@link CarTextConstraints.TEXT_AND_ICON} in Car API 8 and above.
          *
-         * @throws NullPointerException     if {@code title} is {@code null}
-         * @throws IllegalArgumentException if {@code title} is empty, of if it contains
-         *                                  unsupported spans
+         * @throws IllegalArgumentException if {@code title} contains unsupported spans
          */
-        @NonNull
-        public Builder setTitle(@NonNull CharSequence title) {
-            CarText titleText = CarText.create(requireNonNull(title));
-            if (titleText.isEmpty()) {
-                throw new IllegalArgumentException("The title cannot be null or empty");
+        public @NonNull Builder setTitle(@Nullable CharSequence title) {
+            if (title == null) {
+                mTitle = null;
+                return this;
             }
-            CarTextConstraints.TEXT_ONLY.validateOrThrow(titleText);
+            CarText titleText = CarText.create(title);
+            CarTextConstraints.TEXT_AND_ICON.validateOrThrow(titleText);
             mTitle = titleText;
             return this;
         }
 
         /**
-         * Sets the title of the {@link GridItem}, with support for multiple length variants.,
+         * Sets the title of the {@link GridItem}, with support for multiple length variants.
          *
-         * <p>Only {@link DistanceSpan}s and {@link DurationSpan}s are supported in the input
-         * string.
+         * <p>{@code title} must conform to {@link CarTextConstraints.TEXT_ONLY} in Car API 7 and
+         * below, and {@link CarTextConstraints.TEXT_AND_ICON} in Car API 8 and above.
          *
-         * @throws NullPointerException     if {@code title} is {@code null}
-         * @throws IllegalArgumentException if {@code title} is empty, of if it contains
-         *                                  unsupported spans
+         * @throws IllegalArgumentException if {@code title} contains unsupported spans
          */
-        @NonNull
-        public Builder setTitle(@NonNull CarText title) {
-            if (CarText.isNullOrEmpty(title)) {
-                throw new IllegalArgumentException("The title cannot be null or empty");
+        public @NonNull Builder setTitle(@Nullable CarText title) {
+            if (title == null) {
+                mTitle = null;
+                return this;
             }
-            CarTextConstraints.TEXT_ONLY.validateOrThrow(title);
+            CarTextConstraints.TEXT_AND_ICON.validateOrThrow(title);
             mTitle = title;
             return this;
         }
@@ -295,10 +293,9 @@ public final class GridItem implements Item {
         /**
          * Sets a secondary text string to the grid item that is displayed below the title.
          *
-         * <p>The text can be customized with {@link ForegroundCarColorSpan},
-         * {@link androidx.car.app.model.DistanceSpan}, and
-         * {@link androidx.car.app.model.DurationSpan} instances, any other spans will be ignored
-         * by the host.
+         * <p>{@code text} must conform to {@link CarTextConstraints.TEXT_WITH_COLORS} in Car API
+         * 7 and below, and {@link CarTextConstraints.TEXT_WITH_COLORS_AND_ICON} in Car API 8 and
+         * above.
          *
          * <h2>Text Wrapping</h2>
          *
@@ -307,10 +304,9 @@ public final class GridItem implements Item {
          * @throws NullPointerException     if {@code text} is {@code null}
          * @throws IllegalArgumentException if {@code text} contains unsupported spans
          */
-        @NonNull
-        public Builder setText(@NonNull CharSequence text) {
+        public @NonNull Builder setText(@NonNull CharSequence text) {
             mText = CarText.create(requireNonNull(text));
-            CarTextConstraints.TEXT_WITH_COLORS.validateOrThrow(mText);
+            CarTextConstraints.TEXT_WITH_COLORS_AND_ICON.validateOrThrow(mText);
             return this;
         }
 
@@ -318,10 +314,9 @@ public final class GridItem implements Item {
          * Sets a secondary text string to the grid item that is displayed below the title, with
          * support for multiple length variants.
          *
-         * <p>The text can be customized with {@link ForegroundCarColorSpan},
-         * {@link androidx.car.app.model.DistanceSpan}, and
-         * {@link androidx.car.app.model.DurationSpan} instances, any other spans will be ignored
-         * by the host.
+         * <p>{@code text} must conform to {@link CarTextConstraints.TEXT_WITH_COLORS} in Car API
+         * 7 and below, and {@link CarTextConstraints.TEXT_WITH_COLORS_AND_ICON} in Car API 8 and
+         * above.
          *
          * <h2>Text Wrapping</h2>
          *
@@ -330,10 +325,9 @@ public final class GridItem implements Item {
          * @throws NullPointerException     if {@code text} is {@code null}
          * @throws IllegalArgumentException if {@code text} contains unsupported spans
          */
-        @NonNull
-        public Builder setText(@NonNull CarText text) {
+        public @NonNull Builder setText(@NonNull CarText text) {
             mText = requireNonNull(text);
-            CarTextConstraints.TEXT_WITH_COLORS.validateOrThrow(mText);
+            CarTextConstraints.TEXT_WITH_COLORS_AND_ICON.validateOrThrow(mText);
             return this;
         }
 
@@ -343,9 +337,45 @@ public final class GridItem implements Item {
          * @throws NullPointerException if {@code image} is {@code null}
          * @see #setImage(CarIcon, int)
          */
-        @NonNull
-        public Builder setImage(@NonNull CarIcon image) {
+        public @NonNull Builder setImage(@NonNull CarIcon image) {
             return setImage(requireNonNull(image), IMAGE_TYPE_LARGE);
+        }
+
+        /**
+         * Sets an image to show in the grid item with the given {@link Badge} to be displayed over
+         * the image, with the default size {@link #IMAGE_TYPE_LARGE}.
+         *
+         * <p>A dot badge denotes some sort of call to action or notification and is
+         * displayed in the upper right corner of the image. An icon badge gives additional
+         * context about the image and is displayed in the lower right corner.
+         *
+         * @throws NullPointerException if {@code image} or {@code badge} is {@code null}
+         * @see #setImage(CarIcon, int)
+         */
+        @ExperimentalCarApi
+        public @NonNull Builder setImage(@NonNull CarIcon image, @NonNull Badge badge) {
+            requireNonNull(badge);
+            mBadge = badge;
+            return setImage(requireNonNull(image));
+        }
+
+        /**
+         * Sets an image to show in the grid item with the given {@code imageType} and given
+         * {@link Badge} to be displayed over the image.
+         *
+         * <p>A dot badge denotes a call to action or notification and is
+         * displayed in the upper right corner of the image. An icon badge gives additional
+         * context about the image and is displayed in the lower right corner.
+         *
+         * @throws NullPointerException if {@code image} or {@code badge} is {@code null}
+         * @see #setImage(CarIcon, int)
+         */
+        @ExperimentalCarApi
+        public @NonNull Builder setImage(@NonNull CarIcon image, @GridItemImageType int imageType,
+                @NonNull Badge badge) {
+            requireNonNull(badge);
+            mBadge = badge;
+            return setImage(requireNonNull(image), imageType);
         }
 
         /**
@@ -369,8 +399,7 @@ public final class GridItem implements Item {
          * @param imageType one of {@link #IMAGE_TYPE_ICON} or {@link #IMAGE_TYPE_LARGE}
          * @throws NullPointerException if {@code image} is {@code null}
          */
-        @NonNull
-        public Builder setImage(@NonNull CarIcon image, @GridItemImageType int imageType) {
+        public @NonNull Builder setImage(@NonNull CarIcon image, @GridItemImageType int imageType) {
             CarIconConstraints.UNCONSTRAINED.validateOrThrow(requireNonNull(image));
             mImage = image;
             mImageType = imageType;
@@ -386,44 +415,47 @@ public final class GridItem implements Item {
          *
          * @throws NullPointerException if {@code onClickListener} is {@code null}
          */
-        @NonNull
         @SuppressLint({"MissingGetterMatchingBuilder", "ExecutorRegistration"})
-        public Builder setOnClickListener(@NonNull OnClickListener onClickListener) {
+        public @NonNull Builder setOnClickListener(@NonNull OnClickListener onClickListener) {
             mOnClickDelegate = OnClickDelegateImpl.create(onClickListener);
             return this;
         }
 
         /**
-         * Sets a {@link Badge} to be displayed over the grid item image.
+         * Sets whether this item can be included in indexed lists. By default, this is set to
+         * {@code true}.
          *
-         * <p>A badge denotes some sort of call to action, notification, alert, etc.
+         * <p>The host creates indexed lists to help users navigate through long lists more easily
+         * by sorting, filtering, or some other means.
          *
-         * <p>A badge can only be set if an image is also set on the grid item.
+         * <p>For example, a media app may, by default, show a user's playlists sorted by date
+         * created. If the app provides these playlists via the {@code SectionedItemTemplate} and
+         * enables {@code #isAlphabeticalIndexingAllowed}, the user will be able to select a letter
+         * on a keyboard to jump to their playlists that start with that letter. When this happens,
+         * the list is reconstructed and sorted alphabetically, then shown to the user, jumping down
+         * to the letter. Items that are set to {@code #setIndexable(false)}, do not show up in this
+         * new sorted list. Sticking with the media example, a media app may choose to hide things
+         * like "autogenerated playlists" from the list and only keep user created playlists.
          *
-         * @param badge the {@link Badge} to display.
+         * <p>Individual items can be set to be included or excluded from filtered lists, but it's
+         * also possible to enable/disable the creation of filtered lists as a whole via the
+         * template's API (eg. {@code SectionedItemTemplate
+         * .Builder#setAlphabeticalIndexingAllowed(Boolean)}).
          */
-        @NonNull
         @ExperimentalCarApi
-        @RequiresCarApi(7)
-        public Builder setBadge(@NonNull Badge badge) {
-            mBadge = badge;
+        public @NonNull Builder setIndexable(boolean indexable) {
+            mIndexable = indexable;
             return this;
         }
 
         /**
          * Constructs the {@link GridItem} defined by this builder.
          *
-         * @throws IllegalStateException if the grid item's title is not set, if the grid item's
-         *                               image is set when it is loading or vice versa, if
-         *                               the grid item is loading but the click listener is set,
-         *                               or if a badge is set and an image is not set
+         * @throws IllegalStateException if the grid item's image is set when it is loading or vice
+         *                               versa, if the grid item is loading but the click listener
+         *                               is set, or if a badge is set and an image is not set
          */
-        @NonNull
-        public GridItem build() {
-            if (mTitle == null) {
-                throw new IllegalStateException("A title must be set on the grid item");
-            }
-
+        public @NonNull GridItem build() {
             if (mIsLoading == (mImage != null)) {
                 throw new IllegalStateException(
                         "When a grid item is loading, the image must not be set and vice versa");

@@ -21,12 +21,14 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.graphics.drawable.IconCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * Provides an immutable reference to an entity that appears repeatedly on different surfaces of the
@@ -44,8 +46,7 @@ public class Person {
      * Extracts and returns the {@link Person} written to the {@code bundle}. A bundle can be
      * created from a {@link Person} using {@link #toBundle()}.
      */
-    @NonNull
-    public static Person fromBundle(@NonNull Bundle bundle) {
+    public static @NonNull Person fromBundle(@NonNull Bundle bundle) {
         Bundle iconBundle = bundle.getBundle(ICON_KEY);
         return new Builder()
                 .setName(bundle.getCharSequence(NAME_KEY))
@@ -64,9 +65,8 @@ public class Person {
      *
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @NonNull
     @RequiresApi(22)
-    public static Person fromPersistableBundle(@NonNull PersistableBundle bundle) {
+    public static @NonNull Person fromPersistableBundle(@NonNull PersistableBundle bundle) {
         return Api22Impl.fromPersistableBundle(bundle);
     }
 
@@ -76,19 +76,18 @@ public class Person {
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @RequiresApi(28)
-    @NonNull
-    public static Person fromAndroidPerson(@NonNull android.app.Person person) {
+    public static @NonNull Person fromAndroidPerson(android.app.@NonNull Person person) {
         return Api28Impl.fromAndroidPerson(person);
     }
 
     @SuppressWarnings("WeakerAccess") /* synthetic access */
-    @Nullable CharSequence mName;
+@Nullable CharSequence mName;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
-    @Nullable IconCompat mIcon;
+@Nullable IconCompat mIcon;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
-    @Nullable String mUri;
+@Nullable String mUri;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
-    @Nullable String mKey;
+@Nullable String mKey;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     boolean mIsBot;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
@@ -108,8 +107,7 @@ public class Person {
      * Writes and returns a new {@link Bundle} that represents this {@link Person}. This bundle can
      * be converted back by using {@link #fromBundle(Bundle)}.
      */
-    @NonNull
-    public Bundle toBundle() {
+    public @NonNull Bundle toBundle() {
         Bundle result = new Bundle();
         result.putCharSequence(NAME_KEY, mName);
         result.putBundle(ICON_KEY, mIcon != null ? mIcon.toBundle() : null);
@@ -127,15 +125,13 @@ public class Person {
      *
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @NonNull
     @RequiresApi(22)
-    public PersistableBundle toPersistableBundle() {
+    public @NonNull PersistableBundle toPersistableBundle() {
         return Api22Impl.toPersistableBundle(this);
     }
 
     /** Creates and returns a new {@link Builder} initialized with this Person's data. */
-    @NonNull
-    public Builder toBuilder() {
+    public @NonNull Builder toBuilder() {
         return new Builder(this);
     }
 
@@ -144,9 +140,8 @@ public class Person {
      *
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @NonNull
     @RequiresApi(28)
-    public android.app.Person toAndroidPerson() {
+    public android.app.@NonNull Person toAndroidPerson() {
         return Api28Impl.toAndroidPerson(this);
     }
 
@@ -154,14 +149,12 @@ public class Person {
      * Returns the name for this {@link Person} or {@code null} if no name was provided. This could
      * be a full name, nickname, username, etc.
      */
-    @Nullable
-    public CharSequence getName() {
+    public @Nullable CharSequence getName() {
         return mName;
     }
 
     /** Returns the icon for this {@link Person} or {@code null} if no icon was provided. */
-    @Nullable
-    public IconCompat getIcon() {
+    public @Nullable IconCompat getIcon() {
         return mIcon;
     }
 
@@ -178,8 +171,7 @@ public class Person {
      * <p>*Note for these schemas, the path portion of the URI must exist in the contacts
      * database in their appropriate column, otherwise the reference should be discarded.
      */
-    @Nullable
-    public String getUri() {
+    public @Nullable String getUri() {
         return mUri;
     }
 
@@ -187,8 +179,7 @@ public class Person {
      * Returns the key for this {@link Person} or {@code null} if no key was provided. This is
      * provided as a unique identifier between other {@link Person}s.
      */
-    @Nullable
-    public String getKey() {
+    public @Nullable String getKey() {
         return mKey;
     }
 
@@ -211,9 +202,8 @@ public class Person {
     /**
      * @return the URI associated with this person, or "name:mName" otherwise
      */
-    @NonNull
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    public String resolveToLegacyUri() {
+    public @NonNull String resolveToLegacyUri() {
         if (mUri != null) {
             return mUri;
         }
@@ -221,6 +211,49 @@ public class Person {
             return "name:" + mName;
         }
         return "";
+    }
+
+    @Override
+    public boolean equals(@Nullable Object otherObject) {
+        if (otherObject == null) {
+            return false;
+        }
+
+        if (!(otherObject instanceof Person)) {
+            return false;
+        }
+
+        Person otherPerson = (Person) otherObject;
+
+        // If a unique ID was provided, use it
+        String key1 = getKey();
+        String key2 = otherPerson.getKey();
+        if (key1 != null || key2 != null) {
+            return Objects.equals(key1, key2);
+        }
+
+        // CharSequence doesn't have well-defined "equals" behavior -- convert to String instead
+        String name1 = Objects.toString(getName());
+        String name2 = Objects.toString(otherPerson.getName());
+
+        // Fallback: Compare field-by-field
+        return
+                Objects.equals(name1, name2)
+                        && Objects.equals(getUri(), otherPerson.getUri())
+                        && Objects.equals(isBot(), otherPerson.isBot())
+                        && Objects.equals(isImportant(), otherPerson.isImportant());
+    }
+
+    @Override
+    public int hashCode() {
+        // If a unique ID was provided, use it
+        String key = getKey();
+        if (key != null) {
+            return key.hashCode();
+        }
+
+        // Fallback: Use hash code for individual fields
+        return Objects.hash(getName(), getUri(), isBot(), isImportant());
     }
 
     /** Builder for the immutable {@link Person} class. */
@@ -248,8 +281,7 @@ public class Person {
          * Give this {@link Person} a name to use for display. This can be, for example, a full
          * name, nickname, username, etc.
          */
-        @NonNull
-        public Builder setName(@Nullable CharSequence name) {
+        public @NonNull Builder setName(@Nullable CharSequence name) {
             mName = name;
             return this;
         }
@@ -260,8 +292,7 @@ public class Person {
          * <p>The system will prefer this icon over any images that are resolved from
          * {@link #setUri(String)}.
          */
-        @NonNull
-        public Builder setIcon(@Nullable IconCompat icon) {
+        public @NonNull Builder setIcon(@Nullable IconCompat icon) {
             mIcon = icon;
             return this;
         }
@@ -278,8 +309,7 @@ public class Person {
          * <p>*Note for these schemas, the path portion of the URI must exist in the contacts
          * database in their appropriate column, otherwise the reference will be discarded.
          */
-        @NonNull
-        public Builder setUri(@Nullable String uri) {
+        public @NonNull Builder setUri(@Nullable String uri) {
             mUri = uri;
             return this;
         }
@@ -289,8 +319,7 @@ public class Person {
          * {@link #setName(CharSequence)} value isn't unique. This value is preferred for
          * identification, but if it's not provided, the person's name will be used in its place.
          */
-        @NonNull
-        public Builder setKey(@Nullable String key) {
+        public @NonNull Builder setKey(@Nullable String key) {
             mKey = key;
             return this;
         }
@@ -299,8 +328,7 @@ public class Person {
          * Sets whether or not this {@link Person} represents a machine rather than a human. This is
          * used primarily for testing and automated tooling.
          */
-        @NonNull
-        public Builder setBot(boolean bot) {
+        public @NonNull Builder setBot(boolean bot) {
             mIsBot = bot;
             return this;
         }
@@ -311,15 +339,13 @@ public class Person {
          * {@link android.provider.ContactsContract.Contacts#CONTENT_LOOKUP_URI}, and instead with
          * the {@code mailto:} or {@code tel:} schemas.
          */
-        @NonNull
-        public Builder setImportant(boolean important) {
+        public @NonNull Builder setImportant(boolean important) {
             mIsImportant = important;
             return this;
         }
 
         /** Creates and returns the {@link Person} this builder represents. */
-        @NonNull
-        public Person build() {
+        public @NonNull Person build() {
             return new Person(this);
         }
     }
@@ -330,7 +356,6 @@ public class Person {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Person fromPersistableBundle(PersistableBundle bundle) {
             return new Builder()
                     .setName(bundle.getString(NAME_KEY))
@@ -341,7 +366,6 @@ public class Person {
                     .build();
         }
 
-        @DoNotInline
         static PersistableBundle toPersistableBundle(Person person) {
             PersistableBundle result = new PersistableBundle();
             result.putString(NAME_KEY, person.mName != null ? person.mName.toString() : null);
@@ -359,7 +383,6 @@ public class Person {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Person fromAndroidPerson(android.app.Person person) {
             return new Builder()
                     .setName(person.getName())
@@ -375,7 +398,6 @@ public class Person {
         }
 
         @SuppressWarnings("deprecation")
-        @DoNotInline
         static android.app.Person toAndroidPerson(Person person) {
             return new android.app.Person.Builder()
                     .setName(person.getName())

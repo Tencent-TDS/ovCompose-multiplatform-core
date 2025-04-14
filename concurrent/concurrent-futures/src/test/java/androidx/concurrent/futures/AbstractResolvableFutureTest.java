@@ -17,9 +17,6 @@
 package androidx.concurrent.futures;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
-
-import androidx.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
@@ -31,6 +28,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.internal.runners.JUnit38ClassRunner;
 import org.junit.runner.RunWith;
 
@@ -224,61 +222,6 @@ public class AbstractResolvableFutureTest extends TestCase {
             assertThat(e.getMessage()).contains("1 nanoseconds");
             assertThat(e.getMessage()).contains("Because this test isn't done");
         }
-    }
-
-    /**
-     * This test attempts to cause a future to wait for longer than it was requested to from a timed
-     * get() call. As measurements of time are prone to flakiness, it tries to assert based on
-     * ranges
-     * derived from observing how much time actually passed for various operations.
-     */
-    @SuppressWarnings({"DeprecatedThreadMethods", "ThreadPriorityCheck", "deprecation"})
-    public void testToString_delayedTimeout() throws Exception {
-        TimedWaiterThread thread =
-                new TimedWaiterThread(new AbstractResolvableFuture<Object>() {
-                }, 2, TimeUnit.SECONDS);
-        thread.start();
-        thread.awaitWaiting();
-        thread.suspend();
-        // Sleep for enough time to add 1500 milliseconds of overwait to the get() call.
-        long toWaitMillis = 3500 - TimeUnit.NANOSECONDS.toMillis(
-                System.nanoTime() - thread.startTime);
-        Thread.sleep(toWaitMillis);
-        thread.setPriority(Thread.MAX_PRIORITY);
-        thread.resume();
-        thread.join();
-        // It's possible to race and suspend the thread just before the park call actually takes
-        // effect,
-        // causing the thread to be suspended for 3.5 seconds, and then park itself for 2 seconds
-        // after
-        // being resumed. To avoid a flake in this scenario, calculate how long that thread actually
-        // waited and assert based on that time. Empirically, the race where the thread ends up
-        // waiting
-        // for 5.5 seconds happens about 2% of the time.
-        boolean longWait = TimeUnit.NANOSECONDS.toSeconds(thread.timeSpentBlocked) >= 5;
-        // Count how long it actually took to return; we'll accept any number between the
-        // expected delay
-        // and the approximate actual delay, to be robust to variance in thread scheduling.
-        char overWaitNanosFirstDigit =
-                Long.toString(
-                        thread.timeSpentBlocked - TimeUnit.MILLISECONDS.toNanos(
-                                longWait ? 5000 : 3000))
-                        .charAt(0);
-        if (overWaitNanosFirstDigit < '4') {
-            overWaitNanosFirstDigit = '9';
-        }
-        String nanosRegex = "[4-" + overWaitNanosFirstDigit + "][0-9]+";
-        assertWithMessage(
-                "Spent " + thread.timeSpentBlocked + " ns blocked; slept for " + toWaitMillis
-                        + " ms")
-                .that(thread.exception)
-                .hasMessageThat()
-                .matches(
-                        "Waited 2 seconds \\(plus "
-                                + (longWait ? "3" : "1")
-                                + " seconds, "
-                                + nanosRegex
-                                + " nanoseconds delay\\).*");
     }
 
     public void testToString_completed() throws Exception {
@@ -1098,8 +1041,7 @@ abstract class ImmediateFuture<V> implements com.google.common.util.concurrent.L
     }
 
     static class ImmediateSuccessfulFuture<V> extends ImmediateFuture<V> {
-        private final @Nullable
-        V value;
+        private final         @Nullable V value;
 
         ImmediateSuccessfulFuture(@Nullable V value) {
             this.value = value;

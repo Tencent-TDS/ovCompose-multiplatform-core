@@ -25,20 +25,18 @@ import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.InternalTextApi
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.GenericFontFamily
-import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.font.getAndroidTypefaceStyle
 import androidx.compose.ui.text.platform.extensions.setBackground
 import androidx.compose.ui.text.platform.extensions.setColor
@@ -49,27 +47,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastForEach
 
-/**
- * Convert an AnnotatedString into SpannableString for Android text to speech support.
- *
- * @suppress
- */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@InternalTextApi // used in ui:ui
-fun AnnotatedString.toAccessibilitySpannableString(
-    density: Density,
-    @Suppress("DEPRECATION") resourceLoader: Font.ResourceLoader
-): SpannableString {
-    @Suppress("DEPRECATION")
-    return toAccessibilitySpannableString(density, createFontFamilyResolver(resourceLoader))
-}
-
 @OptIn(ExperimentalTextApi::class)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @InternalTextApi // used in ui:ui
 fun AnnotatedString.toAccessibilitySpannableString(
     density: Density,
-    fontFamilyResolver: FontFamily.Resolver
+    fontFamilyResolver: FontFamily.Resolver,
+    urlSpanCache: URLSpanCache,
 ): SpannableString {
     val spannableString = SpannableString(text)
     spanStylesOrNull?.fastForEach { (style, start, end) ->
@@ -88,20 +72,40 @@ fun AnnotatedString.toAccessibilitySpannableString(
         )
     }
 
+    @Suppress("Deprecation")
     getUrlAnnotations(0, length).fastForEach { (urlAnnotation, start, end) ->
         spannableString.setSpan(
-            urlAnnotation.toSpan(),
+            urlSpanCache.toURLSpan(urlAnnotation),
             start,
             end,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
     }
 
+    getLinkAnnotations(0, length).fastForEach { linkRange ->
+        if (linkRange.start != linkRange.end) {
+            val link = linkRange.item
+            if (link is LinkAnnotation.Url && link.linkInteractionListener == null) {
+                spannableString.setSpan(
+                    urlSpanCache.toURLSpan(linkRange.toUrlLink()),
+                    linkRange.start,
+                    linkRange.end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            } else {
+                spannableString.setSpan(
+                    urlSpanCache.toClickableSpan(linkRange),
+                    linkRange.start,
+                    linkRange.end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+    }
     return spannableString
 }
 
 /** Apply the serializable styles to SpannableString. */
-@OptIn(ExperimentalTextApi::class)
 private fun SpannableString.setSpanStyle(
     spanStyle: SpanStyle,
     start: Int,
@@ -141,10 +145,13 @@ private fun SpannableString.setSpanStyle(
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // TODO(b/214587005): Check for async here and uncache
-                val typeface = fontFamilyResolver.resolve(
-                    fontFamily = spanStyle.fontFamily,
-                    fontSynthesis = spanStyle.fontSynthesis ?: FontSynthesis.All
-                ).value as Typeface
+                val typeface =
+                    fontFamilyResolver
+                        .resolve(
+                            fontFamily = spanStyle.fontFamily,
+                            fontSynthesis = spanStyle.fontSynthesis ?: FontSynthesis.All
+                        )
+                        .value as Typeface
                 setSpan(
                     Api28Impl.createTypefaceSpan(typeface),
                     start,
@@ -160,20 +167,10 @@ private fun SpannableString.setSpanStyle(
         // should remove the underline and lineThrough effect on the given range. Here we didn't
         // remove any previously applied spans yet.
         if (TextDecoration.Underline in spanStyle.textDecoration) {
-            setSpan(
-                UnderlineSpan(),
-                start,
-                end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+            setSpan(UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         if (TextDecoration.LineThrough in spanStyle.textDecoration) {
-            setSpan(
-                StrikethroughSpan(),
-                start,
-                end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+            setSpan(StrikethroughSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 
@@ -193,6 +190,8 @@ private fun SpannableString.setSpanStyle(
 
 @RequiresApi(28)
 private object Api28Impl {
-    @DoNotInline
     fun createTypefaceSpan(typeface: Typeface): TypefaceSpan = TypefaceSpan(typeface)
 }
+
+private fun AnnotatedString.Range<LinkAnnotation>.toUrlLink() =
+    AnnotatedString.Range(this.item as LinkAnnotation.Url, this.start, this.end)

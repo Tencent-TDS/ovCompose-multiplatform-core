@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.demos
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,9 +26,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +41,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,7 +59,7 @@ import androidx.compose.ui.window.PopupProperties
 
 @Composable
 fun PopupDemo() {
-    val exampleIndex = remember { mutableStateOf(0) }
+    var exampleIndex by remember { mutableIntStateOf(0) }
     val totalExamples = 8
 
     Column {
@@ -71,60 +71,54 @@ fun PopupDemo() {
                 text = "Prev",
                 color = Color.Cyan,
                 onClick = {
-                    if (exampleIndex.value == 0) {
-                        exampleIndex.value = totalExamples
+                    if (exampleIndex == 0) {
+                        exampleIndex = totalExamples
                     }
 
-                    exampleIndex.value = (exampleIndex.value - 1) % totalExamples
+                    exampleIndex = (exampleIndex - 1) % totalExamples
                 },
                 padding = 20.dp
             )
 
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                val description: String = {
-                    when (exampleIndex.value) {
-                        0 -> "Shadow demo"
-                        1 -> "Toggle a simple popup"
-                        2 -> "Different content for the popup"
-                        3 -> "Popup's behavior when the parent's size or position changes"
-                        4 -> "Aligning the popup below the parent"
-                        5 -> "Aligning the popup inside a parent"
-                        6 ->
-                            "Insert an email in the popup and then click outside to dismiss"
-                        7 ->
-                            "[bug] Undesired visual effect caused by" +
-                                " having a new size content displayed at the old" +
-                                " position, until the new one is calculated"
-                        8 ->
-                            "The popup is aligning to its parent when the parent is" +
-                                " inside a Scroller"
-                        9 ->
-                            "[bug] The popup is not repositioned " +
-                                "when the parent is moved by the keyboard"
-                        else -> "Demo description here"
-                    }
-                }.invoke()
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                val description: String =
+                    {
+                            when (exampleIndex) {
+                                0 -> "Shadow demo"
+                                1 -> "Toggle a simple popup"
+                                2 -> "Different content for the popup"
+                                3 -> "Popup's behavior when the parent's size or position changes"
+                                4 -> "Aligning the popup below the parent"
+                                5 -> "Aligning the popup inside a parent"
+                                6 ->
+                                    "Insert an email in the popup and then click outside to dismiss"
+                                7 ->
+                                    "[bug] Undesired visual effect caused by" +
+                                        " having a new size content displayed at the old" +
+                                        " position, until the new one is calculated"
+                                8 ->
+                                    "The popup is aligning to its parent when the parent is" +
+                                        " inside a Scroller"
+                                9 ->
+                                    "[bug] The popup is not repositioned " +
+                                        "when the parent is moved by the keyboard"
+                                else -> "Demo description here"
+                            }
+                        }
+                        .invoke()
 
-                Text(
-                    text = description,
-                    textAlign = TextAlign.Center
-                )
+                Text(text = description, textAlign = TextAlign.Center)
             }
 
             ClickableTextWithBackground(
                 text = "Next",
                 color = Color.Cyan,
-                onClick = {
-                    exampleIndex.value = (exampleIndex.value + 1) % totalExamples
-                },
+                onClick = { exampleIndex = (exampleIndex + 1) % totalExamples },
                 padding = 20.dp
             )
         }
 
-        when (exampleIndex.value) {
+        when (exampleIndex) {
             0 -> PopupElevation()
             1 -> PopupToggle()
             2 -> PopupWithChangingContent()
@@ -143,21 +137,14 @@ private fun ColumnScope.PopupElevation() {
     var shape by remember { mutableStateOf(RectangleShape) }
     var background by remember { mutableStateOf(Color.Transparent) }
     var contentSize by remember { mutableStateOf(100.dp) }
-    var dismissCounter by remember { mutableStateOf(0) }
+    var dismissCounter by remember { mutableIntStateOf(0) }
     var elevation by remember { mutableStateOf(6.dp) }
 
     // This example utilizes the Card to draw its shadow.
     Column(Modifier.align(Alignment.CenterHorizontally)) {
         Box(Modifier.size(110.dp).background(background)) {
-            Popup(
-                alignment = Alignment.Center,
-                onDismissRequest = { dismissCounter++ }
-            ) {
-                Card(
-                    Modifier.size(contentSize),
-                    elevation = elevation,
-                    shape = shape
-                ) {
+            Popup(alignment = Alignment.Center, onDismissRequest = { dismissCounter++ }) {
+                Card(Modifier.size(contentSize), elevation = elevation, shape = shape) {
                     Text(text = "This is popup!", textAlign = TextAlign.Center)
                 }
             }
@@ -167,13 +154,9 @@ private fun ColumnScope.PopupElevation() {
         Text("Dismiss clicked: $dismissCounter")
         Spacer(Modifier.requiredHeight(20.dp))
         Row {
-            Button(onClick = { elevation -= 1.dp }) {
-                Text("-1")
-            }
+            Button(onClick = { elevation -= 1.dp }) { Text("-1") }
             Text("Elevation: $elevation")
-            Button(onClick = { elevation += 1.dp }) {
-                Text("+1")
-            }
+            Button(onClick = { elevation += 1.dp }) { Text("+1") }
         }
         Spacer(Modifier.requiredHeight(10.dp))
         Button(onClick = { shape = if (shape == CircleShape) RectangleShape else CircleShape }) {
@@ -191,13 +174,9 @@ private fun ColumnScope.PopupElevation() {
         }
         Spacer(Modifier.requiredHeight(10.dp))
         Row {
-            Button(onClick = { contentSize -= 10.dp }) {
-                Text("-10.dp")
-            }
+            Button(onClick = { contentSize -= 10.dp }) { Text("-10.dp") }
             Text("Size: $contentSize")
-            Button(onClick = { contentSize += 10.dp }) {
-                Text("+10.dp")
-            }
+            Button(onClick = { contentSize += 10.dp }) { Text("+10.dp") }
         }
     }
 }
@@ -214,10 +193,7 @@ private fun ColumnScope.PopupToggle() {
                         Modifier.size(70.dp).background(Color.Green, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "This is a popup!",
-                            textAlign = TextAlign.Center
-                        )
+                        Text(text = "This is a popup!", textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -226,9 +202,7 @@ private fun ColumnScope.PopupToggle() {
         ClickableTextWithBackground(
             text = "Toggle Popup",
             color = Color.Cyan,
-            onClick = {
-                showPopup.value = !showPopup.value
-            }
+            onClick = { showPopup.value = !showPopup.value }
         )
     }
 }
@@ -238,23 +212,20 @@ private fun ColumnScope.PopupWithChangingContent() {
     Column(Modifier.align(Alignment.CenterHorizontally)) {
         val heightSize = 120.dp
         val widthSize = 160.dp
-        val popupContentState = remember { mutableStateOf(0) }
+        var popupContentState by remember { mutableIntStateOf(0) }
         val totalContentExamples = 2
-        val popupCounter = remember { mutableStateOf(0) }
+        var popupCounter by remember { mutableIntStateOf(0) }
 
         Box(Modifier.size(widthSize, heightSize).background(Color.Gray)) {
             Popup(Alignment.Center) {
-                when (popupContentState.value % totalContentExamples) {
-                    0 -> ClickableTextWithBackground(
-                        text = "Counter : ${popupCounter.value}",
-                        color = Color.Green,
-                        onClick = {
-                            popupCounter.value += 1
-                        }
-                    )
-                    1 -> Box(
-                        Modifier.size(60.dp, 40.dp).background(Color.Blue, CircleShape)
-                    )
+                when (popupContentState % totalContentExamples) {
+                    0 ->
+                        ClickableTextWithBackground(
+                            text = "Counter : $popupCounter",
+                            color = Color.Green,
+                            onClick = { popupCounter += 1 }
+                        )
+                    1 -> Box(Modifier.size(60.dp, 40.dp).background(Color.Blue, CircleShape))
                 }
             }
         }
@@ -263,9 +234,7 @@ private fun ColumnScope.PopupWithChangingContent() {
         ClickableTextWithBackground(
             text = "Change content",
             color = Color.Cyan,
-            onClick = {
-                popupContentState.value += 1
-            }
+            onClick = { popupContentState++ }
         )
     }
 }
@@ -284,10 +253,7 @@ private fun ColumnScope.PopupWithChangingParent() {
             Modifier.size(containerWidth, containerHeight),
             contentAlignment = parentAlignment.value
         ) {
-            Box(
-                Modifier.size(parentWidth.value, parentHeight.value)
-                    .background(Color.Blue)
-            ) {
+            Box(Modifier.size(parentWidth.value, parentHeight.value).background(Color.Blue)) {
                 Popup(Alignment.BottomCenter) {
                     Text("Popup", modifier = Modifier.background(color = Color.Green))
                 }
@@ -299,10 +265,8 @@ private fun ColumnScope.PopupWithChangingParent() {
             color = Color.Cyan,
             onClick = {
                 parentAlignment.value =
-                    if (parentAlignment.value == Alignment.TopStart)
-                        Alignment.TopEnd
-                    else
-                        Alignment.TopStart
+                    if (parentAlignment.value == Alignment.TopStart) Alignment.TopEnd
+                    else Alignment.TopStart
             }
         )
         Spacer(Modifier.height(10.dp))
@@ -328,7 +292,7 @@ private fun ColumnScope.PopupAlignmentDemo() {
     Column(Modifier.align(Alignment.CenterHorizontally)) {
         val heightSize = 200.dp
         val widthSize = 400.dp
-        val counter = remember { mutableStateOf(0) }
+        var counter by remember { mutableIntStateOf(0) }
         val popupAlignment = remember { mutableStateOf(Alignment.TopStart) }
         Box(
             modifier = Modifier.size(widthSize, heightSize).background(Color.Red),
@@ -339,8 +303,8 @@ private fun ColumnScope.PopupAlignmentDemo() {
                     text = "Click to change alignment",
                     color = Color.White,
                     onClick = {
-                        counter.value += 1
-                        when (counter.value % 9) {
+                        counter++
+                        when (counter % 9) {
                             0 -> popupAlignment.value = Alignment.TopStart
                             1 -> popupAlignment.value = Alignment.TopCenter
                             2 -> popupAlignment.value = Alignment.TopEnd
@@ -358,8 +322,7 @@ private fun ColumnScope.PopupAlignmentDemo() {
 
         Spacer(Modifier.height(10.dp))
         Text(
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-                .background(color = Color.White),
+            modifier = Modifier.align(Alignment.CenterHorizontally).background(color = Color.White),
             text = "Alignment : " + popupAlignment.value.toString()
         )
     }
@@ -380,9 +343,10 @@ private fun ColumnScope.PopupWithEditText() {
         Text(text = showEmail.value)
 
         Box(
-            modifier = Modifier.size(widthSize, heightSize)
-                .align(Alignment.CenterHorizontally)
-                .background(Color.Red)
+            modifier =
+                Modifier.size(widthSize, heightSize)
+                    .align(Alignment.CenterHorizontally)
+                    .background(Color.Red)
         ) {
             if (showPopup.value) {
                 Popup(
@@ -397,9 +361,7 @@ private fun ColumnScope.PopupWithEditText() {
                         modifier = Modifier.width(editLineSize),
                         initialText = "",
                         color = Color.White,
-                        onValueChange = {
-                            email.value = it
-                        }
+                        onValueChange = { email.value = it }
                     )
                 }
             }
@@ -413,20 +375,19 @@ private fun ColumnScope.PopupWithChangingSize() {
         val showPopup = remember { mutableStateOf(true) }
         val heightSize = 120.dp
         val widthSize = 160.dp
-        val rectangleState = remember { mutableStateOf(0) }
+        var rectangleState by remember { mutableIntStateOf(0) }
 
         Spacer(Modifier.height(15.dp))
-        Box(
-            modifier = Modifier.size(widthSize, heightSize).background(Color.Magenta)
-        ) {
+        Box(modifier = Modifier.size(widthSize, heightSize).background(Color.Magenta)) {
             if (showPopup.value) {
                 Popup(Alignment.Center) {
-                    val size = when (rectangleState.value % 4) {
-                        0 -> Modifier.size(30.dp)
-                        1 -> Modifier.size(100.dp)
-                        2 -> Modifier.size(30.dp, 90.dp)
-                        else -> Modifier.size(90.dp, 30.dp)
-                    }
+                    val size =
+                        when (rectangleState % 4) {
+                            0 -> Modifier.size(30.dp)
+                            1 -> Modifier.size(100.dp)
+                            2 -> Modifier.size(30.dp, 90.dp)
+                            else -> Modifier.size(90.dp, 30.dp)
+                        }
                     Box(modifier = size.background(Color.Gray))
                 }
             }
@@ -435,9 +396,7 @@ private fun ColumnScope.PopupWithChangingSize() {
         ClickableTextWithBackground(
             text = "Change size",
             color = Color.Cyan,
-            onClick = {
-                rectangleState.value += 1
-            }
+            onClick = { rectangleState++ }
         )
     }
 }
@@ -450,9 +409,7 @@ private fun ColumnScope.PopupInsideScroller() {
             .verticalScroll(rememberScrollState())
     ) {
         Column(Modifier.fillMaxHeight()) {
-            Box(
-                modifier = Modifier.size(80.dp, 160.dp).background(Color(0xFF00FF00))
-            ) {
+            Box(modifier = Modifier.size(80.dp, 160.dp).background(Color(0xFF00FF00))) {
                 Popup(alignment = Alignment.Center) {
                     ClickableTextWithBackground(text = "Centered", color = Color.Cyan)
                 }
@@ -474,15 +431,12 @@ private fun PopupOnKeyboardUp() {
         Spacer(Modifier.height(350.dp))
         Text("Start typing in the EditText below the parent(Red rectangle)")
         Box(
-            modifier = Modifier.size(widthSize, heightSize)
-                .align(Alignment.CenterHorizontally)
-                .background(Color.Red)
+            modifier =
+                Modifier.size(widthSize, heightSize)
+                    .align(Alignment.CenterHorizontally)
+                    .background(Color.Red)
         ) {
-            Popup(Alignment.Center) {
-                Box(Modifier.background(Color.Green)) {
-                    Text("Popup")
-                }
-            }
+            Popup(Alignment.Center) { Box(Modifier.background(Color.Green)) { Text("Popup") } }
         }
 
         EditLine(initialText = "Continue typing...", color = Color.Gray)
@@ -499,8 +453,7 @@ private fun ClickableTextWithBackground(
     padding: Dp = 0.dp
 ) {
     Box(
-        Modifier
-            .clickable(onClick = onClick ?: {}, enabled = onClick != null)
+        Modifier.clickable(onClick = onClick ?: {}, enabled = onClick != null)
             .background(color)
             .padding(padding)
     ) {
@@ -509,7 +462,6 @@ private fun ClickableTextWithBackground(
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 private fun EditLine(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
@@ -522,10 +474,7 @@ private fun EditLine(
     BasicTextField(
         value = state.value,
         modifier = modifier.background(color = color),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = keyboardType,
-            imeAction = imeAction
-        ),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         onValueChange = {
             state.value = it
             onValueChange(it)

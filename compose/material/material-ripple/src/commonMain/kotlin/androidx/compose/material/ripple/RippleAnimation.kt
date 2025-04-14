@@ -29,41 +29,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.util.lerp
+import kotlin.math.max
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.max
 
 /**
- * [RippleAnimation]s are drawn as part of [Ripple] as a visual indicator for an
- * different [androidx.compose.foundation.interaction.Interaction]s.
+ * [RippleAnimation]s are drawn as part of [Ripple] as a visual indicator for an different
+ * [androidx.compose.foundation.interaction.Interaction]s.
  *
  * Use [androidx.compose.foundation.clickable] or [androidx.compose.foundation.indication] to add a
- * ripple to your component, which contains a RippleAnimation for pressed states, and
- * a state layer for other states.
+ * ripple to your component, which contains a RippleAnimation for pressed states, and a state layer
+ * for other states.
  *
  * This is a default implementation based on the Material Design specification.
  *
- * Draws a circular ripple effect with an origin starting at the input touch point and with a
- * radius expanding from 60% of the final value. The ripple origin animates to the center of its
- * target layout for the bounded version and stays in the center for the unbounded one.
+ * Draws a circular ripple effect with an origin starting at the input touch point and with a radius
+ * expanding from 60% of the final value. The ripple origin animates to the center of its target
+ * layout for the bounded version and stays in the center for the unbounded one.
  *
- * @param origin The position the animation will start from. If null the animation will start
- * from the center of the layout bounds.
+ * @param origin The position the animation will start from. If null the animation will start from
+ *   the center of the layout bounds.
  * @param radius Effects grow up to this size.
  * @param bounded If true the effect should be clipped by the target layout bounds.
  */
 internal class RippleAnimation(
     private var origin: Offset?,
-    private val radius: Dp,
+    private val radius: Float,
     private val bounded: Boolean
 ) {
     private var startRadius: Float? = null
-    private var targetRadius: Float? = null
 
     private var targetCenter: Offset? = null
 
@@ -126,13 +123,6 @@ internal class RippleAnimation(
         if (startRadius == null) {
             startRadius = getRippleStartRadius(size)
         }
-        if (targetRadius == null) {
-            targetRadius = if (radius.isUnspecified) {
-                getRippleEndRadius(bounded, size)
-            } else {
-                radius.toPx()
-            }
-        }
         if (origin == null) {
             origin = center
         }
@@ -140,24 +130,24 @@ internal class RippleAnimation(
             targetCenter = Offset(size.width / 2.0f, size.height / 2.0f)
         }
 
-        val alpha = if (finishRequested && !finishedFadingIn) {
-            // If we are still fading-in we should immediately switch to the final alpha.
-            1f
-        } else {
-            animatedAlpha.value
-        }
+        val alpha =
+            if (finishRequested && !finishedFadingIn) {
+                // If we are still fading-in we should immediately switch to the final alpha.
+                1f
+            } else {
+                animatedAlpha.value
+            }
 
-        val radius = lerp(startRadius!!, targetRadius!!, animatedRadiusPercent.value)
-        val centerOffset = Offset(
-            lerp(origin!!.x, targetCenter!!.x, animatedCenterPercent.value),
-            lerp(origin!!.y, targetCenter!!.y, animatedCenterPercent.value),
-        )
+        val radius = lerp(startRadius!!, radius, animatedRadiusPercent.value)
+        val centerOffset =
+            Offset(
+                lerp(origin!!.x, targetCenter!!.x, animatedCenterPercent.value),
+                lerp(origin!!.y, targetCenter!!.y, animatedCenterPercent.value),
+            )
 
         val modulatedColor = color.copy(alpha = color.alpha * alpha)
         if (bounded) {
-            clipRect {
-                drawCircle(modulatedColor, radius, centerOffset)
-            }
+            clipRect { drawCircle(modulatedColor, radius, centerOffset) }
         } else {
             drawCircle(modulatedColor, radius, centerOffset)
         }
@@ -165,11 +155,10 @@ internal class RippleAnimation(
 }
 
 /**
- * According to specs the starting radius is equal to 60% of the largest dimension of the
- * surface it belongs to.
+ * According to specs the starting radius is equal to 60% of the largest dimension of the surface it
+ * belongs to.
  */
-internal fun getRippleStartRadius(size: Size) =
-    max(size.width, size.height) * 0.3f
+internal fun getRippleStartRadius(size: Size) = max(size.width, size.height) * 0.3f
 
 /**
  * According to specs the ending radius
@@ -177,8 +166,7 @@ internal fun getRippleStartRadius(size: Size) =
  * - fits within the border of the surface it belongs to for unbounded ripples
  */
 internal fun Density.getRippleEndRadius(bounded: Boolean, size: Size): Float {
-    val radiusCoveringBounds =
-        (Offset(size.width, size.height).getDistance() / 2f)
+    val radiusCoveringBounds = (Offset(size.width, size.height).getDistance() / 2f)
     return if (bounded) {
         radiusCoveringBounds + BoundedRippleExtraRadius.toPx()
     } else {

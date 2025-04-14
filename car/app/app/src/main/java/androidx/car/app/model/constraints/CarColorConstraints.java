@@ -18,23 +18,22 @@ package androidx.car.app.model.constraints;
 
 import static androidx.annotation.RestrictTo.Scope;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.model.CarColor;
 import androidx.car.app.model.CarColor.CarColorType;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashSet;
 
 /**
  * Encapsulates the constraints to apply when rendering a {@link CarColor} on a template.
  *
- * @hide
  */
 @RestrictTo(Scope.LIBRARY)
 public final class CarColorConstraints {
 
-    @NonNull
-    public static final CarColorConstraints UNCONSTRAINED =
+    public static final @NonNull CarColorConstraints UNCONSTRAINED =
             CarColorConstraints.create(
                     new int[]{
                             CarColor.TYPE_CUSTOM,
@@ -47,8 +46,7 @@ public final class CarColorConstraints {
                             CarColor.TYPE_YELLOW
                     });
 
-    @NonNull
-    public static final CarColorConstraints STANDARD_ONLY =
+    public static final @NonNull CarColorConstraints STANDARD_ONLY =
             CarColorConstraints.create(
                     new int[]{
                             CarColor.TYPE_DEFAULT,

@@ -18,8 +18,6 @@ package androidx.appsearch.debugview.model;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.debugview.DebugAppSearchManager;
@@ -33,6 +31,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -40,7 +41,7 @@ import java.util.concurrent.ExecutorService;
  *
  * <p>Instances of the ViewModel are created by {@link DocumentModelFactory}.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class DocumentModel extends ViewModel {
@@ -59,8 +60,8 @@ public class DocumentModel extends ViewModel {
     /**
      * Gets a {@link GenericDocument} object by namespace and ID.
      */
-    @NonNull
-    public LiveData<GenericDocument> getDocument(@NonNull String namespace, @NonNull String id) {
+    public @NonNull LiveData<GenericDocument> getDocument(@NonNull String namespace,
+            @NonNull String id) {
         Futures.addCallback(mDebugAppSearchManager.getDocumentAsync(namespace, id),
                 new FutureCallback<GenericDocument>() {
                     @Override
@@ -92,9 +93,8 @@ public class DocumentModel extends ViewModel {
         }
 
         @SuppressWarnings("unchecked")
-        @NonNull
         @Override
-        public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+        public <T extends ViewModel> @NonNull T create(@NonNull Class<T> modelClass) {
             if (modelClass == DocumentModel.class) {
                 return (T) new DocumentModel(mExecutorService, mDebugAppSearchManager);
             } else {

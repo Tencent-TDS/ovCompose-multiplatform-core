@@ -25,30 +25,25 @@ internal object PerfettoNative {
 
     // TODO(224510255): load from a file produced at build time
     object Metadata {
-        const val version = "1.0.0-alpha12"
-        val checksums = mapOf(
-            "arm64-v8a" to "bff106aafe19364627e77bca7f7f658441e35fdd61f9a519f5f814742bd22803",
-            "armeabi-v7a" to "b128da6ed9b69b0db7fa65215c50709d0b1bb5a73c697b4b292cb7326f263c2f",
-            "x86" to "534325ba590cb4f5775c0e0f31fb41521c7a212096f8263b1a1015962799678b",
-            "x86_64" to "56efe76f73b7c4635a42df5037d6ff5f39ddec239893ba716b37e05f6fe3afa3",
-        )
+        const val version = "1.0.0"
+        val checksums =
+            mapOf(
+                "arm64-v8a" to "a152fbd7ebaa109a9c3cf6bbb6d585aa0df08f97ae022b2090b1096a8f5e2665",
+                "armeabi-v7a" to "b2821c9ddb77a3f070cce42be7cd3255d7ec92c868d7d518a99ed968d9018b9f",
+                "x86" to "4cefdc75fe41deeeb2306891c25ce4db33599698cc6fcb2e82caad5aece9aa09",
+                "x86_64" to "23daf0750238cf96bf9ea9fa1b13ae1d2eeb17644ea5439e18939ec6a8b9e5be",
+            )
     }
 
     fun loadLib() = System.loadLibrary(libraryName)
 
     fun loadLib(file: File, loader: SafeLibLoader) = loader.loadLib(file, Metadata.checksums)
 
-    @JvmStatic
-    external fun nativeRegisterWithPerfetto()
+    @JvmStatic external fun nativeRegisterWithPerfetto()
 
-    @FastNative
-    @JvmStatic
-    external fun nativeTraceEventBegin(key: Int, traceInfo: String)
+    @FastNative @JvmStatic external fun nativeTraceEventBegin(key: Int, traceInfo: String)
 
-    @CriticalNative
-    @JvmStatic
-    external fun nativeTraceEventEnd()
+    @CriticalNative @JvmStatic external fun nativeTraceEventEnd()
 
-    @JvmStatic
-    external fun nativeVersion(): String
+    @JvmStatic external fun nativeVersion(): String
 }

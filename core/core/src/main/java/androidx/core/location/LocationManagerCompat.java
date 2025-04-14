@@ -38,6 +38,7 @@ import android.location.LocationRequest;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -45,18 +46,17 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.text.TextUtils;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.collection.SimpleArrayMap;
-import androidx.core.os.CancellationSignal;
 import androidx.core.os.ExecutorCompat;
 import androidx.core.util.Consumer;
 import androidx.core.util.ObjectsCompat;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -179,11 +179,44 @@ public final class LocationManagerCompat {
      * <p>Clients calling this method from the background may notice that the method fails to
      * determine a valid location fix more often than while in the foreground. Background
      * applications may be throttled in their location accesses to some degree.
+     *
+     * @deprecated Use
+     * {@link #getCurrentLocation(LocationManager, String, CancellationSignal, Executor, Consumer)}
+     */
+    @Deprecated
+    @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
+    public static void getCurrentLocation(@NonNull LocationManager locationManager,
+            @NonNull String provider,
+            androidx.core.os.@Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor executor, final @NonNull Consumer<Location> consumer) {
+        getCurrentLocation(locationManager, provider, cancellationSignal != null
+                        ? (CancellationSignal) cancellationSignal.getCancellationSignalObject() :
+                        null,
+                executor, consumer);
+    }
+
+    /**
+     * Asynchronously returns a single current location fix from the given provider. This may
+     * activate sensors in order to compute a new location. The given callback will be invoked once
+     * and only once, either with a valid location or with a null location if the provider was
+     * unable to generate a valid location.
+     *
+     * <p>A client may supply an optional {@link CancellationSignal}. If this is used to cancel the
+     * operation, no callback should be expected after the cancellation.
+     *
+     * <p>This method may return locations from the very recent past (on the order of several
+     * seconds), but will never return older locations (for example, several minutes old or older).
+     * Clients may rely upon the guarantee that if this method returns a location, it will represent
+     * the best estimation of the location of the device in the present moment.
+     *
+     * <p>Clients calling this method from the background may notice that the method fails to
+     * determine a valid location fix more often than while in the foreground. Background
+     * applications may be throttled in their location accesses to some degree.
      */
     @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
     public static void getCurrentLocation(@NonNull LocationManager locationManager,
             @NonNull String provider, @Nullable CancellationSignal cancellationSignal,
-            @NonNull Executor executor, @NonNull final Consumer<Location> consumer) {
+            @NonNull Executor executor, final @NonNull Consumer<Location> consumer) {
         if (VERSION.SDK_INT >= 30) {
             Api30Impl.getCurrentLocation(locationManager, provider, cancellationSignal, executor,
                     consumer);
@@ -248,7 +281,7 @@ public final class LocationManagerCompat {
         LocationListenerTransport transport = new LocationListenerTransport(
                 new LocationListenerKey(provider, listener), executor);
 
-        if (VERSION.SDK_INT >= 19 && Api19Impl.tryRequestLocationUpdates(
+        if (Api19Impl.tryRequestLocationUpdates(
                 locationManager, provider, locationRequest, transport)) {
             return;
         }
@@ -295,7 +328,7 @@ public final class LocationManagerCompat {
             return;
         }
 
-        if (VERSION.SDK_INT >= 19 && Api19Impl.tryRequestLocationUpdates(
+        if (Api19Impl.tryRequestLocationUpdates(
                     locationManager, provider, locationRequest, listener, looper)) {
             return;
         }
@@ -348,8 +381,8 @@ public final class LocationManagerCompat {
      *
      * <p>No device-specific serial number or ID is returned from this API.
      */
-    @Nullable
-    public static String getGnssHardwareModelName(@NonNull LocationManager locationManager) {
+    public static @Nullable String getGnssHardwareModelName(
+            @NonNull LocationManager locationManager) {
         if (VERSION.SDK_INT >= 28) {
             return Api28Impl.getGnssHardwareModelName(locationManager);
         } else {
@@ -391,7 +424,7 @@ public final class LocationManagerCompat {
     @RequiresApi(VERSION_CODES.N)
     @RequiresPermission(ACCESS_FINE_LOCATION)
     public static boolean registerGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-            @NonNull GnssMeasurementsEvent.Callback callback, @NonNull Handler handler) {
+            GnssMeasurementsEvent.@NonNull Callback callback, @NonNull Handler handler) {
         if (VERSION.SDK_INT > VERSION_CODES.R) {
             return Api24Impl.registerGnssMeasurementsCallback(locationManager, callback, handler);
         } else if (VERSION.SDK_INT == VERSION_CODES.R) {
@@ -400,14 +433,7 @@ public final class LocationManagerCompat {
                     callback);
         } else {
             synchronized (GnssListenersHolder.sGnssMeasurementListeners) {
-                GnssMeasurementsEvent.Callback oldTransport =
-                        GnssListenersHolder.sGnssMeasurementListeners.remove(callback);
-                if (oldTransport != null) {
-                    if (oldTransport instanceof GnssMeasurementsTransport) {
-                        ((GnssMeasurementsTransport) oldTransport).unregister();
-                    }
-                    Api24Impl.unregisterGnssMeasurementsCallback(locationManager, oldTransport);
-                }
+                unregisterGnssMeasurementsCallback(locationManager, callback);
                 if (Api24Impl.registerGnssMeasurementsCallback(locationManager, callback,
                         handler)) {
                     GnssListenersHolder.sGnssMeasurementListeners.put(callback, callback);
@@ -432,7 +458,7 @@ public final class LocationManagerCompat {
     @RequiresApi(VERSION_CODES.N)
     @RequiresPermission(ACCESS_FINE_LOCATION)
     public static boolean registerGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-            @NonNull Executor executor, @NonNull GnssMeasurementsEvent.Callback callback) {
+            @NonNull Executor executor, GnssMeasurementsEvent.@NonNull Callback callback) {
         if (VERSION.SDK_INT > VERSION_CODES.R) {
             return Api31Impl.registerGnssMeasurementsCallback(locationManager, executor, callback);
         } else if (VERSION.SDK_INT == VERSION_CODES.R) {
@@ -443,14 +469,7 @@ public final class LocationManagerCompat {
             synchronized (GnssListenersHolder.sGnssMeasurementListeners) {
                 GnssMeasurementsTransport newTransport = new GnssMeasurementsTransport(callback,
                         executor);
-                GnssMeasurementsEvent.Callback oldTransport =
-                        GnssListenersHolder.sGnssMeasurementListeners.remove(callback);
-                if (oldTransport != null) {
-                    if (oldTransport instanceof GnssMeasurementsTransport) {
-                        ((GnssMeasurementsTransport) oldTransport).unregister();
-                    }
-                    Api24Impl.unregisterGnssMeasurementsCallback(locationManager, oldTransport);
-                }
+                unregisterGnssMeasurementsCallback(locationManager, callback);
                 if (Api24Impl.registerGnssMeasurementsCallback(locationManager, newTransport)) {
                     GnssListenersHolder.sGnssMeasurementListeners.put(callback, newTransport);
                     return true;
@@ -467,8 +486,21 @@ public final class LocationManagerCompat {
      */
     @RequiresApi(VERSION_CODES.N)
     public static void unregisterGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-            @NonNull GnssMeasurementsEvent.Callback callback) {
-        Api24Impl.unregisterGnssMeasurementsCallback(locationManager, callback);
+            GnssMeasurementsEvent.@NonNull Callback callback) {
+        if (VERSION.SDK_INT >= VERSION_CODES.R) {
+            Api24Impl.unregisterGnssMeasurementsCallback(locationManager, callback);
+        } else {
+            synchronized (GnssListenersHolder.sGnssMeasurementListeners) {
+                GnssMeasurementsEvent.Callback transport =
+                        GnssListenersHolder.sGnssMeasurementListeners.remove(callback);
+                if (transport != null) {
+                    if (transport instanceof GnssMeasurementsTransport) {
+                        ((GnssMeasurementsTransport) transport).unregister();
+                    }
+                    Api24Impl.unregisterGnssMeasurementsCallback(locationManager, transport);
+                }
+            }
+        }
     }
 
     // Android R without QPR1 has a bug where the default version of this method will always
@@ -476,7 +508,7 @@ public final class LocationManagerCompat {
     @RequiresApi(VERSION_CODES.R)
     private static boolean registerGnssMeasurementsCallbackOnR(
             @NonNull LocationManager locationManager, @NonNull Executor executor,
-            @NonNull GnssMeasurementsEvent.Callback callback) {
+            GnssMeasurementsEvent.@NonNull Callback callback) {
         if (VERSION.SDK_INT == VERSION_CODES.R) {
             try {
                 if (sGnssRequestBuilderClass == null) {
@@ -520,7 +552,7 @@ public final class LocationManagerCompat {
      */
     @RequiresPermission(ACCESS_FINE_LOCATION)
     public static boolean registerGnssStatusCallback(@NonNull LocationManager locationManager,
-            @NonNull GnssStatusCompat.Callback callback, @NonNull Handler handler) {
+            GnssStatusCompat.@NonNull Callback callback, @NonNull Handler handler) {
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
             return registerGnssStatusCallback(locationManager, ExecutorCompat.create(handler),
                 callback);
@@ -550,7 +582,7 @@ public final class LocationManagerCompat {
      */
     @RequiresPermission(ACCESS_FINE_LOCATION)
     public static boolean registerGnssStatusCallback(@NonNull LocationManager locationManager,
-            @NonNull Executor executor, @NonNull GnssStatusCompat.Callback callback) {
+            @NonNull Executor executor, GnssStatusCompat.@NonNull Callback callback) {
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
             return registerGnssStatusCallback(locationManager, null, executor, callback);
         } else {
@@ -639,7 +671,7 @@ public final class LocationManagerCompat {
      * and {@link LocationManager#unregisterGnssStatusCallback(GnssStatus.Callback)}.
      */
     public static void unregisterGnssStatusCallback(@NonNull LocationManager locationManager,
-            @NonNull GnssStatusCompat.Callback callback) {
+            GnssStatusCompat.@NonNull Callback callback) {
         if (VERSION.SDK_INT >= 24) {
             synchronized (GnssListenersHolder.sGnssStatusListeners) {
                 Object transport = GnssListenersHolder.sGnssStatusListeners.remove(callback);
@@ -690,7 +722,7 @@ public final class LocationManagerCompat {
 
     private static class LocationListenerTransport implements LocationListener {
 
-        @Nullable volatile LocationListenerKey mKey;
+        volatile @Nullable LocationListenerKey mKey;
         final Executor mExecutor;
 
         LocationListenerTransport(@Nullable LocationListenerKey key, Executor executor) {
@@ -801,9 +833,9 @@ public final class LocationManagerCompat {
     private static class GnssMeasurementsTransport extends GnssMeasurementsEvent.Callback {
 
         final GnssMeasurementsEvent.Callback mCallback;
-        @Nullable volatile Executor mExecutor;
+        volatile @Nullable Executor mExecutor;
 
-        GnssMeasurementsTransport(@NonNull GnssMeasurementsEvent.Callback callback,
+        GnssMeasurementsTransport(GnssMeasurementsEvent.@NonNull Callback callback,
                 @NonNull Executor executor) {
             mCallback = callback;
             mExecutor = executor;
@@ -880,7 +912,7 @@ public final class LocationManagerCompat {
 
         final GnssStatusCompat.Callback mCallback;
 
-        @Nullable volatile Executor mExecutor;
+        volatile @Nullable Executor mExecutor;
 
         PreRGnssStatusTransport(GnssStatusCompat.Callback callback) {
             Preconditions.checkArgument(callback != null, "invalid null callback");
@@ -963,7 +995,7 @@ public final class LocationManagerCompat {
         private final LocationManager mLocationManager;
         final GnssStatusCompat.Callback mCallback;
 
-        @Nullable volatile Executor mExecutor;
+        volatile @Nullable Executor mExecutor;
 
         GpsStatusTransport(LocationManager locationManager,
                 GnssStatusCompat.Callback callback) {
@@ -1047,8 +1079,7 @@ public final class LocationManagerCompat {
         @GuardedBy("this")
         private boolean mTriggered;
 
-        @Nullable
-        Runnable mTimeoutRunnable;
+        @Nullable Runnable mTimeoutRunnable;
 
         CancellableLocationListener(LocationManager locationManager,
                 Executor executor, Consumer<Location> consumer) {
@@ -1103,7 +1134,7 @@ public final class LocationManagerCompat {
 
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
         @Override
-        public void onLocationChanged(@Nullable final Location location) {
+        public void onLocationChanged(final @Nullable Location location) {
             synchronized (this) {
                 if (mTriggered) {
                     return;
@@ -1163,13 +1194,11 @@ public final class LocationManagerCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean hasProvider(LocationManager locationManager, @NonNull String provider) {
             return locationManager.hasProvider(provider);
         }
 
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
-        @DoNotInline
         static void requestLocationUpdates(LocationManager locationManager,
                 @NonNull String provider, @NonNull LocationRequest locationRequest,
                 @NonNull Executor executor, @NonNull LocationListener listener) {
@@ -1177,9 +1206,8 @@ public final class LocationManagerCompat {
         }
 
         @RequiresPermission(ACCESS_FINE_LOCATION)
-        @DoNotInline
         static boolean registerGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-                @NonNull Executor executor, @NonNull GnssMeasurementsEvent.Callback callback) {
+                @NonNull Executor executor, GnssMeasurementsEvent.@NonNull Callback callback) {
             return locationManager.registerGnssMeasurementsCallback(executor, callback);
         }
     }
@@ -1194,21 +1222,16 @@ public final class LocationManagerCompat {
         }
 
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
-        @DoNotInline
         static void getCurrentLocation(LocationManager locationManager, @NonNull String provider,
                 @Nullable CancellationSignal cancellationSignal,
                 @NonNull Executor executor, final @NonNull Consumer<Location> consumer) {
             locationManager.getCurrentLocation(provider,
-                    cancellationSignal != null
-                            ? (android.os.CancellationSignal)
-                            cancellationSignal.getCancellationSignalObject()
-                            : null,
+                    cancellationSignal,
                     executor,
                     consumer::accept);
         }
 
         @SuppressWarnings("JavaReflectionMemberAccess")
-        @DoNotInline
         public static boolean tryRequestLocationUpdates(LocationManager locationManager,
                 String provider, LocationRequestCompat locationRequest, Executor executor,
                 LocationListenerCompat listener) {
@@ -1245,7 +1268,6 @@ public final class LocationManagerCompat {
         }
 
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
-        @DoNotInline
         public static boolean registerGnssStatusCallback(LocationManager locationManager,
                 Handler baseHandler, Executor executor, GnssStatusCompat.Callback callback) {
             synchronized (GnssListenersHolder.sGnssStatusListeners) {
@@ -1271,23 +1293,19 @@ public final class LocationManagerCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isLocationEnabled(LocationManager locationManager) {
             return locationManager.isLocationEnabled();
         }
 
-        @DoNotInline
         static String getGnssHardwareModelName(LocationManager locationManager) {
             return locationManager.getGnssHardwareModelName();
         }
 
-        @DoNotInline
         static int getGnssYearOfHardware(LocationManager locationManager) {
             return locationManager.getGnssYearOfHardware();
         }
     }
 
-    @RequiresApi(19)
     static class Api19Impl {
         private static Class<?> sLocationRequestClass;
         private static Method sRequestLocationUpdatesLooperMethod;
@@ -1296,79 +1314,77 @@ public final class LocationManagerCompat {
             // This class is not instantiable.
         }
 
+        @SuppressLint("BanUncheckedReflection")
         @SuppressWarnings("JavaReflectionMemberAccess")
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
-        @DoNotInline
         static boolean tryRequestLocationUpdates(LocationManager locationManager,
                 String provider, LocationRequestCompat locationRequest,
                 LocationListenerTransport transport) {
-            if (VERSION.SDK_INT >= 19) { // Satisfy reflection lint check
-                try {
-                    if (sLocationRequestClass == null) {
-                        sLocationRequestClass = Class.forName("android.location.LocationRequest");
-                    }
-                    if (sRequestLocationUpdatesLooperMethod == null) {
-                        sRequestLocationUpdatesLooperMethod =
-                                LocationManager.class.getDeclaredMethod(
-                                        "requestLocationUpdates",
-                                        sLocationRequestClass, LocationListener.class,
-                                        Looper.class);
-                        sRequestLocationUpdatesLooperMethod.setAccessible(true);
-                    }
-
-                    LocationRequest request = locationRequest.toLocationRequest(provider);
-                    if (request != null) {
-                        synchronized (sLocationListeners) {
-                            sRequestLocationUpdatesLooperMethod.invoke(locationManager, request,
-                                    transport, Looper.getMainLooper());
-                            registerLocationListenerTransport(locationManager, transport);
-                            return true;
-                        }
-                    }
-                } catch (NoSuchMethodException
-                        | InvocationTargetException
-                        | IllegalAccessException
-                        | ClassNotFoundException
-                        | UnsupportedOperationException e) {
-                    // ignored
+            // Satisfy reflection lint check
+            try {
+                if (sLocationRequestClass == null) {
+                    sLocationRequestClass = Class.forName("android.location.LocationRequest");
                 }
+                if (sRequestLocationUpdatesLooperMethod == null) {
+                    sRequestLocationUpdatesLooperMethod =
+                            LocationManager.class.getDeclaredMethod(
+                                    "requestLocationUpdates",
+                                    sLocationRequestClass, LocationListener.class,
+                                    Looper.class);
+                    sRequestLocationUpdatesLooperMethod.setAccessible(true);
+                }
+
+                LocationRequest request = locationRequest.toLocationRequest(provider);
+                if (request != null) {
+                    synchronized (sLocationListeners) {
+                        sRequestLocationUpdatesLooperMethod.invoke(locationManager, request,
+                                transport, Looper.getMainLooper());
+                        registerLocationListenerTransport(locationManager, transport);
+                        return true;
+                    }
+                }
+            } catch (NoSuchMethodException
+                    | InvocationTargetException
+                    | IllegalAccessException
+                    | ClassNotFoundException
+                    | UnsupportedOperationException e) {
+                // ignored
             }
             return false;
         }
 
+        @SuppressLint("BanUncheckedReflection")
         @SuppressWarnings("JavaReflectionMemberAccess")
-        @DoNotInline
         static boolean tryRequestLocationUpdates(LocationManager locationManager, String provider,
                 LocationRequestCompat locationRequest, LocationListenerCompat listener,
                 Looper looper) {
-            if (VERSION.SDK_INT >= 19) { // Satisfy reflection lint check
-                try {
-                    if (sLocationRequestClass == null) {
-                        sLocationRequestClass = Class.forName("android.location.LocationRequest");
-                    }
-
-                    if (sRequestLocationUpdatesLooperMethod == null) {
-                        sRequestLocationUpdatesLooperMethod =
-                                LocationManager.class.getDeclaredMethod(
-                                        "requestLocationUpdates",
-                                        sLocationRequestClass, LocationListener.class,
-                                        Looper.class);
-                        sRequestLocationUpdatesLooperMethod.setAccessible(true);
-                    }
-
-                    LocationRequest request = locationRequest.toLocationRequest(provider);
-                    if (request != null) {
-                        sRequestLocationUpdatesLooperMethod.invoke(
-                                locationManager, request, listener, looper);
-                        return true;
-                    }
-                } catch (NoSuchMethodException
-                        | InvocationTargetException
-                        | IllegalAccessException
-                        | ClassNotFoundException
-                        | UnsupportedOperationException e) {
-                    // ignored
+            // Satisfy reflection lint check
+            try {
+                if (sLocationRequestClass == null) {
+                    sLocationRequestClass = Class.forName("android.location.LocationRequest");
                 }
+
+                if (sRequestLocationUpdatesLooperMethod == null) {
+                    sRequestLocationUpdatesLooperMethod =
+                            LocationManager.class.getDeclaredMethod(
+                                    "requestLocationUpdates",
+                                    sLocationRequestClass, LocationListener.class,
+                                    Looper.class);
+                    sRequestLocationUpdatesLooperMethod.setAccessible(true);
+                }
+
+                LocationRequest request = locationRequest.toLocationRequest(provider);
+                if (request != null) {
+                    sRequestLocationUpdatesLooperMethod.invoke(
+                            locationManager, request, listener, looper);
+                    return true;
+                }
+            } catch (NoSuchMethodException
+                    | InvocationTargetException
+                    | IllegalAccessException
+                    | ClassNotFoundException
+                    | UnsupportedOperationException e) {
+                // ignored
             }
             return false;
         }
@@ -1381,27 +1397,23 @@ public final class LocationManagerCompat {
         }
 
         @RequiresPermission(ACCESS_FINE_LOCATION)
-        @DoNotInline
         static boolean registerGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-                @NonNull GnssMeasurementsEvent.Callback callback) {
+                GnssMeasurementsEvent.@NonNull Callback callback) {
             return locationManager.registerGnssMeasurementsCallback(callback);
         }
 
         @RequiresPermission(ACCESS_FINE_LOCATION)
-        @DoNotInline
         static boolean registerGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-                @NonNull GnssMeasurementsEvent.Callback callback, @NonNull Handler handler) {
+                GnssMeasurementsEvent.@NonNull Callback callback, @NonNull Handler handler) {
             return locationManager.registerGnssMeasurementsCallback(callback, handler);
         }
 
-        @DoNotInline
         static void unregisterGnssMeasurementsCallback(@NonNull LocationManager locationManager,
-                @NonNull GnssMeasurementsEvent.Callback callback) {
+                GnssMeasurementsEvent.@NonNull Callback callback) {
             locationManager.unregisterGnssMeasurementsCallback(callback);
         }
 
         @RequiresPermission(anyOf = {ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION})
-        @DoNotInline
         static boolean registerGnssStatusCallback(LocationManager locationManager,
                 Handler baseHandler, Executor executor, GnssStatusCompat.Callback callback) {
             Preconditions.checkArgument(baseHandler != null);
@@ -1426,7 +1438,6 @@ public final class LocationManagerCompat {
             }
         }
 
-        @DoNotInline
         static void unregisterGnssStatusCallback(LocationManager locationManager, Object callback) {
             if (callback instanceof PreRGnssStatusTransport) {
                 ((PreRGnssStatusTransport) callback).unregister();

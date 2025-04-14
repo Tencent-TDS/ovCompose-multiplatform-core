@@ -21,8 +21,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * An {@link Activity} which lists features that make use of
@@ -45,7 +46,7 @@ public class ProcessGlobalConfigActivity extends AppCompatActivity {
                         new Intent(activityContext, DataDirectorySuffixActivity.class)),
                 new MenuListView.MenuItem(
                         getResources().getString(R.string.directory_base_path_activity_title),
-                        new Intent(activityContext, DirectoryBasePathActivity.class)),
+                        new Intent(activityContext, DirectoryBasePathsActivity.class)),
         };
         listView.setItems(menuItems);
     }

@@ -17,6 +17,7 @@
 package androidx.privacysandbox.tools.core.generator.poet
 
 import androidx.privacysandbox.tools.core.model.Type
+import java.lang.IllegalStateException
 
 /** AIDL file with a single interface. */
 internal data class AidlInterfaceSpec(
@@ -24,20 +25,21 @@ internal data class AidlInterfaceSpec(
     val methods: List<AidlMethodSpec>,
 ) : AidlFileSpec {
     companion object {
-        fun aidlInterface(
-            type: Type,
-            block: Builder.() -> Unit = {}
-        ): AidlInterfaceSpec {
+        fun aidlInterface(type: Type, block: Builder.() -> Unit = {}): AidlInterfaceSpec {
             return Builder(type).also(block).build()
         }
     }
 
     override val typesToImport: Set<Type>
         get() {
-            return methods.flatMap { method ->
-                method.parameters.map { it.type }
-                    .filter { it.requiresImport && it.innerType != type }.map { it.innerType }
-            }.toSet()
+            return methods
+                .flatMap { method ->
+                    method.parameters
+                        .map { it.type }
+                        .filter { it.requiresImport && it.innerType != type }
+                        .map { it.innerType }
+                }
+                .toSet()
         }
 
     override val innerContent: String
@@ -47,13 +49,23 @@ internal data class AidlInterfaceSpec(
                 |oneway interface ${type.simpleName} {
                 |    $body
                 |}
-            """.trimMargin()
+            """
+                .trimMargin()
         }
 
     class Builder(val type: Type) {
-        val methods = mutableListOf<AidlMethodSpec>()
+        private val methods = mutableListOf<AidlMethodSpec>()
 
         fun addMethod(method: AidlMethodSpec) {
+            val methodsByTxId = methods.associateBy(AidlMethodSpec::transactionId)
+            methodsByTxId[method.transactionId]?.let { conflictMethod ->
+                throw IllegalStateException(
+                    // TODO(b/271114359): Update this error message when manual IDs are possible
+                    "Methods '${method.name}' and '${conflictMethod.name}' in interface " +
+                        "'${type.simpleName}' have the same AIDL transaction ID. Please " +
+                        "change one of the methods' name or type signature."
+                )
+            }
             methods.add(method)
         }
 

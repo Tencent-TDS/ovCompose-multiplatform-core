@@ -22,16 +22,22 @@ import android.content.Intent
 import android.os.Looper.getMainLooper
 import androidx.health.services.client.ExerciseUpdateCallback
 import androidx.health.services.client.data.Availability
+import androidx.health.services.client.data.BatchingMode
 import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.DataType.Companion.GOLF_SHOT_COUNT
 import androidx.health.services.client.data.DataType.Companion.HEART_RATE_BPM
 import androidx.health.services.client.data.DataType.Companion.HEART_RATE_BPM_STATS
 import androidx.health.services.client.data.DataTypeAvailability.Companion.ACQUIRING
 import androidx.health.services.client.data.ExerciseConfig
+import androidx.health.services.client.data.ExerciseEvent
+import androidx.health.services.client.data.ExerciseEventType
 import androidx.health.services.client.data.ExerciseLapSummary
 import androidx.health.services.client.data.ExerciseType
 import androidx.health.services.client.data.ExerciseUpdate
-import androidx.health.services.client.data.WarmUpConfig
 import androidx.health.services.client.data.GolfExerciseTypeConfig
+import androidx.health.services.client.data.GolfShotEvent
+import androidx.health.services.client.data.GolfShotEvent.GolfShotSwingType
+import androidx.health.services.client.data.WarmUpConfig
 import androidx.health.services.client.impl.event.ExerciseUpdateListenerEvent
 import androidx.health.services.client.impl.internal.IExerciseInfoCallback
 import androidx.health.services.client.impl.internal.IStatusCallback
@@ -39,6 +45,7 @@ import androidx.health.services.client.impl.ipc.internal.ConnectionManager
 import androidx.health.services.client.impl.request.AutoPauseAndResumeConfigRequest
 import androidx.health.services.client.impl.request.BatchingModeConfigRequest
 import androidx.health.services.client.impl.request.CapabilitiesRequest
+import androidx.health.services.client.impl.request.DebouncedGoalRequest
 import androidx.health.services.client.impl.request.ExerciseGoalRequest
 import androidx.health.services.client.impl.request.FlushRequest
 import androidx.health.services.client.impl.request.PrepareExerciseRequest
@@ -46,8 +53,11 @@ import androidx.health.services.client.impl.request.StartExerciseRequest
 import androidx.health.services.client.impl.request.UpdateExerciseTypeConfigRequest
 import androidx.health.services.client.impl.response.AvailabilityResponse
 import androidx.health.services.client.impl.response.ExerciseCapabilitiesResponse
+import androidx.health.services.client.impl.response.ExerciseEventResponse
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import java.time.Duration
+import kotlin.test.assertFailsWith
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -71,11 +81,12 @@ class ServiceBackedExerciseClientTest {
 
         val packageName = ServiceBackedExerciseClient.CLIENT_CONFIGURATION.servicePackageName
         val action = ServiceBackedExerciseClient.CLIENT_CONFIGURATION.bindAction
-        shadowOf(context).setComponentNameAndServiceForBindServiceForIntent(
-            Intent().setPackage(packageName).setAction(action),
-            ComponentName(packageName, ServiceBackedExerciseClient.CLIENT),
-            fakeService
-        )
+        shadowOf(context)
+            .setComponentNameAndServiceForBindServiceForIntent(
+                Intent().setPackage(packageName).setAction(action),
+                ComponentName(packageName, ServiceBackedExerciseClient.CLIENT),
+                fakeService
+            )
     }
 
     @After
@@ -84,7 +95,7 @@ class ServiceBackedExerciseClientTest {
     }
 
     @Test
-    fun registeredCallbackShouldBeInvoked() {
+    fun setUpdateCallback_registeredCallbackShouldBeInvoked() {
         client.setUpdateCallback(callback)
         shadowOf(getMainLooper()).idle()
 
@@ -93,7 +104,7 @@ class ServiceBackedExerciseClientTest {
     }
 
     @Test
-    fun registrationFailedCallbackShouldBeInvoked() {
+    fun setUpdateCallback_registrationFailedCallbackShouldBeInvoked() {
         fakeService.statusCallbackAction = { it!!.onFailure("Terrible failure!") }
 
         client.setUpdateCallback(callback)
@@ -105,16 +116,53 @@ class ServiceBackedExerciseClientTest {
     }
 
     @Test
+    fun setUpdateCallback_secondCallbackReplacesFirst() {
+        client.setUpdateCallback(callback)
+        shadowOf(getMainLooper()).idle()
+        val callback2 = FakeExerciseUpdateCallback()
+        client.setUpdateCallback(callback2)
+        shadowOf(getMainLooper()).idle()
+
+        val resultFuture = client.clearUpdateCallbackAsync(callback)
+        shadowOf(getMainLooper()).idle()
+        resultFuture.get()
+        val resultFuture2 = client.clearUpdateCallbackAsync(callback2)
+        shadowOf(getMainLooper()).idle()
+        resultFuture2.get()
+
+        // Two registrations but only one clear request is sent to the
+        // FakeService since the previous listener was evicted and doesn't need
+        // to be cleared.
+        assertThat(fakeService.setListenerPackageNames)
+            .containsExactly(
+                "androidx.health.services.client.test",
+                "androidx.health.services.client.test"
+            )
+        assertThat(fakeService.clearListenerPackageNames)
+            .containsExactly("androidx.health.services.client.test")
+    }
+
+    @Test
+    fun clearUpdateCallbackAsync_callbackNotRegistered_noOp() {
+        val resultFuture = client.clearUpdateCallbackAsync(callback)
+        shadowOf(getMainLooper()).idle()
+
+        assertThat(resultFuture.get()).isNull()
+    }
+
+    @Test
     fun dataTypeInAvailabilityCallbackShouldMatchRequested_justSampleType_startExercise() {
-        val exerciseConfig = ExerciseConfig(
-            ExerciseType.WALKING,
-            setOf(HEART_RATE_BPM),
-            isAutoPauseAndResumeEnabled = false,
-            isGpsEnabled = false,
-        )
-        val availabilityEvent = ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
-            AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
-        )
+        val exerciseConfig =
+            ExerciseConfig(
+                ExerciseType.WALKING,
+                setOf(HEART_RATE_BPM),
+                isAutoPauseAndResumeEnabled = false,
+                isGpsEnabled = false,
+            )
+        val availabilityEvent =
+            ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
+                AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
+            )
         client.setUpdateCallback(callback)
         client.startExerciseAsync(exerciseConfig)
         shadowOf(getMainLooper()).idle()
@@ -127,17 +175,20 @@ class ServiceBackedExerciseClientTest {
 
     @Test
     fun dataTypeInAvailabilityCallbackShouldMatchRequested_justStatsType_startExercise() {
-        val exerciseConfig = ExerciseConfig(
-            ExerciseType.WALKING,
-            setOf(HEART_RATE_BPM_STATS),
-            isAutoPauseAndResumeEnabled = false,
-            isGpsEnabled = false
-        )
-        val availabilityEvent = ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
-            // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical. The
-            // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
-            AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
-        )
+        val exerciseConfig =
+            ExerciseConfig(
+                ExerciseType.WALKING,
+                setOf(HEART_RATE_BPM_STATS),
+                isAutoPauseAndResumeEnabled = false,
+                isGpsEnabled = false
+            )
+        val availabilityEvent =
+            ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
+                // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical.
+                // The
+                // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
+                AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
+            )
         client.setUpdateCallback(callback)
         client.startExerciseAsync(exerciseConfig)
         shadowOf(getMainLooper()).idle()
@@ -150,17 +201,20 @@ class ServiceBackedExerciseClientTest {
 
     @Test
     fun dataTypeInAvailabilityCallbackShouldMatchRequested_statsAndSample_startExercise() {
-        val exerciseConfig = ExerciseConfig(
-            ExerciseType.WALKING,
-            setOf(HEART_RATE_BPM, HEART_RATE_BPM_STATS),
-            isAutoPauseAndResumeEnabled = false,
-            isGpsEnabled = false
-        )
-        val availabilityEvent = ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
-            // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical. The
-            // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
-            AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
-        )
+        val exerciseConfig =
+            ExerciseConfig(
+                ExerciseType.WALKING,
+                setOf(HEART_RATE_BPM, HEART_RATE_BPM_STATS),
+                isAutoPauseAndResumeEnabled = false,
+                isGpsEnabled = false
+            )
+        val availabilityEvent =
+            ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
+                // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical.
+                // The
+                // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
+                AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
+            )
         client.setUpdateCallback(callback)
         client.startExerciseAsync(exerciseConfig)
         shadowOf(getMainLooper()).idle()
@@ -175,21 +229,25 @@ class ServiceBackedExerciseClientTest {
 
     @Test
     fun withExerciseTypeConfig_statsAndSample_startExercise() {
-        val exerciseConfig = ExerciseConfig(
-            ExerciseType.GOLF,
-            setOf(HEART_RATE_BPM, HEART_RATE_BPM_STATS),
-            isAutoPauseAndResumeEnabled = false,
-            isGpsEnabled = false,
-            exerciseTypeConfig = GolfExerciseTypeConfig(
-                    GolfExerciseTypeConfig
-                        .GolfShotTrackingPlaceInfo.GOLF_SHOT_TRACKING_PLACE_INFO_FAIRWAY
-                )
-        )
-        val availabilityEvent = ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
-            // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical. The
-            // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
-            AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
-        )
+        val exerciseConfig =
+            ExerciseConfig(
+                ExerciseType.GOLF,
+                setOf(HEART_RATE_BPM, HEART_RATE_BPM_STATS),
+                isAutoPauseAndResumeEnabled = false,
+                isGpsEnabled = false,
+                exerciseTypeConfig =
+                    GolfExerciseTypeConfig(
+                        GolfExerciseTypeConfig.GolfShotTrackingPlaceInfo
+                            .GOLF_SHOT_TRACKING_PLACE_INFO_FAIRWAY
+                    )
+            )
+        val availabilityEvent =
+            ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
+                // Currently the proto form of HEART_RATE_BPM and HEART_RATE_BPM_STATS is identical.
+                // The
+                // APK doesn't know about _STATS, so pass the sample type to mimic that behavior.
+                AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
+            )
         client.setUpdateCallback(callback)
         client.startExerciseAsync(exerciseConfig)
         shadowOf(getMainLooper()).idle()
@@ -203,14 +261,46 @@ class ServiceBackedExerciseClientTest {
     }
 
     @Test
+    fun withExerciseEventConfig_startExercise_receiveCorrectExerciseEventCallback() {
+        val exerciseConfig =
+            ExerciseConfig(
+                ExerciseType.GOLF,
+                setOf(GOLF_SHOT_COUNT),
+                isAutoPauseAndResumeEnabled = false,
+                isGpsEnabled = false,
+                exerciseTypeConfig =
+                    GolfExerciseTypeConfig(
+                        GolfExerciseTypeConfig.GolfShotTrackingPlaceInfo
+                            .GOLF_SHOT_TRACKING_PLACE_INFO_PUTTING_GREEN
+                    ),
+                exerciseEventTypes = setOf(ExerciseEventType.GOLF_SHOT_EVENT),
+            )
+        val golfShotEvent =
+            ExerciseUpdateListenerEvent.createExerciseEventUpdateEvent(
+                ExerciseEventResponse(GolfShotEvent(Duration.ofMinutes(1), GolfShotSwingType.PUTT))
+            )
+
+        client.setUpdateCallback(callback)
+        client.startExerciseAsync(exerciseConfig)
+        shadowOf(getMainLooper()).idle()
+        fakeService.listener!!.onExerciseUpdateListenerEvent(golfShotEvent)
+        shadowOf(getMainLooper()).idle()
+
+        assertThat(callback.exerciseEvents)
+            .contains(GolfShotEvent(Duration.ofMinutes(1), GolfShotSwingType.PUTT))
+    }
+
+    @Test
     fun dataTypeInAvailabilityCallbackShouldMatchRequested_justSampleType_prepare() {
-        val warmUpConfig = WarmUpConfig(
-            ExerciseType.WALKING,
-            setOf(HEART_RATE_BPM),
-        )
-        val availabilityEvent = ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
-            AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
-        )
+        val warmUpConfig =
+            WarmUpConfig(
+                ExerciseType.WALKING,
+                setOf(HEART_RATE_BPM),
+            )
+        val availabilityEvent =
+            ExerciseUpdateListenerEvent.createAvailabilityUpdateEvent(
+                AvailabilityResponse(HEART_RATE_BPM, ACQUIRING)
+            )
         client.setUpdateCallback(callback)
         client.prepareExerciseAsync(warmUpConfig)
         shadowOf(getMainLooper()).idle()
@@ -221,11 +311,44 @@ class ServiceBackedExerciseClientTest {
         assertThat(callback.availabilities).containsEntry(HEART_RATE_BPM, ACQUIRING)
     }
 
+    @Test
+    fun updateExerciseTypeConfigForActiveExercise() {
+        val exerciseConfig = ExerciseConfig.builder(ExerciseType.GOLF).build()
+        val exerciseTypeConfig =
+            GolfExerciseTypeConfig(
+                GolfExerciseTypeConfig.GolfShotTrackingPlaceInfo
+                    .GOLF_SHOT_TRACKING_PLACE_INFO_FAIRWAY
+            )
+        client.setUpdateCallback(callback)
+        client.startExerciseAsync(exerciseConfig)
+        shadowOf(getMainLooper()).idle()
+
+        client.updateExerciseTypeConfigAsync(exerciseTypeConfig)
+        shadowOf(getMainLooper()).idle()
+
+        assertThat(fakeService.exerciseConfig?.exerciseTypeConfig).isEqualTo(exerciseTypeConfig)
+    }
+
+    @Test
+    fun overrideBatchingModesForActiveExercise_notImplementedError() {
+        val batchingMode = HashSet<BatchingMode>()
+        client.setUpdateCallback(callback)
+
+        assertFailsWith(
+            exceptionClass = NotImplementedError::class,
+            block = {
+                client.overrideBatchingModesForActiveExerciseAsync(batchingMode)
+                shadowOf(getMainLooper()).idle()
+            }
+        )
+    }
+
     class FakeExerciseUpdateCallback : ExerciseUpdateCallback {
         val availabilities = mutableMapOf<DataType<*, *>, Availability>()
         val registrationFailureThrowables = mutableListOf<Throwable>()
         var onRegisteredCalls = 0
         var onRegistrationFailedCalls = 0
+        var exerciseEvents = mutableSetOf<ExerciseEvent>()
 
         override fun onRegistered() {
             onRegisteredCalls++
@@ -243,12 +366,23 @@ class ServiceBackedExerciseClientTest {
         override fun onAvailabilityChanged(dataType: DataType<*, *>, availability: Availability) {
             availabilities[dataType] = availability
         }
+
+        override fun onExerciseEventReceived(event: ExerciseEvent) {
+            when (event) {
+                is GolfShotEvent -> {
+                    exerciseEvents.add(event)
+                }
+            }
+        }
     }
 
     class FakeServiceStub : IExerciseApiService.Stub() {
 
         var listener: IExerciseUpdateListener? = null
         var statusCallbackAction: (IStatusCallback?) -> Unit = { it!!.onSuccess() }
+        var exerciseConfig: ExerciseConfig? = null
+        val setListenerPackageNames = mutableListOf<String>()
+        val clearListenerPackageNames = mutableListOf<String>()
 
         override fun getApiVersion(): Int = 12
 
@@ -263,6 +397,7 @@ class ServiceBackedExerciseClientTest {
             startExerciseRequest: StartExerciseRequest?,
             statusCallback: IStatusCallback?
         ) {
+            exerciseConfig = startExerciseRequest?.exerciseConfig
             statusCallbackAction.invoke(statusCallback)
         }
 
@@ -290,20 +425,25 @@ class ServiceBackedExerciseClientTest {
         }
 
         override fun setUpdateListener(
-            packageName: String?,
+            packageName: String,
             listener: IExerciseUpdateListener?,
             statusCallback: IStatusCallback?
         ) {
             this.listener = listener
+            setListenerPackageNames += packageName
             statusCallbackAction.invoke(statusCallback)
         }
 
         override fun clearUpdateListener(
-            packageName: String?,
+            packageName: String,
             listener: IExerciseUpdateListener?,
             statusCallback: IStatusCallback?
         ) {
-            throw NotImplementedError()
+            clearListenerPackageNames += packageName
+            if (this.listener == listener) {
+                this.listener = null
+            }
+            this.statusCallbackAction.invoke(statusCallback)
         }
 
         override fun addGoalToActiveExercise(
@@ -315,6 +455,20 @@ class ServiceBackedExerciseClientTest {
 
         override fun removeGoalFromActiveExercise(
             request: ExerciseGoalRequest?,
+            statusCallback: IStatusCallback?
+        ) {
+            throw NotImplementedError()
+        }
+
+        override fun addDebouncedGoalToActiveExercise(
+            request: DebouncedGoalRequest?,
+            statusCallback: IStatusCallback?
+        ) {
+            throw NotImplementedError()
+        }
+
+        override fun removeDebouncedGoalFromActiveExercise(
+            request: DebouncedGoalRequest?,
             statusCallback: IStatusCallback?
         ) {
             throw NotImplementedError()
@@ -343,10 +497,16 @@ class ServiceBackedExerciseClientTest {
         }
 
         override fun updateExerciseTypeConfigForActiveExercise(
-            updateExerciseTypeConfigRequest: UpdateExerciseTypeConfigRequest?,
-            statuscallback: IStatusCallback?
+            updateExerciseTypeConfigRequest: UpdateExerciseTypeConfigRequest,
+            statuscallback: IStatusCallback
         ) {
-            throw NotImplementedError()
+            val newExerciseTypeConfig = updateExerciseTypeConfigRequest.exerciseTypeConfig
+            val newExerciseConfig =
+                ExerciseConfig.builder(exerciseConfig!!.exerciseType)
+                    .setExerciseTypeConfig(newExerciseTypeConfig)
+                    .build()
+            this.exerciseConfig = newExerciseConfig
+            this.statusCallbackAction.invoke(statuscallback)
         }
     }
 }

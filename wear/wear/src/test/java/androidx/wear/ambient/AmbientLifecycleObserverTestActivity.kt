@@ -20,27 +20,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 
 class AmbientLifecycleObserverTestActivity : ComponentActivity() {
-    private val callback = object : AmbientLifecycleObserverInterface.AmbientLifecycleCallback {
-        override fun onEnterAmbient(
-            ambientDetails: AmbientLifecycleObserverInterface.AmbientDetails
-        ) {
-            enterAmbientCalled = true
-            enterAmbientArgs = ambientDetails
-        }
+    private val callback =
+        object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+            override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+                enterAmbientCalled = true
+                enterAmbientArgs = ambientDetails
+            }
 
-        override fun onUpdateAmbient() {
-            updateAmbientCalled = true
-        }
+            override fun onUpdateAmbient() {
+                updateAmbientCalled = true
+            }
 
-        override fun onExitAmbient() {
-            exitAmbientCalled = true
+            override fun onExitAmbient() {
+                exitAmbientCalled = true
+            }
         }
-    }
 
     val observer = AmbientLifecycleObserver(this, { r -> r.run() }, callback)
 
     var enterAmbientCalled = false
-    var enterAmbientArgs: AmbientLifecycleObserverInterface.AmbientDetails? = null
+    var enterAmbientArgs: AmbientLifecycleObserver.AmbientDetails? = null
     var updateAmbientCalled = false
     var exitAmbientCalled = false
 

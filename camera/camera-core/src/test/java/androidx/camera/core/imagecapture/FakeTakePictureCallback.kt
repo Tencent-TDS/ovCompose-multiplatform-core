@@ -16,21 +16,28 @@
 
 package androidx.camera.core.imagecapture
 
+import android.graphics.Bitmap
 import androidx.camera.core.ImageCapture.OutputFileResults
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 
-/**
- * Fake [TakePictureCallback] that tracks method invocations.
- */
+/** Fake [TakePictureCallback] that tracks method invocations. */
 internal class FakeTakePictureCallback : TakePictureCallback {
 
+    var onCaptureStarted = false
     var onImageCapturedCalled = false
     var inMemoryResult: ImageProxy? = null
     var captureFailure: ImageCaptureException? = null
     var processFailure: ImageCaptureException? = null
     var onDiskResult: OutputFileResults? = null
+    var captureProcessProgressList: MutableList<Int> = mutableListOf()
+    var onPostviewBitmapAvailable: Bitmap? = null
+
     var aborted = false
+
+    override fun onCaptureStarted() {
+        onCaptureStarted = true
+    }
 
     override fun onImageCaptured() {
         onImageCapturedCalled = true
@@ -54,5 +61,13 @@ internal class FakeTakePictureCallback : TakePictureCallback {
 
     override fun isAborted(): Boolean {
         return aborted
+    }
+
+    override fun onCaptureProcessProgressed(progress: Int) {
+        captureProcessProgressList.add(progress)
+    }
+
+    override fun onPostviewBitmapAvailable(bitmap: Bitmap) {
+        onPostviewBitmapAvailable = bitmap
     }
 }

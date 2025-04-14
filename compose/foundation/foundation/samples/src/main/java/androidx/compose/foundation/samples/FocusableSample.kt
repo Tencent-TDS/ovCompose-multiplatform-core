@@ -17,11 +17,10 @@
 package androidx.compose.foundation.samples
 
 import androidx.annotation.Sampled
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,19 +46,21 @@ fun FocusableSample() {
 
     // text below will change when we focus it via button click
     val isFocused = interactionSource.collectIsFocusedAsState().value
-    val text = if (isFocused) {
-        "Focused! tap anywhere to free the focus"
-    } else {
-        "Bring focus to me by tapping the button below!"
-    }
+    val text =
+        if (isFocused) {
+            "Focused! tap anywhere to free the focus"
+        } else {
+            "Bring focus to me by tapping the button below!"
+        }
     Column {
         // this Text will change it's text parameter depending on the presence of a focus
         Text(
             text = text,
-            modifier = Modifier
-                // add focusRequester modifier before the focusable (or even in the parent)
-                .focusRequester(focusRequester)
-                .focusable(interactionSource = interactionSource)
+            modifier =
+                Modifier
+                    // add focusRequester modifier before the focusable (or even in the parent)
+                    .focusRequester(focusRequester)
+                    .focusable(interactionSource = interactionSource)
         )
         Button(onClick = { focusRequester.requestFocus() }) {
             Text("Bring focus to the text above")
@@ -67,7 +68,6 @@ fun FocusableSample() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Sampled
 @Composable
 fun FocusGroupSample() {
@@ -90,14 +90,9 @@ fun FocusGroupSample() {
 fun FocusableFocusGroupSample() {
     val interactionSource = remember { MutableInteractionSource() }
     LazyRow(
-        Modifier
-            .focusable(interactionSource = interactionSource)
+        Modifier.focusable(interactionSource = interactionSource)
             .border(1.dp, if (interactionSource.collectIsFocusedAsState().value) Red else Black)
     ) {
-        repeat(10) {
-            item {
-                Button({}) { Text("Button$it") }
-            }
-        }
+        repeat(10) { item { Button({}) { Text("Button$it") } } }
     }
 }

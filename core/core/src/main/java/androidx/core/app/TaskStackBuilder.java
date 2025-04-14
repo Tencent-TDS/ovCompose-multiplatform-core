@@ -22,15 +22,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -74,8 +72,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
     private static final String TAG = "TaskStackBuilder";
 
     public interface SupportParentable {
-        @Nullable
-        Intent getSupportParentActivityIntent();
+        @Nullable Intent getSupportParentActivityIntent();
     }
 
     private final ArrayList<Intent> mIntents = new ArrayList<>();
@@ -92,8 +89,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @param context The context that will launch the new task stack or generate a PendingIntent
      * @return A new TaskStackBuilder
      */
-    @NonNull
-    public static TaskStackBuilder create(@NonNull Context context) {
+    public static @NonNull TaskStackBuilder create(@NonNull Context context) {
         return new TaskStackBuilder(context);
     }
 
@@ -118,8 +114,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @param nextIntent Intent for the next Activity in the synthesized task stack
      * @return This TaskStackBuilder for method chaining
      */
-    @NonNull
-    public TaskStackBuilder addNextIntent(@NonNull Intent nextIntent) {
+    public @NonNull TaskStackBuilder addNextIntent(@NonNull Intent nextIntent) {
         mIntents.add(nextIntent);
         return this;
     }
@@ -136,8 +131,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      *                   Its chain of parents as specified in the manifest will be added.
      * @return This TaskStackBuilder for method chaining.
      */
-    @NonNull
-    public TaskStackBuilder addNextIntentWithParentStack(@NonNull Intent nextIntent) {
+    public @NonNull TaskStackBuilder addNextIntentWithParentStack(@NonNull Intent nextIntent) {
         ComponentName target = nextIntent.getComponent();
         if (target == null) {
             target = nextIntent.resolveActivity(mSourceContext.getPackageManager());
@@ -156,8 +150,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @param sourceActivity All parents of this activity will be added
      * @return This TaskStackBuilder for method chaining
      */
-    @NonNull
-    public TaskStackBuilder addParentStack(@NonNull Activity sourceActivity) {
+    public @NonNull TaskStackBuilder addParentStack(@NonNull Activity sourceActivity) {
         Intent parent = null;
         if (sourceActivity instanceof SupportParentable) {
             parent = ((SupportParentable) sourceActivity).getSupportParentActivityIntent();
@@ -186,8 +179,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @param sourceActivityClass All parents of this activity will be added
      * @return This TaskStackBuilder for method chaining
      */
-    @NonNull
-    public TaskStackBuilder addParentStack(@NonNull Class<?> sourceActivityClass) {
+    public @NonNull TaskStackBuilder addParentStack(@NonNull Class<?> sourceActivityClass) {
         return addParentStack(new ComponentName(mSourceContext, sourceActivityClass));
     }
 
@@ -199,8 +191,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      *                           this activity will be added
      * @return This TaskStackBuilder for method chaining
      */
-    @NonNull
-    public TaskStackBuilder addParentStack(@NonNull ComponentName sourceActivityName) {
+    public @NonNull TaskStackBuilder addParentStack(@NonNull ComponentName sourceActivityName) {
         final int insertAt = mIntents.size();
         try {
             Intent parent = NavUtils.getParentActivityIntent(mSourceContext, sourceActivityName);
@@ -245,18 +236,16 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @param index Index from 0-getIntentCount()
      * @return the intent at position index
      */
-    @Nullable
-    public Intent editIntentAt(int index) {
+    public @Nullable Intent editIntentAt(int index) {
         return mIntents.get(index);
     }
 
     /**
      * @deprecated Use editIntentAt instead
      */
-    @NonNull
     @Override
     @Deprecated
-    public Iterator<Intent> iterator() {
+    public @NonNull Iterator<Intent> iterator() {
         return mIntents.iterator();
     }
 
@@ -311,9 +300,23 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @return The obtained PendingIntent.  May return null only if
      * {@link PendingIntent#FLAG_NO_CREATE} has been supplied.
      */
-    @Nullable
-    public PendingIntent getPendingIntent(int requestCode, int flags) {
+    public @Nullable PendingIntent getPendingIntent(int requestCode, int flags) {
         return getPendingIntent(requestCode, flags, null);
+    }
+
+    /**
+     * Obtains a {@link PendingIntent} with mandatory mutability flag set on supported platform
+     * versions. The caller provides the flag as combination of all the other values except
+     * mutability flag. This method combines mutability flag when necessary. See {@link
+     * TaskStackBuilder#getPendingIntent(int, int)}.
+     */
+    public @Nullable PendingIntent getPendingIntent(
+            int requestCode,
+            int flags,
+            boolean isMutable) {
+        return getPendingIntent(
+                requestCode,
+                PendingIntentCompat.addMutabilityFlags(isMutable, flags));
     }
 
     /**
@@ -330,8 +333,8 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      * @return The obtained PendingIntent.  May return null only if
      * {@link PendingIntent#FLAG_NO_CREATE} has been supplied.
      */
-    @Nullable
-    public PendingIntent getPendingIntent(int requestCode, int flags, @Nullable Bundle options) {
+    public @Nullable PendingIntent getPendingIntent(int requestCode, int flags,
+            @Nullable Bundle options) {
         if (mIntents.isEmpty()) {
             throw new IllegalStateException(
                     "No intents added to TaskStackBuilder; cannot getPendingIntent");
@@ -341,11 +344,24 @@ public final class TaskStackBuilder implements Iterable<Intent> {
         intents[0] = new Intent(intents[0]).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_TASK_ON_HOME);
 
-        if (Build.VERSION.SDK_INT >= 16) {
-            return Api16Impl.getActivities(mSourceContext, requestCode, intents, flags, options);
-        } else {
-            return PendingIntent.getActivities(mSourceContext, requestCode, intents, flags);
-        }
+        return PendingIntent.getActivities(mSourceContext, requestCode, intents, flags, options);
+    }
+
+    /**
+     * Obtains a {@link PendingIntent} with mandatory mutability flag set on supported platform
+     * versions. The caller provides the flag as combination of all the other values except
+     * mutability flag. This method combines mutability flag when necessary. See {@link
+     * TaskStackBuilder#getPendingIntent(int, int, Bundle)}.
+     */
+    public @Nullable PendingIntent getPendingIntent(
+            int requestCode,
+            int flags,
+            @Nullable Bundle options,
+            boolean isMutable) {
+        return getPendingIntent(
+                requestCode,
+                PendingIntentCompat.addMutabilityFlags(isMutable, flags),
+                options);
     }
 
     /**
@@ -355,8 +371,7 @@ public final class TaskStackBuilder implements Iterable<Intent> {
      *
      * @return An array containing the intents added to this builder.
      */
-    @NonNull
-    public Intent[] getIntents() {
+    public Intent @NonNull [] getIntents() {
         Intent[] intents = new Intent[mIntents.size()];
         if (intents.length == 0) return intents;
 
@@ -366,18 +381,5 @@ public final class TaskStackBuilder implements Iterable<Intent> {
             intents[i] = new Intent(mIntents.get(i));
         }
         return intents;
-    }
-
-    @RequiresApi(16)
-    static class Api16Impl {
-        private Api16Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static PendingIntent getActivities(Context context, int requestCode, Intent[] intents,
-                int flags, Bundle options) {
-            return PendingIntent.getActivities(context, requestCode, intents, flags, options);
-        }
     }
 }

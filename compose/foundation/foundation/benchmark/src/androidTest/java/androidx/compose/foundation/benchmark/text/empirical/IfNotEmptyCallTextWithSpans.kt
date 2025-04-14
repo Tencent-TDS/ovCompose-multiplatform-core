@@ -17,12 +17,12 @@
 package androidx.compose.foundation.benchmark.text.empirical
 
 import androidx.compose.foundation.benchmark.text.DoFullBenchmark
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.LayeredComposeTestCase
 import androidx.compose.testutils.ToggleableTestCase
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.test.filters.LargeTest
 import org.junit.Assume
@@ -36,22 +36,22 @@ import org.junit.runners.Parameterized
  * usage of spans as text formatting).
  *
  * Spans are intentionally limited to
- *
  * 1) Not MetricsAffectingSpans (usage is very low)
  * 2) Not inlineContent (usage is very low).
  *
  * TODO: If introducing more optimizations that depend on the "full length" assumption, confirm the
- * frequency of spans that use the full length. This is not verified in the data set that produced
- * this benchmark.
+ *   frequency of spans that use the full length. This is not verified in the data set that produced
+ *   this benchmark.
  */
-class IfNotEmptyCallTextWithSpans(
-    private val text: AnnotatedString
-) : LayeredComposeTestCase(), ToggleableTestCase {
+class IfNotEmptyCallTextWithSpans(private val text: AnnotatedString) :
+    LayeredComposeTestCase(), ToggleableTestCase {
     private var toggleText = mutableStateOf(AnnotatedString(""))
+
+    private val style = TextStyle.Default.copy(fontFamily = FontFamily.Monospace)
 
     @Composable
     override fun MeasuredContent() {
-        Text(toggleText.value, fontFamily = FontFamily.Monospace)
+        Subject(toggleText.value, style = style)
     }
 
     override fun toggleState() {
@@ -65,10 +65,8 @@ class IfNotEmptyCallTextWithSpans(
 
 @LargeTest
 @RunWith(Parameterized::class)
-open class IfNotEmptyCallTextWithSpansParent(
-    private val size: Int,
-    private val spanCount: Int
-) : EmpiricalBench<IfNotEmptyCallTextWithSpans>() {
+open class IfNotEmptyCallTextWithSpansParent(private val size: Int, private val spanCount: Int) :
+    EmpiricalBench<IfNotEmptyCallTextWithSpans>() {
     override val caseFactory = {
         val text = generateCacheableStringOf(size)
         IfNotEmptyCallTextWithSpans(text.annotateWithSpans(spanCount))
@@ -83,10 +81,8 @@ open class IfNotEmptyCallTextWithSpansParent(
 
 @LargeTest
 @RunWith(Parameterized::class)
-class AllAppsIfNotEmptyCallTextWithSpans(
-    size: Int,
-    spanCount: Int
-) : IfNotEmptyCallTextWithSpansParent(size, spanCount) {
+class AllAppsIfNotEmptyCallTextWithSpans(size: Int, spanCount: Int) :
+    IfNotEmptyCallTextWithSpansParent(size, spanCount) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "size={0}, spanCount={1}")
@@ -96,10 +92,8 @@ class AllAppsIfNotEmptyCallTextWithSpans(
 
 @LargeTest
 @RunWith(Parameterized::class)
-class SocialAppIfNotEmptyCallTextWithSpans(
-    size: Int,
-    spanCount: Int
-) : IfNotEmptyCallTextWithSpansParent(size, spanCount) {
+class SocialAppIfNotEmptyCallTextWithSpans(size: Int, spanCount: Int) :
+    IfNotEmptyCallTextWithSpansParent(size, spanCount) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "size={0}, spanCount={1}")
@@ -114,10 +108,8 @@ class SocialAppIfNotEmptyCallTextWithSpans(
 
 @LargeTest
 @RunWith(Parameterized::class)
-class ChatAppIfNotEmptyCallTextWithSpans(
-    size: Int,
-    spanCount: Int
-) : IfNotEmptyCallTextWithSpansParent(size, spanCount) {
+class ChatAppIfNotEmptyCallTextWithSpans(size: Int, spanCount: Int) :
+    IfNotEmptyCallTextWithSpansParent(size, spanCount) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "size={0}, spanCount={1}")
@@ -132,10 +124,8 @@ class ChatAppIfNotEmptyCallTextWithSpans(
 
 @LargeTest
 @RunWith(Parameterized::class)
-class ShoppingAppIfNotEmptyCallTextWithSpans(
-    size: Int,
-    spanCount: Int
-) : IfNotEmptyCallTextWithSpansParent(size, spanCount) {
+class ShoppingAppIfNotEmptyCallTextWithSpans(size: Int, spanCount: Int) :
+    IfNotEmptyCallTextWithSpansParent(size, spanCount) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "size={0}, spanCount={1}")

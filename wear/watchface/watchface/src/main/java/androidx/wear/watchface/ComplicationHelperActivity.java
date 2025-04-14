@@ -26,13 +26,15 @@ import android.os.Bundle;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationProviderInfo;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.activity.ComponentActivity;
 import androidx.annotation.RestrictTo;
 import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.FragmentActivity;
 import androidx.wear.watchface.complications.ComplicationDataSourceUpdateRequesterConstants;
 import androidx.wear.watchface.complications.data.ComplicationType;
+import androidx.wear.watchface.style.UserStyleData;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -58,7 +60,7 @@ import java.util.Objects;
  *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public final class ComplicationHelperActivity extends FragmentActivity
+public final class ComplicationHelperActivity extends ComponentActivity
         implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     /**
@@ -112,7 +114,7 @@ public final class ComplicationHelperActivity extends FragmentActivity
     @Nullable ComponentName mWatchFace;
     int mWfComplicationId;
     @Nullable Bundle mAdditionalExtras;
-    @Nullable @ComplicationData.ComplicationType int[] mTypes;
+    @ComplicationData.ComplicationType int @Nullable [] mTypes;
     Delegate mDelegate = new DelegateImpl(this);
 
     /** Allows the logic to be tested. */
@@ -293,8 +295,9 @@ public final class ComplicationHelperActivity extends FragmentActivity
     }
 
     @Override
+    @SuppressWarnings("deprecation") //TODO: Use ActivityResultContract
     public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+            int requestCode, String @NonNull [] permissions, int @NonNull [] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length == 0) {
             // Request was cancelled.
@@ -319,6 +322,7 @@ public final class ComplicationHelperActivity extends FragmentActivity
     }
 
     @Override
+    @SuppressWarnings("deprecation") //TODO: Use ActivityResultContract
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
@@ -373,15 +377,15 @@ public final class ComplicationHelperActivity extends FragmentActivity
      * @param complicationDenied Intent to launch the complication permission denied dialog.
      * @param complicationRationale Intent to launch the complication permission rationale dialog.
      */
-    @NonNull
-    public static Intent createComplicationDataSourceChooserHelperIntent(
+    public static @NonNull Intent createComplicationDataSourceChooserHelperIntent(
             @NonNull Context context,
             @NonNull ComponentName watchFace,
             int watchFaceComplicationId,
             @NonNull Collection<ComplicationType> supportedTypes,
             @Nullable String watchFaceInstanceId,
             @Nullable Intent complicationDenied,
-            @Nullable Intent complicationRationale) {
+            @Nullable Intent complicationRationale,
+            @Nullable UserStyleData userStyleData) {
         Intent intent = new Intent(context, ComplicationHelperActivity.class);
         intent.setAction(ACTION_START_PROVIDER_CHOOSER);
         intent.putExtra(
@@ -402,6 +406,11 @@ public final class ComplicationHelperActivity extends FragmentActivity
             intent.putExtra(
                     ComplicationDataSourceChooserIntent.EXTRA_COMPLICATION_RATIONALE,
                     complicationRationale);
+        }
+        if (userStyleData != null) {
+            intent.putExtra(
+                    ComplicationDataSourceChooserIntent.EXTRA_USER_STYLE,
+                    userStyleData.toWireFormat());
         }
         int[] wireSupportedTypes = new int[supportedTypes.size()];
         int i = 0;
@@ -434,8 +443,7 @@ public final class ComplicationHelperActivity extends FragmentActivity
      * @param complicationDenied Intent to launch the complication permission denied dialog.
      * @param complicationRationale Intent to launch the complication permission rationale dialog.
      */
-    @NonNull
-    public static Intent createPermissionRequestHelperIntent(
+    public static @NonNull Intent createPermissionRequestHelperIntent(
             @NonNull Context context,
             @NonNull ComponentName watchFace,
             @Nullable Intent complicationDenied,

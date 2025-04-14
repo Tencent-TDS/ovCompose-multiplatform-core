@@ -17,32 +17,44 @@
 package androidx.credentials
 
 import android.os.Bundle
-import androidx.annotation.VisibleForTesting
 import androidx.credentials.internal.FrameworkClassParsingException
+import androidx.credentials.internal.RequestValidationHelper
 
 /**
  * A response of a public key credential (passkey) flow.
  *
  * @property registrationResponseJson the public key credential registration response in JSON format
- * @throws NullPointerException If [registrationResponseJson] is null
- * @throws IllegalArgumentException If [registrationResponseJson] is blank
  */
-class CreatePublicKeyCredentialResponse(
-    val registrationResponseJson: String
-) : CreateCredentialResponse(
-    PublicKeyCredential.TYPE_PUBLIC_KEY_CREDENTIAL,
-    toBundle(registrationResponseJson)
-) {
+class CreatePublicKeyCredentialResponse
+private constructor(
+    val registrationResponseJson: String,
+    data: Bundle,
+) :
+    CreateCredentialResponse(
+        PublicKeyCredential.TYPE_PUBLIC_KEY_CREDENTIAL,
+        data,
+    ) {
+
+    /**
+     * Constructs a [CreatePublicKeyCredentialResponse].
+     *
+     * @param registrationResponseJson the public key credential registration response in JSON
+     *   format
+     * @throws NullPointerException If [registrationResponseJson] is null
+     * @throws IllegalArgumentException If [registrationResponseJson] is empty, or an invalid JSON
+     */
+    constructor(
+        registrationResponseJson: String
+    ) : this(registrationResponseJson, toBundle(registrationResponseJson))
 
     init {
-        require(registrationResponseJson.isNotEmpty()) { "registrationResponseJson must not be " +
-            "empty" }
+        require(RequestValidationHelper.isValidJSON(registrationResponseJson)) {
+            "registrationResponseJson must not be empty, and must be a valid JSON"
+        }
     }
 
-    /** @hide */
-    companion object {
-        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-        const val BUNDLE_KEY_REGISTRATION_RESPONSE_JSON =
+    internal companion object {
+        internal const val BUNDLE_KEY_REGISTRATION_RESPONSE_JSON =
             "androidx.credentials.BUNDLE_KEY_REGISTRATION_RESPONSE_JSON"
 
         @JvmStatic
@@ -55,9 +67,8 @@ class CreatePublicKeyCredentialResponse(
         @JvmStatic
         internal fun createFrom(data: Bundle): CreatePublicKeyCredentialResponse {
             try {
-                val registrationResponseJson =
-                    data.getString(BUNDLE_KEY_REGISTRATION_RESPONSE_JSON)
-                return CreatePublicKeyCredentialResponse(registrationResponseJson!!)
+                val registrationResponseJson = data.getString(BUNDLE_KEY_REGISTRATION_RESPONSE_JSON)
+                return CreatePublicKeyCredentialResponse(registrationResponseJson!!, data)
             } catch (e: Exception) {
                 throw FrameworkClassParsingException()
             }

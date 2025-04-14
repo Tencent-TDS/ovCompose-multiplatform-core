@@ -20,10 +20,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.activity.compose.setContent
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.viewbinding.samples.R
+import androidx.compose.ui.viewbinding.samples.databinding.SampleEditTextLayoutBinding
 import androidx.compose.ui.viewbinding.samples.databinding.TestFragmentLayoutBinding
 import androidx.compose.ui.viewinterop.AndroidViewBinding
-import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
@@ -51,6 +52,11 @@ class FragmentRecreateTest {
                 supportFragmentManager.findFragmentById(R.id.fragment_container)!!
             }
             assertThat(fragment.requireView().parent).isNotNull()
+            val binding = SampleEditTextLayoutBinding.bind(fragment.requireView())
+            assertThat(binding.editText.text.toString()).isEqualTo("Default")
+
+            // Update the state to make sure it gets saved and restored properly
+            withActivity { binding.editText.setText("Updated") }
 
             recreate()
 
@@ -58,6 +64,8 @@ class FragmentRecreateTest {
                 supportFragmentManager.findFragmentById(R.id.fragment_container)!!
             }
             assertThat(recreatedFragment.requireView().parent).isNotNull()
+            val recreatedBinding = SampleEditTextLayoutBinding.bind(recreatedFragment.requireView())
+            assertThat(recreatedBinding.editText.text.toString()).isEqualTo("Updated")
         }
     }
 
@@ -67,22 +75,33 @@ class FragmentRecreateTest {
             val parentFragment = withActivity {
                 supportFragmentManager.findFragmentById(PARENT_FRAGMENT_CONTAINER_ID)!!
             }
-            val fragment = parentFragment.childFragmentManager
-                .findFragmentById(R.id.fragment_container)
+            val fragment =
+                parentFragment.childFragmentManager.findFragmentById(R.id.fragment_container)
             assertWithMessage("Fragment should be added as a child fragment")
-                .that(fragment).isNotNull()
+                .that(fragment)
+                .isNotNull()
             assertThat(fragment!!.requireView().parent).isNotNull()
+            val binding = SampleEditTextLayoutBinding.bind(fragment.requireView())
+            assertThat(binding.editText.text.toString()).isEqualTo("Default")
+
+            // Update the state to make sure it gets saved and restored properly
+            withActivity { binding.editText.setText("Updated") }
 
             recreate()
 
             val recreatedParentFragment = withActivity {
                 supportFragmentManager.findFragmentById(PARENT_FRAGMENT_CONTAINER_ID)!!
             }
-            val recreatedFragment = recreatedParentFragment.childFragmentManager
-                .findFragmentById(R.id.fragment_container)
+            val recreatedFragment =
+                recreatedParentFragment.childFragmentManager.findFragmentById(
+                    R.id.fragment_container
+                )
             assertWithMessage("Fragment should be added as a child fragment")
-                .that(recreatedFragment).isNotNull()
+                .that(recreatedFragment)
+                .isNotNull()
             assertThat(recreatedFragment!!.requireView().parent).isNotNull()
+            val recreatedBinding = SampleEditTextLayoutBinding.bind(recreatedFragment.requireView())
+            assertThat(recreatedBinding.editText.text.toString()).isEqualTo("Updated")
         }
     }
 }
@@ -90,20 +109,14 @@ class FragmentRecreateTest {
 class InflatedFragmentActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            AndroidViewBinding(TestFragmentLayoutBinding::inflate)
-        }
+        setContent { AndroidViewBinding(TestFragmentLayoutBinding::inflate) }
     }
 }
 
 class ChildInflatedFragmentActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(
-            FragmentContainerView(this).apply {
-                id = PARENT_FRAGMENT_CONTAINER_ID
-            }
-        )
+        setContentView(FragmentContainerView(this).apply { id = PARENT_FRAGMENT_CONTAINER_ID })
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
                 setReorderingAllowed(true)
@@ -117,10 +130,9 @@ class ChildInflatedFragmentActivity : FragmentActivity() {
             inflater: LayoutInflater,
             container: ViewGroup?,
             savedInstanceState: Bundle?
-        ) = ComposeView(requireContext()).apply {
-            setContent {
-                AndroidViewBinding(TestFragmentLayoutBinding::inflate)
+        ) =
+            ComposeView(requireContext()).apply {
+                setContent { AndroidViewBinding(TestFragmentLayoutBinding::inflate) }
             }
-        }
     }
 }

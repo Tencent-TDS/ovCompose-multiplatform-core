@@ -18,80 +18,110 @@ package androidx.compose.foundation.demos.snapping
 
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.integration.demos.common.ComposableDemo
+import androidx.compose.integration.demos.common.DemoCategory
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastSumBy
 
-val LazyListSnappingDemos = listOf(
-    ComposableDemo("Single Page - Same Size Pages") { SamePageSizeDemo() },
-    ComposableDemo("Single Page - Multi-Size Pages") { MultiSizePageDemo() },
-    ComposableDemo("Single Page - Large Pages") { LargePageSizeDemo() },
-    ComposableDemo("Single Page - List with Content padding") { DifferentContentPaddingDemo() },
-    ComposableDemo("Multi Page - Animation Based Offset") { MultiPageSnappingDemo() },
-    ComposableDemo("Multi Page - View Port Based Offset") { ViewPortBasedSnappingDemo() },
-)
+val SnapPositionDemos =
+    listOf(
+        ComposableDemo("Center") { SnapPosition(SnapPosition.Center) },
+        ComposableDemo("Start") { SnapPosition(SnapPosition.Start) },
+        ComposableDemo("End") { SnapPosition(SnapPosition.End) },
+    )
 
-@OptIn(ExperimentalFoundationApi::class)
+val LazyListSnappingDemos =
+    listOf(
+        ComposableDemo("Single Item - Same Size Items") { SameItemSizeDemo() },
+        ComposableDemo("Single Item - Different Size Item") { DifferentItemSizeDemo() },
+        ComposableDemo("Single Item - Large Items") { LargeItemSizeDemo() },
+        ComposableDemo("Single Item - List with Content padding") { DifferentContentPaddingDemo() },
+        ComposableDemo("Multi Item - Decayed Snapping") { DecayedSnappingDemo() },
+        ComposableDemo("Multi Item - View Port Based Offset") { ViewPortBasedSnappingDemo() },
+        DemoCategory("Snap Position", SnapPositionDemos)
+    )
+
+/** Snapping happens to the next item and items have the same size */
 @Composable
-private fun SamePageSizeDemo() {
+private fun SnapPosition(snapPosition: SnapPosition) {
     val lazyListState = rememberLazyListState()
-    val layoutInfoProvider = rememberNextPageSnappingLayoutInfoProvider(lazyListState)
+    val layoutInfoProvider = rememberNextItemSnappingLayoutInfoProvider(lazyListState, snapPosition)
     val flingBehavior = rememberSnapFlingBehavior(layoutInfoProvider)
 
-    SnappingDemoMainLayout(
-        lazyListState = lazyListState,
-        flingBehavior = flingBehavior
-    ) {
+    SnappingDemoMainLayout(lazyListState = lazyListState, flingBehavior = flingBehavior) { position
+        ->
+        Box(
+            modifier =
+                Modifier.size(150.dp).padding(8.dp).background(Color.White).drawWithContent {
+                    drawContent()
+                    drawAnchor(CenterAnchor)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = position.toString(), fontSize = 40.sp)
+        }
+    }
+}
+
+/** Snapping happens to the next item and items have the same size */
+@Composable
+private fun SameItemSizeDemo() {
+    val lazyListState = rememberLazyListState()
+    val layoutInfoProvider = rememberNextItemSnappingLayoutInfoProvider(lazyListState)
+    val flingBehavior = rememberSnapFlingBehavior(layoutInfoProvider)
+
+    SnappingDemoMainLayout(lazyListState = lazyListState, flingBehavior = flingBehavior) {
         DefaultSnapDemoItem(it)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Snapping happens to the next item and items have the different sizes */
 @Composable
-private fun MultiSizePageDemo() {
+private fun DifferentItemSizeDemo() {
     val lazyListState = rememberLazyListState()
-    val layoutInfoProvider = rememberNextPageSnappingLayoutInfoProvider(lazyListState)
+    val layoutInfoProvider = rememberNextItemSnappingLayoutInfoProvider(lazyListState)
     val flingBehavior = rememberSnapFlingBehavior(layoutInfoProvider)
 
     SnappingDemoMainLayout(lazyListState = lazyListState, flingBehavior = flingBehavior) {
-        ResizableSnapDemoItem(
-            width = PagesSizes[it],
-            height = 500.dp,
-            position = it
-        )
+        ResizableSnapDemoItem(width = PagesSizes[it], height = 500.dp, position = it)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Snapping happens to the next item and items are larger than the view port */
 @Composable
-private fun LargePageSizeDemo() {
+private fun LargeItemSizeDemo() {
     val lazyListState = rememberLazyListState()
-    val layoutInfoProvider = rememberNextPageSnappingLayoutInfoProvider(lazyListState)
+    val layoutInfoProvider = rememberNextItemSnappingLayoutInfoProvider(lazyListState)
     val flingBehavior = rememberSnapFlingBehavior(layoutInfoProvider)
 
     SnappingDemoMainLayout(lazyListState = lazyListState, flingBehavior = flingBehavior) {
-        ResizableSnapDemoItem(
-            width = 350.dp,
-            height = 500.dp,
-            position = it
-        )
+        ResizableSnapDemoItem(width = 350.dp, height = 500.dp, position = it)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Snapping happens to the next item and list has content paddings */
 @Composable
 private fun DifferentContentPaddingDemo() {
     val lazyListState = rememberLazyListState()
-    val layoutInfoProvider =
-        remember(lazyListState) { SnapLayoutInfoProvider(lazyListState) }
+    val layoutInfoProvider = remember(lazyListState) { SnapLayoutInfoProvider(lazyListState) }
     val flingBehavior = rememberSnapFlingBehavior(layoutInfoProvider)
 
     SnappingDemoMainLayout(
@@ -103,9 +133,9 @@ private fun DifferentContentPaddingDemo() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Snapping happens after a decay animation and items have the same size */
 @Composable
-private fun MultiPageSnappingDemo() {
+private fun DecayedSnappingDemo() {
     val lazyListState = rememberLazyListState()
     val flingBehavior = rememberSnapFlingBehavior(lazyListState)
     SnappingDemoMainLayout(lazyListState = lazyListState, flingBehavior = flingBehavior) {
@@ -113,7 +143,7 @@ private fun MultiPageSnappingDemo() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Snapping happens to at max one view port item's worth distance. */
 @Composable
 private fun ViewPortBasedSnappingDemo() {
     val lazyListState = rememberLazyListState()
@@ -125,22 +155,20 @@ private fun ViewPortBasedSnappingDemo() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun rememberNextPageSnappingLayoutInfoProvider(
-    state: LazyListState
+private fun rememberNextItemSnappingLayoutInfoProvider(
+    state: LazyListState,
+    snapPosition: SnapPosition = SnapPosition.Center
 ): SnapLayoutInfoProvider {
-    return remember(state) {
-        val basedSnappingLayoutInfoProvider = SnapLayoutInfoProvider(lazyListState = state)
+    return remember(state, snapPosition) {
+        val basedSnappingLayoutInfoProvider =
+            SnapLayoutInfoProvider(lazyListState = state, snapPosition = snapPosition)
         object : SnapLayoutInfoProvider by basedSnappingLayoutInfoProvider {
-            override fun Density.calculateApproachOffset(initialVelocity: Float): Float {
-                return 0f
-            }
+            override fun calculateApproachOffset(velocity: Float, decayOffset: Float): Float = 0.0f
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun rememberViewPortSnappingLayoutInfoProvider(
     state: LazyListState
@@ -150,7 +178,13 @@ private fun rememberViewPortSnappingLayoutInfoProvider(
         ViewPortBasedSnappingLayoutInfoProvider(
             SnapLayoutInfoProvider(lazyListState = state),
             decayAnimationSpec,
-        ) { state.layoutInfo.viewportSize.width.toFloat() }
+            {
+                val visibleItemsSum = state.layoutInfo.visibleItemsInfo.fastSumBy { it.size }
+                visibleItemsSum / state.layoutInfo.visibleItemsInfo.size.toFloat()
+            }
+        ) {
+            state.layoutInfo.viewportSize.width.toFloat()
+        }
     }
 }
 

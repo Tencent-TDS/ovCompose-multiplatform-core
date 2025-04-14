@@ -16,9 +16,12 @@
 
 package androidx.room.solver.query.result
 
+import androidx.room.MapColumn
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XClassName
 import androidx.room.compiler.codegen.XCodeBlock
+import androidx.room.compiler.codegen.asClassName
+import androidx.room.compiler.codegen.buildCodeBlock
 import androidx.room.compiler.processing.XType
 import androidx.room.ext.CollectionTypeNames
 import androidx.room.ext.CommonTypeNames
@@ -26,30 +29,28 @@ import androidx.room.ext.implementsEqualsAndHashcode
 import androidx.room.parser.ParsedQuery
 import androidx.room.processor.Context
 import androidx.room.processor.ProcessorErrors
+import androidx.room.processor.ProcessorErrors.AmbiguousColumnLocation.DATA_CLASS
 import androidx.room.processor.ProcessorErrors.AmbiguousColumnLocation.ENTITY
 import androidx.room.processor.ProcessorErrors.AmbiguousColumnLocation.MAP_INFO
-import androidx.room.processor.ProcessorErrors.AmbiguousColumnLocation.POJO
-import androidx.room.solver.types.CursorValueReader
+import androidx.room.solver.types.StatementValueReader
+import androidx.room.verifier.ColumnInfo
 import androidx.room.vo.ColumnIndexVar
-import androidx.room.vo.MapInfo
 import androidx.room.vo.Warning
 
-/**
- * Abstract class for Map and Multimap result adapters.
- */
+/** Abstract class for Map and Multimap result adapters. */
 abstract class MultimapQueryResultAdapter(
     context: Context,
     parsedQuery: ParsedQuery,
     rowAdapters: List<RowAdapter>,
 ) : QueryResultAdapter(rowAdapters) {
-    abstract val keyTypeArg: XType
-    abstract val valueTypeArg: XType
 
     // List of duplicate columns in the query result. Note that if the query result info is not
     // available then we use the adapter mappings to determine if there are duplicate columns.
     // The latter approach might yield false positive (i.e. two POJOs that want the same column)
     // but the resolver will still produce correct results based on the result columns at runtime.
     val duplicateColumns: Set<String>
+
+    val dupeColumnsIndexAdapter: AmbiguousColumnIndexAdapter?
 
     init {
         val resultColumns =
@@ -63,34 +64,42 @@ abstract class MultimapQueryResultAdapter(
                 }
             }
         }
+        dupeColumnsIndexAdapter =
+            if (duplicateColumns.isNotEmpty()) {
+                AmbiguousColumnIndexAdapter(mappings, parsedQuery)
+            } else {
+                null
+            }
 
         if (parsedQuery.resultInfo != null && duplicateColumns.isNotEmpty()) {
             // If there are duplicate columns and one of the result object is for a single column
             // then we should warn the user to disambiguate in the query projections since the
             // current AmbiguousColumnResolver will choose the first matching column. Only show
             // this warning if the query has been analyzed or else we risk false positives.
-            mappings.filter {
-                it.usedColumns.size == 1 && duplicateColumns.contains(it.usedColumns.first())
-            }.forEach {
-                val ambiguousColumnName = it.usedColumns.first()
-                val (location, objectTypeName) = when (it) {
-                    is SingleNamedColumnRowAdapter.SingleNamedColumnRowMapping ->
-                        MAP_INFO to null
-                    is PojoRowAdapter.PojoMapping ->
-                        POJO to it.pojo.typeName
-                    is EntityRowAdapter.EntityMapping ->
-                        ENTITY to it.entity.typeName
-                    else -> error("Unknown mapping type: $it")
+            mappings
+                .filter {
+                    it.usedColumns.size == 1 && duplicateColumns.contains(it.usedColumns.first())
                 }
-                context.logger.w(
-                    Warning.AMBIGUOUS_COLUMN_IN_RESULT,
-                    ProcessorErrors.ambiguousColumn(
-                        columnName = ambiguousColumnName,
-                        location = location,
-                        typeName = objectTypeName?.toString(context.codeLanguage)
+                .forEach {
+                    val ambiguousColumnName = it.usedColumns.first()
+                    val (location, objectTypeName) =
+                        when (it) {
+                            is SingleNamedColumnRowAdapter.SingleNamedColumnRowMapping ->
+                                MAP_INFO to null
+                            is DataClassRowAdapter.DataClassMapping ->
+                                DATA_CLASS to it.dataClass.typeName
+                            is EntityRowAdapter.EntityMapping -> ENTITY to it.entity.typeName
+                            else -> error("Unknown mapping type: $it")
+                        }
+                    context.logger.w(
+                        Warning.AMBIGUOUS_COLUMN_IN_RESULT,
+                        ProcessorErrors.ambiguousColumn(
+                            columnName = ambiguousColumnName,
+                            location = location,
+                            typeName = objectTypeName?.toString(context.codeLanguage)
+                        )
                     )
-                )
-            }
+                }
         }
     }
 
@@ -113,18 +122,15 @@ abstract class MultimapQueryResultAdapter(
     companion object {
 
         /**
-         * Checks if the @MapInfo annotation is needed for clarification regarding the return type
-         * of a Dao method.
+         * Checks if the @MapColumn annotation is needed for clarification regarding the key type
+         * arg of a Map return type.
          */
-        fun validateMapTypeArgs(
+        fun validateMapKeyTypeArg(
             context: Context,
             keyTypeArg: XType,
-            valueTypeArg: XType,
-            keyReader: CursorValueReader?,
-            valueReader: CursorValueReader?,
-            mapInfo: MapInfo?,
+            keyReader: StatementValueReader?,
+            keyColumnName: String?,
         ) {
-
             if (!keyTypeArg.implementsEqualsAndHashcode()) {
                 context.logger.w(
                     Warning.DOES_NOT_IMPLEMENT_EQUALS_HASHCODE,
@@ -134,47 +140,88 @@ abstract class MultimapQueryResultAdapter(
                 )
             }
 
-            val hasKeyColumnName = mapInfo?.keyColumnName?.isNotEmpty() ?: false
+            val hasKeyColumnName = keyColumnName?.isNotEmpty() ?: false
             if (!hasKeyColumnName && keyReader != null) {
                 context.logger.e(
-                    ProcessorErrors.keyMayNeedMapInfo(
+                    ProcessorErrors.mayNeedMapColumn(
                         keyTypeArg.asTypeName().toString(context.codeLanguage)
                     )
                 )
             }
+        }
 
-            val hasValueColumnName = mapInfo?.valueColumnName?.isNotEmpty() ?: false
+        /**
+         * Checks if the @MapColumn annotation is needed for clarification regarding the value type
+         * arg of a Map return type.
+         */
+        fun validateMapValueTypeArg(
+            context: Context,
+            valueTypeArg: XType,
+            valueReader: StatementValueReader?,
+            valueColumnName: String?,
+        ) {
+            val hasValueColumnName = valueColumnName?.isNotEmpty() ?: false
             if (!hasValueColumnName && valueReader != null) {
                 context.logger.e(
-                    ProcessorErrors.valueMayNeedMapInfo(
+                    ProcessorErrors.mayNeedMapColumn(
                         valueTypeArg.asTypeName().toString(context.codeLanguage)
                     )
                 )
             }
         }
+
+        /** Retrieves the `columnName` value from a @MapColumn annotation. */
+        fun getMapColumnName(context: Context, query: ParsedQuery, type: XType): String? {
+            val resultColumns = query.resultInfo?.columns
+            val resultTableAliases = query.tables.associate { it.name to it.alias }
+            val annotation = type.getAnnotation(MapColumn::class.asClassName()) ?: return null
+
+            val mapColumnName = annotation.getAsString("columnName")
+            val mapColumnTableName = (annotation["tableName"]?.value ?: "") as String
+
+            fun List<ColumnInfo>.contains(columnName: String, tableName: String?) =
+                any { resultColumn ->
+                    val resultTableAlias =
+                        resultColumn.originTable?.let { resultTableAliases[it] ?: it }
+                    resultColumn.name == columnName &&
+                        (if (!tableName.isNullOrEmpty()) {
+                            resultTableAlias == tableName || resultColumn.originTable == tableName
+                        } else true)
+                }
+
+            if (resultColumns != null) {
+                // Disambiguation check for MapColumn
+                if (!resultColumns.contains(mapColumnName, mapColumnTableName)) {
+                    val errorColumn =
+                        if (mapColumnTableName.isNotEmpty()) {
+                            "$mapColumnTableName."
+                        } else {
+                            ""
+                        } + mapColumnName
+                    context.logger.e(
+                        ProcessorErrors.cannotMapSpecifiedColumn(
+                            errorColumn,
+                            resultColumns.map { it.name },
+                            MapColumn::class.java.simpleName
+                        )
+                    )
+                }
+            }
+            return mapColumnName
+        }
     }
 
-    /**
-     * Generates a code expression that verifies if all matched fields are null.
-     */
-    fun getColumnNullCheckCode(
-        language: CodeLanguage,
-        cursorVarName: String,
-        indexVars: List<ColumnIndexVar>
-    ) = XCodeBlock.builder(language).apply {
-        val space = when (language) {
-            CodeLanguage.JAVA -> "%W"
-            CodeLanguage.KOTLIN -> " "
+    /** Generates a code expression that verifies if all matched properties are null. */
+    fun getColumnNullCheckCode(stmtVarName: String, indexVars: List<ColumnIndexVar>) =
+        buildCodeBlock { language ->
+            val space =
+                when (language) {
+                    CodeLanguage.JAVA -> "%W"
+                    CodeLanguage.KOTLIN -> " "
+                }
+            val conditions =
+                indexVars.map { XCodeBlock.of("%L.isNull(%L)", stmtVarName, it.indexVar) }
+            val placeholders = conditions.joinToString(separator = "$space&&$space") { "%L" }
+            add(placeholders, *conditions.toTypedArray())
         }
-        val conditions = indexVars.map {
-            XCodeBlock.of(
-                language,
-                "%L.isNull(%L)",
-                cursorVarName,
-                it.indexVar
-            )
-        }
-        val placeholders = conditions.joinToString(separator = "$space&&$space") { "%L" }
-        add(placeholders, *conditions.toTypedArray())
-    }.build()
 }

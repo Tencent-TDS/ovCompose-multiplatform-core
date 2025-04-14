@@ -18,14 +18,15 @@ package androidx.camera.core.impl;
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.utils.futures.FutureCallback;
 import androidx.camera.core.impl.utils.futures.Futures;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
+import androidx.core.util.Preconditions;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,14 +34,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
  * Utility functions for manipulating {@link DeferrableSurface}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class DeferrableSurfaces {
 
     private DeferrableSurfaces() {
@@ -51,65 +49,50 @@ public final class DeferrableSurfaces {
      * {@link DeferrableSurface} collection.
      *
      * @param removeNullSurfaces       If true remove all Surfaces that were not retrieved.
-     * @param timeout                  The task timeout value in milliseconds.
+     * @param timeoutMillis            The task timeout value in milliseconds.
      * @param executor                 The executor service to run the task.
      * @param scheduledExecutorService The executor service to schedule the timeout event.
      */
-    @NonNull
-    public static ListenableFuture<List<Surface>> surfaceListWithTimeout(
+    public static @NonNull ListenableFuture<List<Surface>> surfaceListWithTimeout(
             @NonNull Collection<DeferrableSurface> deferrableSurfaces,
-            boolean removeNullSurfaces, long timeout, @NonNull Executor executor,
+            boolean removeNullSurfaces, long timeoutMillis, @NonNull Executor executor,
             @NonNull ScheduledExecutorService scheduledExecutorService) {
-        List<ListenableFuture<Surface>> listenableFutureSurfaces = new ArrayList<>();
-
-        for (DeferrableSurface deferrableSurface : deferrableSurfaces) {
-            listenableFutureSurfaces.add(
-                    Futures.nonCancellationPropagating(deferrableSurface.getSurface()));
+        List<ListenableFuture<Surface>> list = new ArrayList<>();
+        for (DeferrableSurface surface : deferrableSurfaces) {
+            list.add(Futures.nonCancellationPropagating(surface.getSurface()));
         }
+        ListenableFuture<List<Surface>> listenableFuture = Futures.makeTimeoutFuture(
+                timeoutMillis, scheduledExecutorService, Futures.successfulAsList(list)
+        );
 
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    ListenableFuture<List<Surface>> listenableFuture = Futures.successfulAsList(
-                            listenableFutureSurfaces);
+        return CallbackToFutureAdapter.getFuture(completer -> {
+            // Cancel the listenableFuture if the outer task was cancelled, and the
+            // listenableFuture will cancel the scheduledFuture on its complete callback.
+            completer.addCancellationListener(() -> listenableFuture.cancel(true), executor);
 
-                    ScheduledFuture<?> scheduledFuture = scheduledExecutorService.schedule(() -> {
-                        executor.execute(() -> {
-                            if (!listenableFuture.isDone()) {
-                                completer.setException(
-                                        new TimeoutException(
-                                                "Cannot complete surfaceList within " + timeout));
-                                listenableFuture.cancel(true);
-                            }
-                        });
-                    }, timeout, TimeUnit.MILLISECONDS);
+            Futures.addCallback(listenableFuture, new FutureCallback<List<Surface>>() {
+                @Override
+                public void onSuccess(@Nullable List<Surface> result) {
+                    Preconditions.checkNotNull(result);
+                    List<Surface> surfaces = new ArrayList<>(result);
+                    if (removeNullSurfaces) {
+                        surfaces.removeAll(Collections.singleton(null));
+                    }
+                    completer.set(surfaces);
+                }
 
-                    // Cancel the listenableFuture if the outer task was cancelled, and the
-                    // listenableFuture will cancel the scheduledFuture on its complete callback.
-                    completer.addCancellationListener(() -> listenableFuture.cancel(true),
-                            executor);
+                @Override
+                public void onFailure(@NonNull Throwable t) {
+                    if (t instanceof TimeoutException) {
+                        completer.setException(t);
+                    } else {
+                        completer.set(Collections.emptyList());
+                    }
+                }
+            }, executor);
 
-                    Futures.addCallback(listenableFuture,
-                            new FutureCallback<List<Surface>>() {
-                                @Override
-                                public void onSuccess(@Nullable List<Surface> result) {
-                                    List<Surface> surfaces = new ArrayList<>(result);
-                                    if (removeNullSurfaces) {
-                                        surfaces.removeAll(Collections.singleton(null));
-                                    }
-                                    completer.set(surfaces);
-                                    scheduledFuture.cancel(true);
-                                }
-
-                                @Override
-                                public void onFailure(@NonNull Throwable t) {
-                                    completer.set(
-                                            Collections.unmodifiableList(Collections.emptyList()));
-                                    scheduledFuture.cancel(true);
-                                }
-                            }, executor);
-
-                    return "surfaceList";
-                });
+            return "surfaceList[" + deferrableSurfaces + "]";
+        });
     }
 
     /**

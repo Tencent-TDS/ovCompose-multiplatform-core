@@ -14,7 +14,15 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -40,18 +48,20 @@ dependencies {
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.espressoCore)
 }
 
 androidx {
-    name = "AndroidX Compose UI Simple Unit Classes Samples"
-    type = LibraryType.SAMPLES
+    name = "Compose UI Simple Unit Classes Samples"
+    type = SoftwareType.SAMPLES
     inceptionYear = "2019"
     description = "Contains the sample code for the Androidx Compose UI Simple Unit Classes"
 }
 
 android {
+    compileSdk = 35
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    namespace "androidx.compose.ui.viewbinding.samples"
+    namespace = "androidx.compose.ui.viewbinding.samples"
 }

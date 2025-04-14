@@ -1,4 +1,11 @@
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -6,7 +13,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.1.0")
     androidTestImplementation(project(":appcompat:appcompat"))
     androidTestImplementation(project(":asynclayoutinflater:asynclayoutinflater-appcompat"))
@@ -19,12 +27,12 @@ dependencies {
 }
 
 androidx {
-    name = "Android Support Library Async Layout Inflater"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "AsyncLayoutInflater"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
-    description = "The Support Library is a static library that you can add to your Android application in order to use APIs that are either not available for older platform versions or utility APIs that aren't a part of the framework APIs. Compatible on devices running API 14 or later."
+    description = "Provides support for inflating layouts off the UI thread."
 }
 
 android {
-    namespace "androidx.asynclayoutinflater"
+    namespace = "androidx.asynclayoutinflater"
 }

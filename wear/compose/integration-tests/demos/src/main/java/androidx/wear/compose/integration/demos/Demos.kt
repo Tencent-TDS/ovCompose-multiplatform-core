@@ -23,39 +23,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.wear.compose.integration.demos.common.ComposableDemo
+import androidx.wear.compose.integration.demos.common.DemoCategory
 import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.demos.WearMaterial3Demos
 
-val Info = DemoCategory(
-    "App Info",
-    listOf(
-        ComposableDemo("App Version") {
-            val version =
-                @Suppress("DEPRECATION")
-                LocalContext.current.packageManager
-                    .getPackageInfo(LocalContext.current.packageName, 0).versionName
+val Info =
+    DemoCategory(
+        "App Info",
+        listOf(
+            ComposableDemo("App Version") {
+                val version =
+                    @Suppress("DEPRECATION")
+                    LocalContext.current.packageManager
+                        .getPackageInfo(LocalContext.current.packageName, 0)
+                        .versionName
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Version: $version",
-                    textAlign = TextAlign.Center,
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Version: $version",
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
-        }
-    ),
-)
-
-/**
- * [DemoCategory] containing all the top level demo categories.
- */
-val WearComposeDemos = DemoCategory(
-    "Wear Compose Demos",
-    listOf(
-        WearFoundationDemos,
-        WearMaterialDemos,
-        Info
+        ),
     )
-)
+
+/** [DemoCategory] containing all the top level demo categories. */
+val WearComposeDemos =
+    DemoCategory(
+        "Wear Compose Demos",
+        listOf(WearFoundationDemos, WearMaterialDemos, WearMaterial3Demos, Info)
+    )

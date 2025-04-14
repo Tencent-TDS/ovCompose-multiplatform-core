@@ -38,15 +38,16 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,8 +60,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun TextFontPaddingDemo() {
     Column(Modifier.verticalScroll(rememberScrollState())) {
-        FontPaddingRow("ABCDEfgHIjKgpvyzgpvyzgpvyzgpvyz")
-        FontPaddingRow("مرحبا" + "ဪไန််မ့်၇ဤဩဦနိမြသကိမ့်" + "مرحبا" + "ဪไန််မ့်၇ဤဩဦနိမြသကိမ့်")
+        FontPaddingRow("JKLMNOPQRSTUVWXYZ")
+        FontPaddingRow("مرحبا" + "ဪไန််မ့်၇ဤဩဦနိမြ")
         CenteredInContainerRow()
         CenterInCircleRow()
         MultiStyleText()
@@ -81,22 +82,20 @@ private fun Configuration() {
         for (text in arrayOf(latinText, tallText)) {
             Box {
                 Column(padding.width(width)) {
-                    @Suppress("DEPRECATION")
                     Text(
                         text,
-                        style = style.copy(
-                            color = Color.Red,
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        )
+                        style =
+                            style.copy(
+                                color = Color.Red,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
                     )
                 }
                 Column(padding.width(width)) {
-                    @Suppress("DEPRECATION")
                     Text(
                         text,
-                        style = style.copy(
-                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                        )
+                        style =
+                            style.copy(platformStyle = PlatformTextStyle(includeFontPadding = true))
                     )
                 }
             }
@@ -123,28 +122,66 @@ private fun FontPaddingRow(text: String) {
 private fun FontPaddingColumn(text: String, overflow: TextOverflow) {
     val fontSize = fontSize8
     val width = with(LocalDensity.current) { fontSize.toDp() } * 5
-    val widthWodifier = Modifier.width(width)
+    val widthModifier = Modifier.width(width)
+    val backgroundModifier = widthModifier.background(Color.LightGray)
+    val ghostModifier = Modifier.alpha(0.4f)
+    val softWrapGhostModifier = widthModifier.then(ghostModifier)
+
     Column {
-        SecondTagLine(tag = "no-softwrap,~5chars width")
-        SelectionContainer {
+        SecondTagLine(tag = "softWrap=false,maxLines=\u221E")
+        Box {
+            SelectionContainer {
+                Text(
+                    text,
+                    style = TextStyle(fontSize = fontSize),
+                    softWrap = false,
+                    modifier = backgroundModifier,
+                    overflow = overflow
+                )
+            }
             Text(
                 text,
                 style = TextStyle(fontSize = fontSize),
                 softWrap = false,
-                maxLines = 1,
-                modifier = widthWodifier,
+                modifier = ghostModifier,
                 overflow = overflow
             )
         }
 
-        SecondTagLine(tag = "maxLines=2,~5chars width")
-
-        SelectionContainer {
+        SecondTagLine(tag = "softWrap=true,maxLines=1")
+        Box {
+            SelectionContainer {
+                Text(
+                    text,
+                    style = TextStyle(fontSize = fontSize),
+                    maxLines = 1,
+                    modifier = backgroundModifier,
+                    overflow = overflow
+                )
+            }
             Text(
                 text,
                 style = TextStyle(fontSize = fontSize),
-                modifier = widthWodifier,
-                maxLines = 2,
+                modifier = softWrapGhostModifier,
+                overflow = overflow
+            )
+        }
+
+        SecondTagLine(tag = "softWrap=true,maxLines=2")
+        Box {
+            SelectionContainer {
+                Text(
+                    text,
+                    style = TextStyle(fontSize = fontSize),
+                    modifier = backgroundModifier,
+                    maxLines = 2,
+                    overflow = overflow
+                )
+            }
+            Text(
+                text,
+                style = TextStyle(fontSize = fontSize),
+                modifier = softWrapGhostModifier,
                 overflow = overflow
             )
         }
@@ -169,10 +206,7 @@ private fun CenteredInContainerColumn(text: String) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = text,
-            style = TextStyle(fontSize = fontSize, color = Color.White)
-        )
+        Text(text = text, style = TextStyle(fontSize = fontSize, color = Color.White))
     }
 }
 
@@ -197,10 +231,7 @@ private fun CenteredInCircle(text: String) {
         modifier = Modifier.clip(CircleShape).background(Color.Red).size(size),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            style = TextStyle(fontSize = fontSize, color = Color.White)
-        )
+        Text(text = text, style = TextStyle(fontSize = fontSize, color = Color.White))
     }
 }
 
@@ -212,9 +243,7 @@ private fun MultiStyleText() {
             append("a")
             // half the size of original size
             // as a tall script should not be extending the height since now it is shorter
-            withStyle(SpanStyle(fontSize = fontSize / 2)) {
-                append("ဩ")
-            }
+            withStyle(SpanStyle(fontSize = fontSize / 2)) { append("ဩ") }
         }
         Text(text = shorterTallChar.toString(), style = TextStyle(fontSize = fontSize))
         Spacer(Modifier.padding(16.dp))
@@ -224,9 +253,7 @@ private fun MultiStyleText() {
 
         val tallerTallChar = buildAnnotatedString {
             append("a")
-            withStyle(SpanStyle(fontSize = fontSize * 3)) {
-                append("ဩ")
-            }
+            withStyle(SpanStyle(fontSize = fontSize * 3)) { append("ဩ") }
         }
         Text(text = tallerTallChar, style = TextStyle(fontSize = fontSize))
     }
@@ -271,24 +298,19 @@ private fun TextWithInlineContent(
     val smallerShape = buildAnnotatedString {
         append("a")
         appendInlineContent(myId, " ")
-        withStyle(SpanStyle(fontSize = tallCharSize)) {
-            append("ဩ")
-        }
+        withStyle(SpanStyle(fontSize = tallCharSize)) { append("ဩ") }
     }
 
-    val inlineContent = InlineTextContent(
-        Placeholder(
-            width = inlineContentSize,
-            height = inlineContentSize,
-            placeholderVerticalAlign = placeholderVerticalAlign
-        )
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .clip(CircleShape)
-                .background(color = Color.Red)
-        )
-    }
+    val inlineContent =
+        InlineTextContent(
+            Placeholder(
+                width = inlineContentSize,
+                height = inlineContentSize,
+                placeholderVerticalAlign = placeholderVerticalAlign
+            )
+        ) {
+            Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(color = Color.Red))
+        }
 
     val inlineContentMap = mapOf(Pair(myId, inlineContent))
 

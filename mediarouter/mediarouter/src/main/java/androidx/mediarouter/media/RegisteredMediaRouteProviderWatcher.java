@@ -27,10 +27,11 @@ import android.content.pm.ServiceInfo;
 import android.media.MediaRoute2ProviderService;
 import android.os.Build;
 import android.os.Handler;
+import android.text.TextUtils;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,6 +50,7 @@ final class RegisteredMediaRouteProviderWatcher {
     private final PackageManager mPackageManager;
 
     private final ArrayList<RegisteredMediaRouteProvider> mProviders = new ArrayList<>();
+    private boolean mMediaTransferRestrictedToSelfProviders;
     private boolean mRunning;
 
     RegisteredMediaRouteProviderWatcher(Context context, Callback callback) {
@@ -69,12 +71,10 @@ final class RegisteredMediaRouteProviderWatcher {
             filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
             filter.addAction(Intent.ACTION_PACKAGE_RESTARTED);
             filter.addDataScheme("package");
-            if (Build.VERSION.SDK_INT < 33) {
-                mContext.registerReceiver(mScanPackagesReceiver, filter, null, mHandler);
-            } else {
-                Api33.registerReceiver(mContext, mScanPackagesReceiver, filter, mHandler,
-                        Context.RECEIVER_NOT_EXPORTED);
-            }
+            // We are listening for protected system broadcast actions, so we intentionally avoid
+            // adding the RECEIVER_NOT_EXPORTED flag. See b/197817693#comment23.
+            mContext.registerReceiver(
+                    mScanPackagesReceiver, filter, /* broadcastPermission= */ null, mHandler);
 
             // Scan packages.
             // Also has the side-effect of restarting providers if needed.
@@ -98,6 +98,17 @@ final class RegisteredMediaRouteProviderWatcher {
                 mProviders.get(i).stop();
             }
         }
+    }
+
+    /* package */ void setMediaTransferRestrictedToSelfProviders(
+            boolean mediaTransferRestrictedToSelfProviders) {
+        mMediaTransferRestrictedToSelfProviders = mediaTransferRestrictedToSelfProviders;
+        rescan();
+    }
+
+    @VisibleForTesting
+    /* package */ boolean isMediaTransferRestrictedToSelfProvidersForTesting() {
+        return mMediaTransferRestrictedToSelfProviders;
     }
 
     void scanPackages() {
@@ -174,7 +185,13 @@ final class RegisteredMediaRouteProviderWatcher {
 
         List<ServiceInfo> serviceInfoList = new ArrayList<>();
         for (ResolveInfo resolveInfo : mPackageManager.queryIntentServices(intent, 0)) {
-            serviceInfoList.add(resolveInfo.serviceInfo);
+            ServiceInfo serviceInfo = resolveInfo.serviceInfo;
+            if (mMediaTransferRestrictedToSelfProviders
+                    && !TextUtils.equals(mContext.getPackageName(), serviceInfo.packageName)) {
+                // The app only allows its own Media Router provider to be a MediaRoute2 provider.
+                continue;
+            }
+            serviceInfoList.add(serviceInfo);
         }
         return serviceInfoList;
     }
@@ -211,15 +228,5 @@ final class RegisteredMediaRouteProviderWatcher {
 
         void releaseProviderController(@NonNull RegisteredMediaRouteProvider provider,
                 @NonNull MediaRouteProvider.RouteController controller);
-    }
-
-    @RequiresApi(33)
-    private static class Api33 {
-        @DoNotInline
-        static void registerReceiver(@NonNull Context context, @NonNull BroadcastReceiver receiver,
-                @NonNull IntentFilter filter, Handler scheduler, int flags) {
-            context.registerReceiver(receiver, filter, /* broadcastPermission= */ null, scheduler,
-                    flags);
-        }
     }
 }

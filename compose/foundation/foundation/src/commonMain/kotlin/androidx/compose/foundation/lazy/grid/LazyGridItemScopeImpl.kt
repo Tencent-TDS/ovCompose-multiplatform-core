@@ -17,48 +17,19 @@
 package androidx.compose.foundation.lazy.grid
 
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.layout.LazyLayoutAnimateItemElement
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.ParentDataModifierNode
-import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 
-@OptIn(ExperimentalFoundationApi::class)
 internal object LazyGridItemScopeImpl : LazyGridItemScope {
-    @ExperimentalFoundationApi
-    override fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset>) =
-        this then AnimateItemPlacementElement(animationSpec)
-}
-
-private class AnimateItemPlacementElement(
-    val animationSpec: FiniteAnimationSpec<IntOffset>
-) : ModifierNodeElement<AnimateItemPlacementNode>() {
-    override fun create(): AnimateItemPlacementNode = AnimateItemPlacementNode(animationSpec)
-
-    override fun update(node: AnimateItemPlacementNode): AnimateItemPlacementNode = node.also {
-        it.animationSpec = animationSpec
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is AnimateItemPlacementElement) return false
-        return animationSpec != other.animationSpec
-    }
-
-    override fun hashCode(): Int {
-        return animationSpec.hashCode()
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "animateItemPlacement"
-        value = animationSpec
-    }
-}
-
-private class AnimateItemPlacementNode(
-    var animationSpec: FiniteAnimationSpec<IntOffset>
-) : Modifier.Node(), ParentDataModifierNode {
-    override fun Density.modifyParentData(parentData: Any?): Any = animationSpec
+    override fun Modifier.animateItem(
+        fadeInSpec: FiniteAnimationSpec<Float>?,
+        placementSpec: FiniteAnimationSpec<IntOffset>?,
+        fadeOutSpec: FiniteAnimationSpec<Float>?
+    ): Modifier =
+        if (fadeInSpec == null && placementSpec == null && fadeOutSpec == null) {
+            this
+        } else {
+            this then LazyLayoutAnimateItemElement(fadeInSpec, placementSpec, fadeOutSpec)
+        }
 }

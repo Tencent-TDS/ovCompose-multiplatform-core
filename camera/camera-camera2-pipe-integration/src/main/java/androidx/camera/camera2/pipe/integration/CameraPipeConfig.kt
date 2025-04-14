@@ -15,31 +15,39 @@
  */
 package androidx.camera.camera2.pipe.integration
 
-import androidx.annotation.RequiresApi
-import androidx.camera.camera2.pipe.integration.adapter.CameraFactoryAdapter
+import android.content.Context
+import androidx.annotation.RestrictTo
+import androidx.camera.camera2.pipe.CameraPipe
+import androidx.camera.camera2.pipe.integration.adapter.CameraFactoryProvider
 import androidx.camera.camera2.pipe.integration.adapter.CameraSurfaceAdapter
 import androidx.camera.camera2.pipe.integration.adapter.CameraUseCaseAdapter
 import androidx.camera.core.CameraXConfig
+import androidx.camera.core.impl.CameraThreadConfig
 
-/**
- * Convenience class for generating a pre-populated CameraPipe based [CameraXConfig].
- */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-class CameraPipeConfig private constructor() {
-    /**
-     * @hide
-     */
-    companion object {
-
-        /**
-         * Creates a [CameraXConfig] containing a default CameraPipe implementation for CameraX.
-         */
+/** Convenience class for generating a pre-populated CameraPipe based [CameraXConfig]. */
+public class CameraPipeConfig private constructor() {
+    public companion object {
+        /** Creates a [CameraXConfig] containing a default CameraPipe implementation for CameraX. */
         @JvmStatic
-        fun defaultConfig(): CameraXConfig {
+        public fun defaultConfig(): CameraXConfig {
+            return from()
+        }
+
+        /** Creates a [CameraXConfig] using a pre-existing [CameraPipe] instance. */
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        @JvmStatic
+        public fun from(
+            sharedCameraPipe: CameraPipe? = null,
+            sharedAppContext: Context? = null,
+            sharedThreadConfig: CameraThreadConfig? = null
+        ): CameraXConfig {
+            val cameraFactoryProvider =
+                CameraFactoryProvider(sharedCameraPipe, sharedAppContext, sharedThreadConfig)
             return CameraXConfig.Builder()
-                .setCameraFactoryProvider(::CameraFactoryAdapter)
+                .setCameraFactoryProvider(cameraFactoryProvider)
                 .setDeviceSurfaceManagerProvider(::CameraSurfaceAdapter)
                 .setUseCaseConfigFactoryProvider(::CameraUseCaseAdapter)
+                .setConfigImplType(CameraXConfig.CAMERAX_CONFIG_IMPL_TYPE_PIPE)
                 .build()
         }
     }

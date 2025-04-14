@@ -22,7 +22,9 @@ import androidx.health.services.client.proto.DataProto.ExerciseTypeCapabilities.
 
 /** Provides exercise specific capabilities data. */
 @Suppress("ParcelCreator")
-public class ExerciseTypeCapabilities(
+public class ExerciseTypeCapabilities
+@JvmOverloads
+constructor(
     /** Supported [DataType]s for a given exercise. */
     public val supportedDataTypes: Set<DataType<*, *>>,
     /** Map from supported goals [DataType]s to a set of compatible [ComparisonType]s. */
@@ -31,37 +33,65 @@ public class ExerciseTypeCapabilities(
     public val supportedMilestones: Map<AggregateDataType<*, *>, Set<ComparisonType>>,
     /** Returns `true` if the given exercise supports auto pause and resume. */
     public val supportsAutoPauseAndResume: Boolean,
+    /** Map from [ExerciseEventType]s to their [ExerciseEventCapabilities]. */
+    internal val exerciseEventCapabilities: Map<ExerciseEventType<*>, ExerciseEventCapabilities> =
+        emptyMap(),
+    /** Map from supported debounced goals to a set of compatible [ComparisonType]s. */
+    val supportedDebouncedGoals: Map<DataType<*, *>, Set<ComparisonType>> = emptyMap(),
 ) {
 
     internal constructor(
         proto: DataProto.ExerciseTypeCapabilities
     ) : this(
-        proto.supportedDataTypesList.map { DataType.deltaAndAggregateFromProto(it) }
+        proto.supportedDataTypesList
+            .map { DataType.deltaAndAggregateFromProto(it) }
             .flatten()
             .toSet(),
-        proto
-            .supportedGoalsList
+        proto.supportedGoalsList
             .map { entry ->
                 DataType.aggregateFromProto(entry.dataType) to
-                    entry
-                        .comparisonTypesList
+                    entry.comparisonTypesList
                         .map { ComparisonType.fromProto(it) }
                         .filter { it != ComparisonType.UNKNOWN }
                         .toSet()
             }
             .toMap(),
-        proto
-            .supportedMilestonesList
+        proto.supportedMilestonesList
             .map { entry ->
                 DataType.aggregateFromProto(entry.dataType) to
-                    entry
-                        .comparisonTypesList
+                    entry.comparisonTypesList
                         .map { ComparisonType.fromProto(it) }
                         .filter { it != ComparisonType.UNKNOWN }
                         .toSet()
             }
             .toMap(),
         supportsAutoPauseAndResume = proto.isAutoPauseAndResumeSupported,
+        exerciseEventCapabilities =
+            proto.supportedExerciseEventsList
+                .filter { ExerciseEventCapabilities.fromProto(it) != null }
+                .associate { entry ->
+                    ExerciseEventType.fromProto(entry.exerciseEventType) to
+                        ExerciseEventCapabilities.fromProto(entry)!!
+                },
+        supportedDebouncedGoals =
+            proto.supportedDeltaDebouncedGoalsList
+                .map { entry ->
+                    DataType.deltaFromProto(entry.dataType) to
+                        entry.comparisonTypesList
+                            .map { ComparisonType.fromProto(it) }
+                            .filter { it != ComparisonType.UNKNOWN }
+                            .toSet()
+                }
+                .toMap() +
+                proto.supportedAggregateDebouncedGoalsList
+                    .map { entry ->
+                        DataType.aggregateFromProto(entry.dataType) to
+                            entry.comparisonTypesList
+                                .map { ComparisonType.fromProto(it) }
+                                .filter { it != ComparisonType.UNKNOWN }
+                                .toSet()
+                    }
+                    .toMap()
     )
 
     internal val proto: DataProto.ExerciseTypeCapabilities =
@@ -87,13 +117,50 @@ public class ExerciseTypeCapabilities(
                     }
                     .sortedBy { it.dataType.name } // Sorting to ensure equals() works
             )
+            .addAllSupportedDeltaDebouncedGoals(
+                supportedDebouncedGoals
+                    .filter { entry -> !entry.key.isAggregate }
+                    .map { entry ->
+                        SupportedGoalEntry.newBuilder()
+                            .setDataType(entry.key.proto)
+                            .addAllComparisonTypes(entry.value.map { it.toProto() })
+                            .build()
+                    }
+                    .sortedBy { it.dataType.name } // Sorting to ensure equals() works
+            )
+            .addAllSupportedAggregateDebouncedGoals(
+                supportedDebouncedGoals
+                    .filter { entry -> entry.key.isAggregate }
+                    .map { entry ->
+                        SupportedGoalEntry.newBuilder()
+                            .setDataType(entry.key.proto)
+                            .addAllComparisonTypes(entry.value.map { it.toProto() })
+                            .build()
+                    }
+                    .sortedBy { it.dataType.name } // Sorting to ensure equals() works
+            )
             .setIsAutoPauseAndResumeSupported(supportsAutoPauseAndResume)
+            .addAllSupportedExerciseEvents(exerciseEventCapabilities.map { it.value.toProto() })
             .build()
+
+    /** Returns the set of supported [ExerciseEventType]s on this device. */
+    public val supportedExerciseEvents: Set<ExerciseEventType<*>>
+        get() = this.exerciseEventCapabilities.keys
+
+    /** Returns the [ExerciseEventCapabilities] for a requested [ExerciseEventType]. */
+    public fun <C : ExerciseEventCapabilities> getExerciseEventCapabilityDetails(
+        exerciseEventType: ExerciseEventType<C>
+    ): C? {
+        @Suppress("UNCHECKED_CAST") // Map's keys' and values' types will match
+        return exerciseEventCapabilities[exerciseEventType] as C?
+    }
 
     override fun toString(): String =
         "ExerciseTypeCapabilities(" +
             "supportedDataTypes=$supportedDataTypes, " +
             "supportedGoals=$supportedGoals, " +
             "supportedMilestones=$supportedMilestones, " +
-            "supportsAutoPauseAndResume=$supportsAutoPauseAndResume, "
+            "supportsAutoPauseAndResume=$supportsAutoPauseAndResume, " +
+            "supportedDebouncedGoals=$supportedDebouncedGoals, " +
+            ")"
 }

@@ -1,3 +1,12 @@
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import com.android.build.api.artifact.SingleArtifact
+
 /*
  * Copyright 2022 The Android Open Source Project
  *
@@ -17,37 +26,78 @@
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("androidx.baselineprofile")
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
-    buildTypes {
-        release {
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
+    sourceSets {
+        // This is required because of release variant specific code used by hilt.
+        releaseLibrariesOnly {
+            java.srcDirs += "src/release/"
         }
     }
-    namespace "androidx.benchmark.integration.baselineprofile.consumer"
+    buildTypes {
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
+        }
+        releaseLibrariesOnly {
+            initWith(release)
+            matchingFallbacks += "release"
+        }
+    }
+    namespace = "androidx.benchmark.integration.baselineprofile.consumer"
 }
 
 dependencies {
     implementation(libs.kotlinStdlib)
     implementation(libs.constraintLayout)
-    baselineProfile(project(":benchmark:integration-tests:baselineprofile-producer"))
+    implementation(libs.hiltAndroid)
+    ksp(libs.hiltCompiler)
+    implementation(project(":profileinstaller:profileinstaller"))
 }
 
 baselineProfile {
-    filter {
-        include "androidx.benchmark.integration.baselineprofile.consumer.**"
-    }
-
     // Note that these are the default settings, just reported here to make it explicit.
     // `automaticGenerationDuringBuild` has to be off otherwise assembling release on CI would
     // trigger baseline profile generation and integration tests on device.
     saveInSrc = true
     automaticGenerationDuringBuild = false
+
+    variants {
+        release {
+            from(project(":benchmark:integration-tests:baselineprofile-producer"))
+        }
+        releaseLibrariesOnly {
+            // No dependency set
+        }
+    }
 }
 
 apply(from: "../baselineprofile-test-utils/utils.gradle")
+
+// Exposes the apk for profile verifier tests. When calling this function, the generated apks
+// can be utilized with `profileinstaller:integration-tests:profile-verification`.
+configurations {
+    apkAssets {
+        canBeConsumed = true
+        canBeResolved = false
+        attributes {
+            attribute(
+                    LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE,
+                    objects.named(LibraryElements, 'profileverification-apkAssets')
+            )
+        }
+    }
+}
+androidComponents {
+    onVariants(selector().all(), { variant ->
+        artifacts {
+            apkAssets(variant.artifacts.get(SingleArtifact.APK.INSTANCE))
+        }
+    })
+}

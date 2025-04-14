@@ -25,6 +25,7 @@ import androidx.compose.testutils.benchmark.benchmarkFirstDraw
 import androidx.compose.testutils.benchmark.benchmarkFirstLayout
 import androidx.compose.testutils.benchmark.benchmarkFirstMeasure
 import androidx.compose.testutils.benchmark.benchmarkLayoutPerf
+import androidx.compose.testutils.benchmark.benchmarkToFirstPixel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.wear.compose.material.MaterialTheme
@@ -33,17 +34,19 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Benchmark for Wear Compose ToggleButton.
- */
+/** Benchmark for Wear Compose ToggleButton. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class ToggleButtonBenchmark {
 
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     private val caseFactory = { ToggleButtonTestCase() }
+
+    @Test
+    fun first_pixel() {
+        benchmarkRule.benchmarkToFirstPixel(caseFactory)
+    }
 
     @Test
     fun first_compose() {
@@ -80,14 +83,11 @@ internal class ToggleButtonTestCase : LayeredComposeTestCase() {
 
     @Composable
     override fun MeasuredContent() {
-        ToggleButton(checked = true, onCheckedChange = {}) {
-        }
+        ToggleButton(checked = true, onCheckedChange = {}) {}
     }
 
     @Composable
     override fun ContentWrappers(content: @Composable () -> Unit) {
-        MaterialTheme {
-            content()
-        }
+        MaterialTheme { content() }
     }
 }

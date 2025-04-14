@@ -26,14 +26,15 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 import org.robolectric.util.ReflectionHelpers
 
 private const val FAKE_OEM = "fake_oem"
 
-// @Config() is left out since there currently aren't any API level dependencies in this workaround
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @DoNotInstrument
+@Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class FlashAvailabilityCheckerTest(
     private val manufacturer: String,
     private val model: String,
@@ -42,13 +43,14 @@ class FlashAvailabilityCheckerTest(
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "manufacturer={0}, model={1}")
-        fun data() = mutableListOf<Array<Any?>>().apply {
-            add(arrayOf("sprd", "LEMP", BufferUnderflowProvider()))
-            add(arrayOf("sprd", "DM20C", BufferUnderflowProvider()))
-            add(arrayOf(FAKE_OEM, "unexpected_throwing_device", BufferUnderflowProvider()))
-            add(arrayOf(FAKE_OEM, "not_a_real_device", FlashAvailabilityTrueProvider()))
-            add(arrayOf(FAKE_OEM, "null_returning_device", FlashAvailabilityNullProvider()))
-        }
+        fun data() =
+            mutableListOf<Array<Any?>>().apply {
+                add(arrayOf("sprd", "LEMP", BufferUnderflowProvider()))
+                add(arrayOf("sprd", "DM20C", BufferUnderflowProvider()))
+                add(arrayOf(FAKE_OEM, "unexpected_throwing_device", BufferUnderflowProvider()))
+                add(arrayOf(FAKE_OEM, "not_a_real_device", FlashAvailabilityTrueProvider()))
+                add(arrayOf(FAKE_OEM, "null_returning_device", FlashAvailabilityNullProvider()))
+            }
     }
 
     @Before
@@ -66,7 +68,8 @@ class FlashAvailabilityCheckerTest(
     fun isFlashAvailable_throwsForUnexpectedDevice() {
         assumeTrue(Build.MODEL == "unexpected_throwing_device")
         assertThrows(BufferUnderflowException::class.java) {
-            FlashAvailabilityChecker.isFlashAvailable(/*rethrowOnError=*/true,
+            FlashAvailabilityChecker.isFlashAvailable(
+                /*rethrowOnError=*/ true,
                 characteristicsProvider
             )
         }
@@ -82,10 +85,11 @@ class FlashAvailabilityCheckerTest(
 
 private class FlashAvailabilityTrueProvider : CameraCharacteristicsProvider {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any?> get(key: CameraCharacteristics.Key<T>): T? = when (key) {
-        CameraCharacteristics.FLASH_INFO_AVAILABLE -> true as T?
-        else -> null
-    }
+    override fun <T : Any?> get(key: CameraCharacteristics.Key<T>): T? =
+        when (key) {
+            CameraCharacteristics.FLASH_INFO_AVAILABLE -> true as T?
+            else -> null
+        }
 }
 
 private class BufferUnderflowProvider : CameraCharacteristicsProvider {

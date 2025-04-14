@@ -16,15 +16,24 @@
 
 package androidx.wear.protolayout.expression.pipeline;
 
+import static androidx.wear.protolayout.expression.PlatformHealthSources.Keys.HEART_RATE_BPM;
+
 import static com.google.common.truth.Truth.assertThat;
 
-import static java.lang.Integer.MAX_VALUE;
-
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.robolectric.Shadows.shadowOf;
+
+import static java.lang.Integer.MAX_VALUE;
 
 import android.os.Looper;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.wear.protolayout.expression.AppDataKey;
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat;
+import androidx.wear.protolayout.expression.DynamicDataBuilders;
+import androidx.wear.protolayout.expression.PlatformDataValues;
 import androidx.wear.protolayout.expression.pipeline.FloatNodes.AnimatableFixedFloatNode;
 import androidx.wear.protolayout.expression.pipeline.FloatNodes.ArithmeticFloatNode;
 import androidx.wear.protolayout.expression.pipeline.FloatNodes.DynamicAnimatedFloatNode;
@@ -33,6 +42,7 @@ import androidx.wear.protolayout.expression.pipeline.FloatNodes.Int32ToFloatNode
 import androidx.wear.protolayout.expression.pipeline.FloatNodes.StateFloatSourceNode;
 import androidx.wear.protolayout.expression.pipeline.Int32Nodes.StateInt32SourceNode;
 import androidx.wear.protolayout.expression.proto.AnimationParameterProto.AnimationSpec;
+import androidx.wear.protolayout.expression.proto.DynamicDataProto.DynamicDataValue;
 import androidx.wear.protolayout.expression.proto.DynamicProto.AnimatableFixedFloat;
 import androidx.wear.protolayout.expression.proto.DynamicProto.ArithmeticFloatOp;
 import androidx.wear.protolayout.expression.proto.DynamicProto.ArithmeticOpType;
@@ -40,43 +50,88 @@ import androidx.wear.protolayout.expression.proto.DynamicProto.StateFloatSource;
 import androidx.wear.protolayout.expression.proto.DynamicProto.StateInt32Source;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedFloat;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedInt32;
-import androidx.wear.protolayout.expression.proto.StateEntryProto.StateEntryValue;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class FloatNodeTest {
+    private static final AppDataKey<DynamicFloat> KEY_FOO = new AppDataKey<>("foo");
+    @Rule public MockitoRule mMockitoRule = MockitoJUnit.rule();
+    @Mock private PlatformDataProvider mMockDataProvider;
 
     @Test
-    public void fixedFloatNodesTest() {
+    public void fixedFloatNodesTest_invalidateNotCalled() {
         List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
         float testValue = 6.6f;
 
         FixedFloat protoNode = FixedFloat.newBuilder().setValue(testValue).build();
-        FixedFloatNode node = new FixedFloatNode(protoNode, new AddToListCallback<>(results));
+        FixedFloatNode node =
+                new FixedFloatNode(protoNode, new AddToListCallback<>(results, invalidList));
 
         node.preInit();
         node.init();
 
         assertThat(results).containsExactly(testValue);
+        assertThat(invalidList).isEmpty();
+    }
+
+    @Test
+    public void fixedFloatNodes_receiveNaN_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+        AddToListCallback<Float> addToListCallback = new AddToListCallback<>(results, invalidList);
+        float testValue = Float.NaN;
+
+        FixedFloat protoNode = FixedFloat.newBuilder().setValue(testValue).build();
+        FixedFloatNode node = new FixedFloatNode(protoNode, addToListCallback);
+
+        node.preInit();
+        node.init();
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
+    }
+
+    @Test
+    public void fixedFloatNodes_receiveInfinite_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+        AddToListCallback<Float> addToListCallback = new AddToListCallback<>(results, invalidList);
+        float testValue = Float.POSITIVE_INFINITY;
+
+        FixedFloat protoNode = FixedFloat.newBuilder().setValue(testValue).build();
+        FixedFloatNode node = new FixedFloatNode(protoNode, addToListCallback);
+
+        node.preInit();
+        node.init();
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
     }
 
     @Test
     public void stateFloatSourceNodeTest() {
         List<Float> results = new ArrayList<>();
         float testValue = 6.6f;
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setFloatVal(FixedFloat.newBuilder().setValue(testValue))
                                         .build()));
 
@@ -91,16 +146,68 @@ public class FloatNodeTest {
     }
 
     @Test
+    public void stateFloatSourceNode_receiveNaN_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+
+        float testValue = Float.NaN;
+        StateStore oss =
+                new StateStore(
+                        ImmutableMap.of(
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
+                                        .setFloatVal(FixedFloat.newBuilder().setValue(testValue))
+                                        .build()));
+
+        StateFloatSource protoNode = StateFloatSource.newBuilder().setSourceKey("foo").build();
+        StateFloatSourceNode node =
+                new StateFloatSourceNode(
+                        oss, protoNode, new AddToListCallback<>(results, invalidList));
+
+        node.preInit();
+        node.init();
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
+    }
+
+    @Test
+    public void stateFloatSourceNode_receiveInfinite_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+
+        float testValue = Float.POSITIVE_INFINITY;
+        StateStore oss =
+                new StateStore(
+                        ImmutableMap.of(
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
+                                        .setFloatVal(FixedFloat.newBuilder().setValue(testValue))
+                                        .build()));
+
+        StateFloatSource protoNode = StateFloatSource.newBuilder().setSourceKey("foo").build();
+        StateFloatSourceNode node =
+                new StateFloatSourceNode(
+                        oss, protoNode, new AddToListCallback<>(results, invalidList));
+
+        node.preInit();
+        node.init();
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
+    }
+
+    @Test
     public void stateFloatSourceNode_updatesWithStateChanges() {
         List<Float> results = new ArrayList<>();
         float oldValue = 6.5f;
         float newValue = 7.8f;
 
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setFloatVal(FixedFloat.newBuilder().setValue(oldValue))
                                         .build()));
 
@@ -112,14 +219,50 @@ public class FloatNodeTest {
         node.init();
         assertThat(results).containsExactly(oldValue);
 
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setFloatVal(FixedFloat.newBuilder().setValue(newValue))
                                 .build()));
 
         assertThat(results).containsExactly(oldValue, newValue).inOrder();
+    }
+
+    @Test
+    public void stateFloatSource_canSubscribeToHeartRateUpdates() {
+        PlatformDataStore platformDataStore =
+                new PlatformDataStore(Collections.singletonMap(HEART_RATE_BPM, mMockDataProvider));
+        StateFloatSource dailyStepsSource =
+                StateFloatSource.newBuilder()
+                        .setSourceKey(HEART_RATE_BPM.getKey())
+                        .setSourceNamespace(HEART_RATE_BPM.getNamespace())
+                        .build();
+        List<Float> results = new ArrayList<>();
+        StateFloatSourceNode dailyStepsSourceNode =
+                new StateFloatSourceNode(
+                        platformDataStore, dailyStepsSource, new AddToListCallback<>(results));
+
+        dailyStepsSourceNode.preInit();
+        dailyStepsSourceNode.init();
+        ArgumentCaptor<PlatformDataReceiver> receiverCaptor =
+                ArgumentCaptor.forClass(PlatformDataReceiver.class);
+        verify(mMockDataProvider).setReceiver(any(), receiverCaptor.capture());
+
+        PlatformDataReceiver receiver = receiverCaptor.getValue();
+        receiver.onData(
+                PlatformDataValues.of(
+                        HEART_RATE_BPM, DynamicDataBuilders.DynamicDataValue.fromFloat(70.0f)));
+
+        assertThat(results).hasSize(1);
+        assertThat(results).containsExactly(70.0f);
+
+        receiver.onData(
+                PlatformDataValues.of(
+                        HEART_RATE_BPM, DynamicDataBuilders.DynamicDataValue.fromFloat(80.0f)));
+
+        assertThat(results).hasSize(2);
+        assertThat(results).containsExactly(70.0f, 80.0f);
     }
 
     @Test
@@ -128,11 +271,11 @@ public class FloatNodeTest {
         float oldValue = 6.5f;
         float newValue = 7.8f;
 
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setFloatVal(FixedFloat.newBuilder().setValue(oldValue))
                                         .build()));
 
@@ -147,10 +290,10 @@ public class FloatNodeTest {
         results.clear();
         node.destroy();
 
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setFloatVal(FixedFloat.newBuilder().setValue(newValue))
                                 .build()));
 
@@ -165,8 +308,8 @@ public class FloatNodeTest {
                         .setOperationType(ArithmeticOpType.ARITHMETIC_OP_TYPE_ADD)
                         .build();
 
-        ArithmeticFloatNode node = new ArithmeticFloatNode(protoNode,
-                new AddToListCallback<>(results));
+        ArithmeticFloatNode node =
+                new ArithmeticFloatNode(protoNode, new AddToListCallback<>(results));
 
         float lhsValue = 6.6f;
         FixedFloat lhsProtoNode = FixedFloat.newBuilder().setValue(lhsValue).build();
@@ -174,11 +317,11 @@ public class FloatNodeTest {
         lhsNode.init();
 
         float oldRhsValue = 6.5f;
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setFloatVal(FixedFloat.newBuilder().setValue(oldRhsValue))
                                         .build()));
         StateFloatSource rhsProtoNode = StateFloatSource.newBuilder().setSourceKey("foo").build();
@@ -191,14 +334,65 @@ public class FloatNodeTest {
         assertThat(results).containsExactly(lhsValue + oldRhsValue);
 
         float newRhsValue = 7.8f;
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setFloatVal(FixedFloat.newBuilder().setValue(newRhsValue))
                                 .build()));
-        assertThat(results).containsExactly(lhsValue + oldRhsValue,
-                lhsValue + newRhsValue).inOrder();
+        assertThat(results)
+                .containsExactly(lhsValue + oldRhsValue, lhsValue + newRhsValue)
+                .inOrder();
+    }
+
+    @Test
+    public void arithmeticFloat_unknownOperation_throws() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        evaluateArithmeticExpression(
+                                /* lhs= */ 1,
+                                /* rhs= */ 1,
+                                ArithmeticOpType.ARITHMETIC_OP_TYPE_UNDEFINED,
+                                new AddToListCallback<>(new ArrayList<>())));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        evaluateArithmeticExpression(
+                                /* lhs= */ 1,
+                                /* rhs= */ 1,
+                                -1 /* UNRECOGNIZED */,
+                                new AddToListCallback<>(new ArrayList<>())));
+    }
+
+    @Test
+    public void arithmeticFloat_resultIsNaN_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+
+        evaluateArithmeticExpression(
+                /* lhs= */ 0,
+                /* rhs= */ 0,
+                ArithmeticOpType.ARITHMETIC_OP_TYPE_DIVIDE,
+                new AddToListCallback<>(results, invalidList));
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
+    }
+
+    @Test
+    public void arithmeticFloat_resultIsInfinite_invalidate() {
+        List<Float> results = new ArrayList<>();
+        List<Boolean> invalidList = new ArrayList<>();
+
+        evaluateArithmeticExpression(
+                /* lhs= */ 1,
+                /* rhs= */ 0,
+                ArithmeticOpType.ARITHMETIC_OP_TYPE_DIVIDE,
+                new AddToListCallback<>(results, invalidList));
+
+        assertThat(results).isEmpty();
+        assertThat(invalidList).containsExactly(true);
     }
 
     @Test
@@ -207,11 +401,11 @@ public class FloatNodeTest {
         Int32ToFloatNode node = new Int32ToFloatNode(new AddToListCallback<>(results));
 
         int oldIntValue = 65;
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setInt32Val(FixedInt32.newBuilder().setValue(oldIntValue))
                                         .build()));
 
@@ -225,10 +419,10 @@ public class FloatNodeTest {
         assertThat(results).containsExactly((float) oldIntValue);
 
         int newIntValue = 12;
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setInt32Val(FixedInt32.newBuilder().setValue(newIntValue))
                                 .build()));
 
@@ -242,11 +436,13 @@ public class FloatNodeTest {
         List<Float> results = new ArrayList<>();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(MAX_VALUE);
         AnimatableFixedFloat protoNode =
-                AnimatableFixedFloat.newBuilder().setFromValue(startValue).setToValue(
-                        endValue).build();
+                AnimatableFixedFloat.newBuilder()
+                        .setFromValue(startValue)
+                        .setToValue(endValue)
+                        .build();
+        AddToListCallback<Float> addToListCallback = new AddToListCallback<>(results);
         AnimatableFixedFloatNode node =
-                new AnimatableFixedFloatNode(protoNode, new AddToListCallback<>(results),
-                        quotaManager);
+                new AnimatableFixedFloatNode(protoNode, addToListCallback, quotaManager);
         node.setVisibility(true);
 
         node.preInit();
@@ -256,6 +452,7 @@ public class FloatNodeTest {
         assertThat(results.size()).isGreaterThan(2);
         assertThat(results.get(0)).isEqualTo(startValue);
         assertThat(Iterables.getLast(results)).isEqualTo(endValue);
+        assertThat(addToListCallback.isPreUpdateAndUpdateInSync()).isTrue();
     }
 
     @Test
@@ -265,11 +462,13 @@ public class FloatNodeTest {
         List<Float> results = new ArrayList<>();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(MAX_VALUE);
         AnimatableFixedFloat protoNode =
-                AnimatableFixedFloat.newBuilder().setFromValue(startValue).setToValue(
-                        endValue).build();
+                AnimatableFixedFloat.newBuilder()
+                        .setFromValue(startValue)
+                        .setToValue(endValue)
+                        .build();
+        AddToListCallback<Float> addToListCallback = new AddToListCallback<>(results);
         AnimatableFixedFloatNode node =
-                new AnimatableFixedFloatNode(protoNode, new AddToListCallback<>(results),
-                        quotaManager);
+                new AnimatableFixedFloatNode(protoNode, addToListCallback, quotaManager);
         node.setVisibility(false);
 
         node.preInit();
@@ -278,6 +477,7 @@ public class FloatNodeTest {
 
         assertThat(results).hasSize(1);
         assertThat(results).containsExactly(endValue);
+        assertThat(addToListCallback.isPreUpdateAndUpdateInSync()).isTrue();
     }
 
     @Test
@@ -287,11 +487,13 @@ public class FloatNodeTest {
         List<Float> results = new ArrayList<>();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(0);
         AnimatableFixedFloat protoNode =
-                AnimatableFixedFloat.newBuilder().setFromValue(startValue).setToValue(
-                        endValue).build();
+                AnimatableFixedFloat.newBuilder()
+                        .setFromValue(startValue)
+                        .setToValue(endValue)
+                        .build();
         AnimatableFixedFloatNode node =
-                new AnimatableFixedFloatNode(protoNode, new AddToListCallback<>(results),
-                        quotaManager);
+                new AnimatableFixedFloatNode(
+                        protoNode, new AddToListCallback<>(results), quotaManager);
         node.setVisibility(true);
 
         node.preInit();
@@ -309,18 +511,18 @@ public class FloatNodeTest {
         float value3 = 17.0f;
         List<Float> results = new ArrayList<>();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(MAX_VALUE);
-        ObservableStateStore oss =
-                new ObservableStateStore(
+        StateStore oss =
+                new StateStore(
                         ImmutableMap.of(
-                                "foo",
-                                StateEntryValue.newBuilder()
+                                KEY_FOO,
+                                DynamicDataValue.newBuilder()
                                         .setFloatVal(
                                                 FixedFloat.newBuilder().setValue(value1).build())
                                         .build()));
+        AddToListCallback<Float> addToListCallback = new AddToListCallback<>(results);
         DynamicAnimatedFloatNode floatNode =
                 new DynamicAnimatedFloatNode(
-                        new AddToListCallback<>(results), AnimationSpec.getDefaultInstance(),
-                        quotaManager);
+                        addToListCallback, AnimationSpec.getDefaultInstance(), quotaManager);
         floatNode.setVisibility(false);
         StateFloatSourceNode stateNode =
                 new StateFloatSourceNode(
@@ -332,10 +534,10 @@ public class FloatNodeTest {
         stateNode.init();
 
         results.clear();
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setFloatVal(FixedFloat.newBuilder().setValue(value2))
                                 .build()));
         shadowOf(Looper.getMainLooper()).idle();
@@ -346,10 +548,10 @@ public class FloatNodeTest {
 
         floatNode.setVisibility(true);
         results.clear();
-        oss.setStateEntryValuesProto(
+        oss.setAppStateEntryValuesProto(
                 ImmutableMap.of(
-                        "foo",
-                        StateEntryValue.newBuilder()
+                        KEY_FOO,
+                        DynamicDataValue.newBuilder()
                                 .setFloatVal(FixedFloat.newBuilder().setValue(value3))
                                 .build()));
         shadowOf(Looper.getMainLooper()).idle();
@@ -359,5 +561,33 @@ public class FloatNodeTest {
         assertThat(results.get(0)).isEqualTo(value2);
         assertThat(Iterables.getLast(results)).isEqualTo(value3);
         assertThat(results).isInOrder();
+        assertThat(addToListCallback.isPreUpdateAndUpdateInSync()).isTrue();
+    }
+
+    private static void evaluateArithmeticExpression(
+            float lhs,
+            float rhs,
+            ArithmeticOpType op,
+            DynamicTypeValueReceiverWithPreUpdate<Float> receiver) {
+        evaluateArithmeticExpression(lhs, rhs, op.getNumber(), receiver);
+    }
+
+    private static void evaluateArithmeticExpression(
+            float lhs, float rhs, int op, DynamicTypeValueReceiverWithPreUpdate<Float> receiver) {
+        ArithmeticFloatOp protoNode =
+                ArithmeticFloatOp.newBuilder().setOperationTypeValue(op).build();
+
+        ArithmeticFloatNode node = new ArithmeticFloatNode(protoNode, receiver);
+
+        FixedFloat lhsProtoNode = FixedFloat.newBuilder().setValue(lhs).build();
+        FixedFloatNode lhsNode = new FixedFloatNode(lhsProtoNode, node.getLhsIncomingCallback());
+
+        FixedFloat rhsProtoNode = FixedFloat.newBuilder().setValue(rhs).build();
+        FixedFloatNode rhsNode = new FixedFloatNode(rhsProtoNode, node.getRhsIncomingCallback());
+        lhsNode.preInit();
+        rhsNode.preInit();
+
+        lhsNode.init();
+        rhsNode.init();
     }
 }

@@ -28,9 +28,7 @@ import androidx.navigation.dynamicfeatures.DynamicExtras
 import androidx.navigation.dynamicfeatures.DynamicInstallManager
 import androidx.navigation.fragment.FragmentNavigator
 
-/**
- * The [Navigator] that enables navigating to destinations within dynamic feature modules.
- */
+/** The [Navigator] that enables navigating to destinations within dynamic feature modules. */
 @Navigator.Name("fragment")
 public class DynamicFragmentNavigator(
     context: Context,
@@ -72,9 +70,7 @@ public class DynamicFragmentNavigator(
         )
     }
 
-    /**
-     * Destination for dynamic feature navigator.
-     */
+    /** Destination for dynamic feature navigator. */
     public class Destination : FragmentNavigator.Destination {
         public var moduleName: String? = null
 
@@ -93,6 +89,7 @@ public class DynamicFragmentNavigator(
         }
 
         override fun equals(other: Any?): Boolean {
+            if (this === other) return true
             if (other == null || other !is Destination) return false
             return super.equals(other) && moduleName == other.moduleName
         }

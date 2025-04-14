@@ -17,6 +17,7 @@
 package androidx.slidingpanelayout.widget
 
 import android.view.View
+import androidx.core.view.get
 import androidx.slidingpanelayout.test.R
 import androidx.slidingpanelayout.widget.helpers.TestActivity
 import androidx.slidingpanelayout.widget.helpers.findViewById
@@ -37,30 +38,24 @@ import androidx.window.layout.WindowMetricsCalculator
 import androidx.window.testing.layout.FoldingFeature
 import androidx.window.testing.layout.WindowLayoutInfoPublisherRule
 import com.google.common.truth.Truth.assertThat
-import org.hamcrest.core.IsNot.not
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Test views split on the fold
- */
+/** Test views split on the fold */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class FoldTest {
 
-    @get:Rule
-    val rule: WindowLayoutInfoPublisherRule = WindowLayoutInfoPublisherRule()
+    @get:Rule val rule: WindowLayoutInfoPublisherRule = WindowLayoutInfoPublisherRule()
 
     @After
     fun tearDown() {
         TestActivity.onActivityCreated = {}
     }
 
-    /**
-     * Test split views in middle when fold vertically
-     */
+    /** Test split views in middle when fold vertically */
     @Test
     fun testFoldVertical() {
         TestActivity.onActivityCreated = { activity ->
@@ -79,9 +74,7 @@ class FoldTest {
         }
     }
 
-    /**
-     * Test split views not applicable when fold horizontally.
-     */
+    /** Test split views not applicable when fold horizontally. */
     @Test
     fun testFoldHorizontal() {
         TestActivity.onActivityCreated = { activity ->
@@ -95,19 +88,18 @@ class FoldTest {
         }
     }
 
-    /**
-     * Test split views when fold pane is smaller than required min width
-     */
+    /** Test split views when fold pane is smaller than required min width */
     @Test
     fun testFoldExceedMinWidth() {
         val detailViewExtraWidth = 200
         TestActivity.onActivityCreated = { activity ->
             activity.setContentView(R.layout.activity_test_fold_layout)
             val detailView = activity.findViewById<View>(R.id.detail_pane)
-            detailView.minimumWidth = WindowMetricsCalculator.getOrCreate()
-                .computeCurrentWindowMetrics(activity)
-                .bounds
-                .width() / 2 + detailViewExtraWidth
+            detailView.minimumWidth =
+                WindowMetricsCalculator.getOrCreate()
+                    .computeCurrentWindowMetrics(activity)
+                    .bounds
+                    .width() / 2 + detailViewExtraWidth
         }
 
         with(ActivityScenario.launch(TestActivity::class.java)) {
@@ -116,15 +108,14 @@ class FoldTest {
                 val info = WindowLayoutInfo(listOf(feature))
                 rule.overrideWindowLayoutInfo(info)
                 WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this).bounds
+                val spl = findViewById<SlidingPaneLayout>(R.id.sliding_pane_fold_layout)
+                assertThat(spl.isSlideable).isFalse()
+                assertThat(spl[0].width).isLessThan(spl[1].width)
             }
-            Espresso.onView(ViewMatchers.withId(R.id.sliding_pane_fold_layout))
-                .check(ViewAssertions.matches(not(isTwoPane())))
         }
     }
 
-    /**
-     * Test layout updates when unfold a foldable device
-     */
+    /** Test layout updates when unfold a foldable device */
     @Test
     fun testUnfold() {
         TestActivity.onActivityCreated = { activity ->
@@ -133,16 +124,9 @@ class FoldTest {
 
         with(ActivityScenario.launch(TestActivity::class.java)) {
             onActivity { activity ->
-                val halfOpenFeature = FoldingFeature(
-                    activity = activity,
-                    state = HALF_OPENED,
-                    orientation = VERTICAL
-                )
-                val flat = FoldingFeature(
-                    activity = activity,
-                    state = FLAT,
-                    orientation = VERTICAL
-                )
+                val halfOpenFeature =
+                    FoldingFeature(activity = activity, state = HALF_OPENED, orientation = VERTICAL)
+                val flat = FoldingFeature(activity = activity, state = FLAT, orientation = VERTICAL)
                 val halfOpenInfo = WindowLayoutInfo(listOf(halfOpenFeature))
                 val flatInfo = WindowLayoutInfo(listOf(flat))
                 rule.overrideWindowLayoutInfo(halfOpenInfo)
@@ -151,6 +135,38 @@ class FoldTest {
             assertThat(findViewById(R.id.list_pane).width)
                 .isLessThan(findViewById(R.id.detail_pane).width)
             assertThat(findViewX(R.id.list_pane)).isLessThan(findViewX(R.id.detail_pane))
+        }
+    }
+
+    @Test
+    fun testFold_hasPaneSpacing() {
+        val foldWidth = 10
+        val paneSpacing = 20
+
+        TestActivity.onActivityCreated = { activity ->
+            val spl =
+                activity.layoutInflater.inflate(R.layout.activity_test_fold_layout, null, false)
+                    as SlidingPaneLayout
+            spl.paneSpacing = paneSpacing
+            activity.setContentView(spl)
+        }
+
+        with(ActivityScenario.launch(TestActivity::class.java)) {
+            withActivity {
+                val testFeature =
+                    FoldingFeature(activity = this, orientation = VERTICAL, size = foldWidth)
+                val info = WindowLayoutInfo(listOf(testFeature))
+                rule.overrideWindowLayoutInfo(info)
+            }
+
+            val spl = findViewById(R.id.sliding_pane_fold_layout) as SlidingPaneLayout
+            val listPane = findViewById(R.id.list_pane)
+            val detailPane = findViewById(R.id.detail_pane)
+
+            assertThat(spl.isSlideable).isFalse()
+            val expectedWidth = (spl.width - foldWidth - paneSpacing) / 2
+            assertThat(listPane.width).isEqualTo(expectedWidth)
+            assertThat(detailPane.width).isEqualTo(expectedWidth)
         }
     }
 }

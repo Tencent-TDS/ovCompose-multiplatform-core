@@ -19,18 +19,16 @@ package androidx.testutils
 import android.os.Bundle
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.FragmentActivity
-import org.junit.Assert
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.junit.Assert
 
 /**
- * Extension of [FragmentActivity] that keeps track of when it is recreated.
- * In order to use this class, have your activity extend it and call
- * [recreate] API.
+ * Extension of [FragmentActivity] that keeps track of when it is recreated. In order to use this
+ * class, have your activity extend it and call [recreate] API.
  */
-open class RecreatedActivity(
-    @LayoutRes contentLayoutId: Int = 0
-) : FragmentActivity(contentLayoutId) {
+open class RecreatedActivity(@LayoutRes contentLayoutId: Int = 0) :
+    FragmentActivity(contentLayoutId) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,12 +47,9 @@ open class RecreatedActivity(
     }
 
     companion object {
-        @JvmStatic
-        var activity: RecreatedActivity? = null
-        @JvmStatic
-        internal var resumedLatch: CountDownLatch? = null
-        @JvmStatic
-        internal var destroyedLatch: CountDownLatch? = null
+        @JvmStatic var activity: RecreatedActivity? = null
+        @JvmStatic internal var resumedLatch: CountDownLatch? = null
+        @JvmStatic internal var destroyedLatch: CountDownLatch? = null
 
         @JvmStatic
         internal fun clearState() {

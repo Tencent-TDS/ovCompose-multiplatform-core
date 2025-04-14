@@ -16,6 +16,7 @@
 
 package androidx.room.compiler.processing
 
+import androidx.kruth.assertWithMessage
 import androidx.room.compiler.processing.ksp.KspExecutableElement
 import androidx.room.compiler.processing.ksp.KspFieldElement
 import androidx.room.compiler.processing.util.Source
@@ -23,7 +24,6 @@ import androidx.room.compiler.processing.util.compileFiles
 import androidx.room.compiler.processing.util.kspProcessingEnv
 import androidx.room.compiler.processing.util.kspResolver
 import androidx.room.compiler.processing.util.runKspTest
-import com.google.common.truth.Truth.assertWithMessage
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
@@ -36,61 +36,62 @@ import org.junit.runners.JUnit4
 class TopLevelMembersTest {
     @Test
     fun topLevelInDependency() {
-        val libSrc = Source.kotlin(
-            "lib/Foo.kt",
-            """
+        val libSrc =
+            Source.kotlin(
+                "lib/Foo.kt",
+                """
                 package lib
                 fun topLevelFun() {
                 }
                 val topLevelVal: String = ""
                 var topLevelVar: String = ""
-            """.trimIndent()
-        )
-        val classpath = compileFiles(listOf(libSrc))
-        val appSrc = Source.kotlin(
-            "app/Foo.kt",
             """
+                    .trimIndent()
+            )
+        val classpath = compileFiles(listOf(libSrc))
+        val appSrc =
+            Source.kotlin(
+                "app/Foo.kt",
+                """
                 package app
                 fun topLevelFun() {
                 }
                 val topLevelVal: String = ""
                 var topLevelVar: String = ""
-            """.trimIndent()
-        )
-        runKspTest(
-            sources = listOf(appSrc),
-            classpath = classpath
-        ) { invocation ->
+            """
+                    .trimIndent()
+            )
+        runKspTest(sources = listOf(appSrc), classpath = classpath) { invocation ->
             listOf("lib", "app").forEach { pkg ->
                 val declarations = invocation.kspResolver.getDeclarationsFromPackage(pkg)
-                declarations.filterIsInstance<KSFunctionDeclaration>()
-                    .toList().let { methods ->
-                        assertWithMessage(pkg).that(methods).hasSize(1)
-                        methods.forEach { method ->
-                            val element = KspExecutableElement.create(
+                declarations.filterIsInstance<KSFunctionDeclaration>().toList().let { methods ->
+                    assertWithMessage(pkg).that(methods).hasSize(1)
+                    methods.forEach { method ->
+                        val element =
+                            KspExecutableElement.create(
                                 env = invocation.kspProcessingEnv,
                                 declaration = method
                             )
-                            assertWithMessage(pkg).that(
-                                element.enclosingElement.isTypeElement()
-                            ).isFalse()
-                            assertWithMessage(pkg).that(element.isStatic()).isTrue()
-                        }
+                        assertWithMessage(pkg)
+                            .that(element.enclosingElement.isTypeElement())
+                            .isFalse()
+                        assertWithMessage(pkg).that(element.isStatic()).isTrue()
                     }
-                declarations.filterIsInstance<KSPropertyDeclaration>()
-                    .toList().let { properties ->
-                        assertWithMessage(pkg).that(properties).hasSize(2)
-                        properties.forEach {
-                            val element = KspFieldElement.create(
+                }
+                declarations.filterIsInstance<KSPropertyDeclaration>().toList().let { properties ->
+                    assertWithMessage(pkg).that(properties).hasSize(2)
+                    properties.forEach {
+                        val element =
+                            KspFieldElement.create(
                                 env = invocation.kspProcessingEnv,
                                 declaration = it
                             )
-                            assertWithMessage(pkg).that(
-                                element.enclosingElement.isTypeElement()
-                            ).isFalse()
-                            assertWithMessage(pkg).that(element.isStatic()).isTrue()
-                        }
+                        assertWithMessage(pkg)
+                            .that(element.enclosingElement.isTypeElement())
+                            .isFalse()
+                        assertWithMessage(pkg).that(element.isStatic()).isTrue()
                     }
+                }
             }
         }
     }

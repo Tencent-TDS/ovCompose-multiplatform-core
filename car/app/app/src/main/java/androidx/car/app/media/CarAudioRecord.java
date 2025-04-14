@@ -28,13 +28,14 @@ import static java.util.Objects.requireNonNull;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.AppManager;
 import androidx.car.app.CarContext;
 import androidx.car.app.annotations.RequiresCarApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.reflect.Constructor;
@@ -130,11 +131,9 @@ public abstract class CarAudioRecord {
     private @interface RecordState {
     }
 
-    @NonNull
-    private final CarContext mCarContext;
+    private final @NonNull CarContext mCarContext;
 
-    @Nullable
-    private OpenMicrophoneResponse mOpenMicrophoneResponse;
+    private @Nullable OpenMicrophoneResponse mOpenMicrophoneResponse;
 
     /**
      * Indicates the recording state of the CarAudioRecord instance.
@@ -153,15 +152,13 @@ public abstract class CarAudioRecord {
      * @throws NullPointerException if {@code carContext} is {@code null}
      */
     @RequiresPermission(RECORD_AUDIO)
-    @NonNull
-    public static CarAudioRecord create(@NonNull CarContext carContext) {
+    public static @NonNull CarAudioRecord create(@NonNull CarContext carContext) {
         return createCarAudioRecord(carContext, isAutomotiveOS(requireNonNull(carContext))
                 ? "androidx.car.app.media.AutomotiveCarAudioRecord"
                 : "androidx.car.app.media.ProjectedCarAudioRecord");
     }
 
-    @NonNull
-    private static CarAudioRecord createCarAudioRecord(@NonNull CarContext carContext,
+    private static @NonNull CarAudioRecord createCarAudioRecord(@NonNull CarContext carContext,
             @NonNull String className) {
         try {
             Class<?> managerClass = Class.forName(className);
@@ -173,7 +170,6 @@ public abstract class CarAudioRecord {
         }
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     protected CarAudioRecord(@NonNull CarContext carContext) {
         this.mCarContext = carContext;
@@ -240,7 +236,7 @@ public abstract class CarAudioRecord {
      * @throws IllegalStateException if called before calling {@link #startRecording()} or after
      *                               calling {@link #stopRecording()}
      */
-    public int read(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
+    public int read(byte @NonNull [] audioData, int offsetInBytes, int sizeInBytes) {
         synchronized (mRecordingStateLock) {
             switch (mRecordingState) {
                 case RECORDSTATE_STOPPED:
@@ -262,7 +258,6 @@ public abstract class CarAudioRecord {
      * Performs internal platform specific start recording behavior.
      *
      * @param openMicrophoneResponse the response from the host for opening the microphone
-     * @hide
      */
     @RestrictTo(LIBRARY)
     protected abstract void startRecordingInternal(
@@ -271,7 +266,6 @@ public abstract class CarAudioRecord {
     /**
      * Performs internal platform specific stop recording behavior.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     protected abstract void stopRecordingInternal();
@@ -285,9 +279,8 @@ public abstract class CarAudioRecord {
      * @return the number of bytes that were read, or {@code -1} if there isn't any more
      * microphone data to read.  The number of bytes will be a multiple of the frame size in
      * bytes not to exceed {@code sizeInBytes}
-     * @hide
      */
     @RestrictTo(LIBRARY)
-    protected abstract int readInternal(@NonNull byte[] audioData, int offsetInBytes,
+    protected abstract int readInternal(byte @NonNull [] audioData, int offsetInBytes,
             int sizeInBytes);
 }

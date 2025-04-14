@@ -20,15 +20,13 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.os.Build
-import org.mockito.kotlin.mock
 import java.util.function.Consumer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.mock
 
-/**
- * Tests for [ConsumerAdapter] ensuring that the reflection calls work as expected.
- */
+/** Tests for [ConsumerAdapter] ensuring that the reflection calls work as expected. */
 class ConsumerAdapterTest {
 
     internal class TestListenerInterface {
@@ -117,15 +115,16 @@ class ConsumerAdapterTest {
     @Test
     fun testDisposeSubscribe() {
         val values = mutableListOf<String>()
-        val subscription = adapter.createSubscription(
-            listenerInterface,
-            String::class,
-            "addConsumer",
-            "removeConsumer",
-            mock()
-        ) { s: String ->
-            values.add(s)
-        }
+        val subscription =
+            adapter.createSubscription(
+                listenerInterface,
+                String::class,
+                "addConsumer",
+                "removeConsumer",
+                mock()
+            ) { s: String ->
+                values.add(s)
+            }
         subscription.dispose()
 
         assertTrue(listenerInterface.consumers.isEmpty())
@@ -135,15 +134,16 @@ class ConsumerAdapterTest {
     fun testDisposeSubscribeForContext() {
         val values = mutableListOf<String>()
         val context = mock<Context>()
-        val subscription = adapter.createSubscription(
-            listenerInterface,
-            String::class,
-            "addConsumer",
-            "removeConsumer",
-            context
-        ) { s: String ->
-            values.add(s)
-        }
+        val subscription =
+            adapter.createSubscription(
+                listenerInterface,
+                String::class,
+                "addConsumer",
+                "removeConsumer",
+                context
+            ) { s: String ->
+                values.add(s)
+            }
         subscription.dispose()
 
         assertTrue(listenerInterface.consumers.isEmpty())

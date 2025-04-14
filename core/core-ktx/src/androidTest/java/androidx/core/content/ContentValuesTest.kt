@@ -18,27 +18,29 @@ package androidx.core.content
 
 import androidx.test.filters.SmallTest
 import androidx.testutils.assertThrows
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicInteger
 
 @SmallTest
 class ContentValuesTest {
-    @Test fun valuesOfValid() {
-        val values = contentValuesOf(
-            "null" to null,
-            "string" to "string",
-            "byte" to 1.toByte(),
-            "short" to 1.toShort(),
-            "int" to 1,
-            "long" to 1L,
-            "float" to 1f,
-            "double" to 1.0,
-            "boolean" to true,
-            "byteArray" to byteArrayOf()
-        )
+    @Test
+    fun valuesOfValid() {
+        val values =
+            contentValuesOf(
+                "null" to null,
+                "string" to "string",
+                "byte" to 1.toByte(),
+                "short" to 1.toShort(),
+                "int" to 1,
+                "long" to 1L,
+                "float" to 1f,
+                "double" to 1.0,
+                "boolean" to true,
+                "byteArray" to byteArrayOf()
+            )
         assertEquals(10, values.size())
         assertNull(values.get("null"))
         assertEquals("string", values.get("string"))
@@ -52,11 +54,12 @@ class ContentValuesTest {
         assertArrayEquals(byteArrayOf(), values.get("byteArray") as ByteArray)
     }
 
-    @Test fun valuesOfInvalid() {
-        assertThrows<IllegalArgumentException> {
-            contentValuesOf("nope" to AtomicInteger(1))
-        }.hasMessageThat().isEqualTo(
-            "Illegal value type java.util.concurrent.atomic.AtomicInteger for key \"nope\""
-        )
+    @Test
+    fun valuesOfInvalid() {
+        assertThrows<IllegalArgumentException> { contentValuesOf("nope" to AtomicInteger(1)) }
+            .hasMessageThat()
+            .isEqualTo(
+                "Illegal value type java.util.concurrent.atomic.AtomicInteger for key \"nope\""
+            )
     }
 }

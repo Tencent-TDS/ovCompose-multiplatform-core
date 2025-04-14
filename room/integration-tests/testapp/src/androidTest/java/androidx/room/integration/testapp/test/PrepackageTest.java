@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.room.Database;
 import androidx.room.Room;
@@ -37,6 +36,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -257,7 +257,7 @@ public class PrepackageTest {
         ProductsDatabase_v2 database = Room.databaseBuilder(
                 context, ProductsDatabase_v2.class, "products.db")
                 .createFromAsset("databases/products_v1.db")
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build();
 
         ProductDao dao = database.getProductDao();
@@ -284,7 +284,7 @@ public class PrepackageTest {
         ProductsDatabase_v2 database_v2 = Room.databaseBuilder(
                 context, ProductsDatabase_v2.class, "products.db")
                 .createFromAsset("databases/products_v2.db")
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(3));
@@ -310,7 +310,7 @@ public class PrepackageTest {
         ProductsDatabase_v2 database_v2 = Room.databaseBuilder(
                 context, ProductsDatabase_v2.class, "products.db")
                 .createFromAsset("databases/products_v1.db")
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(0));
@@ -343,7 +343,7 @@ public class PrepackageTest {
                                 "INSERT INTO Products (id, name) VALUES (null, 'Mofongo')");
                     }
                 })
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(3));
@@ -438,7 +438,7 @@ public class PrepackageTest {
         ProductsDatabase_v2 database_v2 = Room.databaseBuilder(
                 context, ProductsDatabase_v2.class, "products_external.db")
                 .createFromFile(dataDbFile)
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(0));

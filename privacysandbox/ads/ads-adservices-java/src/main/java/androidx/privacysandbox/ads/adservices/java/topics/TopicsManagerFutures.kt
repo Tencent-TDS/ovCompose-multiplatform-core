@@ -16,23 +16,23 @@
 
 package androidx.privacysandbox.ads.adservices.java.topics
 
-import androidx.privacysandbox.ads.adservices.java.internal.asListenableFuture
-import androidx.privacysandbox.ads.adservices.topics.TopicsManager
-import androidx.privacysandbox.ads.adservices.topics.TopicsManager.Companion.obtain
-import androidx.privacysandbox.ads.adservices.topics.GetTopicsRequest
-import androidx.privacysandbox.ads.adservices.topics.GetTopicsResponse
 import android.adservices.common.AdServicesPermissions
 import android.content.Context
 import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresPermission
+import androidx.privacysandbox.ads.adservices.java.internal.asListenableFuture
+import androidx.privacysandbox.ads.adservices.topics.GetTopicsRequest
+import androidx.privacysandbox.ads.adservices.topics.GetTopicsResponse
+import androidx.privacysandbox.ads.adservices.topics.TopicsManager
+import androidx.privacysandbox.ads.adservices.topics.TopicsManager.Companion.obtain
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 
 /**
- * This provides APIs for App and Ad-Sdks to get the user interest topics in a privacy
- * preserving way. This class can be used by Java clients.
+ * This provides APIs for App and Ad-Sdks to get the user interest topics in a privacy preserving
+ * way. This class can be used by Java clients.
  */
 abstract class TopicsManagerFutures internal constructor() {
     /**
@@ -44,30 +44,29 @@ abstract class TopicsManagerFutures internal constructor() {
     @RequiresPermission(AdServicesPermissions.ACCESS_ADSERVICES_TOPICS)
     abstract fun getTopicsAsync(request: GetTopicsRequest): ListenableFuture<GetTopicsResponse>
 
-    private class Api33Ext4JavaImpl(
-        private val mTopicsManager: TopicsManager
-    ) : TopicsManagerFutures() {
+    private class CommonApiJavaImpl(private val mTopicsManager: TopicsManager) :
+        TopicsManagerFutures() {
         @DoNotInline
         @RequiresPermission(AdServicesPermissions.ACCESS_ADSERVICES_TOPICS)
         override fun getTopicsAsync(
             request: GetTopicsRequest
         ): ListenableFuture<GetTopicsResponse> {
-            return CoroutineScope(Dispatchers.Main).async {
-                mTopicsManager.getTopics(request)
-            }.asListenableFuture()
+            return CoroutineScope(Dispatchers.Main)
+                .async { mTopicsManager.getTopics(request) }
+                .asListenableFuture()
         }
     }
 
     companion object {
         /**
-         *  Creates [TopicsManagerFutures].
+         * Creates [TopicsManagerFutures].
          *
-         *  @return TopicsManagerFutures object. If the device is running an incompatible
-         *  build, the value returned is null.
+         * @return TopicsManagerFutures object. If the device is running an incompatible build, the
+         *   value returned is null.
          */
         @JvmStatic
         fun from(context: Context): TopicsManagerFutures? {
-            return obtain(context)?.let { Api33Ext4JavaImpl(it) }
+            return obtain(context)?.let { CommonApiJavaImpl(it) }
         }
     }
 }

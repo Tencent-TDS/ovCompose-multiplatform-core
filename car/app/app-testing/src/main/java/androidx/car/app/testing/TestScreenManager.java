@@ -20,12 +20,13 @@ import static java.util.Objects.requireNonNull;
 
 import android.annotation.SuppressLint;
 
-import androidx.annotation.NonNull;
 import androidx.car.app.OnScreenResultListener;
 import androidx.car.app.Screen;
 import androidx.car.app.ScreenManager;
 import androidx.car.app.utils.CollectionUtils;
 import androidx.lifecycle.Lifecycle.State;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -52,7 +53,7 @@ public class TestScreenManager extends ScreenManager {
      * Resets the values tracked by this {@link TestScreenManager} and the {@link Screen} stack.
      */
     public void reset() {
-        getScreenStack().clear();
+        getScreenStackInternal().clear();
         mScreensPushed.clear();
         mScreensRemoved.clear();
     }
@@ -66,8 +67,7 @@ public class TestScreenManager extends ScreenManager {
      *
      * <p>The screens will be stored until {@link #reset} is called.
      */
-    @NonNull
-    public List<Screen> getScreensPushed() {
+    public @NonNull List<Screen> getScreensPushed() {
         return CollectionUtils.unmodifiableCopy(mScreensPushed);
     }
 
@@ -80,8 +80,7 @@ public class TestScreenManager extends ScreenManager {
      *
      * <p>The screens will be stored until {@link #reset} is called.
      */
-    @NonNull
-    public List<Screen> getScreensRemoved() {
+    public @NonNull List<Screen> getScreensRemoved() {
         return CollectionUtils.unmodifiableCopy(mScreensRemoved);
     }
 
@@ -149,7 +148,7 @@ public class TestScreenManager extends ScreenManager {
     }
 
     private Set<Screen> getScreensInStack() {
-        return new HashSet<>(getScreenStack());
+        return new HashSet<>(getScreenStackInternal());
     }
 
     TestScreenManager(TestCarContext testCarContext) {

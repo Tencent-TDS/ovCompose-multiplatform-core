@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -36,30 +35,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ComponentItem(
-    component: Component,
-    onClick: (component: Component) -> Unit
-) {
+fun ComponentItem(component: Component, onClick: (component: Component) -> Unit) {
     OutlinedCard(
         onClick = { onClick(component) },
-        modifier = Modifier
-            .height(ComponentItemHeight)
-            .padding(ComponentItemOuterPadding)
+        modifier = Modifier.height(ComponentItemHeight).padding(ComponentItemOuterPadding)
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(ComponentItemInnerPadding)) {
             Image(
                 painter = painterResource(id = component.icon),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(ComponentItemIconSize)
-                    .align(Alignment.Center),
-                colorFilter = if (component.tintIcon) {
-                    ColorFilter.tint(LocalContentColor.current)
-                } else {
-                    null
-                },
+                modifier = Modifier.size(ComponentItemIconSize).align(Alignment.Center),
+                colorFilter =
+                    if (component.tintIcon) {
+                        ColorFilter.tint(LocalContentColor.current)
+                    } else {
+                        null
+                    },
                 contentScale = ContentScale.Inside
             )
             Text(

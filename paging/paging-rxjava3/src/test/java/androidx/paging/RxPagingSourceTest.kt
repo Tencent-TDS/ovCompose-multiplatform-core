@@ -19,12 +19,12 @@ package androidx.paging
 import androidx.paging.PagingSource.LoadResult.Page
 import androidx.paging.rxjava3.RxPagingSource
 import io.reactivex.rxjava3.core.Single
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 @RunWith(JUnit4::class)
 class RxPagingSourceTest {
@@ -37,23 +37,23 @@ class RxPagingSourceTest {
         )
     }
 
-    private val pagingSource = object : PagingSource<Int, Int>() {
-        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Int> {
-            return loadInternal(params)
-        }
-
-        override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
-    }
-
-    private val rxPagingSource = object : RxPagingSource<Int, Int>() {
-        override fun loadSingle(params: LoadParams<Int>): Single<LoadResult<Int, Int>> {
-            return Single.create { emitter ->
-                emitter.onSuccess(loadInternal(params))
+    private val pagingSource =
+        object : PagingSource<Int, Int>() {
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Int> {
+                return loadInternal(params)
             }
+
+            override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
         }
 
-        override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
-    }
+    private val rxPagingSource =
+        object : RxPagingSource<Int, Int>() {
+            override fun loadSingle(params: LoadParams<Int>): Single<LoadResult<Int, Int>> {
+                return Single.create { emitter -> emitter.onSuccess(loadInternal(params)) }
+            }
+
+            override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
+        }
 
     @Test
     fun basic() = runBlocking {

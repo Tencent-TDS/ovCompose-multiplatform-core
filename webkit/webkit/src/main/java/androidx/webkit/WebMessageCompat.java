@@ -17,10 +17,11 @@
 package androidx.webkit;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresFeature;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -28,7 +29,8 @@ import java.util.Objects;
 
 /**
  * The Java representation of the HTML5 PostMessage event. See
- * https://html.spec.whatwg.org/multipage/comms.html#the-messageevent-interfaces
+ * <a href="https://html.spec.whatwg.org/multipage/comms.html#the-messageevent-interfaces">
+ *     https://html.spec.whatwg.org/multipage/comms.html#the-messageevent-interfaces</a>
  * for definition of a MessageEvent in HTML5.
  */
 public class WebMessageCompat {
@@ -36,16 +38,14 @@ public class WebMessageCompat {
     /**
      * Indicates the payload of WebMessageCompat is String.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final int TYPE_STRING = 0;
     /**
      * Indicates the payload of WebMessageCompat is JavaScript ArrayBuffer.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final int TYPE_ARRAY_BUFFER = 1;
-    private final @Nullable WebMessagePortCompat[] mPorts;
+    private final WebMessagePortCompat @Nullable [] mPorts;
     private final @Nullable String mString;
-    private final @Nullable byte[] mArrayBuffer;
+    private final byte @Nullable [] mArrayBuffer;
     private final @Type int mType;
 
     /**
@@ -63,7 +63,7 @@ public class WebMessageCompat {
      * @param data  the string data of the message.
      * @param ports the ports that are sent with the message.
      */
-    public WebMessageCompat(@Nullable String data, @Nullable WebMessagePortCompat[] ports) {
+    public WebMessageCompat(@Nullable String data, WebMessagePortCompat @Nullable [] ports) {
         mString = data;
         mArrayBuffer = null;
         mPorts = ports;
@@ -75,10 +75,9 @@ public class WebMessageCompat {
      *
      * @param arrayBuffer the array buffer data of the message.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_GET_MESSAGE_PAYLOAD,
+    @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    public WebMessageCompat(@NonNull byte[] arrayBuffer) {
+    public WebMessageCompat(byte @NonNull [] arrayBuffer) {
         this(arrayBuffer, null);
     }
 
@@ -88,11 +87,10 @@ public class WebMessageCompat {
      * @param arrayBuffer the array buffer data of the message.
      * @param ports       the ports that are sent with the message.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_GET_MESSAGE_PAYLOAD,
+    @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    public WebMessageCompat(@NonNull byte[] arrayBuffer,
-            @Nullable WebMessagePortCompat[] ports) {
+    public WebMessageCompat(byte @NonNull [] arrayBuffer,
+            WebMessagePortCompat @Nullable [] ports) {
         Objects.requireNonNull(arrayBuffer);
         mArrayBuffer = arrayBuffer;
         mString = null;
@@ -102,26 +100,49 @@ public class WebMessageCompat {
 
     /**
      * Returns the payload type of the message.
+     *
      * @return the payload type of WebMessageCompat.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @Type int getType() {
         return mType;
     }
 
     /**
      * Returns the ArrayBuffer data of message. A ArrayBuffer or Transferable ArrayBuffer can be
-     * received from JavaScript.
+     * received from JavaScript. This should only be called when {@link #getType()} returns
+     * {@link #TYPE_ARRAY_BUFFER}. Example:
+     * <pre class="prettyprint">
+     * WebMessageCompat message = ... // The WebMessageCompat received or prepared.
+     * if (message.getType() == WebMessageCompat.TYPE_ARRAY_BUFFER) {
+     *     byte[] arrayBuffer = message.getArrayBuffer();
+     *     // Access arrayBuffer data here.
+     * }
+     * </pre>
+     *
+     * @return ArrayBuffer payload data.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public @Nullable byte[] getArrayBuffer() {
+    public byte @NonNull [] getArrayBuffer() {
+        checkType(TYPE_ARRAY_BUFFER);
+        // Required for null check. ArrayBuffer is always non-null when mType == TYPE_ARRAY_BUFFER.
+        Objects.requireNonNull(mArrayBuffer);
         return mArrayBuffer;
     }
 
     /**
-     * Returns the String data of the message.
+     * Returns the String data of the message. This should only be called when {@link #getType()}
+     * returns {@link #TYPE_STRING}. Example:
+     * <pre class="prettyprint">
+     * WebMessageCompat message = ... // The WebMessageCompat received or prepared.
+     * if (message.getType() == WebMessageCompat.TYPE_STRING) {
+     *     String string = message.getData();
+     *     // Access string data here.
+     * }
+     * </pre>
+     *
+     * @return String payload data.
      */
     public @Nullable String getData() {
+        checkType(TYPE_STRING);
         return mString;
     }
 
@@ -129,13 +150,31 @@ public class WebMessageCompat {
      * Returns the ports that are sent with the message, or {@code null} if no port
      * is sent.
      */
-    @Nullable
-    public WebMessagePortCompat[] getPorts() {
+    public WebMessagePortCompat @Nullable [] getPorts() {
         return mPorts;
+    }
+
+    private @NonNull String typeToString(@Type int type) {
+        switch (type) {
+            case TYPE_STRING:
+                return "String";
+            case TYPE_ARRAY_BUFFER:
+                return "ArrayBuffer";
+            default:
+                return "Unknown";
+        }
+    }
+
+    private void checkType(@Type int typeForGetter) {
+        if (typeForGetter != mType) {
+            throw new IllegalStateException("Wrong data accessor type detected. "
+                    + typeToString(mType) + " expected, but got " + typeToString(typeForGetter));
+        }
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @IntDef({TYPE_STRING, TYPE_ARRAY_BUFFER})
     @Retention(RetentionPolicy.SOURCE)
-    public @interface Type {}
+    public @interface Type {
+    }
 }

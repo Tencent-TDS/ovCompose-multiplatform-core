@@ -41,13 +41,14 @@ import android.widget.TextView;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
 import androidx.wear.R;
 import androidx.wear.activity.ConfirmationActivity;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -101,10 +102,10 @@ public class ConfirmationOverlay {
         void onAnimationFinished();
     }
 
-    /** Default animation duration in ms. **/
+    /** Default animation duration in ms. */
     public static final int DEFAULT_ANIMATION_DURATION_MS = 1000;
 
-    /** Default animation duration in ms. **/
+    /** Default animation duration in ms. */
     private static final int A11Y_ANIMATION_DURATION_MS = 5000;
 
     /** Types of animations to display in the overlay. */
@@ -152,9 +153,8 @@ public class ConfirmationOverlay {
      * @return {@code this} object for method chaining.
      * @deprecated Use {@link #setMessage(CharSequence)} instead.
      */
-    @NonNull
     @Deprecated
-    public ConfirmationOverlay setMessage(@NonNull String message) {
+    public @NonNull ConfirmationOverlay setMessage(@NonNull String message) {
         mMessage = message;
         return this;
     }
@@ -164,8 +164,7 @@ public class ConfirmationOverlay {
      *
      * @return {@code this} object for method chaining.
      */
-    @NonNull
-    public ConfirmationOverlay setMessage(@NonNull CharSequence message) {
+    public @NonNull ConfirmationOverlay setMessage(@NonNull CharSequence message) {
         mMessage = message;
         return this;
     }
@@ -175,8 +174,7 @@ public class ConfirmationOverlay {
      *
      * @return {@code this} object for method chaining.
      */
-    @NonNull
-    public ConfirmationOverlay setType(@OverlayType int type) {
+    public @NonNull ConfirmationOverlay setType(@OverlayType int type) {
         mType = type;
         return this;
     }
@@ -187,8 +185,7 @@ public class ConfirmationOverlay {
      *
      * @return {@code this} object for method chaining.
      */
-    @NonNull
-    public ConfirmationOverlay setDuration(int millis) {
+    public @NonNull ConfirmationOverlay setDuration(int millis) {
         mDurationMillis = millis;
         return this;
     }
@@ -201,9 +198,8 @@ public class ConfirmationOverlay {
      * @deprecated Use
      * {@link #setOnAnimationFinishedListener(OnAnimationFinishedListener)} instead.
      */
-    @NonNull
     @Deprecated
-    public ConfirmationOverlay setFinishedAnimationListener(
+    public @NonNull ConfirmationOverlay setFinishedAnimationListener(
             @Nullable OnAnimationFinishedListener listener) {
         mListener = listener;
         return this;
@@ -215,8 +211,7 @@ public class ConfirmationOverlay {
      *
      * @return {@code this} object for method chaining.
      */
-    @NonNull
-    public ConfirmationOverlay setOnAnimationFinishedListener(
+    public @NonNull ConfirmationOverlay setOnAnimationFinishedListener(
             @Nullable OnAnimationFinishedListener listener) {
         mListener = listener;
         return this;
@@ -342,17 +337,23 @@ public class ConfirmationOverlay {
         TextView messageView =
                 overlayView.findViewById(R.id.wearable_support_confirmation_overlay_message);
 
-        int screenWidthPx = ResourcesUtil.getScreenWidthPx(context);
-        int insetMarginPx = ResourcesUtil.getFractionOfScreenPx(
-                context, screenWidthPx, R.fraction.confirmation_overlay_text_inset_margin);
+        // Remove the message view from the view hierarchy if there's no message, as it changes the
+        // vertical alignment of other content in the overlay.
+        if (mMessage.length() == 0) {
+            messageView.setVisibility(View.GONE);
+        } else {
+            int screenWidthPx = ResourcesUtil.getScreenWidthPx(context);
+            int insetMarginPx = ResourcesUtil.getFractionOfScreenPx(
+                    context, screenWidthPx, R.fraction.confirmation_overlay_text_inset_margin);
 
-        MarginLayoutParams layoutParams = (MarginLayoutParams) messageView.getLayoutParams();
-        layoutParams.leftMargin = insetMarginPx;
-        layoutParams.rightMargin = insetMarginPx;
+            MarginLayoutParams layoutParams = (MarginLayoutParams) messageView.getLayoutParams();
+            layoutParams.leftMargin = insetMarginPx;
+            layoutParams.rightMargin = insetMarginPx;
 
-        messageView.setLayoutParams(layoutParams);
-        messageView.setText(mMessage);
-        messageView.setVisibility(View.VISIBLE);
+            messageView.setLayoutParams(layoutParams);
+            messageView.setText(mMessage);
+            messageView.setVisibility(View.VISIBLE);
+        }
     }
 
     @MainThread

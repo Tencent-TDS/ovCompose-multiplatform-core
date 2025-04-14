@@ -30,37 +30,38 @@ import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.lang.jvm.JvmModifier
 import com.intellij.psi.PsiMethod
+import java.util.EnumSet
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
-import java.util.EnumSet
 
 class WorkerHasPublicModifierDetector : Detector(), SourceCodeScanner {
     companion object {
         private const val DESCRIPTION =
             "ListenableWorkers constructed using the default WorkerFactories need to be public"
 
-        val ISSUE = Issue.create(
-            id = "WorkerHasAPublicModifier",
-            briefDescription = DESCRIPTION,
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "WorkerHasAPublicModifier",
+                briefDescription = DESCRIPTION,
+                explanation =
+                    """
                 When you define a ListenableWorker which is constructed using the 
                 default WorkerFactory, the ListenableWorker sub-type needs to be public.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.FATAL,
-            implementation = Implementation(
-                WorkerHasPublicModifierDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE)
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.FATAL,
+                implementation =
+                    Implementation(
+                        WorkerHasPublicModifierDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE)
+                    )
             )
-        )
     }
 
     override fun getApplicableMethodNames(): List<String> = listOf("setWorkerFactory")
 
-    override fun applicableSuperClasses() = listOf(
-        "androidx.work.ListenableWorker"
-    )
+    override fun applicableSuperClasses() = listOf("androidx.work.ListenableWorker")
 
     private var hasCustomWorkerFactory = false
     private val workers = mutableListOf<Pair<UClass, Location>>()
@@ -78,7 +79,7 @@ class WorkerHasPublicModifierDetector : Detector(), SourceCodeScanner {
         }
 
         if (!declaration.hasModifier(JvmModifier.PUBLIC)) {
-            workers += Pair(declaration, context.getLocation(declaration.javaPsi))
+            workers += Pair(declaration, context.getNameLocation(declaration))
         }
     }
 

@@ -18,8 +18,8 @@ package androidx.compose.ui.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,10 +37,7 @@ fun BlurSample() {
     Box(
         Modifier.size(300.dp)
             // Blur content allowing the result to extend beyond the bounds of the original content
-            .blur(
-                30.dp,
-                edgeTreatment = BlurredEdgeTreatment.Unbounded
-            )
+            .blur(30.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
             .background(Color.Red, CircleShape)
     )
 }

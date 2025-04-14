@@ -27,6 +27,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.lifecycle.lifecycleScope
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -38,11 +42,6 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class KotlinSerializationActivity : AppCompatActivity() {
     private val TAG = "SerializationActivity"
@@ -50,9 +49,9 @@ class KotlinSerializationActivity : AppCompatActivity() {
     private val PROTO_STORE_FILE_NAME = "kotlin_serialization_test_file.json"
 
     private val settingsStore: DataStore<MySettings> by lazy {
-        DataStoreFactory.create(
-            serializer = MySettingsSerializer
-        ) { File(applicationContext.filesDir, PROTO_STORE_FILE_NAME) }
+        DataStoreFactory.create(serializer = MySettingsSerializer) {
+            File(applicationContext.filesDir, PROTO_STORE_FILE_NAME)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,9 +74,7 @@ class KotlinSerializationActivity : AppCompatActivity() {
         findViewById<Button>(R.id.counter_dec).setOnClickListener {
             lifecycleScope.launch {
                 settingsStore.updateData { currentSettings ->
-                    currentSettings.copy(
-                        count = currentSettings.count - 1
-                    )
+                    currentSettings.copy(count = currentSettings.count - 1)
                 }
             }
         }
@@ -85,9 +82,7 @@ class KotlinSerializationActivity : AppCompatActivity() {
         findViewById<Button>(R.id.counter_inc).setOnClickListener {
             lifecycleScope.launch {
                 settingsStore.updateData { currentSettings ->
-                    currentSettings.copy(
-                        count = currentSettings.count + 1
-                    )
+                    currentSettings.copy(count = currentSettings.count + 1)
                 }
             }
         }
@@ -105,15 +100,13 @@ class KotlinSerializationActivity : AppCompatActivity() {
                 .map { it.count }
                 .distinctUntilChanged()
                 .collect { counterValue ->
-                    findViewById<TextView>(R.id.counter_text_view).text =
-                        counterValue.toString()
+                    findViewById<TextView>(R.id.counter_text_view).text = counterValue.toString()
                 }
         }
     }
 }
 
-@Serializable
-data class MySettings(val count: Int = 0)
+@Serializable data class MySettings(val count: Int = 0)
 
 @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 object MySettingsSerializer : Serializer<MySettings> {

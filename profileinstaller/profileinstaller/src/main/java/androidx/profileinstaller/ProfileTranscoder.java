@@ -36,9 +36,8 @@ import static androidx.profileinstaller.Encoding.writeUInt16;
 import static androidx.profileinstaller.Encoding.writeUInt32;
 import static androidx.profileinstaller.Encoding.writeUInt8;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,21 +51,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-@RequiresApi(19)
 class ProfileTranscoder {
     private ProfileTranscoder() {
     }
 
     private static final int HOT = 1;
+    private static final int FIRST_FLAG = HOT;
     private static final int STARTUP = 1 << 1;
     private static final int POST_STARTUP = 1 << 2;
+    private static final int LAST_FLAG = POST_STARTUP;
+
     private static final int INLINE_CACHE_MISSING_TYPES_ENCODING = 6;
     private static final int INLINE_CACHE_MEGAMORPHIC_ENCODING = 7;
 
     static final byte[] MAGIC_PROF = new byte[]{'p', 'r', 'o', '\u0000'};
     static final byte[] MAGIC_PROFM = new byte[]{'p', 'r', 'm', '\u0000'};
 
-    static byte[] readHeader(@NonNull InputStream is, @NonNull byte[] magic) throws IOException {
+    static byte[] readHeader(@NonNull InputStream is, byte @NonNull [] magic) throws IOException {
         byte[] fileMagic = read(is, magic.length);
         if (!Arrays.equals(magic, fileMagic)) {
             // If we find a file that doesn't claim to be a profile, something really unexpected
@@ -92,8 +93,8 @@ class ProfileTranscoder {
      */
     static boolean transcodeAndWriteBody(
             @NonNull OutputStream os,
-            @NonNull byte[] desiredVersion,
-            @NonNull DexProfileData[] data
+            byte @NonNull [] desiredVersion,
+            DexProfileData @NonNull [] data
     ) throws IOException {
         if (Arrays.equals(desiredVersion, ProfileVersion.V015_S)) {
             writeProfileForS(os, data);
@@ -140,7 +141,7 @@ class ProfileTranscoder {
      */
     private static void writeProfileForN(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] lines
+            DexProfileData @NonNull [] lines
     ) throws IOException {
         writeUInt16(os, lines.length); // number of dex files
         for (DexProfileData data : lines) {
@@ -219,18 +220,18 @@ class ProfileTranscoder {
      *    (M|dex_map_size)
      *    type_index_diff[dex_map_size]
      * where `M` stands for special encodings indicating missing types (kIsMissingTypesEncoding)
-     * or memamorphic call (kIsMegamorphicEncoding) which both imply `dex_map_size == 0`.
+     * or megamorphic call (kIsMegamorphicEncoding) which both imply `dex_map_size == 0`.
      */
     private static void writeProfileForS(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] profileData
+            DexProfileData @NonNull [] profileData
     ) throws IOException {
         writeProfileSections(os, profileData);
     }
 
     private static void writeProfileSections(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] profileData
+            DexProfileData @NonNull [] profileData
     ) throws IOException {
         // 3 Sections
         // Dex, Classes and Methods
@@ -279,7 +280,7 @@ class ProfileTranscoder {
     }
 
     private static WritableFileSection writeDexFileSection(
-            @NonNull DexProfileData[] profileData
+            DexProfileData @NonNull [] profileData
     ) throws IOException {
         int expectedSize = 0;
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -329,7 +330,7 @@ class ProfileTranscoder {
     }
 
     private static WritableFileSection createCompressibleClassSection(
-            @NonNull DexProfileData[] profileData
+            DexProfileData @NonNull [] profileData
     ) throws IOException {
         int expectedSize = 0;
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -362,7 +363,7 @@ class ProfileTranscoder {
     }
 
     private static WritableFileSection createCompressibleMethodsSection(
-            @NonNull DexProfileData[] profileData
+            DexProfileData @NonNull [] profileData
     ) throws IOException {
         int expectedSize = 0;
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -371,7 +372,7 @@ class ProfileTranscoder {
                 // Method Flags
                 int methodFlags = computeMethodFlags(profile);
                 // Bitmap Contents
-                byte[] bitmapContents = createMethodBitmapRegion(profile);
+                byte[] bitmapContents = createMethodBitmapRegionForS(methodFlags, profile);
                 // Methods with Inline Caches
                 byte[] methodRegionContents = createMethodsWithInlineCaches(profile);
                 // Profile Index
@@ -404,11 +405,12 @@ class ProfileTranscoder {
         }
     }
 
-    private static byte[] createMethodBitmapRegion(
+    private static byte[] createMethodBitmapRegionForS(
+            int methodFlags,
             @NonNull DexProfileData profile
     ) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writeMethodBitmap(out, profile);
+            writeMethodBitmapForS(out, methodFlags, profile);
             return out.toByteArray();
         }
     }
@@ -468,7 +470,7 @@ class ProfileTranscoder {
      */
     private static void writeProfileForP(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] lines
+            DexProfileData @NonNull [] lines
     ) throws IOException {
         byte[] profileBytes = createCompressibleBody(lines, ProfileVersion.V010_P);
         writeUInt8(os, lines.length); // number of dex files
@@ -477,7 +479,7 @@ class ProfileTranscoder {
 
     private static void writeProfileForO_MR1(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] lines
+            DexProfileData @NonNull [] lines
     ) throws IOException {
         byte[] profileBytes = createCompressibleBody(lines, ProfileVersion.V009_O_MR1);
         writeUInt8(os, lines.length); // number of dex files
@@ -516,7 +518,7 @@ class ProfileTranscoder {
      */
     private static void writeProfileForO(
             @NonNull OutputStream os,
-            @NonNull DexProfileData[] lines
+            DexProfileData @NonNull [] lines
     ) throws IOException {
         writeUInt8(os, lines.length); // number of dex files
         for (DexProfileData data : lines) {
@@ -543,14 +545,14 @@ class ProfileTranscoder {
     }
 
     /**
-     * Create compressable body only for V0.1.0 v0.0.9.
-     *
+     * Create compressible body only for V0.1.0 v0.0.9.
+     * <p>
      * For 0.1.0 this will write header/header/header/body/body/body
      * For 0.0.9 this will write header/body/header/body/header/body
      */
-    private static @NonNull byte[] createCompressibleBody(
-            @NonNull DexProfileData[] lines,
-            @NonNull byte[] version
+    private static byte @NonNull [] createCompressibleBody(
+            DexProfileData @NonNull [] lines,
+            byte @NonNull [] version
     ) throws IOException {
         // Start by creating a couple of caches for the data we re-use during serialization.
 
@@ -613,6 +615,12 @@ class ProfileTranscoder {
         return roundUpToByte(methodBitmapBits) / SIZEOF_BYTE;
     }
 
+    private static int getMethodBitmapStorageSizeForS(int methodFlags, int numMethodIds) {
+        int bits = Integer.bitCount(methodFlags & ~HOT);
+        int methodBitmapBits = bits * numMethodIds;
+        return roundUpToByte(methodBitmapBits) / SIZEOF_BYTE;
+    }
+
     private static int roundUpToByte(int bits) {
         return (bits + SIZEOF_BYTE - 1) & -SIZEOF_BYTE;
     }
@@ -626,7 +634,7 @@ class ProfileTranscoder {
      * @param dexData the method dex file
      */
     private static void setMethodBitmapBit(
-            @NonNull byte[] bitmap,
+            byte @NonNull [] bitmap,
             int flag,
             int methodIndex,
             @NonNull DexProfileData dexData
@@ -721,6 +729,43 @@ class ProfileTranscoder {
         }
     }
 
+    private static void writeMethodBitmapForS(
+            @NonNull OutputStream os,
+            int methodFlags,
+            @NonNull DexProfileData dexData
+    ) throws IOException {
+        int methodBitmapStorageSize = getMethodBitmapStorageSizeForS(
+                methodFlags, dexData.numMethodIds
+        );
+        byte[] bitmap = new byte[methodBitmapStorageSize];
+        for (Map.Entry<Integer, Integer> entry : dexData.methods.entrySet()) {
+            int methodIndex = entry.getKey();
+            int flagValue = entry.getValue();
+            int offset = 0;
+            int flag = FIRST_FLAG;
+            while (flag <= LAST_FLAG) {
+                if (flag == HOT) {
+                    flag = flag << 1;
+                    continue;
+                }
+                if ((flag & methodFlags) == 0) {
+                    flag = flag << 1;
+                    continue;
+                }
+                if ((flag & flagValue) == flag) {
+                    // The flag is set here.
+                    int bitIndex = methodIndex + offset * dexData.numMethodIds;
+                    int bitmapIndex = bitIndex / SIZEOF_BYTE;
+                    byte value = (byte) (bitmap[bitmapIndex] | (1 << (bitIndex % SIZEOF_BYTE)));
+                    bitmap[bitmapIndex] = value;
+                }
+                offset = offset + 1;
+                flag = flag << 1;
+            }
+        }
+        os.write(bitmap);
+    }
+
     /**
      * Writes the methods flags as a bitmap to the output stream.
      * @param os the destination OutputStream to write to
@@ -783,9 +828,9 @@ class ProfileTranscoder {
      * @param is The InputStream for the P+ binary profile
      * @return A map of keys (dex names) to the parsed [DexProfileData] for that dex.
      */
-    static @NonNull DexProfileData[] readProfile(
+    static DexProfileData @NonNull [] readProfile(
             @NonNull InputStream is,
-            @NonNull byte[] version,
+            byte @NonNull [] version,
             @NonNull String apkName
     ) throws IOException {
         if (!Arrays.equals(version, ProfileVersion.V010_P)) {
@@ -810,10 +855,10 @@ class ProfileTranscoder {
     }
 
 
-    static @NonNull DexProfileData[] readMeta(
+    static DexProfileData @NonNull [] readMeta(
             @NonNull InputStream is,
-            @NonNull byte[] metadataVersion,
-            @NonNull byte[] desiredProfileVersion,
+            byte @NonNull [] metadataVersion,
+            byte @NonNull [] desiredProfileVersion,
             DexProfileData[] profile
     ) throws IOException {
         if (Arrays.equals(metadataVersion, ProfileVersion.METADATA_V001_N)) {
@@ -842,9 +887,9 @@ class ProfileTranscoder {
      * dex_data:
      *   class_id1,class_id2...
      */
-    static @NonNull DexProfileData[] readMetadata001(
+    static DexProfileData @NonNull [] readMetadata001(
             @NonNull InputStream is,
-            @NonNull byte[] metadataVersion,
+            byte @NonNull [] metadataVersion,
             DexProfileData[] profile
     ) throws IOException {
         if (!Arrays.equals(metadataVersion, ProfileVersion.METADATA_V001_N)) {
@@ -877,10 +922,9 @@ class ProfileTranscoder {
      * profile_index, profile_key_size, profile_key,
      * type_id_size, class_index_size, class_index_deltas
      */
-    @NonNull
-    static DexProfileData[] readMetadataV002(
+    static DexProfileData @NonNull [] readMetadataV002(
             @NonNull InputStream is,
-            @NonNull byte[] desiredProfileVersion,
+            byte @NonNull [] desiredProfileVersion,
             DexProfileData[] profile
     ) throws IOException {
         // No of dex files
@@ -907,10 +951,9 @@ class ProfileTranscoder {
         }
     }
 
-    @NonNull
-    private static DexProfileData[] readMetadataV002Body(
+    private static DexProfileData @NonNull [] readMetadataV002Body(
             @NonNull InputStream is,
-            @NonNull byte[] desiredProfileVersion,
+            byte @NonNull [] desiredProfileVersion,
             int dexFileCount,
             DexProfileData[] profile
     ) throws IOException {
@@ -951,9 +994,8 @@ class ProfileTranscoder {
         return profile;
     }
 
-    @Nullable
-    private static DexProfileData findByDexName(
-            @NonNull DexProfileData[] profile,
+    private static @Nullable DexProfileData findByDexName(
+            DexProfileData @NonNull [] profile,
             @NonNull String profileKey) {
 
         if (profile.length <= 0) return null;
@@ -977,7 +1019,7 @@ class ProfileTranscoder {
      *
      * @return A map of keys (dex names) to the parsed [DexProfileData] for that dex.
      */
-    private static @NonNull DexProfileData[] readMetadataForNBody(
+    private static DexProfileData @NonNull [] readMetadataForNBody(
             @NonNull InputStream is,
             int numberOfDexFiles,
             DexProfileData[] profile
@@ -1028,11 +1070,10 @@ class ProfileTranscoder {
      * @param version version array from {@see ProfileVersion}
      * @return correctly formatted dex key for this API version
      */
-    @NonNull
-    private static String generateDexKey(
+    private static @NonNull String generateDexKey(
             @NonNull String apkName,
             @NonNull String dexName,
-            @NonNull byte[] version) {
+            byte @NonNull [] version) {
         String separator = ProfileVersion.dexKeySeparator(version);
         if (apkName.length() <= 0) return enforceSeparator(dexName, separator);
         if (dexName.equals("classes.dex")) return apkName;
@@ -1043,8 +1084,7 @@ class ProfileTranscoder {
         return apkName + ProfileVersion.dexKeySeparator(version) + dexName;
     }
 
-    @NonNull
-    private static String enforceSeparator(
+    private static @NonNull String enforceSeparator(
             @NonNull String value,
             @NonNull String separator) {
         if ("!".equals(separator)) {
@@ -1056,8 +1096,7 @@ class ProfileTranscoder {
         }
     }
 
-    @NonNull
-    private static String extractKey(@NonNull String profileKey) {
+    private static @NonNull String extractKey(@NonNull String profileKey) {
         int index = profileKey.indexOf("!");
         if (index < 0) {
             index = profileKey.indexOf(":");
@@ -1076,7 +1115,7 @@ class ProfileTranscoder {
      *
      * @return A map of keys (dex names) to the parsed [DexProfileData] for that dex.
      */
-    private static @NonNull DexProfileData[] readUncompressedBody(
+    private static DexProfileData @NonNull [] readUncompressedBody(
             @NonNull InputStream is,
             @NonNull String apkName,
             int numberOfDexFiles

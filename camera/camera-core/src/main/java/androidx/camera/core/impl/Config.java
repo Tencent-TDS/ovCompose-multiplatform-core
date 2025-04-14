@@ -16,12 +16,15 @@
 
 package androidx.camera.core.impl;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.camera.core.impl.utils.ResolutionSelectorUtil;
+import androidx.camera.core.resolutionselector.ResolutionSelector;
 
 import com.google.auto.value.AutoValue;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,15 +39,14 @@ import java.util.Set;
  * {@link Config#retrieveOptionWithPriority} and {@link Config#getPriorities} can be used to
  * retrieve option value of specified priority.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface Config {
 
     /**
      * Returns whether this configuration contains the supplied option.
      *
      * @param id The {@link Option} to search for in this configuration.
-     * @return <code>true</code> if this configuration contains the supplied option; <code>false
-     * </code> otherwise.
+     * @return {@code true} if this configuration contains the supplied option; {@code false}
+     * otherwise.
      */
     boolean containsOption(@NonNull Option<?> id);
 
@@ -60,8 +62,7 @@ public interface Config {
      * @return The value stored in this configuration.
      * @throws IllegalArgumentException if the given option does not exist in this configuration.
      */
-    @Nullable
-    <ValueT> ValueT retrieveOption(@NonNull Option<ValueT> id);
+    <ValueT> @Nullable ValueT retrieveOption(@NonNull Option<ValueT> id);
 
     /**
      * Retrieves the value for the specified option if it exists in the configuration.
@@ -74,11 +75,11 @@ public interface Config {
      * @param valueIfMissing The value to return if the specified {@link Option} does not exist in
      *                       this configuration.
      * @param <ValueT>       The type for the value associated with the supplied {@link Option}.
-     * @return The value stored in this configuration, or <code>valueIfMissing</code> if it does
+     * @return The value stored in this configuration, or {@code valueIfMissing} if it does
      * not exist.
      */
-    @Nullable
-    <ValueT> ValueT retrieveOption(@NonNull Option<ValueT> id, @Nullable ValueT valueIfMissing);
+    <ValueT> @Nullable ValueT retrieveOption(@NonNull Option<ValueT> id,
+            @Nullable ValueT valueIfMissing);
 
     /**
      * Retrieves the value for the specified option and specified priority if it exists in the
@@ -91,8 +92,7 @@ public interface Config {
      * @throws IllegalArgumentException if the given option with specified priority does not exist
      * in this configuration.
      */
-    @Nullable
-    <ValueT> ValueT retrieveOptionWithPriority(@NonNull Option<ValueT> id,
+    <ValueT> @Nullable ValueT retrieveOptionWithPriority(@NonNull Option<ValueT> id,
             @NonNull OptionPriority priority);
 
     /**
@@ -102,8 +102,7 @@ public interface Config {
      * priority will be returned. If the option does not exist, an
      * {@link IllegalArgumentException} will be thrown.
      */
-    @NonNull
-    OptionPriority getOptionPriority(@NonNull Option<?> opt);
+    @NonNull OptionPriority getOptionPriority(@NonNull Option<?> opt);
 
     /**
      * Search the configuration for {@link Option}s whose id match the supplied search string.
@@ -113,12 +112,10 @@ public interface Config {
      *                       option such as \"<code>
      *                       camerax.core.example</code>\".
      * @param matcher        A callback used to receive results of the search. Results will be
-     *                       sent to
-     *                       {@link OptionMatcher#onOptionMatched(Option)} in the order in which
-     *                       they are found inside
-     *                       this configuration. Subsequent results will continue to be sent as
-     *                       long as {@link
-     *                       OptionMatcher#onOptionMatched(Option)} returns <code>true</code>.
+     *                       sent to {@link OptionMatcher#onOptionMatched(Option)} in the order
+     *                       in which they are found inside this configuration. Subsequent
+     *                       results will continue to be sent as long as {@link
+     *                       OptionMatcher#onOptionMatched(Option)} returns {@code true}.
      */
     void findOptions(@NonNull String idSearchString, @NonNull OptionMatcher matcher);
 
@@ -127,16 +124,14 @@ public interface Config {
      *
      * @return A {@link Set} of {@link Option}s contained within this configuration.
      */
-    @NonNull
-    Set<Option<?>> listOptions();
+    @NonNull Set<Option<?>> listOptions();
 
     /**
      *
      * Returns a {@link Set} of all priorities set for the specified option.
      *
      */
-    @NonNull
-    Set<OptionPriority> getPriorities(@NonNull Option<?> option);
+    @NonNull Set<OptionPriority> getPriorities(@NonNull Option<?> option);
 
     /**
      * A callback for retrieving results of a {@link Config.Option} search.
@@ -182,8 +177,8 @@ public interface Config {
          * @return An {@link Option} object which can be used to store/retrieve values from a {@link
          * Config}.
          */
-        @NonNull
-        public static <T> Option<T> create(@NonNull String id, @NonNull Class<?> valueClass) {
+        public static <T> @NonNull Option<T> create(@NonNull String id,
+                @NonNull Class<?> valueClass) {
             return Option.create(id, valueClass, /*token=*/ null);
         }
 
@@ -196,16 +191,14 @@ public interface Config {
          * @param valueClass The class of the value stored by this option.
          * @param <T>        The type of the value stored by this option.
          * @param token      An optional, type-erased object for storing more context for this
-         *                   specific
-         *                   option. Generally this object should have static scope and be
+         *                   specific option. Generally this object should have static scope and be
          *                   immutable.
          * @return An {@link Option} object which can be used to store/retrieve values from a {@link
          * Config}.
          */
         @SuppressWarnings("unchecked")
-        @NonNull
-        public static <T> Option<T> create(@NonNull String id, @NonNull Class<?> valueClass,
-                @Nullable Object token) {
+        public static <T> @NonNull Option<T> create(@NonNull String id,
+                @NonNull Class<?> valueClass, @Nullable Object token) {
             return new AutoValue_Config_Option<>(id, (Class<T>) valueClass, token);
         }
 
@@ -218,16 +211,14 @@ public interface Config {
          *
          * @return The identifier.
          */
-        @NonNull
-        public abstract String getId();
+        public abstract @NonNull String getId();
 
         /**
          * Returns the class object associated with the value for this option.
          *
          * @return The class object for the value's type.
          */
-        @NonNull
-        public abstract Class<T> getValueClass();
+        public abstract @NonNull Class<T> getValueClass();
 
         /**
          * Returns the optional type-erased context object for this option.
@@ -236,8 +227,7 @@ public interface Config {
          *
          * @return The type-erased context object.
          */
-        @Nullable
-        public abstract Object getToken();
+        public abstract @Nullable Object getToken();
     }
 
     /**
@@ -247,27 +237,42 @@ public interface Config {
      */
     enum OptionPriority {
         /**
-         * Should only be used externally by apps. It takes precedence over any other option
-         * values at the risk of causing unexpected behavior.
+         * It takes precedence over any other option values at the risk of causing unexpected
+         * behavior.
          *
-         * <p>This should not used internally in CameraX. It conflicts when merging different
-         * values set to ALWAY_OVERRIDE.
+         * <p>If the same option is already set, the option with this priority will overwrite the
+         * value.
+         *
+         * <p>This priority should only be used to explicitly specify an option, such as used by
+         * {@code Camera2Interop} or {@code Camera2CameraControl} to override an option.
          */
         ALWAYS_OVERRIDE,
+
+        /**
+         * This priority is higher than {@link #REQUIRED} and {@link #OPTIONAL}, and it is designed
+         * to override the options internally to work around some device specific issues.
+         *
+         * <p>When two option values are set with this priority, the newer value takes precedence
+         * over the old one. Options with this priority can still be overridden by
+         * {@link #ALWAYS_OVERRIDE} which are normally used by {@code Camera2Interop}.
+         */
+        HIGH_PRIORITY_REQUIRED,
 
         /**
          * It's a required option value in order to achieve expected CameraX behavior. It takes
          * precedence over {@link #OPTIONAL} option values.
          *
-         * <p>If apps set ALWAYS_OVERRIDE options, it'll override REQUIRED option values and can
-         * potentially cause unexpected behaviors. It conflicts when merging different values set
-         * to REQUIRED.
+         * <p>If two values are set to the same option, the value with {@link #ALWAYS_OVERRIDE}
+         * priority will overwrite this priority and can potentially cause unexpected behaviors.
+         *
+         * <p>If two values are set to the same option with this priority, it might indicate a
+         * programming error internally and an exception will be thrown when merging the configs.
          */
         REQUIRED,
 
         /**
          * The lowest priority, it can be overridden by any other option value. When two option
-         * values are set as OPTIONAL, the newer value takes precedence over the old one.
+         * values are set with this priority, the newer value takes precedence over the old one.
          */
         OPTIONAL
     }
@@ -275,34 +280,24 @@ public interface Config {
     /**
      * Returns if values with these {@link OptionPriority} conflict or not.
      *
-     * Currently it is not allowed to have different values with same ALWAYS_OVERRIDE
-     * priority or to have different values with same REQUIRED priority.
+     * <p>Currently it is not allowed the same option to have different values with priority
+     * {@link OptionPriority#REQUIRED}.
      */
     static boolean hasConflict(@NonNull OptionPriority priority1,
             @NonNull OptionPriority priority2) {
-        if (priority1 == OptionPriority.ALWAYS_OVERRIDE
-                && priority2 == OptionPriority.ALWAYS_OVERRIDE) {
-            return true;
-        }
-
-        if (priority1 == OptionPriority.REQUIRED
-                && priority2 == OptionPriority.REQUIRED) {
-            return true;
-        }
-
-        return false;
+        return priority1 == OptionPriority.REQUIRED
+                && priority2 == OptionPriority.REQUIRED;
     }
 
     /**
-     * Merges two configs
+     * Merges two configs.
      *
      * @param extendedConfig the extended config. The options in the extendedConfig will be applied
      *                       on top of the baseConfig based on the option priorities.
-     * @param baseConfig the base config
-     * @return a {@link MutableOptionsBundle} of the merged config
+     * @param baseConfig the base config.
+     * @return a {@link MutableOptionsBundle} of the merged config.
      */
-    @NonNull
-    static Config mergeConfigs(@Nullable Config extendedConfig,
+    static @NonNull Config mergeConfigs(@Nullable Config extendedConfig,
             @Nullable Config baseConfig) {
         if (extendedConfig == null && baseConfig == null) {
             return OptionsBundle.emptyBundle();
@@ -320,15 +315,44 @@ public interface Config {
             // If any options need special handling, this is the place to do it. For now we'll
             // just copy over all options.
             for (Config.Option<?> opt : extendedConfig.listOptions()) {
-                @SuppressWarnings("unchecked") // Options/values are being copied directly
-                        Config.Option<Object> objectOpt = (Config.Option<Object>) opt;
-
-                mergedConfig.insertOption(objectOpt,
-                        extendedConfig.getOptionPriority(opt),
-                        extendedConfig.retrieveOption(objectOpt));
+                mergeOptionValue(mergedConfig, baseConfig, extendedConfig, opt);
             }
         }
 
         return OptionsBundle.from(mergedConfig);
+    }
+
+    /**
+     * Merges a specific option value from two configs.
+     *
+     * @param mergedConfig   the final output config.
+     * @param baseConfig     the base config contains the option value which might be overridden by
+     *                       the corresponding option value in the extend config.
+     * @param extendedConfig the extended config contains the option value which might override
+     *                       the corresponding option value in the base config.
+     * @param opt            the option to merge.
+     */
+    static void mergeOptionValue(@NonNull MutableOptionsBundle mergedConfig,
+            @NonNull Config baseConfig,
+            @NonNull Config extendedConfig,
+            @NonNull Option<?> opt) {
+        @SuppressWarnings("unchecked") // Options/values are being copied directly
+        Config.Option<Object> objectOpt = (Config.Option<Object>) opt;
+
+        // ResolutionSelector needs special handling to merge the underlying settings.
+        if (Objects.equals(objectOpt, ImageOutputConfig.OPTION_RESOLUTION_SELECTOR)) {
+            ResolutionSelector resolutionSelectorToOverride =
+                    (ResolutionSelector) extendedConfig.retrieveOption(objectOpt, null);
+            ResolutionSelector baseResolutionSelector =
+                    (ResolutionSelector) baseConfig.retrieveOption(objectOpt, null);
+            mergedConfig.insertOption(objectOpt,
+                    extendedConfig.getOptionPriority(opt),
+                    ResolutionSelectorUtil.overrideResolutionSelectors(
+                            baseResolutionSelector, resolutionSelectorToOverride));
+        } else {
+            mergedConfig.insertOption(objectOpt,
+                    extendedConfig.getOptionPriority(opt),
+                    extendedConfig.retrieveOption(objectOpt));
+        }
     }
 }

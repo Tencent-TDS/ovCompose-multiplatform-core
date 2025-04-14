@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,11 +35,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CardSample() {
     Card(Modifier.size(width = 180.dp, height = 100.dp)) {
-        // Card content
+        Box(Modifier.fillMaxSize()) { Text("Card content", Modifier.align(Alignment.Center)) }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -49,9 +47,7 @@ fun ClickableCardSample() {
         onClick = { /* Do something */ },
         modifier = Modifier.size(width = 180.dp, height = 100.dp)
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Text("Clickable", Modifier.align(Alignment.Center))
-        }
+        Box(Modifier.fillMaxSize()) { Text("Clickable", Modifier.align(Alignment.Center)) }
     }
 }
 
@@ -60,11 +56,10 @@ fun ClickableCardSample() {
 @Composable
 fun ElevatedCardSample() {
     ElevatedCard(Modifier.size(width = 180.dp, height = 100.dp)) {
-        // Card content
+        Box(Modifier.fillMaxSize()) { Text("Card content", Modifier.align(Alignment.Center)) }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -73,9 +68,7 @@ fun ClickableElevatedCardSample() {
         onClick = { /* Do something */ },
         modifier = Modifier.size(width = 180.dp, height = 100.dp)
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Text("Clickable", Modifier.align(Alignment.Center))
-        }
+        Box(Modifier.fillMaxSize()) { Text("Clickable", Modifier.align(Alignment.Center)) }
     }
 }
 
@@ -84,11 +77,10 @@ fun ClickableElevatedCardSample() {
 @Composable
 fun OutlinedCardSample() {
     OutlinedCard(Modifier.size(width = 180.dp, height = 100.dp)) {
-        // Card content
+        Box(Modifier.fillMaxSize()) { Text("Card content", Modifier.align(Alignment.Center)) }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -97,8 +89,6 @@ fun ClickableOutlinedCardSample() {
         onClick = { /* Do something */ },
         modifier = Modifier.size(width = 180.dp, height = 100.dp)
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Text("Clickable", Modifier.align(Alignment.Center))
-        }
+        Box(Modifier.fillMaxSize()) { Text("Clickable", Modifier.align(Alignment.Center)) }
     }
 }

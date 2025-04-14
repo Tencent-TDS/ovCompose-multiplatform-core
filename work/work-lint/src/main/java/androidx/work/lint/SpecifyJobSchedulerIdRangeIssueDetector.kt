@@ -29,16 +29,18 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.psi.PsiMethod
+import java.util.EnumSet
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
-import java.util.EnumSet
 
 class SpecifyJobSchedulerIdRangeIssueDetector : Detector(), SourceCodeScanner {
     companion object {
-        val ISSUE = Issue.create(
-            id = "SpecifyJobSchedulerIdRange",
-            briefDescription = "Specify a range of JobScheduler ids",
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "SpecifyJobSchedulerIdRange",
+                briefDescription = "Specify a range of JobScheduler ids",
+                explanation =
+                    """
                 When using `JobScheduler` APIs directly, `WorkManager` requires that developers \
                 specify a range of `JobScheduler` ids that are safe for `WorkManager` to use \
                 so the `id`s do not collide. \
@@ -46,19 +48,21 @@ class SpecifyJobSchedulerIdRangeIssueDetector : Detector(), SourceCodeScanner {
                 For more information look at \
                 `androidx.work.Configuration.Builder.setJobSchedulerJobIdRange(int, int)`.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.WARNING,
-            implementation = Implementation(
-                SpecifyJobSchedulerIdRangeIssueDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE)
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.WARNING,
+                implementation =
+                    Implementation(
+                        SpecifyJobSchedulerIdRangeIssueDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE)
+                    )
             )
-        )
 
-        private val WELL_KNOWN_JOB_SERVICES = listOf(
-            "android.app.job.JobService",
-            "androidx.work.impl.background.systemjob.SystemJobService"
-        )
+        private val WELL_KNOWN_JOB_SERVICES =
+            listOf(
+                "android.app.job.JobService",
+                "androidx.work.impl.background.systemjob.SystemJobService"
+            )
     }
 
     override fun getApplicableMethodNames(): List<String> {
@@ -83,7 +87,7 @@ class SpecifyJobSchedulerIdRangeIssueDetector : Detector(), SourceCodeScanner {
         if (name !in WELL_KNOWN_JOB_SERVICES) {
             hasOtherJobServices = true
             // Keep track of location
-            location = context.getLocation(declaration.javaPsi)
+            location = context.getNameLocation(declaration)
         }
     }
 

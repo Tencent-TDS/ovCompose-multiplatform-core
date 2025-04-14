@@ -20,7 +20,6 @@ import androidx.compose.foundation.benchmark.text.DoFullBenchmark
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.LayeredComposeTestCase
@@ -29,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,22 +44,26 @@ import org.junit.runners.Parameterized
  *
  * This benchmark only adds one replacement span, which is a typical case.
  */
-class SetTextWithInlineContent(
-    private val text: AnnotatedString
-) : LayeredComposeTestCase(), ToggleableTestCase {
+class SetTextWithInlineContent(private val text: AnnotatedString) :
+    LayeredComposeTestCase(), ToggleableTestCase {
     private var toggleText = mutableStateOf(AnnotatedString(""))
+
+    private val style = TextStyle.Default.copy(fontFamily = FontFamily.Monospace)
 
     @Composable
     override fun MeasuredContent() {
-        Text(toggleText.value,
-            fontFamily = FontFamily.Monospace,
-            inlineContent = mapOf(
-                BenchmarkInlineContentId to InlineTextContent(
-                    Placeholder(12.sp, 12.sp, PlaceholderVerticalAlign.Center)
-                ) {
-                    Box(Modifier.size(12.dp, 12.dp))
-                }
-            )
+        Subject(
+            toggleText.value,
+            style = style,
+            inlineContent =
+                mapOf(
+                    BenchmarkInlineContentId to
+                        InlineTextContent(
+                            Placeholder(12.sp, 12.sp, PlaceholderVerticalAlign.Center)
+                        ) {
+                            Box(Modifier.size(12.dp, 12.dp))
+                        }
+                )
         )
     }
 
@@ -74,9 +78,8 @@ class SetTextWithInlineContent(
 
 @LargeTest
 @RunWith(Parameterized::class)
-open class SetTextWithInlineContentParent(
-    private val size: Int
-) : EmpiricalBench<SetTextWithInlineContent>() {
+open class SetTextWithInlineContentParent(private val size: Int) :
+    EmpiricalBench<SetTextWithInlineContent>() {
 
     override val caseFactory = {
         val text = generateCacheableStringOf(size)

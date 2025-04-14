@@ -16,7 +16,8 @@
 
 package androidx.camera.extensions.impl.advanced;
 
-import android.annotation.SuppressLint;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A interface to receive and process the upcoming next available Image.
@@ -25,11 +26,9 @@ import android.annotation.SuppressLint;
  *
  * @since 1.2
  */
-@SuppressLint("UnknownNullness")
 public interface ImageProcessorImpl {
     /**
-     * The reference count will be decremented when this method returns. If an extension wants
-     * to hold onto the image it should increment the reference count in this method and
+     * The reference count will not be decremented when this method returns. Extensions must
      * decrement it when the image is no longer needed.
      *
      * <p>If OEM is not closing(decrement) the image fast enough, the imageReference passed
@@ -50,7 +49,7 @@ public interface ImageProcessorImpl {
     void onNextImageAvailable(
             int outputConfigId,
             long timestampNs,
-            ImageReferenceImpl imageReference,
-            String physicalCameraId
-            );
+            @NonNull ImageReferenceImpl imageReference,
+            @Nullable String physicalCameraId
+    );
 }

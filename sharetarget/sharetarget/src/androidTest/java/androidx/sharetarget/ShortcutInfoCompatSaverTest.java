@@ -29,9 +29,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
-import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.Person;
 import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutInfoCompatSaver;
@@ -39,11 +37,11 @@ import androidx.core.graphics.drawable.IconCompat;
 import androidx.sharetarget.test.R;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +54,6 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.KITKAT)
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class ShortcutInfoCompatSaverTest {

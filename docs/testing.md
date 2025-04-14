@@ -7,6 +7,34 @@ change is uploaded. It also contains a number of sample applications that are
 useful for demonstrating how to use features as well as performing manual
 testing.
 
+## Motivation
+
+Jetpack libraries are developed with the intention that they are functionally
+stable and production-ready as of the first public `alpha01` release, and that
+they remain production-ready at tip-of-tree thereafter.
+
+For this reason, we emphasize that continuous integration testing -- both pre-
+and post-submit -- is the ultimate source of truth for library correctness. If
+tests are failing at head, the library is not only at risk of blocking public
+releases but at risk of breaking production Google apps that rely on its
+tip-of-tree builds.
+
+### API level coverage in CI
+
+Generally, we aim to test Jetpack libraries against (1) the earliest supported
+API level, (2) the latest stable API level, (3) API levels with major changes,
+(4) API levels with high concentration of devices in the field, and (5) the next
+pre-release API level.
+
+In practice, this is limited by device and emulator availability and
+reliability. As of January 2025, we run tests on the following API levels:
+
+-   API level 21: the lowest API level supported by Firebase Test Lab (FTL)
+-   API level 26: the lowest supported ARM-based emulator FTL runner, which has
+    much greater performance and stability
+-   API levels 30, 33, 34, 35: the latest supported API levels, which represent
+    the majority of devices in the field
+
 ## Adding tests {#adding}
 
 For an example of how to set up simple unit and integration tests in a new
@@ -30,15 +58,171 @@ be distinguishable by their packages.
 
 NOTE For best practices on writing libraries in a way that makes it easy for end
 users -- and library developers -- to write tests, see the
-[Testability](/company/teams/androidx/testability.md) guide.
+[Testability](/docs/testability.md) guide.
 
-### Adding a JVM based screenshot test
+### Adding screenshots tests using scuba library
 
-For UI heavy libraries, it might make sense to add screenshot tests to verify
-that everything still renders as expected. For that you need to write the test
-([example](https://r.android.com/2428035)) and add new goldens
-([example](https://r.android.com/2428721)). You can run these tests just like
-any other JVM test using `test` Gradle task.
+#### Prerequisites
+
+Golden project: Make sure that you have the golden directory in your root
+checkout (sibling of frameworks directory). If not re-init your repo to fetch
+the latest manifest file:
+
+```
+$ repo init -u sso://android/platform/manifest \
+    -b androidx-main && repo sync -c -j8
+```
+
+Set up your module: If your module is not using screenshot tests yet, you need
+to do the initial setup.
+
+1.  Modify your gradle file: Add dependency on the diffing library into your
+    gradle file:
+
+    ```
+    androidTestImplementation project(“:test:screenshot:screenshot”)
+    ```
+
+    Important step: Add golden asset directory to be linked to your test apk:
+
+    ```
+    android {
+        sourceSets.androidTest.assets.srcDirs +=
+            // For androidx project (not in ui dir) use "/../../golden/project"
+            project.rootDir.absolutePath + "/../../golden/compose/material/material"
+    }
+    ```
+
+    This will bundle the goldens into your apk so they can be retrieved during
+    the test.
+
+2.  Create directory and variable: In the golden directory, create a new
+    directory for your module (the directory that you added to your gradle file,
+    which in case of material was “compose/material/material”).
+
+    In your test module, create a variable pointing at your new directory:
+
+    ```
+    const val GOLDEN_MATERIAL = "compose/material/material"
+    ```
+
+#### Adding a screenshot test
+
+Here is an example of a minimal screenshot test for compose material.
+
+```
+@LargeTest
+@RunWith(JUnit4::class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+class CheckboxScreenshotTest {
+    @get:Rule val composeTestRule = createComposeRule()
+    @get:Rule val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL)
+
+    @Test
+    fun checkBoxTest_checked() {
+        composeTestRule.setMaterialContent {
+            Checkbox(Modifier.wrapContentSize(Alignment.TopStart),
+                checked = true,
+                onCheckedChange = {}
+            )
+        }
+        find(isToggleable())
+            .captureToBitmap()
+            .assertAgainstGolden(screenshotRule, "checkbox_checked")
+    }
+}
+```
+
+NOTE: The string “checkbox_checked” is the unique identifier of your golden in
+your module. We use that string to name the golden file so avoid special
+characters. Please avoid any substrings like: golden, image etc. as there is no
+need - instead just describe what the image contains.
+
+#### Guidance around diffing
+
+Try to take the smallest screenshot possible. This will reduce interference from
+other elements.
+
+By default we use a MSSIM comparer. This one is based on similarity. However we
+have quite a high bar currently which is 0.98 (1 is an exact match). You can
+provide your own threshold or even opt into a pixel perfect comparer for some
+reason.
+
+Note: The bigger screenshots you take the more you sacrifice in the precision as
+you can aggregate larger diffing errors, see the examples below.
+
+![alt_text](onboarding_images/image6.png "screenshot diff at different MSSIM")
+
+#### Generating your goldens in CI (Gerrit)
+
+Upload your CL to gerrit and run presubmit. You should see your test fail.
+
+Step 1: Click on the “Test” button below:
+
+![alt_text](onboarding_images/image7.png "Presubmit link to failed test")
+
+Step 2: Click on the “Update scuba goldens” below:
+![alt_text](onboarding_images/image8.png "Update scuba button")
+
+Step 3: Select the tests for which you want to update the golden images. Confirm
+the images look correct and click on “Approve Changes”
+![alt_text](onboarding_images/image9.png "Button to approve scuba changes")
+
+Step 4: In the Approve changes dialog box, enter the following details and click
+on Approve: \
+Select gerrit host as shown in image below \
+Repo: platform/frameworks/support-golden \
+Branch: androidx-main
+![alt_text](onboarding_images/image10.png "Approve changes dialog box with dropdown field to select gerrit host and textboxes to select repo and branch")
+
+Step 5: Link your original CL with the new goldens CL by setting the same Topic
+field in both CLs (any arbitrary string will do). This tells Gerrit to submit
+the CLs together, effectively providing a reference from the original CL to the
+new goldens. And re-run presubmit. Your tests should now pass!
+![alt_text](onboarding_images/image11.png "Topic for connecting cls, so they can run together")
+
+#### Running manually / debugging
+
+Screenshot tests can be run locally using pixel 2 api33 emulator. Start the
+emulator using [these](#emulator) steps.
+
+Wait until the emulator is running and run the tests as you would on a regular
+device.
+
+```
+$ ./gradlew <module>:cAT -Pandroid.testInstrumentationRunnerArguments.class=<class>
+```
+
+If the test passes, the results are limited to a .textproto file for each
+screenshot test. If the test fails, the results will also contain the actual
+screenshot and, if available, the golden reference image and the diff between
+the two. Note that this means that if you want to regenerate the golden image,
+you have to remove the golden image before running the test.
+
+To get the screenshot related results from the device onto your workstation, you
+can run
+
+```
+$ adb pull /sdcard/Android/data/<test-package>/cache/androidx_screenshots
+```
+
+where test-package is the identifier of you test apk, e.g.
+androidx.compose.material.test
+
+#### Locally updating the golden images
+
+After you run a screenshot test and pull the results to a desired location,
+verify that the actual images are the correct ones and copy them to the golden
+screenshots directory (the one you use to create the AndroidXScreenshotTestRule
+with) using this script.
+
+```
+androidx-main/frameworks/support/development/copy_screenshots_to_golden_repo.py \
+--input-dir=/tmp/androidx_screenshots/ --output-dir=androidx-main/golden/<test>/
+```
+
+Repeat for all screenshots, then create and upload a CL in the golden
+repository.
 
 ### What gets tested, and when {#affected-module-detector}
 
@@ -80,12 +264,6 @@ Annotation    | Max duration
 `@LargeTest`  | 100000ms
 
 #### Disabling tests {#disabling-tests}
-
-To disable a device-side test in presubmit testing only -- but still have it run
-in postsubmit -- use the
-[`@FlakyTest`](https://developer.android.com/reference/androidx/test/filters/FlakyTest)
-annotation. There is currently no support for presubmit-only disabling of
-host-side tests.
 
 If you need to stop a host- or device-side test from running entirely, use
 JUnit's [`@Ignore`](http://junit.sourceforge.net/javadoc/org/junit/Ignore.html)
@@ -169,7 +347,9 @@ prebuilts/fullsdk-darwin ln -s ~/Library/Android/sdk/emulator emulator ln -s
 ~/Library/Android/sdk/system-images system-images` (substituting `fullsdk-linux`
 and your local SDK path as appropriate)
 
-## Debugging with platform SDK sources {#sources}
+## Debugging tests
+
+### Using custom platform SDK sources {#sources}
 
 The platform SDK sources that are checked into the development branch may not
 match up with the build of Android present on the emulator or your physical
@@ -192,6 +372,29 @@ NOTE The `Project Structure` dialog reachable via `File > Project Structure` is
 **not** the same as the `Project Structure` dialog that will allow you to
 specify the SDK source path. You must use the "Module Settings" action as
 directed above.
+
+### Accessing FTL outputs
+
+When we run tests on Firebase Test Lab devices, we transfer the results and
+logcat output back to Android's test result infrastructure; however, FTL also
+captures screen recordings of the entire test run.
+
+To access these videos from the Android Test Investigate page for a failed test
+run:
+
+-   For the failing test, go to `Artifacts tab` in the Android Test Investigate
+    page
+-   Disable `Hide empty folders` (if enabled) by clicking on it
+-   Under `Run artifacts`, click on "i" icon next to the test module to open the
+    Information tab
+-   In the Information tab to the right, click on the link next to the `logs`
+    property
+
+The full logcat output and screen recording are available from the `Devices` tab
+by clicking on the test device under `Device details` and using the `Logs` and
+`Video` tabs, respectively.
+
+Per-test logcat output and videos are available from the `Test cases` tab.
 
 ## Running unit and integration tests {#running}
 
@@ -228,10 +431,13 @@ from `framework/support`:
 
 # Run instrumentation tests in Firebase Test Lab (remote)
 ./gradlew <project-name>:ftlnexus4api21
-./gradlew <project-name>:ftlpixel2api26
-./gradlew <project-name>:ftlpixel2api28
-./gradlew <project-name>:ftlpixel2api30
-./gradlew <project-name>:ftlpixel2api33
+./gradlew <project-name>:ftlmediumphoneapi26
+./gradlew <project-name>:ftlmediumphoneapi30
+./gradlew <project-name>:ftlmediumphoneapi33
+./gradlew <project-name>:ftlmediumphoneapi34
+./gradlew <project-name>:ftlmediumphoneapi35
+
+./gradlew <project-name>:ftlmediumphoneapi28 (For compose tests only)
 
 # Run local unit tests
 ./gradlew <project-name>:test
@@ -247,7 +453,7 @@ To run a specific instrumentation test in a given project, run
     -Pandroid.testInstrumentationRunnerArguments.class=<fully-qualified-class>[\#testName]
 
 # Run instrumentation tests on in Firebase Test Lab (remote)
-./gradlew <project-name>:ftlpixel2api30 --className=<fully-qualified-class>
+./gradlew <project-name>:ftlmediumphoneapi30 --className=<fully-qualified-class>
 ```
 
 substituting the Gradle project name (ex. `viewpager`) and fully-qualified class
@@ -256,17 +462,16 @@ optionally followed by `\#testName` if you want to execute a single test in that
 file
 
 If you want to run a specific unit test, you can do it using
-[`--tests` filtering](https://docs.gradle.org/current/userguide/java_testing.html#test_filtering)
+[`--tests` filtering](https://docs.gradle.org/current/userguide/java_testing.html#test_filtering):
+
 ```shell
-
 # Run a test for an Android library on a connected device
-
 ./gradlew <project-name>:test --tests androidx.core.view.DisplayCompatTest
 
 # Run a test for a JVM library
-
 ./gradlew <project-name>:testDebugUnitTest --tests
-androidx.core.view.DisplayCompatTest ```
+androidx.core.view.DisplayCompatTest
+```
 
 ## Test apps {#testapps}
 
@@ -278,7 +483,7 @@ their library's public API surface. Test apps serve multiple purposes:
 *   Validation of API usability and developer experience, when paired with a use
     case or critical user journey
 *   Sample documentation, when embedded into API reference docs using the
-    [`@sample` and `@Sampled` annotations](/company/teams/androidx/api_guidelines/index.md#sample-usage)
+    [`@sample` and `@Sampled` annotations](/docs/api_guidelines/index.md#sample-usage)
 
 ### Legacy test apps {#testapps-legacy}
 
@@ -296,4 +501,4 @@ apps for new APIs, but they may be useful for manual regression testing.
 
 AndroidX supports benchmarking - locally with Studio/Gradle, and continuously in
 post-submit. For more information on how to create and run benchmarks, see
-[Benchmarking](/company/teams/androidx/benchmarking.md).
+[Benchmarking](/docs/benchmarking.md).

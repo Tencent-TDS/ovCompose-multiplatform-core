@@ -29,20 +29,16 @@ import com.google.wireless.android.sdk.stats.GradleBuildProfileSpan
 import com.google.wireless.android.sdk.stats.GradleBuildProject
 import com.google.wireless.android.sdk.stats.GradleBuildVariant
 import com.google.wireless.android.sdk.stats.GradleTransformExecution
-import org.gradle.api.provider.MapProperty
-import org.gradle.api.provider.Property
-import org.gradle.api.provider.ProviderFactory
-import org.gradle.tooling.events.FinishEvent
 import java.io.File
 import java.util.Base64
 import java.util.concurrent.ConcurrentLinkedQueue
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
+import org.gradle.tooling.events.FinishEvent
 
-/**
- * A no-operation implementation of [AnalyticsService] for unit tests.
- */
+/** A no-operation implementation of [AnalyticsService] for unit tests. */
 class FakeNoOpAnalyticsService : AnalyticsService() {
-    override val provider: ProviderFactory
-        get() = FakeProviderFactory.factory
 
     override fun getParameters(): Params {
         return object : Params {
@@ -51,22 +47,35 @@ class FakeNoOpAnalyticsService : AnalyticsService() {
                     val profile = GradleBuildProfile.newBuilder().build().toByteArray()
                     return FakeGradleProperty(Base64.getEncoder().encodeToString(profile))
                 }
+
             override val anonymizer: Property<String>
                 get() = FakeGradleProperty(NameAnonymizerSerializer().toJson(NameAnonymizer()))
+
             override val projects: MapProperty<String, ProjectData>
-                get() = FakeObjectFactory.factory.mapProperty(
-                    String::class.java, ProjectData::class.java
-                )
+                get() =
+                    FakeObjectFactory.factory.mapProperty(
+                        String::class.java,
+                        ProjectData::class.java
+                    )
+
             override val enableProfileJson: Property<Boolean>
                 get() = FakeGradleProperty(true)
+
             override val profileDir: Property<File?>
                 get() = FakeGradleProperty()
+
             override val taskMetadata: MapProperty<String, TaskMetadata>
-                get() = FakeObjectFactory.factory.mapProperty(
-                    String::class.java, TaskMetadata::class.java
-                )
+                get() =
+                    FakeObjectFactory.factory.mapProperty(
+                        String::class.java,
+                        TaskMetadata::class.java
+                    )
+
             override val rootProjectPath: Property<String>
                 get() = FakeGradleProperty("/path")
+
+            override val applicationId: SetProperty<String>
+                get() = FakeObjectFactory.factory.setProperty(String::class.java)
         }
     }
 

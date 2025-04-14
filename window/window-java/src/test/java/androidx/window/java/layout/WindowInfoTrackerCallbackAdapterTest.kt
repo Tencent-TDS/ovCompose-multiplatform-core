@@ -19,14 +19,14 @@ package androidx.window.java.layout
 import androidx.core.util.Consumer
 import androidx.window.layout.WindowInfoTracker
 import androidx.window.layout.WindowLayoutInfo
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.runBlocking
+import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
 
 class WindowInfoTrackerCallbackAdapterTest {
 
@@ -39,9 +39,7 @@ class WindowInfoTrackerCallbackAdapterTest {
         whenever(tracker.windowLayoutInfo(any())).thenReturn(mutableFlow)
 
         adapter.addWindowLayoutInfoListener(mock(), Runnable::run, consumer)
-        runBlocking {
-            mutableFlow.emit(WindowLayoutInfo(emptyList()))
-        }
+        runBlocking { mutableFlow.emit(WindowLayoutInfo(emptyList())) }
 
         verify(consumer).accept(WindowLayoutInfo(emptyList()))
     }
@@ -56,9 +54,7 @@ class WindowInfoTrackerCallbackAdapterTest {
 
         adapter.addWindowLayoutInfoListener(mock(), Runnable::run, consumer)
         adapter.removeWindowLayoutInfoListener(consumer)
-        runBlocking {
-            mutableFlow.emit(WindowLayoutInfo(emptyList()))
-        }
+        runBlocking { mutableFlow.emit(WindowLayoutInfo(emptyList())) }
 
         verifyNoMoreInteractions(consumer)
     }

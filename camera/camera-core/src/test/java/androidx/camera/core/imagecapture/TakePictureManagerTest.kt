@@ -16,6 +16,8 @@
 
 package androidx.camera.core.imagecapture
 
+import android.graphics.ImageFormat
+import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
 import android.os.Looper.getMainLooper
 import android.util.Size
@@ -24,21 +26,25 @@ import androidx.camera.core.ImageCapture.ERROR_CAMERA_CLOSED
 import androidx.camera.core.ImageCapture.ERROR_CAPTURE_FAILED
 import androidx.camera.core.ImageCapture.OutputFileResults
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.imagecapture.FakeImageCaptureControl.Action.SUBMIT_REQUESTS
 import androidx.camera.core.impl.CaptureConfig
-import androidx.camera.testing.fakes.FakeImageInfo
-import androidx.camera.testing.fakes.FakeImageProxy
+import androidx.camera.core.internal.compat.quirk.CaptureFailedRetryQuirk
+import androidx.camera.core.internal.compat.quirk.DeviceQuirks
+import androidx.camera.testing.impl.fakes.FakeImageInfo
+import androidx.camera.testing.impl.fakes.FakeImageProxy
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
+import org.robolectric.shadows.ShadowBuild
 
-/**
- * Unit tests for [TakePictureManager].
- */
+/** Unit tests for [TakePictureManager]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
@@ -47,8 +53,9 @@ class TakePictureManagerTest {
     private val imagePipeline = FakeImagePipeline()
     private val imageCaptureControl = FakeImageCaptureControl()
     private val takePictureManager =
-        TakePictureManager(imageCaptureControl).also { it.imagePipeline = imagePipeline }
+        TakePictureManagerImpl(imageCaptureControl).also { it.imagePipeline = imagePipeline }
     private val exception = ImageCaptureException(ImageCapture.ERROR_UNKNOWN, "", null)
+    private val cameraCharacteristics = mock(CameraCharacteristics::class.java)
 
     @After
     fun tearDown() {
@@ -131,11 +138,13 @@ class TakePictureManagerTest {
         shadowOf(getMainLooper()).idle()
 
         // Assert: one request is sent.
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
         // Both request are aborted.
         assertThat((request1.exceptionReceived as ImageCaptureException).imageCaptureError)
             .isEqualTo(ERROR_CAMERA_CLOSED)
@@ -165,7 +174,7 @@ class TakePictureManagerTest {
         processingRequest.onImageCaptured()
         // Act.
         processingRequest.onFinalResult(FakeImageProxy(FakeImageInfo()))
-        processingRequest.onFinalResult(OutputFileResults(null))
+        processingRequest.onFinalResult(OutputFileResults(null, ImageFormat.JPEG))
     }
 
     @Test
@@ -182,25 +191,29 @@ class TakePictureManagerTest {
         shadowOf(getMainLooper()).idle()
 
         // Assert: only one request is sent.
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
 
         // Act: resume to process the 2nd request.
         takePictureManager.resume()
         shadowOf(getMainLooper()).idle()
 
         // Assert: 2nd request is sent too.
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
     }
 
     @Test
@@ -260,10 +273,11 @@ class TakePictureManagerTest {
         val request1 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
         val request2 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
         val response1 = listOf(CaptureConfig.defaultEmptyCaptureConfig())
-        val response2 = listOf(
-            CaptureConfig.defaultEmptyCaptureConfig(),
-            CaptureConfig.defaultEmptyCaptureConfig()
-        )
+        val response2 =
+            listOf(
+                CaptureConfig.defaultEmptyCaptureConfig(),
+                CaptureConfig.defaultEmptyCaptureConfig()
+            )
         imagePipeline.captureConfigMap[request1] = response1
         imagePipeline.captureConfigMap[request2] = response2
 
@@ -273,11 +287,13 @@ class TakePictureManagerTest {
         shadowOf(getMainLooper()).idle()
 
         // Assert:
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
         assertThat(imageCaptureControl.latestCaptureConfigs).isEqualTo(response1)
         assertThat(takePictureManager.mNewRequests.single()).isEqualTo(request2)
 
@@ -286,21 +302,21 @@ class TakePictureManagerTest {
         shadowOf(getMainLooper()).idle()
 
         // Assert: imageCaptureControl was invoked in the exact given order.
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
         assertThat(imageCaptureControl.latestCaptureConfigs).isEqualTo(response2)
         assertThat(takePictureManager.mNewRequests).isEmpty()
     }
 
-    /**
-     * When post-processing results come back in a different order as they are being sent.
-     */
+    /** When post-processing results come back in a different order as they are being sent. */
     @Test
     fun pipelineReturnsMultipleResponsesOutOfOrder_appReceivesCorrectly() {
         // Arrange: setup 3 requests and their responses in the order of 1->2->3.
@@ -312,11 +328,14 @@ class TakePictureManagerTest {
         takePictureManager.offerRequest(request3)
         shadowOf(getMainLooper()).idle()
         val response1 = exception
-        val response2 = OutputFileResults(null)
+        val response2 = OutputFileResults(null, ImageFormat.JPEG)
         val response3 = FakeImageProxy(FakeImageInfo())
         imagePipeline.getProcessingRequest(request1).onImageCaptured()
+        shadowOf(getMainLooper()).idle()
         imagePipeline.getProcessingRequest(request2).onImageCaptured()
+        shadowOf(getMainLooper()).idle()
         imagePipeline.getProcessingRequest(request3).onImageCaptured()
+        shadowOf(getMainLooper()).idle()
 
         // Act: send the responses in the order of 3->1->2
         imagePipeline.getProcessingRequest(request3).onFinalResult(response3)
@@ -352,7 +371,7 @@ class TakePictureManagerTest {
         takePictureManager.offerRequest(request)
 
         // Act: send OutputFileResults via ImagePipeline
-        val outputFileResults = OutputFileResults(null)
+        val outputFileResults = OutputFileResults(null, ImageFormat.JPEG)
         imagePipeline.getProcessingRequest(request).onImageCaptured()
         imagePipeline.getProcessingRequest(request).onFinalResult(outputFileResults)
         shadowOf(getMainLooper()).idle()
@@ -397,11 +416,13 @@ class TakePictureManagerTest {
 
         // Assert: the request is sent.
         assertThat(takePictureManager.mNewRequests.size).isEqualTo(0)
-        assertThat(imageCaptureControl.actions).containsExactly(
-            FakeImageCaptureControl.Action.LOCK_FLASH,
-            FakeImageCaptureControl.Action.SUBMIT_REQUESTS,
-            FakeImageCaptureControl.Action.UNLOCK_FLASH,
-        ).inOrder()
+        assertThat(imageCaptureControl.actions)
+            .containsExactly(
+                FakeImageCaptureControl.Action.LOCK_FLASH,
+                SUBMIT_REQUESTS,
+                FakeImageCaptureControl.Action.UNLOCK_FLASH,
+            )
+            .inOrder()
     }
 
     @Test
@@ -409,7 +430,11 @@ class TakePictureManagerTest {
         // Arrange.
         // Uses the real ImagePipeline implementation to do the test
         takePictureManager.mImagePipeline =
-            ImagePipeline(Utils.createEmptyImageCaptureConfig(), Size(640, 480))
+            ImagePipeline(
+                Utils.createEmptyImageCaptureConfig(),
+                Size(640, 480),
+                cameraCharacteristics
+            )
         val request1 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
         val request2 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
 
@@ -431,7 +456,11 @@ class TakePictureManagerTest {
         // Arrange.
         // Uses the real ImagePipeline implementation to do the test
         takePictureManager.mImagePipeline =
-            ImagePipeline(Utils.createEmptyImageCaptureConfig(), Size(640, 480))
+            ImagePipeline(
+                Utils.createEmptyImageCaptureConfig(),
+                Size(640, 480),
+                cameraCharacteristics
+            )
         val request1 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
         val request2 = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
 
@@ -442,5 +471,80 @@ class TakePictureManagerTest {
 
         // Assert. new request can be issued after the capture failure of the first request
         takePictureManager.offerRequest(request2)
+    }
+
+    @Test
+    fun requestFailure_failureReportedIfQuirkDisabled() {
+        // Arrange: use the real ImagePipeline implementation to do the test
+        takePictureManager.mImagePipeline =
+            ImagePipeline(
+                Utils.createEmptyImageCaptureConfig(),
+                Size(640, 480),
+                cameraCharacteristics
+            )
+
+        // Create a request and offer it to the manager.
+        imageCaptureControl.shouldUsePendingResult = true
+        val request = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
+        takePictureManager.offerRequest(request)
+
+        // Act: make the request fail once.
+        imageCaptureControl.pendingResultCompleter.setException(
+            ImageCaptureException(ERROR_CAPTURE_FAILED, "", null)
+        )
+        shadowOf(getMainLooper()).idle()
+
+        // Assert: failure exception received and no more retry possible.
+        assertThat((request.exceptionReceived as ImageCaptureException).imageCaptureError)
+            .isEqualTo(ERROR_CAPTURE_FAILED)
+        assertThat(request.remainingRetries).isEqualTo(0)
+        // Only 1 request submitted to camera
+        assertThat(imageCaptureControl.actions.count { it == SUBMIT_REQUESTS }).isEqualTo(1)
+    }
+
+    @Test
+    fun requestFailure_retriedIfQuirkEnabled() {
+        // Arrange: enable retry related quirk.
+        ShadowBuild.setBrand("SAMSUNG")
+        ShadowBuild.setModel("SM-G981U1")
+
+        val captureFailedRetryQuirk = DeviceQuirks.get(CaptureFailedRetryQuirk::class.java)
+
+        assertWithMessage("CaptureFailedRetryQuirk not enabled!")
+            .that(captureFailedRetryQuirk)
+            .isNotNull()
+
+        // Use the real ImagePipeline implementation to do the test
+        takePictureManager.mImagePipeline =
+            ImagePipeline(
+                Utils.createEmptyImageCaptureConfig(),
+                Size(640, 480),
+                cameraCharacteristics
+            )
+
+        // Create a request and offer it to the manager.
+        imageCaptureControl.shouldUsePendingResult = true
+        val request = FakeTakePictureRequest(FakeTakePictureRequest.Type.IN_MEMORY)
+        takePictureManager.offerRequest(request)
+
+        // Act: make the request fail once and then successful if retried later.
+        imageCaptureControl.pendingResultCompleter.setException(
+            ImageCaptureException(ERROR_CAPTURE_FAILED, "", null)
+        )
+        imageCaptureControl.resetPendingResult()
+
+        // complete the new capture successfully
+        imageCaptureControl.pendingResultCompleter.set(null)
+        shadowOf(getMainLooper()).idle()
+
+        // Assert: retry count decremented without any failure.
+        assertThat(request.remainingRetries).isEqualTo(captureFailedRetryQuirk!!.retryCount - 1)
+        assertThat(request.exceptionReceived).isNull()
+        // 2 requests submitted to camera
+        assertThat(imageCaptureControl.actions.count { it == SUBMIT_REQUESTS }).isEqualTo(2)
+
+        // Clean-up brands and models set for enabling quirk.
+        ShadowBuild.setBrand("")
+        ShadowBuild.setModel("")
     }
 }

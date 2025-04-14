@@ -19,20 +19,26 @@ package androidx.camera.video.internal.audio
 import android.Manifest
 import android.media.AudioFormat
 import android.media.MediaRecorder
+import android.os.Build
+import androidx.camera.core.Logger
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.ioExecutor
-import androidx.camera.testing.AudioUtil
-import androidx.camera.testing.mocks.MockConsumer
-import androidx.camera.testing.mocks.helpers.ArgumentCaptor
-import androidx.camera.testing.mocks.helpers.CallTimes
+import androidx.camera.testing.impl.AndroidUtil.isEmulator
+import androidx.camera.testing.impl.AudioUtil
+import androidx.camera.testing.impl.RequiresDevice
+import androidx.camera.testing.impl.mocks.MockConsumer
+import androidx.camera.testing.impl.mocks.helpers.ArgumentCaptor
+import androidx.camera.testing.impl.mocks.helpers.CallTimes
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.filters.RequiresDevice
 import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 import org.junit.After
+import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
@@ -45,6 +51,9 @@ import org.junit.runner.RunWith
 class AudioStreamImplTest {
 
     companion object {
+        private const val TAG = "AudioStreamImplTest"
+        private const val DEFAULT_READ_TIMES = 100
+        private val DIFF_LIMIT_FROM_SYSTEM_TIME_NS = TimeUnit.MILLISECONDS.toNanos(500)
         private const val SAMPLE_RATE = 44100
         private const val AUDIO_SOURCE = MediaRecorder.AudioSource.CAMCORDER
         private const val CHANNEL_COUNT = 1
@@ -53,9 +62,8 @@ class AudioStreamImplTest {
     }
 
     @get:Rule
-    var mAudioPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.RECORD_AUDIO
-    )
+    var mAudioPermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(Manifest.permission.RECORD_AUDIO)
 
     private val byteBuffer = ByteBuffer.allocateDirect(1024)
     private lateinit var audioStream: AudioStreamImpl
@@ -63,18 +71,26 @@ class AudioStreamImplTest {
 
     @Before
     fun setUp() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
+
         assumeTrue(AudioStreamImpl.isSettingsSupported(SAMPLE_RATE, CHANNEL_COUNT, AUDIO_FORMAT))
         assumeTrue(AudioUtil.canStartAudioRecord(AUDIO_SOURCE))
 
-        audioStream = AudioStreamImpl(
-            AudioSettings.builder()
-                .setAudioSource(AUDIO_SOURCE)
-                .setSampleRate(SAMPLE_RATE)
-                .setChannelCount(CHANNEL_COUNT)
-                .setAudioFormat(AUDIO_FORMAT)
-                .build(),
-            /*attributionContext=*/null
-        )
+        audioStream =
+            AudioStreamImpl(
+                AudioSettings.builder()
+                    .setAudioSource(AUDIO_SOURCE)
+                    .setCaptureSampleRate(SAMPLE_RATE)
+                    .setEncodeSampleRate(SAMPLE_RATE)
+                    .setChannelCount(CHANNEL_COUNT)
+                    .setAudioFormat(AUDIO_FORMAT)
+                    .build(),
+                /*attributionContext=*/ null
+            )
         audioStreamCallback = AudioStreamCallback()
         audioStream.setCallback(audioStreamCallback, ioExecutor())
     }
@@ -89,9 +105,7 @@ class AudioStreamImplTest {
     @RequiresDevice // b/264902324
     @Test
     fun readBeforeStart_throwException() {
-        assertThrows(IllegalStateException::class.java) {
-            audioStream.read(byteBuffer)
-        }
+        assertThrows(IllegalStateException::class.java) { audioStream.read(byteBuffer) }
     }
 
     @RequiresDevice // b/264902324
@@ -99,18 +113,14 @@ class AudioStreamImplTest {
     fun readAfterStop_throwException() {
         audioStream.start()
         audioStream.stop()
-        assertThrows(IllegalStateException::class.java) {
-            audioStream.read(byteBuffer)
-        }
+        assertThrows(IllegalStateException::class.java) { audioStream.read(byteBuffer) }
     }
 
     @RequiresDevice // b/264902324
     @Test
     fun startAfterReleased_throwException() {
         audioStream.release()
-        assertThrows(IllegalStateException::class.java) {
-            audioStream.start()
-        }
+        assertThrows(IllegalStateException::class.java) { audioStream.start() }
     }
 
     @RequiresDevice // b/264902324
@@ -144,6 +154,35 @@ class AudioStreamImplTest {
             // Assert.
             assertThat(packetInfo.sizeInBytes).isGreaterThan(0)
             assertThat(packetInfo.timestampNs).isGreaterThan(0)
+        }
+    }
+
+    // See b/301067226 for more information.
+    @RequiresDevice
+    @Test
+    fun canRead_withTimestampDiffToSystemInLimit_whenAudioStreamStartMultipleTimes() {
+        repeat(5) {
+            Logger.i(TAG, "Starting audio recording, round: $it")
+
+            // Act.
+            audioStream.start()
+
+            // Assert.
+            readAndVerifyTimestampDiffToSystemMultipleTimes()
+
+            // Act.
+            audioStream.stop()
+        }
+    }
+
+    private fun readAndVerifyTimestampDiffToSystemMultipleTimes(times: Int = DEFAULT_READ_TIMES) {
+        repeat(times) {
+            byteBuffer.clear()
+            val packetInfo = audioStream.read(byteBuffer)
+
+            // Assert.
+            val timestampDiff = abs(packetInfo.timestampNs - System.nanoTime())
+            assertThat(timestampDiff).isLessThan(DIFF_LIMIT_FROM_SYSTEM_TIME_NS)
         }
     }
 

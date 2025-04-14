@@ -26,13 +26,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import leakcanary.DetectLeaksAfterTestSuccess
+import org.junit.Rule
+import org.junit.Test
 import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
 
 @Suppress("DEPRECATION")
 @RunWith(AndroidJUnit4::class)
@@ -43,8 +43,8 @@ class NestedFragmentTest {
 
     // Detect leaks BEFORE and AFTER activity is destroyed
     @get:Rule
-    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess())
-        .around(activityRule)
+    val ruleChain: RuleChain =
+        RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(activityRule)
 
     private fun setupParentFragment(parentFragment: ParentFragment) {
         val fragmentManager = activityRule.activity.supportFragmentManager
@@ -65,9 +65,12 @@ class NestedFragmentTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val activityResult = Instrumentation.ActivityResult(Activity.RESULT_OK, Intent())
 
-        val activityMonitor = instrumentation.addMonitor(
-            IntentFilter(Intent.ACTION_CALL), activityResult, true /* block */
-        )
+        val activityMonitor =
+            instrumentation.addMonitor(
+                IntentFilter(Intent.ACTION_CALL),
+                activityResult,
+                true /* block */
+            )
 
         // Verify that onActivityResult hasn't been called yet.
         assertThat(parentFragment.childFragment.onActivityResultCalled).isFalse()
@@ -98,9 +101,12 @@ class NestedFragmentTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val activityResult = Instrumentation.ActivityResult(Activity.RESULT_OK, Intent())
 
-        val activityMonitor = instrumentation.addMonitor(
-            IntentFilter(Intent.ACTION_CALL), activityResult, true /* block */
-        )
+        val activityMonitor =
+            instrumentation.addMonitor(
+                IntentFilter(Intent.ACTION_CALL),
+                activityResult,
+                true /* block */
+            )
 
         // Verify that onActivityResult hasn't been called yet.
         assertThat(parentFragment.childFragment.onActivityResultCalled).isFalse()

@@ -16,6 +16,9 @@
 
 package com.android.build.gradle.internal.fixtures
 
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import org.gradle.api.Action
 import org.gradle.process.BaseExecSpec
 import org.gradle.process.CommandLineArgumentProvider
@@ -24,9 +27,6 @@ import org.gradle.process.ExecResult
 import org.gradle.process.ExecSpec
 import org.gradle.process.JavaExecSpec
 import org.gradle.process.ProcessForkOptions
-import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
 
 /** This implementation only captures arguments used to launch process, it does not run it. */
 class FakeGradleExecOperations : ExecOperations {
@@ -36,7 +36,9 @@ class FakeGradleExecOperations : ExecOperations {
         p0.execute(CapturingExecSpec().also { capturedExecutions.add(it) })
         return object : ExecResult {
             override fun getExitValue() = 1
+
             override fun assertNormalExitValue() = this
+
             override fun rethrowFailure() = this
         }
     }
@@ -79,15 +81,11 @@ class CapturingExecSpec : ExecSpec {
 
     override fun setCommandLine(p0: MutableIterable<*>) {
         commandLine.clear()
-        p0.filterNotNull().forEach {
-            commandLine.add(it.toString())
-        }
+        p0.filterNotNull().forEach { commandLine.add(it.toString()) }
     }
 
     override fun environment(p0: MutableMap<String, *>): ProcessForkOptions {
-        p0.forEach { (t, any) ->
-            environment[t] = any.toString()
-        }
+        p0.forEach { (t, any) -> environment[t] = any.toString() }
         return this
     }
 

@@ -20,6 +20,7 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCapture.OnImageCapturedCallback
+import androidx.camera.core.ImageCapture.OnImageSavedCallback
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.imagecapture.Utils.JPEG_QUALITY
@@ -28,41 +29,62 @@ import androidx.camera.core.impl.CameraCaptureCallback
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor
 import java.util.concurrent.Executor
 
-/**
- * Fake [TakePictureRequest].
- */
+/** Fake [TakePictureRequest]. */
 class FakeTakePictureRequest() : TakePictureRequest() {
 
-    var imageCapturedCallback: OnImageCapturedCallback? = null
-    var onImageSavedCallback: ImageCapture.OnImageSavedCallback? = null
-    var fileOptions: ImageCapture.OutputFileOptions? = null
+    private var imageCapturedCallback: OnImageCapturedCallback? = null
+    private var imageSavedCallback: OnImageSavedCallback? = null
+    private var fileOptions: ImageCapture.OutputFileOptions? = null
+    private var secondaryFileOptions: ImageCapture.OutputFileOptions? = null
     var exceptionReceived: ImageCaptureException? = null
     var imageReceived: ImageProxy? = null
     var fileReceived: ImageCapture.OutputFileResults? = null
+    var captureStarted = false
+    var captureProcessProgress = -1
 
     constructor(type: Type) : this() {
         when (type) {
             Type.IN_MEMORY -> {
-                imageCapturedCallback = object : OnImageCapturedCallback() {
-                    override fun onCaptureSuccess(image: ImageProxy) {
-                        imageReceived = image
-                    }
+                imageCapturedCallback =
+                    object : OnImageCapturedCallback() {
+                        override fun onCaptureStarted() {
+                            captureStarted = true
+                        }
 
-                    override fun onError(exception: ImageCaptureException) {
-                        exceptionReceived = exception
+                        override fun onCaptureSuccess(image: ImageProxy) {
+                            imageReceived = image
+                        }
+
+                        override fun onError(exception: ImageCaptureException) {
+                            exceptionReceived = exception
+                        }
+
+                        override fun onCaptureProcessProgressed(progress: Int) {
+                            captureProcessProgress = progress
+                        }
                     }
-                }
             }
             Type.ON_DISK -> {
-                onImageSavedCallback = object : ImageCapture.OnImageSavedCallback {
-                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                        fileReceived = outputFileResults
-                    }
+                imageSavedCallback =
+                    object : OnImageSavedCallback {
+                        override fun onCaptureStarted() {
+                            captureStarted = true
+                        }
 
-                    override fun onError(exception: ImageCaptureException) {
-                        exceptionReceived = exception
+                        override fun onImageSaved(
+                            outputFileResults: ImageCapture.OutputFileResults
+                        ) {
+                            fileReceived = outputFileResults
+                        }
+
+                        override fun onError(exception: ImageCaptureException) {
+                            exceptionReceived = exception
+                        }
+
+                        override fun onCaptureProcessProgressed(progress: Int) {
+                            captureProcessProgress = progress
+                        }
                     }
-                }
             }
         }
     }
@@ -75,15 +97,27 @@ class FakeTakePictureRequest() : TakePictureRequest() {
         return imageCapturedCallback
     }
 
-    override fun getOnDiskCallback(): ImageCapture.OnImageSavedCallback? {
-        return onImageSavedCallback
+    fun setInMemoryCallback(inMemoryCallback: OnImageCapturedCallback) {
+        imageCapturedCallback = inMemoryCallback
+    }
+
+    override fun getOnDiskCallback(): OnImageSavedCallback? {
+        return imageSavedCallback
+    }
+
+    fun setOnDiskCallback(onDiskCallback: OnImageSavedCallback) {
+        imageSavedCallback = onDiskCallback
     }
 
     override fun getOutputFileOptions(): ImageCapture.OutputFileOptions? {
         return fileOptions
     }
 
-    internal override fun getCropRect(): Rect {
+    override fun getSecondaryOutputFileOptions(): ImageCapture.OutputFileOptions? {
+        return secondaryFileOptions
+    }
+
+    override fun getCropRect(): Rect {
         return Rect(0, 0, 640, 480)
     }
 
@@ -91,12 +125,16 @@ class FakeTakePictureRequest() : TakePictureRequest() {
         return Matrix()
     }
 
-    internal override fun getRotationDegrees(): Int {
+    override fun getRotationDegrees(): Int {
         return ROTATION_DEGREES
     }
 
-    internal override fun getJpegQuality(): Int {
+    override fun getJpegQuality(): Int {
         return JPEG_QUALITY
+    }
+
+    override fun isSimultaneousCapture(): Boolean {
+        return false
     }
 
     internal override fun getCaptureMode(): Int {
@@ -108,6 +146,7 @@ class FakeTakePictureRequest() : TakePictureRequest() {
     }
 
     enum class Type {
-        IN_MEMORY, ON_DISK
+        IN_MEMORY,
+        ON_DISK
     }
 }

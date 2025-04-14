@@ -16,8 +16,8 @@
 
 package androidx.testutils
 
-import org.junit.Test
 import java.io.IOException
+import org.junit.Test
 
 class AssertionsTest {
     @Test
@@ -36,9 +36,7 @@ class AssertionsTest {
     @Test
     fun testIncorrectFailureThrowsAssertionError() {
         try {
-            assertThrows(IOException::class.java) {
-                throw IllegalStateException()
-            }
+            assertThrows(IOException::class.java) { throw IllegalStateException() }
         } catch (e: IllegalStateException) {
             return // expected
         }
@@ -48,8 +46,8 @@ class AssertionsTest {
 
     @Test
     fun testCorrectFailureTypeIsCaughtAndReturnsAsThrowableSubject() {
-        assertThrows(IOException::class.java) {
-            throw IOException("test123")
-        }.hasMessageThat().contains("test123")
+        assertThrows(IOException::class.java) { throw IOException("test123") }
+            .hasMessageThat()
+            .contains("test123")
     }
 }

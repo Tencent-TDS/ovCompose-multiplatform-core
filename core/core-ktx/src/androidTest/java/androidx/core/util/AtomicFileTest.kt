@@ -17,75 +17,79 @@
 package androidx.core.util
 
 import android.util.AtomicFile
-import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.testutils.assertThrows
+import java.io.IOException
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.IOException
 
-@SdkSuppress(minSdkVersion = 17)
 @SmallTest
 class AtomicFileTest {
     @get:Rule val temporaryFolder = TemporaryFolder()
 
     private lateinit var file: AtomicFile
 
-    @Before fun before() {
+    @Before
+    fun before() {
         file = AtomicFile(temporaryFolder.newFile())
     }
 
-    @Test fun tryWriteSuccess() {
-        file.tryWrite {
-            it.write(byteArrayOf(0, 1, 2))
-        }
+    @Test
+    fun tryWriteSuccess() {
+        file.tryWrite { it.write(byteArrayOf(0, 1, 2)) }
         val bytes = file.openRead().use { it.readBytes() }
         assertArrayEquals(byteArrayOf(0, 1, 2), bytes)
     }
 
-    @Test fun tryWriteFail() {
+    @Test
+    fun tryWriteFail() {
         val os = file.startWrite()
         os.write(byteArrayOf(0, 1, 2))
         file.finishWrite(os)
 
         val failure = IOException("Broken!")
         assertThrows<IOException> {
-            file.tryWrite {
-                it.write(byteArrayOf(3, 4, 5))
-                throw failure
+                file.tryWrite {
+                    it.write(byteArrayOf(3, 4, 5))
+                    throw failure
+                }
             }
-        }.isSameInstanceAs(failure)
+            .isSameInstanceAs(failure)
 
         val bytes = file.openRead().use { it.readBytes() }
         assertArrayEquals(byteArrayOf(0, 1, 2), bytes)
     }
 
-    @Test fun writeBytes() {
+    @Test
+    fun writeBytes() {
         file.writeBytes(byteArrayOf(0, 1, 2))
 
         val bytes = file.openRead().use { it.readBytes() }
         assertArrayEquals(byteArrayOf(0, 1, 2), bytes)
     }
 
-    @Test fun writeText() {
+    @Test
+    fun writeText() {
         file.writeText("Hey")
 
         val bytes = file.openRead().use { it.readBytes() }
         assertArrayEquals(byteArrayOf(72, 101, 121), bytes)
     }
 
-    @Test fun writeTextCharset() {
+    @Test
+    fun writeTextCharset() {
         file.writeText("Hey", charset = Charsets.UTF_16LE)
 
         val bytes = file.openRead().use { it.readBytes() }
         assertArrayEquals(byteArrayOf(72, 0, 101, 0, 121, 0), bytes)
     }
 
-    @Test fun readBytes() {
+    @Test
+    fun readBytes() {
         val os = file.startWrite()
         os.write(byteArrayOf(0, 1, 2))
         file.finishWrite(os)
@@ -93,7 +97,8 @@ class AtomicFileTest {
         assertArrayEquals(byteArrayOf(0, 1, 2), file.readBytes())
     }
 
-    @Test fun readText() {
+    @Test
+    fun readText() {
         val os = file.startWrite()
         os.write(byteArrayOf(72, 101, 121))
         file.finishWrite(os)
@@ -101,7 +106,8 @@ class AtomicFileTest {
         assertEquals("Hey", file.readText())
     }
 
-    @Test fun readTextCharset() {
+    @Test
+    fun readTextCharset() {
         val os = file.startWrite()
         os.write(byteArrayOf(72, 0, 101, 0, 121, 0))
         file.finishWrite(os)

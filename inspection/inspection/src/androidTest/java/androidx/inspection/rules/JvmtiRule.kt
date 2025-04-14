@@ -18,8 +18,8 @@ package androidx.inspection.rules
 
 import android.os.Debug
 import androidx.annotation.RequiresApi
-import org.junit.rules.ExternalResource
 import java.io.IOException
+import org.junit.rules.ExternalResource
 
 @RequiresApi(28)
 class JvmtiRule : ExternalResource() {
@@ -33,6 +33,7 @@ class JvmtiRule : ExternalResource() {
                 // to make art to load JVMTI plugin.
             }
         }
+
         fun ensureInitialised() {
             // Calling this makes sure init {} block is triggered
         }

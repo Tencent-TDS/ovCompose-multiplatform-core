@@ -29,7 +29,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.wear.watchface.BoundingArc
-import androidx.wear.watchface.ComplicationSlotBoundsType
+import androidx.wear.watchface.ComplicationSlotBoundsTypeIntDef
 import androidx.wear.watchface.WatchFaceService
 import androidx.wear.watchface.XmlSchemaAndComplicationSlotsDefinition
 import androidx.wear.watchface.client.WatchFaceControlClient.Companion.createWatchFaceControlClient
@@ -54,12 +54,16 @@ import kotlinx.coroutines.CompletableDeferred
 /**
  * Interface for fetching watch face metadata. E.g. the [UserStyleSchema] and
  * [ComplicationSlotMetadata]. This must be [close]d after use to release resources.
+ *
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public interface WatchFaceMetadataClient : AutoCloseable {
 
     public companion object {
-        /** @hide */
-        private const val TAG = "WatchFaceMetadataClient"
 
         /**
          * Constructs a [WatchFaceMetadataClient] for fetching metadata for the specified watch
@@ -95,11 +99,42 @@ public interface WatchFaceMetadataClient : AutoCloseable {
             )
         }
 
-        /** @hide */
-        private const val ANDROIDX_WATCHFACE_XML_VERSION = "androidx.wear.watchface.xml_version"
-        /** @hide */
-        private const val ANDROIDX_WATCHFACE_CONTROL_SERVICE =
-            "androidx.wear.watchface.control.WatchFaceControlService"
+        /**
+         * Constructs a [WatchFaceMetadataClient] for fetching metadata for the specified resource
+         * only watch face from its runtime. A resource only watch face runtime is a special watch
+         * face that knows how to load watch faces from resources in another package that contains
+         * only resources and no executable code.
+         *
+         * @param context Calling application's [Context].
+         * @param watchFaceName The [ComponentName] of the watch face to fetch meta data from.
+         * @param runtimePackage The package that contains the Resource only Watch Face runtime.
+         * @return The [WatchFaceMetadataClient] if there is one.
+         * @throws [ServiceNotBoundException] if the underlying watch face control service can not
+         *   be bound or a [ServiceStartFailureException] if the watch face dies during startup. If
+         *   the service's manifest contains an
+         *   androidx.wear.watchface.XmlSchemaAndComplicationSlotsDefinition meta data node then
+         *   [PackageManager.NameNotFoundException] is thrown if [watchFaceName] is invalid.
+         */
+        @Throws(
+            ServiceNotBoundException::class,
+            ServiceStartFailureException::class,
+            PackageManager.NameNotFoundException::class
+        )
+        @SuppressWarnings("MissingJvmstatic") // Can't really call a suspend fun from java.
+        public suspend fun createForRuntime(
+            context: Context,
+            watchFaceName: ComponentName,
+            runtimePackage: String
+        ): WatchFaceMetadataClient {
+            return createImpl(
+                context,
+                Intent(WatchFaceControlService.ACTION_WATCHFACE_CONTROL_SERVICE).apply {
+                    setPackage(runtimePackage)
+                },
+                watchFaceName,
+                parserProvider = null
+            )
+        }
 
         @Suppress("DEPRECATION") // getServiceInfo
         internal fun isXmlVersionCompatible(
@@ -164,10 +199,10 @@ public interface WatchFaceMetadataClient : AutoCloseable {
             context: Context,
             intent: Intent,
             watchFaceName: ComponentName,
-            parserProvider: ParserProvider
+            parserProvider: ParserProvider?
         ): WatchFaceMetadataClient {
             // Check if there's static metadata we can read (fast).
-            parserProvider.getParser(context, watchFaceName)?.let {
+            parserProvider?.getParser(context, watchFaceName)?.let {
                 return XmlWatchFaceMetadataClientImpl(
                     XmlSchemaAndComplicationSlotsDefinition.inflate(
                         context.packageManager.getResourcesForApplication(
@@ -246,12 +281,17 @@ public interface WatchFaceMetadataClient : AutoCloseable {
     public fun getUserStyleFlavors(): UserStyleFlavors
 }
 
+private const val TAG = "WatchFaceMetadataClient"
+private const val ANDROIDX_WATCHFACE_XML_VERSION = "androidx.wear.watchface.xml_version"
+private const val ANDROIDX_WATCHFACE_CONTROL_SERVICE =
+    "androidx.wear.watchface.control.WatchFaceControlService"
+
 /**
  * Static metadata for a [androidx.wear.watchface.ComplicationSlot].
  *
  * @property bounds The complication slot's [ComplicationSlotBounds]. Only non `null` for watch
  *   faces with a new enough [androidx.wear.watchface.control.WatchFaceControlService].
- * @property boundsType The [ComplicationSlotBoundsType] of the complication slot.
+ * @property boundsType The [ComplicationSlotBoundsTypeIntDef] of the complication slot.
  * @property supportedTypes The list of [ComplicationType]s accepted by this complication slot. Used
  *   during complication data source selection, this list should be non-empty.
  * @property defaultDataSourcePolicy The [DefaultComplicationDataSourcePolicy] which controls the
@@ -265,12 +305,17 @@ public interface WatchFaceMetadataClient : AutoCloseable {
  *   around specific complication complication data sources.
  * @property complicationConfigExtras Extras to be merged into the Intent sent when invoking the
  *   complication data source chooser activity.
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class ComplicationSlotMetadata
 @ComplicationExperimental
 constructor(
     public val bounds: ComplicationSlotBounds?,
-    @ComplicationSlotBoundsType public val boundsType: Int,
+    @ComplicationSlotBoundsTypeIntDef public val boundsType: Int,
     public val supportedTypes: List<ComplicationType>,
     public val defaultDataSourcePolicy: DefaultComplicationDataSourcePolicy,
     @get:JvmName("isInitiallyEnabled") public val isInitiallyEnabled: Boolean,
@@ -288,7 +333,7 @@ constructor(
      *
      * @param bounds The complication slot's [ComplicationSlotBounds]. Only non `null` for watch
      *   faces with a new enough [androidx.wear.watchface.control.WatchFaceControlService].
-     * @param boundsType The [ComplicationSlotBoundsType] of the complication slot.
+     * @param boundsType The [ComplicationSlotBoundsTypeIntDef] of the complication slot.
      * @param supportedTypes The list of [ComplicationType]s accepted by this complication slot.
      *   Used during complication data source selection, this list should be non-empty.
      * @param defaultDataSourcePolicy The [DefaultComplicationDataSourcePolicy] which controls the
@@ -307,7 +352,7 @@ constructor(
     @OptIn(ComplicationExperimental::class)
     constructor(
         bounds: ComplicationSlotBounds?,
-        @ComplicationSlotBoundsType boundsType: Int,
+        @ComplicationSlotBoundsTypeIntDef boundsType: Int,
         supportedTypes: List<ComplicationType>,
         defaultDataSourcePolicy: DefaultComplicationDataSourcePolicy,
         isInitiallyEnabled: Boolean,

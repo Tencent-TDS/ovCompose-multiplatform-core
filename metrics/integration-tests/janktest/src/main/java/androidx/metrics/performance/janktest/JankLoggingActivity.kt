@@ -20,9 +20,9 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.FrameData
 import androidx.metrics.performance.JankStats
+import androidx.metrics.performance.PerformanceMetricsState
 import androidx.metrics.performance.janktest.databinding.ActivityMainBinding
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -30,8 +30,8 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 
 /**
- * This activity shows the basic usage of JankStats, from creating and enabling it to track
- * a view hierarchy, to setting application state on JankStats, to receiving and logging per-frame
+ * This activity shows the basic usage of JankStats, from creating and enabling it to track a view
+ * hierarchy, to setting application state on JankStats, to receiving and logging per-frame
  * callbacks with jank data.
  */
 class JankLoggingActivity : AppCompatActivity() {

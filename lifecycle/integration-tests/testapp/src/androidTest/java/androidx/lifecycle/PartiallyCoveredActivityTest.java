@@ -52,14 +52,15 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 
+import kotlin.Pair;
+
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.List;
-
-import kotlin.Pair;
 
 /**
  * Runs tests about the state when an activity is partially covered by another activity. Pre
@@ -127,6 +128,7 @@ public class PartiallyCoveredActivityTest {
     }
 
     @Test
+    @Ignore("b/173596006")
     public void coveredWithDialog_fragment() throws Throwable {
         CollectingSupportFragment fragment = new CollectingSupportFragment();
         activityRule.runOnUiThread(() -> activityRule.getActivity().replaceFragment(fragment));

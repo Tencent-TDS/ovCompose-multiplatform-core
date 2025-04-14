@@ -16,23 +16,22 @@
 package androidx.emoji2.text;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
-import static androidx.annotation.RestrictTo.Scope.TESTS;
 
 import android.annotation.SuppressLint;
 import android.graphics.Paint;
 import android.text.style.ReplacementSpan;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Base span class for the emoji replacement. When an emoji is found and needs to be replaced in a
  * CharSequence, an instance of this class is added to the CharSequence.
  */
-@RequiresApi(19)
 public abstract class EmojiSpan extends ReplacementSpan {
 
     /**
@@ -45,8 +44,7 @@ public abstract class EmojiSpan extends ReplacementSpan {
      * representing same emoji to be in memory. When unparcelled, EmojiSpan tries to set it back
      * using the singleton EmojiCompat instance.
      */
-    @NonNull
-    private final TypefaceEmojiRasterizer mRasterizer;
+    private final @NonNull TypefaceEmojiRasterizer mRasterizer;
 
     /**
      * Cached width of the span. Width is calculated according to the font metrics.
@@ -68,21 +66,20 @@ public abstract class EmojiSpan extends ReplacementSpan {
      *
      * @param rasterizer information about the emoji, cannot be {@code null}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
-    EmojiSpan(@NonNull final TypefaceEmojiRasterizer rasterizer) {
+    EmojiSpan(final @NonNull TypefaceEmojiRasterizer rasterizer) {
         Preconditions.checkNotNull(rasterizer, "rasterizer cannot be null");
         mRasterizer = rasterizer;
     }
 
     @Override
-    public int getSize(@NonNull final Paint paint,
+    public int getSize(final @NonNull Paint paint,
             @SuppressLint("UnknownNullness") @SuppressWarnings("MissingNullability")
             final CharSequence text,
             final int start,
             final int end,
-            @Nullable final Paint.FontMetricsInt fm) {
+            final Paint.@Nullable FontMetricsInt fm) {
         paint.getFontMetricsInt(mTmpFontMetrics);
         final int fontHeight = Math.abs(mTmpFontMetrics.descent - mTmpFontMetrics.ascent);
 
@@ -105,15 +102,13 @@ public abstract class EmojiSpan extends ReplacementSpan {
      *
      * @return rasterizer to draw emoji
      */
-    @NonNull
-    public final TypefaceEmojiRasterizer getTypefaceRasterizer() {
+    public final @NonNull TypefaceEmojiRasterizer getTypefaceRasterizer() {
         return mRasterizer;
     }
 
     /**
      * @return width of the span
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     final int getWidth() {
@@ -123,15 +118,14 @@ public abstract class EmojiSpan extends ReplacementSpan {
     /**
      * @return height of the span
      *
-     * @hide
      */
-    @RestrictTo(TESTS)
+    @RestrictTo(LIBRARY)
+    @VisibleForTesting
     public final int getHeight() {
         return mHeight;
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     final float getRatio() {
@@ -141,9 +135,9 @@ public abstract class EmojiSpan extends ReplacementSpan {
     /**
      * @return unique id for the emoji that this EmojiSpan is used for
      *
-     * @hide
      */
-    @RestrictTo(TESTS)
+    @RestrictTo(LIBRARY)
+    @VisibleForTesting
     public final int getId() {
         return getTypefaceRasterizer().getId();
     }

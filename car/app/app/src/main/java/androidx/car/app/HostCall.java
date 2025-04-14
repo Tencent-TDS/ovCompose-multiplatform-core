@@ -20,17 +20,16 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 
 import android.os.RemoteException;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Defines calls to make to host services
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 public interface HostCall<ServiceT, ReturnT> {
-    @Nullable
-    ReturnT dispatch(@NonNull ServiceT service) throws RemoteException;
+    @Nullable ReturnT dispatch(@NonNull ServiceT service) throws RemoteException;
 }

@@ -23,8 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.catalog.model.Specification
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -34,16 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpecificationItem(
     specification: Specification,
     onClick: (specification: Specification) -> Unit
 ) {
-    OutlinedCard(
-        onClick = { onClick(specification) },
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    OutlinedCard(onClick = { onClick(specification) }, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(SpecificationItemPadding),
             horizontalArrangement = Arrangement.spacedBy(SpecificationItemPadding),
@@ -53,17 +48,14 @@ fun SpecificationItem(
                 modifier = Modifier.weight(1f, fill = true),
                 verticalArrangement = Arrangement.spacedBy(SpecificationItemTextPadding)
             ) {
-                Text(
-                    text = specification.name,
-                    style = MaterialTheme.typography.titleSmall
-                )
+                Text(text = specification.name, style = MaterialTheme.typography.titleSmall)
                 Text(
                     text = specification.artifact,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
+                imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                 contentDescription = null,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )

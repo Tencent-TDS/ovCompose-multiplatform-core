@@ -17,7 +17,7 @@ package androidx.camera.core.impl
 
 import android.os.Build
 import android.util.Range
-import androidx.camera.testing.fakes.FakeUseCaseConfig
+import androidx.camera.testing.impl.fakes.FakeUseCaseConfig
 import com.google.common.truth.Truth
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,9 +26,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
-@RunWith(
-    RobolectricTestRunner::class
-)
+@RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 class UseCaseConfigTest {
     @Test
@@ -36,7 +34,18 @@ class UseCaseConfigTest {
         val useCaseBuilder = FakeUseCaseConfig.Builder()
         val range = Range(10, 20)
         useCaseBuilder.mutableConfig.insertOption(UseCaseConfig.OPTION_TARGET_FRAME_RATE, range)
-        Truth.assertThat(useCaseBuilder.useCaseConfig.targetFramerate).isEqualTo(range)
+        Truth.assertThat(useCaseBuilder.useCaseConfig.targetFrameRate).isEqualTo(range)
+    }
+
+    @Test
+    fun canGetTargetHighSpeedFrameRate() {
+        val useCaseBuilder = FakeUseCaseConfig.Builder()
+        val range = Range(120, 120)
+        useCaseBuilder.mutableConfig.insertOption(
+            UseCaseConfig.OPTION_TARGET_HIGH_SPEED_FRAME_RATE,
+            range
+        )
+        Truth.assertThat(useCaseBuilder.useCaseConfig.targetHighSpeedFrameRate).isEqualTo(range)
     }
 
     @Test

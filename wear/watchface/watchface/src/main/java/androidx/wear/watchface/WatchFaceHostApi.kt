@@ -31,8 +31,13 @@ import kotlinx.coroutines.CoroutineScope
 /**
  * The API [WatchFaceImpl] uses to communicate with the system.
  *
+ * @deprecated use Watch Face Format instead
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public interface WatchFaceHostApi {
     /** The [WatchFaceService.SystemTimeProvider]. */
     public val systemTimeProvider: WatchFaceService.SystemTimeProvider
@@ -152,4 +157,7 @@ public interface WatchFaceHostApi {
 
     /** Requests the system to capture an updated preview image. */
     public fun sendPreviewImageNeedsUpdateRequest() {}
+
+    /** Returns ComponentName of the watch face. */
+    public fun getComponentName(): ComponentName
 }

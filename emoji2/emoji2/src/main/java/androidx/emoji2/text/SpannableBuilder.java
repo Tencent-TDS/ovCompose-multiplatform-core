@@ -23,10 +23,11 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -44,7 +45,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * applied only for EmojiSpans. Therefore any other span change operation works the same way as in
  * the framework.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class SpannableBuilder extends SpannableStringBuilder {
@@ -59,7 +59,6 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     private final @NonNull List<WatcherWrapper> mWatchers = new ArrayList<>();
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     SpannableBuilder(@NonNull Class<?> watcherClass) {
@@ -68,7 +67,6 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     SpannableBuilder(@NonNull Class<?> watcherClass, @NonNull CharSequence text) {
@@ -78,7 +76,6 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     SpannableBuilder(@NonNull Class<?> watcherClass, @NonNull CharSequence text, int start,
@@ -89,11 +86,10 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     }
 
     /**
-     * @hide
      */
-    @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static SpannableBuilder create(@NonNull Class<?> clazz, @NonNull CharSequence text) {
+    public static @NonNull SpannableBuilder create(@NonNull Class<?> clazz,
+            @NonNull CharSequence text) {
         return new SpannableBuilder(clazz, text);
     }
 
@@ -254,7 +250,6 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void beginBatchEdit() {
@@ -262,7 +257,6 @@ public final class SpannableBuilder extends SpannableStringBuilder {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void endBatchEdit() {
@@ -338,23 +332,22 @@ public final class SpannableBuilder extends SpannableStringBuilder {
         return this;
     }
 
-    @NonNull
     @Override
-    public SpannableStringBuilder append(@SuppressLint("UnknownNullness") CharSequence text) {
+    public @NonNull SpannableStringBuilder append(
+            @SuppressLint("UnknownNullness") CharSequence text) {
         super.append(text);
         return this;
     }
 
-    @NonNull
     @Override
-    public SpannableStringBuilder append(char text) {
+    public @NonNull SpannableStringBuilder append(char text) {
         super.append(text);
         return this;
     }
 
-    @NonNull
     @Override
-    public SpannableStringBuilder append(@SuppressLint("UnknownNullness") CharSequence text,
+    public @NonNull SpannableStringBuilder append(
+            @SuppressLint("UnknownNullness") CharSequence text,
             int start,
             int end) {
         super.append(text, start, end);

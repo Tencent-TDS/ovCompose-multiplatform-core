@@ -26,7 +26,9 @@ import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
+import androidx.annotation.UiThread
 
+@UiThread
 class AndroidTestCaseRunner<T : AndroidTestCase>(
     private val testCaseFactory: () -> T,
     private val activity: Activity
@@ -34,6 +36,7 @@ class AndroidTestCaseRunner<T : AndroidTestCase>(
 
     val measuredWidth: Int
         get() = view!!.measuredWidth
+
     val measuredHeight: Int
         get() = view!!.measuredHeight
 
@@ -151,6 +154,7 @@ private fun invalidateViews(view: View) {
 // potentially unloaded class, RenderNodeCapture.
 private interface DrawCapture {
     fun beginRecording(width: Int, height: Int): Canvas
+
     fun endRecording()
 }
 

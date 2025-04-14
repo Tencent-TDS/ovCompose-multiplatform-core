@@ -73,7 +73,9 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
-import org.jetbrains.annotations.NotNull;
+import com.google.common.collect.Lists;
+
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -144,7 +146,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testShortcutInfo() {
         final String shortcutId = "my-shortcut";
@@ -196,7 +197,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testContentTitle() {
         Notification n = new NotificationCompat.Builder(mContext)
@@ -205,7 +205,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals("testContentTitle", NotificationCompat.getContentTitle(n));
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testContentText() {
         Notification n = new NotificationCompat.Builder(mContext)
@@ -214,7 +213,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals("testContentText", NotificationCompat.getContentText(n));
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testContentInfo() {
         Notification n = new NotificationCompat.Builder(mContext)
@@ -223,7 +221,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals("testContentInfo", NotificationCompat.getContentInfo(n));
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testSubText() {
         Notification n = new NotificationCompat.Builder(mContext)
@@ -232,21 +229,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals("testSubText", NotificationCompat.getSubText(n));
     }
 
-    @SdkSuppress(maxSdkVersion = 15)
-    @Test
-    public void testActionsUnsupported() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
-        Notification nWith = builder.addAction(0, "testAction", null).build();
-        // Version prior to API 16 do not support Actions.
-        assertEquals(0, NotificationCompat.getActionCount(nWith));
-        NotificationCompat.Action action = NotificationCompat.getAction(nWith, 0);
-        assertNull(action);
-
-        Notification nWithout = builder.clearActions().build();
-        assertEquals(0, NotificationCompat.getActionCount(nWithout));
-    }
-
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testActions() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
@@ -306,21 +288,15 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
 
         Notification nDefault = builder.build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertThat(NotificationCompat.getShowWhen(nDefault)).isTrue();
-        }
+        assertThat(NotificationCompat.getShowWhen(nDefault)).isTrue();
 
         // test true
         Notification nTrue = builder.setShowWhen(true).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertTrue(NotificationCompat.getShowWhen(nTrue));
-        }
+        assertTrue(NotificationCompat.getShowWhen(nTrue));
 
         // test false
         Notification nFalse = builder.setShowWhen(false).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertFalse(NotificationCompat.getShowWhen(nFalse));
-        }
+        assertFalse(NotificationCompat.getShowWhen(nFalse));
     }
 
     @Test
@@ -329,15 +305,11 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // test true
         Notification nTrue = builder.setUsesChronometer(true).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertTrue(NotificationCompat.getUsesChronometer(nTrue));
-        }
+        assertTrue(NotificationCompat.getUsesChronometer(nTrue));
 
         // test false
         Notification nFalse = builder.setUsesChronometer(false).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertFalse(NotificationCompat.getUsesChronometer(nFalse));
-        }
+        assertFalse(NotificationCompat.getUsesChronometer(nFalse));
     }
 
     @SdkSuppress(minSdkVersion = 24)
@@ -498,7 +470,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
      * original style.
      */
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     public void testStyle_recoveredCorrectly() throws Exception {
         for (Class<? extends Style> styleSubclass : getStyleSubclasses()) {
             final Style original;
@@ -533,8 +504,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertSame(styleSubclass, style.getClass());
     }
 
-    @NotNull
-    private List<Class<? extends Style>> getStyleSubclasses() {
+    private @NonNull List<Class<? extends Style>> getStyleSubclasses() {
         List<Class<? extends Style>> styleSubclasses = new ArrayList<>();
         for (Class<?> candidate : NotificationCompat.class.getClasses()) {
             try {
@@ -550,7 +520,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         return styleSubclasses;
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testBuilderFromNotification_fromMinimalPlatform() {
         Notification original = new Notification.Builder(mContext).build();
@@ -558,7 +527,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(original.toString(), recovered.toString());
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @Test
     public void testBuilderFromNotification_fromSimpleCompat() {
         Notification original = new NotificationCompat.Builder(mContext, "channelId")
@@ -570,7 +538,41 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertNotificationEquals(original, recovered);
     }
 
-    @SdkSuppress(minSdkVersion = 19)
+    @Test
+    public void testBuilderFromNotification_withSmallResIdAndLargeBitmap() {
+        int smallIcon = R.drawable.ic_call_answer;
+        Bitmap largeIcon = BitmapFactory.decodeResource(mContext.getResources(),
+                R.drawable.notification_bg);
+        Notification original = new NotificationCompat.Builder(mContext, "channelId")
+                .setSmallIcon(smallIcon)
+                .setLargeIcon(largeIcon)
+                .build();
+
+        Notification recovered = new NotificationCompat.Builder(mContext, original).build();
+
+        assertThat(recovered.icon).isEqualTo(smallIcon);
+        assertThat(recovered.largeIcon).isEqualTo(largeIcon);
+    }
+
+    @SdkSuppress(minSdkVersion = 23)
+    @Test
+    public void testBuilderFromNotification_withSmallAndLargeIcons() {
+        IconCompat smallIcon = IconCompat.createWithResource(mContext, R.drawable.ic_call_answer);
+        Icon largeIcon = Icon.createWithResource(mContext, R.drawable.notification_bg);
+        Notification original = new NotificationCompat.Builder(mContext, "channelId")
+                .setSmallIcon(smallIcon)
+                .setLargeIcon(largeIcon)
+                .build();
+
+        Notification recovered = new NotificationCompat.Builder(mContext, original).build();
+
+        // Icon doesn't implement equals(), and instances are not identical due to conversion
+        // between Icon & IconCompat, so compare string representation instead.
+        assertThat(recovered.getSmallIcon().toString()).isEqualTo(
+                smallIcon.toIcon(mContext).toString());
+        assertThat(recovered.getLargeIcon().toString()).isEqualTo(largeIcon.toString());
+    }
+
     @Test
     public void testBuilderFromNotification_fromMessagingStyledCompat() {
         Person person1 = new Person.Builder()
@@ -675,12 +677,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         // Add an action so that we start getting the view
         builder.addAction(new NotificationCompat.Action(null, "action", null));
 
-        // Before Jellybean, there was no big view; expect null
-        if (Build.VERSION.SDK_INT < 16) {
-            assertNull(builder.createHeadsUpContentView());
-            return;
-        }
-
         // Expect the standard big notification template
         RemoteViews standardView = builder.createBigContentView();
         assertNotNull(standardView);
@@ -770,6 +766,50 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             String packageName = mContext.getPackageName();
             assertEquals(packageName + ":layout/notification_template_custom_big", layoutName);
         }
+    }
+
+    @SdkSuppress(minSdkVersion = 24)
+    @Test
+    public void testGetTextsFromContentView() {
+        Notification n1 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .build();
+        List<CharSequence> texts = NotificationCompat.DecoratedCustomViewStyle
+                .getTextsFromContentView(mContext, n1);
+        assertThat(texts).isEmpty();
+
+        Notification n2 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.BigTextStyle())
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n2);
+        assertThat(texts).isEmpty();
+
+        Notification n3 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n3);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
+
+        Notification n4 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomBigContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n4);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
+
+        Notification n5 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomHeadsUpContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n5);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
     }
 
     @Test
@@ -958,7 +998,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(1, result.getRemoteInputs().length);
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testNotificationWearableExtenderAction_noIcon() throws Throwable {
         NotificationCompat.Action a = new NotificationCompat.Action.Builder(0, "title", null)
@@ -971,7 +1010,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertNull(actualAction.getIconCompat());
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testNotificationWearableExtenderAction_drawableIcon() throws Throwable {
         NotificationCompat.Action a =
@@ -985,7 +1023,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(android.R.drawable.ic_delete, actualAction.getIconCompat().getResId());
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testNotificationWearableExtenderAction_setAllowGeneratedRepliesTrue()
             throws Throwable {
@@ -998,7 +1035,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 .getAllowGeneratedReplies());
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testNotificationWearableExtenderAction_setAllowGeneratedRepliesFalse()
             throws Throwable {
@@ -1023,19 +1059,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         Notification notification = builder.build();
 
         assertEquals(icon.toIcon(mContext).toString(), notification.getSmallIcon().toString());
-    }
-
-    @SdkSuppress(maxSdkVersion = 16)
-    @SmallTest
-    @Test
-    public void testNotificationWearableExtenderAction_noActions()
-            throws Throwable {
-        NotificationCompat.Action a = newActionBuilder()
-                .setAllowGeneratedReplies(true).build();
-        NotificationCompat.WearableExtender extender = new NotificationCompat.WearableExtender()
-                .addAction(a);
-        Notification notification = newNotificationBuilder().extend(extender).build();
-        assertTrue(new NotificationCompat.WearableExtender(notification).getActions().size() == 0);
     }
 
     @Test
@@ -1146,16 +1169,13 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 .setLargeIcon((Bitmap) null)
                 .build();
 
-        // Extras are not populated before API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            if (Build.VERSION.SDK_INT <= 23) {
-                assertFalse(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-            } else {
-                assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-                assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
-            }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        if (Build.VERSION.SDK_INT <= 23) {
+            assertFalse(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+        } else {
+            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+            assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
         }
 
         if (Build.VERSION.SDK_INT >= 23) {
@@ -1173,12 +1193,10 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 .build();
 
         // Extras are not populated before API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-            assertNotNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
-        }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+        assertNotNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
         if (Build.VERSION.SDK_INT >= 23) {
             assertNotNull(n.getLargeIcon());
         }
@@ -1563,7 +1581,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(100, n.ledOffMS);
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @SuppressWarnings("deprecation")
     @Test
     public void testBigPictureStyle_withNullBigLargeIcon() {
@@ -1577,13 +1594,10 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                         .setBigContentTitle("Big Content Title")
                         .setSummaryText("Summary Text"))
                 .build();
-        // Extras are not populated before KITKAT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON_BIG));
-            assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON_BIG));
-        }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON_BIG));
+        assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON_BIG));
     }
 
     @SdkSuppress(minSdkVersion = 23)
@@ -1698,7 +1712,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertNotNull(icon);
     }
 
-    @SdkSuppress(minSdkVersion = 19)
     @SuppressWarnings("deprecation")
     @Test
     public void testBigPictureStyle_recoverStyleWithBitmap() {
@@ -1760,9 +1773,8 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(Icon.TYPE_RESOURCE, rebuiltIcon.getType());
     }
 
-    @SdkSuppress(minSdkVersion = 19, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
-    // minSdkVersion selected because extras are not populated before 19.
     // maxSdkVersion selected because EXTRA_PICTURE_ICON not set before 31.
     public void testBigPictureStyle_bigPictureWithBitmap_legacy() {
 
@@ -1881,7 +1893,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertEquals(Icon.TYPE_RESOURCE, rebuiltIcon.getType());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_nullPerson() {
         NotificationCompat.MessagingStyle messagingStyle =
@@ -1905,7 +1916,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertNull(result.get(0).getSender());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_message() {
         NotificationCompat.MessagingStyle messagingStyle =
@@ -1938,7 +1948,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertTrue(result.get(1).getPerson().isImportant());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_historicMessage() {
         NotificationCompat.MessagingStyle messagingStyle =
@@ -1981,7 +1990,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation() {
         mContext.getApplicationInfo().targetSdkVersion = Build.VERSION_CODES.P;
@@ -2003,7 +2011,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertTrue(result.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation_noConversationTitle() {
         mContext.getApplicationInfo().targetSdkVersion = Build.VERSION_CODES.P;
@@ -2025,7 +2032,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertTrue(result.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation_withConversationTitle_legacy() {
         // In legacy (version < P), isGroupConversation is controlled by conversationTitle.
@@ -2047,7 +2053,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertTrue(result.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation_withoutConversationTitle_legacy() {
         // In legacy (version < P), isGroupConversation is controlled by conversationTitle.
@@ -2069,7 +2074,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertFalse(result.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation_withConversationTitle_legacyWithOverride() {
         // #setGroupConversation should always take precedence over legacy behavior, so a non-null
@@ -2093,7 +2097,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertFalse(result.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     public void testMessagingStyle_isGroupConversation_withoutTitle_legacyWithOverride() {
         // #setGroupConversation should always take precedence over legacy behavior, so a null
@@ -2191,7 +2194,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertFalse(resultMessagingStyle.isGroupConversation());
     }
 
-    @SdkSuppress(minSdkVersion = 19, maxSdkVersion = 27)
+    @SdkSuppress(maxSdkVersion = 27)
     @Test
     public void testMessagingStyle_applyConversationTitleAndNotGroup_legacy() {
         NotificationCompat.MessagingStyle messagingStyle =
@@ -2453,6 +2456,52 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertFalse(extras.getBoolean(NotificationCompat.EXTRA_CALL_IS_VIDEO));
     }
 
+    @Test
+    @SdkSuppress(minSdkVersion = 20)
+    public void testCallStyle_preservesCustomActions() {
+        PendingIntent hangupIntent = createIntent("hangup");
+        Person person = new Person.Builder().setName("test name").build();
+        NotificationCompat.CallStyle callStyle = NotificationCompat.CallStyle.forOngoingCall(
+                person, hangupIntent);
+        NotificationCompat.Action customAction = new NotificationCompat.Action.Builder(
+                IconCompat.createWithResource(mContext, R.drawable.notification_bg),
+                "Custom!", null).build();
+
+        Notification notification = new NotificationCompat.Builder(mContext, "test id")
+                .setSmallIcon(1)
+                .setContentTitle("test title")
+                .addAction(customAction)
+                .setStyle(callStyle)
+                .build();
+
+        // Actions as Hang up + Custom (fits on all Android versions).
+        assertThat(notification.actions).hasLength(2);
+
+        // But order is different per Android version. CallStyle was introduced in SDK 31 and
+        // placed custom actions first. A QPR of SDK 33 switched to system actions first. Pre-31
+        // there is no native CallStyle, so the Compat version uses the newer ordering there too.
+        List<String> actionTitles = Lists.transform(Arrays.asList(notification.actions),
+                a -> a.title.toString());
+        if (Build.VERSION.SDK_INT < 31 || Build.VERSION.SDK_INT >= 34) {
+            assertThat(actionTitles).containsExactly(
+                            mContext.getString(R.string.call_notification_hang_up_action),
+                            customAction.title.toString())
+                    .inOrder();
+        } else if (Build.VERSION.SDK_INT >= 31 && Build.VERSION.SDK_INT <= 32) {
+            assertThat(actionTitles).containsExactly(
+                            customAction.title.toString(),
+                            mContext.getString(R.string.call_notification_hang_up_action))
+                    .inOrder();
+        } else if (Build.VERSION.SDK_INT == 33) {
+            // Could be either, so check presence but not ordering.
+            assertThat(actionTitles).containsExactly(
+                            mContext.getString(R.string.call_notification_hang_up_action),
+                            customAction.title.toString());
+        } else {
+            throw new AssertionError("All SDK_INT values are covered!");
+        }
+    }
+
     @SdkSuppress(minSdkVersion = 20)
     @Test
     public void testCallStyle_getActionsListWithSystemAndContextualActionsForIncoming() {
@@ -2619,7 +2668,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 resultActions.get(1).getIconCompat().getResId());
     }
 
-    @SdkSuppress(minSdkVersion = 19, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationExtraText() {
         PendingIntent answerIntent = createIntent("answer");
@@ -2649,7 +2698,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
     }
 
-    @SdkSuppress(minSdkVersion = 19, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationVerificationInfo() {
         PendingIntent answerIntent = createIntent("answer");
@@ -2699,7 +2748,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 19, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationPersonInfo() {
         PendingIntent answerIntent = createIntent("answer");
@@ -2731,7 +2780,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationIncoming() {
         // Create a placeholder icon for use with the person.
@@ -2762,25 +2811,22 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
         // and checking the values in it (because those are created via restoreFromCompatExtras).
-        // Extras and NotificationCompatBuilder only available on API 19 and greater.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = notification.extras;
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set).
-            assertEquals(
-                    mContext.getResources().getString(R.string.call_notification_incoming_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set).
+        assertEquals(
+                mContext.getResources().getString(R.string.call_notification_incoming_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
 
         if (Build.VERSION.SDK_INT >= 20) {
             assertNotNull(notification.actions);
@@ -2810,7 +2856,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationIncomingVideo() {
         PendingIntent answerIntent = createIntent("answer");
@@ -2832,13 +2878,11 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            Bundle extras = builder.getExtras();
-            assertTrue(extras.getBoolean(NotificationCompat.EXTRA_CALL_IS_VIDEO));
-        }
+        Bundle extras = builder.getExtras();
+        assertTrue(extras.getBoolean(NotificationCompat.EXTRA_CALL_IS_VIDEO));
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -2855,7 +2899,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationOngoing() {
         // Create a placeholder icon for use with the person.
@@ -2883,27 +2927,25 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
-            // and checking the values in it (as those are created via restoreFromCompatExtras).
-            Bundle extras = notification.extras;
+        // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
+        // and checking the values in it (as those are created via restoreFromCompatExtras).
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
 
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set). 11 >=
-            assertEquals(mContext.getResources().getString(R.string.call_notification_ongoing_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set). 11 >=
+        assertEquals(mContext.getResources().getString(R.string.call_notification_ongoing_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -2925,7 +2967,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         }
     }
 
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 30)
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     public void testCallStyle_callStyleLegacyNotificationScreening() {
         // Create a placeholder icon for use with the person.
@@ -2951,28 +2993,27 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
-            // and checking the values in it (as those are created via restoreFromCompatExtras).
-            Bundle extras = notification.extras;
+        // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
+        // and checking the values in it (as those are created via restoreFromCompatExtras).
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
 
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set). 11 >=
-            assertEquals(
-                    mContext.getResources().getString(R.string.call_notification_screening_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set). 11 >=
+        assertEquals(
+                mContext.getResources().getString(R.string.call_notification_screening_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
+
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -3186,7 +3227,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     public void getContentTitle() {
         Notification notification = new NotificationCompat.Builder(mContext, "test channel")
                 .setContentTitle("example title")
@@ -3294,6 +3334,114 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         NotificationCompat.Action result = NotificationCompat.getAction(notification, 0);
 
         assertTrue(result.isAuthenticationRequired());
+    }
+
+    @Test
+    public void tvExtenderSetGetChannelId() {
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender();
+        tvExtender.setChannelId("My cool channel");
+        assertEquals("My cool channel", tvExtender.getChannelId());
+    }
+
+    @Test
+    public void tvExtenderSetGetContentIntent() {
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender();
+        PendingIntent intent =
+                PendingIntent.getActivity(mContext, 0, new Intent(), PendingIntent.FLAG_IMMUTABLE);
+        tvExtender.setContentIntent(intent);
+        assertEquals(intent, tvExtender.getContentIntent());
+    }
+
+    @Test
+    public void tvExtenderSetGetDeleteIntent() {
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender();
+        PendingIntent intent =
+                PendingIntent.getActivity(mContext, 0, new Intent(), PendingIntent.FLAG_IMMUTABLE);
+        tvExtender.setDeleteIntent(intent);
+        assertEquals(intent, tvExtender.getDeleteIntent());
+    }
+
+    @Test
+    public void tvExtenderSetGetSuppressShowOverApps() {
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender();
+        tvExtender.setSuppressShowOverApps(true);
+        assertTrue(tvExtender.isSuppressShowOverApps());
+        tvExtender.setSuppressShowOverApps(false);
+        assertFalse(tvExtender.isSuppressShowOverApps());
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    public void tvExtenderSetsExtras() {
+        PendingIntent contentIntent = createIntent("content");
+        PendingIntent deleteIntent = createIntent("delete");
+
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender()
+                .setChannelId("My cool channel")
+                .setContentIntent(contentIntent)
+                .setDeleteIntent(deleteIntent)
+                .setSuppressShowOverApps(true);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                "test channel")
+                .setSmallIcon(0)
+                .setContentTitle("title")
+                .setContentText("text");
+
+        builder = tvExtender.extend(builder);
+        Notification notification = builder.build();
+
+        Bundle tvExtensions =
+                notification.extras.getBundle(NotificationCompat.TvExtender.EXTRA_TV_EXTENDER);
+        assertNotNull(tvExtensions);
+        assertEquals("My cool channel",
+                tvExtensions.getString(NotificationCompat.TvExtender.EXTRA_CHANNEL_ID));
+        assertEquals(contentIntent,
+                ((PendingIntent) tvExtensions.getParcelable(
+                        NotificationCompat.TvExtender.EXTRA_CONTENT_INTENT)));
+        assertEquals(deleteIntent,
+                ((PendingIntent) tvExtensions.getParcelable(
+                        NotificationCompat.TvExtender.EXTRA_DELETE_INTENT)));
+        assertTrue(tvExtensions.getBoolean(
+                NotificationCompat.TvExtender.EXTRA_SUPPRESS_SHOW_OVER_APPS));
+        assertTrue(tvExtender.isAvailableOnTv());
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    public void tvExtenderFromNotification() {
+        // Use TvExtender to set all the information in the Notification.
+        // Note that this relies on the tvExtenderSetsExtras to assure us of correctness.
+        PendingIntent contentIntent = createIntent("content");
+        PendingIntent deleteIntent = createIntent("delete");
+
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender()
+                .setChannelId("My cool channel")
+                .setContentIntent(contentIntent)
+                .setDeleteIntent(deleteIntent)
+                .setSuppressShowOverApps(true);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                "test channel")
+                .setSmallIcon(0)
+                .setContentTitle("title")
+                .setContentText("text");
+
+        builder = tvExtender.extend(builder);
+        Notification notification = builder.build();
+
+        // Recovers the tvExtender values from an already-extended Notification.
+        NotificationCompat.TvExtender recoveredExtender =
+                new NotificationCompat.TvExtender(notification);
+        assertEquals("My cool channel", recoveredExtender.getChannelId());
+        assertEquals(contentIntent, recoveredExtender.getContentIntent());
+        assertEquals(deleteIntent, recoveredExtender.getDeleteIntent());
+        assertTrue(recoveredExtender.isSuppressShowOverApps());
+        assertTrue(recoveredExtender.isAvailableOnTv());
+    }
+
+    @Test
+    public void emptyTvExtender() {
+        NotificationCompat.TvExtender tvExtender = new NotificationCompat.TvExtender();
+        assertTrue(tvExtender.isAvailableOnTv());
     }
 
     @Test
@@ -3448,10 +3596,8 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // before testing the notification we've built with people, test the clearPeople() method
         final Notification notificationWithoutPeople = builder.clearPeople().build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
-            assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
-        }
+        assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
+        assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
 
         if (Build.VERSION.SDK_INT >= 29) {
             assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
@@ -3477,7 +3623,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             expected.add("test name\tnull");
             expected.add("test name 2\tnull");
             assertEquals(expected, people);
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
             final String[] peopleArray =
                     notification.extras.getStringArray(Notification.EXTRA_PEOPLE);
@@ -3503,7 +3649,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             expected.add("test name\tnull");
             expected.add("test name 2\tnull");
             expected.add("null\ttest:selfUri");
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             // On older platforms, the name is converted into a URI
             expected.add("null\tname:test name");
             expected.add("null\tname:test name 2");

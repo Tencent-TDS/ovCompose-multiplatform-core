@@ -16,13 +16,15 @@
 
 package androidx.webkit;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresFeature;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.UiThread;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * This class represents the JavaScript object injected by {@link
- * WebViewCompat#addWebMessageListener(android.webkit.WebView, String, Set,
+ * WebViewCompat#addWebMessageListener(android.webkit.WebView, String, java.util.Set,
  * WebViewCompat.WebMessageListener) WebViewCompat#addWebMessageListener}. An instance will be given
  * by {@link WebViewCompat.WebMessageListener#onPostMessage(android.webkit.WebView,
  * WebMessageCompat, android.net.Uri, boolean, JavaScriptReplyProxy)
@@ -32,19 +34,33 @@ import androidx.annotation.RestrictTo;
  * <p>
  * There is a 1:1 relationship between this object and the JavaScript object in a frame.
  *
- * @see WebViewCompat#addWebMessageListener(android.webkit.WebView, String, Set,
+ * @see WebViewCompat#addWebMessageListener(android.webkit.WebView, String, java.util.Set,
  * WebViewCompat.WebMessageListener).
  */
+// UI thread not currently enforced, but required
+@UiThread
 public abstract class JavaScriptReplyProxy {
     /**
      * Post a String message to the injected JavaScript object which sent this {@link
      * JavaScriptReplyProxy}.
      *
-     * @param message The data to send to the JavaScript context.
+     * @param message The String data to send to the JavaScript context.
      */
     @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_LISTENER,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
     public abstract void postMessage(@NonNull String message);
+
+    /**
+     * Post a ArrayBuffer message to the injected JavaScript object which sent this
+     * {@link JavaScriptReplyProxy}. Be aware that large byte buffers can lead to out-of-memory
+     * crashes on low-end devices.
+     *
+     * @param arrayBuffer The ArrayBuffer to send to the JavaScript context. An empty ArrayBuffer
+     *                    is supported.
+     */
+    @RequiresFeature(name = WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    public abstract void postMessage(byte @NonNull [] arrayBuffer);
 
     /**
      * This class cannot be created by applications.

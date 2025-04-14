@@ -18,14 +18,14 @@ package androidx.work.impl.utils
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -58,6 +58,7 @@ class SerialExecutorTest {
         class TimestampTrackingRunnable(private val latch: CountDownLatch) : Runnable {
             var start: Long = 0
             var end: Long = 0
+
             override fun run() {
                 start = System.nanoTime()
                 val sleepTime = (Math.random() * 100).toLong()

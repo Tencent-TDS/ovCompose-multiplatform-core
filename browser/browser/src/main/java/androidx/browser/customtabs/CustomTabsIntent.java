@@ -20,11 +20,13 @@ import static androidx.annotation.Dimension.DP;
 import static androidx.annotation.Dimension.PX;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -39,19 +41,20 @@ import android.widget.RemoteViews;
 import androidx.annotation.AnimRes;
 import androidx.annotation.ColorInt;
 import androidx.annotation.Dimension;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.app.ActivityOptionsCompat;
-import androidx.core.app.BundleCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.IntentCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Class holding the {@link Intent} and start bundle for a Custom Tabs Activity.
@@ -152,6 +155,49 @@ public final class CustomTabsIntent {
      */
     public static final String EXTRA_TITLE_VISIBILITY_STATE =
             "android.support.customtabs.extra.TITLE_VISIBILITY";
+
+    /**
+     * Extra to disable the bookmarks button in the overflow menu.
+     */
+    public static final String EXTRA_DISABLE_BOOKMARKS_BUTTON =
+            "org.chromium.chrome.browser.customtabs.EXTRA_DISABLE_STAR_BUTTON";
+
+    /**
+     * Extra to disable the download button in the overflow menu.
+     */
+    public static final String EXTRA_DISABLE_DOWNLOAD_BUTTON =
+            "org.chromium.chrome.browser.customtabs.EXTRA_DISABLE_DOWNLOAD_BUTTON";
+
+    /**
+     * Extra to favor sending initial urls to external handler apps, if possible.
+     *
+     * A Custom Tab Intent from a Custom Tab session will always have the package set,
+     * so the Intent will always be to the browser. This extra can be used to allow
+     * the initial Intent navigation chain to leave the browser.
+     */
+    public static final String EXTRA_SEND_TO_EXTERNAL_DEFAULT_HANDLER =
+            "android.support.customtabs.extra.SEND_TO_EXTERNAL_HANDLER";
+
+    /**
+     * Extra that specifies the target locale the Translate UI should be triggered with.
+     * The locale is represented as a well-formed IETF BCP 47 language tag.
+     */
+    public static final String EXTRA_TRANSLATE_LANGUAGE_TAG =
+            "androidx.browser.customtabs.extra.TRANSLATE_LANGUAGE_TAG";
+
+    /**
+     * Extra tha disables interactions with the background app when a Partial Custom Tab
+     * is launched.
+     */
+    public static final String EXTRA_DISABLE_BACKGROUND_INTERACTION =
+            "androidx.browser.customtabs.extra.DISABLE_BACKGROUND_INTERACTION";
+
+    /**
+     * Extra that specifies the {@link PendingIntent} to be sent when the user swipes up from
+     * the secondary (bottom) toolbar.
+     */
+    public static final String EXTRA_SECONDARY_TOOLBAR_SWIPE_UP_GESTURE =
+            "androidx.browser.customtabs.extra.SECONDARY_TOOLBAR_SWIPE_UP_GESTURE";
 
     /**
      * Don't show any title. Shows only the domain.
@@ -389,6 +435,146 @@ public final class CustomTabsIntent {
             "androidx.browser.customtabs.extra.ACTIVITY_HEIGHT_RESIZE_BEHAVIOR";
 
     /**
+     * Extra that, if set, makes the Custom Tab Activity's width to be x pixels, the Custom Tab
+     * will behave as a side sheet. A minimum width will be enforced, thus the width will be
+     * clamped as such (based on the window size classes as defined by the Android documentation):
+     * <ul>
+     *     <li>Compact, window width <600dp - a side sheet will not be displayed.</li>
+     *     <li>Medium, window width >=600dp and <840 dp - between 50% and 100% of the window's
+     *     width.</li>
+     *     <li>Expanded, window width >=840dp - between 33% and 100% of the window's width.</li>
+     * </ul>
+     *
+     * <a
+     * href="https://developer.android.com/guide/topics/large-screens/support-different-screen-sizes#window_size_classes">Android
+     * Size Classes</a>
+     */
+    public static final String EXTRA_INITIAL_ACTIVITY_WIDTH_PX =
+            "androidx.browser.customtabs.extra.INITIAL_ACTIVITY_WIDTH_PX";
+
+    /** Extra that enables the maximization button on the side sheet Custom Tab toolbar. */
+    public static final String EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION =
+            "androidx.browser.customtabs.extra.ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION";
+
+    /**
+     * Extra that, if set, allows you to set a custom breakpoint for the Custom Tab -
+     * a value, x, for which if the screen's width is higher than x, the Custom Tab will behave as a
+     * side sheet (if {@link CustomTabsIntent#EXTRA_INITIAL_ACTIVITY_WIDTH_PX} is set), otherwise
+     * it will behave as a bottom sheet (if
+     * {@link CustomTabsIntent#EXTRA_INITIAL_ACTIVITY_HEIGHT_PX} is set).
+     *
+     * If this Intent Extra is not set the browser implementation should set as default value
+     * 840dp. If x is set to <600dp the browser implementation should default it to 600dp.
+     */
+    public static final String EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP =
+            "androidx.browser.customtabs.extra.ACTIVITY_SIDE_SHEET_BREAKPOINT_DP";
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef({ACTIVITY_SIDE_SHEET_POSITION_DEFAULT, ACTIVITY_SIDE_SHEET_POSITION_START,
+            ACTIVITY_SIDE_SHEET_POSITION_END})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ActivitySideSheetPosition {}
+
+    /**
+     * Applies the default position for the Custom Tab Activity when it behaves as a
+     * side sheet. Same as {@link #ACTIVITY_SIDE_SHEET_POSITION_END}.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_POSITION_DEFAULT = 0;
+
+    /** Position the side sheet on the start side of the screen. */
+    public static final int ACTIVITY_SIDE_SHEET_POSITION_START = 1;
+
+    /** Position the side sheet on the end side of the screen. */
+    public static final int ACTIVITY_SIDE_SHEET_POSITION_END = 2;
+
+    /**
+     * Maximum value for the ACTIVITY_SIDE_SHEET_POSITION_* configuration options. For validation
+     * purposes only.
+     */
+    private static final int ACTIVITY_SIDE_SHEET_POSITION_MAX = 2;
+
+    /**
+     * Extra that specifies the position of the side sheet. By default it is set to
+     * {@link #ACTIVITY_SIDE_SHEET_POSITION_END}, which is on the right side in left-to-right
+     * layout.
+     */
+    public static final String EXTRA_ACTIVITY_SIDE_SHEET_POSITION =
+            "androidx.browser.customtabs.extra.ACTIVITY_SIDE_SHEET_POSITION";
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef({ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DEFAULT, ACTIVITY_SIDE_SHEET_DECORATION_TYPE_NONE,
+            ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW,
+            ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DIVIDER})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ActivitySideSheetDecorationType {}
+    /**
+     * Side sheet's default decoration type. Same as
+     * {@link CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW}.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DEFAULT = 0;
+    /**
+     * Side sheet with no decorations - the activity is not bordered by any shadow or divider line.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_DECORATION_TYPE_NONE = 1;
+    /**
+     * Side sheet with shadow decoration - the activity is bordered by a shadow effect.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW = 2;
+    /**
+     * Side sheet with a divider line - the activity is bordered by a thin opaque line.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DIVIDER = 3;
+
+    /**
+     * Maximum value for the ACTIVITY_SIDE_SHEET_DECORATION_TYPE_* configuration options. For
+     * validation purposes only.
+     */
+    private static final int ACTIVITY_SIDE_SHEET_DECORATION_TYPE_MAX = 3;
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef({ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_DEFAULT,
+            ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_NONE,
+            ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ActivitySideSheetRoundedCornersPosition {}
+
+    /**
+     * Side sheet's default rounded corner configuration. Same as
+     * {@link CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_NONE}
+     */
+    public static final int ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_DEFAULT = 0;
+    /**
+     * Side sheet with no rounded corners.
+     */
+    public static final int ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_NONE = 1;
+    /**
+     * Side sheet with the inner top corner rounded (if positioned on the right of the screen, this
+     * will be the top left corner)
+     */
+    public static final int ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP = 2;
+
+    /**
+     * Maximum value for the ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_* configuration options.
+     * For validation purposes only.
+     */
+    private static final int ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_MAX = 2;
+
+    /**
+     * Extra that, if set, allows you to set how you want to distinguish the Partial Custom Tab
+     * side sheet from the rest of the display. Options include shadow, a divider line, or no
+     * decoration.
+     */
+    public static final String EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE =
+            "androidx.browser.customtabs.extra.ACTIVITY_SIDE_SHEET_DECORATION_TYPE";
+
+    /**
+     *  Extra that, if set, allows you to choose which side sheet corners should be rounded, if any
+     *  at all. Options include top or none.
+     */
+    public static final String EXTRA_ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION =
+            "androidx.browser.customtabs.extra.ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION";
+
+    /**
      * Extra that sets the toolbar's top corner radii in dp. This will only have
      * effect if the custom tab is behaving as a bottom sheet. Currently, this is capped at 16dp.
      */
@@ -433,6 +619,24 @@ public final class CustomTabsIntent {
             "androidx.browser.customtabs.extra.NAVIGATION_BAR_DIVIDER_COLOR";
 
     /**
+     * Extra that specifies the {@link Network} to be bound when launching a Custom Tab or using
+     * mayLaunchUrl.
+     * See {@link Builder#setNetwork}.
+     */
+    public static final String EXTRA_NETWORK = "androidx.browser.customtabs.extra.NETWORK";
+
+    /** Extra that enables ephemeral browsing within the Custom Tab. */
+    public static final String EXTRA_ENABLE_EPHEMERAL_BROWSING =
+            "androidx.browser.customtabs.extra.ENABLE_EPHEMERAL_BROWSING";
+
+    /**
+     * Extra that enables the close button and shows it in the toolbar. The close button is enabled
+     * by default, this extra provides a way to disable the close button in the toolbar.
+     */
+    public static final String EXTRA_CLOSE_BUTTON_ENABLED =
+            "androidx.browser.customtabs.extra.CLOSE_BUTTON_ENABLED";
+
+    /**
      * Key that specifies the unique ID for an action button. To make a button to show on the
      * toolbar, use {@link #TOOLBAR_ACTION_BUTTON_ID} as its ID.
      */
@@ -461,12 +665,12 @@ public final class CustomTabsIntent {
     /**
      * An {@link Intent} used to start the Custom Tabs Activity.
      */
-    @NonNull public final Intent intent;
+    public final @NonNull Intent intent;
 
     /**
      * A {@link Bundle} containing the start animation for the Custom Tabs Activity.
      */
-    @Nullable public final Bundle startAnimationBundle;
+    public final @Nullable Bundle startAnimationBundle;
 
     /**
      * Convenience method to launch a Custom Tabs Activity.
@@ -491,13 +695,14 @@ public final class CustomTabsIntent {
         private final Intent mIntent = new Intent(Intent.ACTION_VIEW);
         private final CustomTabColorSchemeParams.Builder mDefaultColorSchemeBuilder =
                 new CustomTabColorSchemeParams.Builder();
-        @Nullable private ArrayList<Bundle> mMenuItems;
-        @Nullable private Bundle mStartAnimationBundle;
-        @Nullable private ArrayList<Bundle> mActionButtons;
-        @Nullable private SparseArray<Bundle> mColorSchemeParamBundles;
-        @Nullable private Bundle mDefaultColorSchemeBundle;
+        private @Nullable ArrayList<Bundle> mMenuItems;
+        private @Nullable ActivityOptions mActivityOptions;
+        private @Nullable ArrayList<Bundle> mActionButtons;
+        private @Nullable SparseArray<Bundle> mColorSchemeParamBundles;
+        private @Nullable Bundle mDefaultColorSchemeBundle;
         @ShareState private int mShareState = SHARE_STATE_DEFAULT;
         private boolean mInstantAppsEnabled = true;
+        private boolean mShareIdentity;
 
         /**
          * Creates a {@link CustomTabsIntent.Builder} object associated with no
@@ -526,8 +731,7 @@ public final class CustomTabsIntent {
          * Guarantees that the {@link Intent} will be sent to the same component as the one the
          * session is associated with.
          */
-        @NonNull
-        public Builder setSession(@NonNull CustomTabsSession session) {
+        public @NonNull Builder setSession(@NonNull CustomTabsSession session) {
             mIntent.setPackage(session.getComponentName().getPackageName());
             setSessionParameters(session.getBinder(), session.getId());
             return this;
@@ -538,9 +742,9 @@ public final class CustomTabsIntent {
          * Overrides the effect of {@link #setSession}.
          *
          */
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @NonNull
-        public Builder setPendingSession(@NonNull CustomTabsSession.PendingSession session) {
+        @ExperimentalPendingSession
+        public @NonNull Builder setPendingSession(
+                CustomTabsSession.@NonNull PendingSession session) {
             setSessionParameters(null, session.getId());
             return this;
         }
@@ -548,7 +752,7 @@ public final class CustomTabsIntent {
         private void setSessionParameters(@Nullable IBinder binder,
                 @Nullable PendingIntent sessionId) {
             Bundle bundle = new Bundle();
-            BundleCompat.putBinder(bundle, EXTRA_SESSION, binder);
+            bundle.putBinder(EXTRA_SESSION, binder);
             if (sessionId != null) {
                 bundle.putParcelable(EXTRA_SESSION_ID, sessionId);
             }
@@ -571,8 +775,7 @@ public final class CustomTabsIntent {
          * @deprecated Use {@link #setDefaultColorSchemeParams} instead.
          */
         @Deprecated
-        @NonNull
-        public Builder setToolbarColor(@ColorInt int color) {
+        public @NonNull Builder setToolbarColor(@ColorInt int color) {
             mDefaultColorSchemeBuilder.setToolbarColor(color);
             return this;
         }
@@ -582,8 +785,7 @@ public final class CustomTabsIntent {
          * @deprecated Use {@link #setUrlBarHidingEnabled(boolean)} instead.
          */
         @Deprecated
-        @NonNull
-        public Builder enableUrlBarHiding() {
+        public @NonNull Builder enableUrlBarHiding() {
             mIntent.putExtra(EXTRA_ENABLE_URLBAR_HIDING, true);
             return this;
         }
@@ -593,8 +795,7 @@ public final class CustomTabsIntent {
          *
          * @param enabled Whether url bar hiding is enabled.
          */
-        @NonNull
-        public Builder setUrlBarHidingEnabled(boolean enabled) {
+        public @NonNull Builder setUrlBarHidingEnabled(boolean enabled) {
             mIntent.putExtra(EXTRA_ENABLE_URLBAR_HIDING, enabled);
             return this;
         }
@@ -602,10 +803,12 @@ public final class CustomTabsIntent {
         /**
          * Sets the Close button icon for the custom tab.
          *
+         * If the close button is disabled (see {@link #setCloseButtonEnabled(boolean)}), then
+         * calling this function has no effect.
+         *
          * @param icon The icon {@link Bitmap}
          */
-        @NonNull
-        public Builder setCloseButtonIcon(@NonNull Bitmap icon) {
+        public @NonNull Builder setCloseButtonIcon(@NonNull Bitmap icon) {
             mIntent.putExtra(EXTRA_CLOSE_BUTTON_ICON, icon);
             return this;
         }
@@ -615,8 +818,7 @@ public final class CustomTabsIntent {
          *
          * @param showTitle Whether the title should be shown.
          */
-        @NonNull
-        public Builder setShowTitle(boolean showTitle) {
+        public @NonNull Builder setShowTitle(boolean showTitle) {
             mIntent.putExtra(EXTRA_TITLE_VISIBILITY_STATE,
                     showTitle ? SHOW_PAGE_TITLE : NO_TITLE);
             return this;
@@ -628,8 +830,8 @@ public final class CustomTabsIntent {
          * @param label Menu label.
          * @param pendingIntent Pending intent delivered when the menu item is clicked.
          */
-        @NonNull
-        public Builder addMenuItem(@NonNull String label, @NonNull PendingIntent pendingIntent) {
+        public @NonNull Builder addMenuItem(@NonNull String label,
+                @NonNull PendingIntent pendingIntent) {
             if (mMenuItems == null) mMenuItems = new ArrayList<>();
             Bundle bundle = new Bundle();
             bundle.putString(KEY_MENU_ITEM_TITLE, label);
@@ -644,8 +846,7 @@ public final class CustomTabsIntent {
          * {@link CustomTabsIntent#SHARE_STATE_ON}.
          */
         @Deprecated
-        @NonNull
-        public Builder addDefaultShareMenuItem() {
+        public @NonNull Builder addDefaultShareMenuItem() {
             setShareState(SHARE_STATE_ON);
             return this;
         }
@@ -659,8 +860,7 @@ public final class CustomTabsIntent {
          * based on {@code enabled}.
          */
         @Deprecated
-        @NonNull
-        public Builder setDefaultShareMenuItemEnabled(boolean enabled) {
+        public @NonNull Builder setDefaultShareMenuItemEnabled(boolean enabled) {
             if (enabled) {
                 setShareState(SHARE_STATE_ON);
             } else {
@@ -678,8 +878,7 @@ public final class CustomTabsIntent {
          * @see CustomTabsIntent#SHARE_STATE_ON
          * @see CustomTabsIntent#SHARE_STATE_OFF
          */
-        @NonNull
-        public Builder setShareState(@ShareState int shareState) {
+        public @NonNull Builder setShareState(@ShareState int shareState) {
             if (shareState < 0 || shareState > SHARE_STATE_MAX) {
                 throw new IllegalArgumentException("Invalid value for the shareState argument");
             }
@@ -710,8 +909,7 @@ public final class CustomTabsIntent {
          *
          * @see CustomTabsIntent.Builder#addToolbarItem(int, Bitmap, String, PendingIntent)
          */
-        @NonNull
-        public Builder setActionButton(@NonNull Bitmap icon, @NonNull String description,
+        public @NonNull Builder setActionButton(@NonNull Bitmap icon, @NonNull String description,
                 @NonNull PendingIntent pendingIntent, boolean shouldTint) {
             Bundle bundle = new Bundle();
             bundle.putInt(KEY_ID, TOOLBAR_ACTION_BUTTON_ID);
@@ -729,8 +927,7 @@ public final class CustomTabsIntent {
          * @see CustomTabsIntent.Builder#setActionButton(
          * Bitmap, String, PendingIntent, boolean)
          */
-        @NonNull
-        public Builder setActionButton(@NonNull Bitmap icon, @NonNull String description,
+        public @NonNull Builder setActionButton(@NonNull Bitmap icon, @NonNull String description,
                 @NonNull PendingIntent pendingIntent) {
             return setActionButton(icon, description, pendingIntent, false);
         }
@@ -754,9 +951,9 @@ public final class CustomTabsIntent {
          * CustomTabsIntent.Builder#setSecondaryToolbarViews(RemoteViews, int[], PendingIntent).
          */
         @Deprecated
-        @NonNull
-        public Builder addToolbarItem(int id, @NonNull Bitmap icon, @NonNull String description,
-                @NonNull PendingIntent pendingIntent) throws IllegalStateException {
+        public @NonNull Builder addToolbarItem(int id, @NonNull Bitmap icon,
+                @NonNull String description, @NonNull PendingIntent pendingIntent)
+                throws IllegalStateException {
             if (mActionButtons == null) {
                 mActionButtons = new ArrayList<>();
             }
@@ -782,8 +979,7 @@ public final class CustomTabsIntent {
          * @deprecated Use {@link #setDefaultColorSchemeParams} instead.
          */
         @Deprecated
-        @NonNull
-        public Builder setSecondaryToolbarColor(@ColorInt int color) {
+        public @NonNull Builder setSecondaryToolbarColor(@ColorInt int color) {
             mDefaultColorSchemeBuilder.setSecondaryToolbarColor(color);
             return this;
         }
@@ -802,8 +998,7 @@ public final class CustomTabsIntent {
          * @deprecated Use {@link #setDefaultColorSchemeParams} instead.
          */
         @Deprecated
-        @NonNull
-        public Builder setNavigationBarColor(@ColorInt int color) {
+        public @NonNull Builder setNavigationBarColor(@ColorInt int color) {
             mDefaultColorSchemeBuilder.setNavigationBarColor(color);
             return this;
         }
@@ -818,8 +1013,7 @@ public final class CustomTabsIntent {
          * @deprecated Use {@link #setDefaultColorSchemeParams} instead.
          */
         @Deprecated
-        @NonNull
-        public Builder setNavigationBarDividerColor(@ColorInt int color) {
+        public @NonNull Builder setNavigationBarDividerColor(@ColorInt int color) {
             mDefaultColorSchemeBuilder.setNavigationBarDividerColor(color);
             return this;
         }
@@ -839,12 +1033,23 @@ public final class CustomTabsIntent {
          * @see CustomTabsIntent#EXTRA_REMOTEVIEWS_PENDINGINTENT
          * @see CustomTabsIntent#EXTRA_REMOTEVIEWS_CLICKED_ID
          */
-        @NonNull
-        public Builder setSecondaryToolbarViews(@NonNull RemoteViews remoteViews,
-                @Nullable int[] clickableIDs, @Nullable PendingIntent pendingIntent) {
+        public @NonNull Builder setSecondaryToolbarViews(@NonNull RemoteViews remoteViews,
+                int @Nullable [] clickableIDs, @Nullable PendingIntent pendingIntent) {
             mIntent.putExtra(EXTRA_REMOTEVIEWS, remoteViews);
             mIntent.putExtra(EXTRA_REMOTEVIEWS_VIEW_IDS, clickableIDs);
             mIntent.putExtra(EXTRA_REMOTEVIEWS_PENDINGINTENT, pendingIntent);
+            return this;
+        }
+
+        /**
+         * Sets the {@link PendingIntent} to be sent when the user swipes up from
+         * the secondary (bottom) toolbar.
+         * @param pendingIntent The {@link PendingIntent} that will be sent when
+         *                      the user swipes up from the secondary toolbar.
+         */
+        public @NonNull Builder setSecondaryToolbarSwipeUpGesture(
+                @Nullable PendingIntent pendingIntent) {
+            mIntent.putExtra(EXTRA_SECONDARY_TOOLBAR_SWIPE_UP_GESTURE, pendingIntent);
             return this;
         }
 
@@ -853,8 +1058,7 @@ public final class CustomTabsIntent {
 
          * @param enabled Whether Instant Apps should be enabled.
          */
-        @NonNull
-        public Builder setInstantAppsEnabled(boolean enabled) {
+        public @NonNull Builder setInstantAppsEnabled(boolean enabled) {
             mInstantAppsEnabled = enabled;
             return this;
         }
@@ -866,12 +1070,16 @@ public final class CustomTabsIntent {
          * @param enterResId Resource ID of the "enter" animation for the browser.
          * @param exitResId Resource ID of the "exit" animation for the application.
          */
-        @NonNull
         @SuppressWarnings("NullAway") // TODO: b/141869399
-        public Builder setStartAnimations(
+        public @NonNull Builder setStartAnimations(
                 @NonNull Context context, @AnimRes int enterResId, @AnimRes int exitResId) {
-            mStartAnimationBundle = ActivityOptionsCompat.makeCustomAnimation(
-                    context, enterResId, exitResId).toBundle();
+            // We use ActivityOptions, not ActivityOptionsCompat, to build the start activity
+            // options, since we might set another option (share identity, which is not
+            // available yet via ActivityOptionsCompat) before turning it to a Bundle.
+            // TODO(b/296463161): Update androidx.core.core lib to support the new option via
+            // ActivityOptionsCompat and use it here instead of ActivityOptions.
+            mActivityOptions = ActivityOptions.makeCustomAnimation(
+                    context, enterResId, exitResId);
             return this;
         }
 
@@ -882,8 +1090,7 @@ public final class CustomTabsIntent {
          * @param enterResId Resource ID of the "enter" animation for the application.
          * @param exitResId Resource ID of the "exit" animation for the browser.
          */
-        @NonNull
-        public Builder setExitAnimations(
+        public @NonNull Builder setExitAnimations(
                 @NonNull Context context, @AnimRes int enterResId, @AnimRes int exitResId) {
             Bundle bundle = ActivityOptionsCompat.makeCustomAnimation(
                     context, enterResId, exitResId).toBundle();
@@ -899,8 +1106,7 @@ public final class CustomTabsIntent {
          * @see CustomTabsIntent#COLOR_SCHEME_LIGHT
          * @see CustomTabsIntent#COLOR_SCHEME_DARK
          */
-        @NonNull
-        public Builder setColorScheme(@ColorScheme int colorScheme) {
+        public @NonNull Builder setColorScheme(@ColorScheme int colorScheme) {
             if (colorScheme < 0 || colorScheme > COLOR_SCHEME_MAX) {
                 throw new IllegalArgumentException("Invalid value for the colorScheme argument");
             }
@@ -940,8 +1146,7 @@ public final class CustomTabsIntent {
          *                    a behavior rather than a particular color scheme.
          * @param params An instance of {@link CustomTabColorSchemeParams}.
          */
-        @NonNull
-        public Builder setColorSchemeParams(@ColorScheme int colorScheme,
+        public @NonNull Builder setColorSchemeParams(@ColorScheme int colorScheme,
                 @NonNull CustomTabColorSchemeParams params) {
             if (colorScheme < 0 || colorScheme > COLOR_SCHEME_MAX
                     || colorScheme == COLOR_SCHEME_SYSTEM) {
@@ -963,15 +1168,17 @@ public final class CustomTabsIntent {
          *
          * @param params An instance of {@link CustomTabColorSchemeParams}.
          */
-        @NonNull
-        public Builder setDefaultColorSchemeParams(@NonNull CustomTabColorSchemeParams params) {
+        public @NonNull Builder setDefaultColorSchemeParams(
+                @NonNull CustomTabColorSchemeParams params) {
             mDefaultColorSchemeBundle = params.toBundle();
             return this;
         }
 
         /**
          * Sets the Custom Tab Activity's initial height in pixels and the desired resize behavior.
-         * The Custom Tab will behave as a bottom sheet.
+         * The Custom Tab will behave as a bottom sheet if the screen's width is smaller than
+         * the breakpoint value set by
+         * {@link CustomTabsIntent.Builder#setActivitySideSheetBreakpointDp(int)}.
          *
          * @param initialHeightPx The Custom Tab Activity's initial height in pixels.
          * @param activityHeightResizeBehavior Desired height behavior.
@@ -981,8 +1188,8 @@ public final class CustomTabsIntent {
          * @see CustomTabsIntent#ACTIVITY_HEIGHT_ADJUSTABLE
          * @see CustomTabsIntent#ACTIVITY_HEIGHT_FIXED
          */
-        @NonNull
-        public Builder setInitialActivityHeightPx(@Dimension(unit = PX) int initialHeightPx,
+        public @NonNull Builder setInitialActivityHeightPx(
+                @Dimension(unit = PX) int initialHeightPx,
                 @ActivityHeightResizeBehavior int activityHeightResizeBehavior) {
             if (initialHeightPx <= 0) {
                 throw new IllegalArgumentException("Invalid value for the initialHeightPx "
@@ -1001,13 +1208,122 @@ public final class CustomTabsIntent {
 
         /**
          * Sets the Custom Tab Activity's initial height in pixels with default resize behavior.
-         * The Custom Tab will behave as a bottom sheet.
+         * The Custom Tab will behave as a bottom sheet if the screen's width is smaller than
+         * the breakpoint value set by
+         * {@link CustomTabsIntent.Builder#setActivitySideSheetBreakpointDp(int)}.
          *
          * @see CustomTabsIntent.Builder#setInitialActivityHeightPx(int, int)
          */
-        @NonNull
-        public Builder setInitialActivityHeightPx(@Dimension(unit = PX) int initialHeightPx) {
+        public @NonNull Builder setInitialActivityHeightPx(
+                @Dimension(unit = PX) int initialHeightPx) {
             return setInitialActivityHeightPx(initialHeightPx, ACTIVITY_HEIGHT_DEFAULT);
+        }
+
+        /**
+         * Sets the Custom Tab Activity's initial width in pixels. The Custom Tab will behave as
+         * a side sheet if the screen's width is bigger than the breakpoint value set by
+         * {@link CustomTabsIntent.Builder#setActivitySideSheetBreakpointDp(int)} and the screen is
+         * big enough, see doc for {@link CustomTabsIntent#EXTRA_INITIAL_ACTIVITY_WIDTH_PX}.
+         * @param initialWidthPx  The Custom Tab Activity's initial width in pixels.
+         * @see CustomTabsIntent#EXTRA_INITIAL_ACTIVITY_WIDTH_PX
+         */
+        public @NonNull Builder setInitialActivityWidthPx(
+                @Dimension(unit = PX) int initialWidthPx) {
+            if (initialWidthPx <= 0) {
+                throw new IllegalArgumentException("Invalid value for the initialWidthPx "
+                        + "argument");
+            }
+
+            mIntent.putExtra(EXTRA_INITIAL_ACTIVITY_WIDTH_PX, initialWidthPx);
+            return this;
+        }
+
+        /**
+         * Sets the Custom Tab Activity's transition breakpoint in DP.
+         * @param breakpointDp The Custom Tab Activity's breakpoint in DP.
+         * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP
+         */
+        public @NonNull Builder setActivitySideSheetBreakpointDp(
+                @Dimension(unit = DP) int breakpointDp) {
+            if (breakpointDp <= 0) {
+                throw new IllegalArgumentException("Invalid value for the initialWidthPx "
+                        + "argument");
+            }
+
+            mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP, breakpointDp);
+            return this;
+        }
+
+        /**
+         * Enables or disables the maximization button for when the Custom Tab Activity is acting
+         * as a side sheet. The button is disabled by default.
+         * @param enabled Whether the maximization button is enabled.
+         * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION
+         */
+        public @NonNull Builder setActivitySideSheetMaximizationEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION, enabled);
+            return this;
+        }
+
+        /**
+         * Sets the Custom Tab Activity's position when acting as a side sheet.
+         * @param position The Custom Tab Activity's position.
+         * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_POSITION
+         * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_DEFAULT
+         * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_START
+         * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_END
+         */
+        public @NonNull Builder setActivitySideSheetPosition(
+                @ActivitySideSheetPosition int position) {
+            if (position < 0 || position > ACTIVITY_SIDE_SHEET_POSITION_MAX) {
+                throw new IllegalArgumentException(
+                        "Invalid value for the sideSheetPosition argument");
+            }
+
+            mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_POSITION, position);
+            return this;
+        }
+
+        /**
+         * Sets the Custom Tab Activity's decoration type that will be displayed when it is
+         * acting as a side sheet.
+         * @param decorationType The Custom Tab Activity's decoration type.
+         * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DEFAULT
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_NONE
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DIVIDER
+         */
+        public @NonNull Builder setActivitySideSheetDecorationType(
+                @ActivitySideSheetDecorationType int decorationType) {
+            if (decorationType < 0 || decorationType > ACTIVITY_SIDE_SHEET_DECORATION_TYPE_MAX) {
+                throw new IllegalArgumentException("Invalid value for the decorationType argument");
+            }
+
+            mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE, decorationType);
+            return this;
+        }
+
+        /**
+         * Sets the Custom Tab Activity's rounded corners position when it is acting as a
+         * side sheet.
+         * @param roundedCornersPosition The Custom Tab Activity's rounded corners position.
+         * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_DEFAULT
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_NONE
+         * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP
+         */
+        public @NonNull Builder setActivitySideSheetRoundedCornersPosition(
+                @ActivitySideSheetDecorationType int roundedCornersPosition) {
+            if (roundedCornersPosition < 0
+                    || roundedCornersPosition > ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_MAX) {
+                throw new IllegalArgumentException("Invalid value for the roundedCornersPosition./"
+                        + " argument");
+            }
+
+            mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION,
+                    roundedCornersPosition);
+            return this;
         }
 
         /**
@@ -1016,8 +1332,7 @@ public final class CustomTabsIntent {
          * @param cornerRadiusDp The toolbar's top corner radii in dp.
          * @see CustomTabsIntent#EXTRA_TOOLBAR_CORNER_RADIUS_DP
          */
-        @NonNull
-        public Builder setToolbarCornerRadiusDp(@Dimension(unit = DP) int cornerRadiusDp) {
+        public @NonNull Builder setToolbarCornerRadiusDp(@Dimension(unit = DP) int cornerRadiusDp) {
             if (cornerRadiusDp < 0 || cornerRadiusDp > MAX_TOOLBAR_CORNER_RADIUS_DP) {
                 throw new IllegalArgumentException("Invalid value for the cornerRadiusDp argument");
             }
@@ -1029,13 +1344,15 @@ public final class CustomTabsIntent {
         /**
          * Sets the position of the close button.
          *
+         * If the close button is disabled (see {@link #setCloseButtonEnabled(boolean)}), then
+         * calling this function has no effect.
+         *
          * @param position The desired position.
          * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_DEFAULT
          * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_START
          * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_END
          */
-        @NonNull
-        public Builder setCloseButtonPosition(@CloseButtonPosition int position) {
+        public @NonNull Builder setCloseButtonPosition(@CloseButtonPosition int position) {
             if (position < 0 || position > CLOSE_BUTTON_POSITION_MAX) {
                 throw new IllegalArgumentException("Invalid value for the position argument");
             }
@@ -1045,11 +1362,130 @@ public final class CustomTabsIntent {
         }
 
         /**
+         * Enables or disables the bookmarks button in the overflow menu. The button
+         * is enabled by default.
+         *
+         * @param enabled Whether the start button is enabled.
+         * @see CustomTabsIntent#EXTRA_DISABLE_BOOKMARKS_BUTTON
+         */
+        public @NonNull Builder setBookmarksButtonEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_DISABLE_BOOKMARKS_BUTTON, !enabled);
+            return this;
+        }
+
+        /**
+         * Enables or disables the download button in the overflow menu. The button
+         * is enabled by default.
+         *
+         * @param enabled Whether the download button is enabled.
+         * @see CustomTabsIntent#EXTRA_DISABLE_DOWNLOAD_BUTTON
+         */
+        public @NonNull Builder setDownloadButtonEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_DISABLE_DOWNLOAD_BUTTON, !enabled);
+            return this;
+        }
+
+        /**
+         * Enables sending initial urls to external handler apps, if possible.
+         *
+         * @param enabled Whether to send urls to external handler.
+         * @see CustomTabsIntent#EXTRA_SEND_TO_EXTERNAL_DEFAULT_HANDLER
+         */
+        public @NonNull Builder setSendToExternalDefaultHandlerEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_SEND_TO_EXTERNAL_DEFAULT_HANDLER, enabled);
+            return this;
+        }
+
+        /**
+         * Specifies the target locale the Translate UI should be triggered with.
+         *
+         * @param locale {@link Locale} object that represents the target locale.
+         * @see CustomTabsIntent#EXTRA_TRANSLATE_LANGUAGE_TAG
+         */
+        public @NonNull Builder setTranslateLocale(@NonNull Locale locale) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                setLanguageTag(locale);
+            }
+            return this;
+        }
+
+        /**
+         * Enables the capability of the interaction with background.
+         *
+         * Enables the interactions with the background app when a Partial Custom Tab is launched.
+         *
+         * @param enabled Whether the background interaction is enabled.
+         * @see CustomTabsIntent#EXTRA_DISABLE_BACKGROUND_INTERACTION
+         */
+        public @NonNull Builder setBackgroundInteractionEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, !enabled);
+            return this;
+        }
+
+        /**
+         * Allow Custom Tabs to obtain the caller's identity i.e. package name.
+         * @param enabled Whether the identity sharing is enabled.
+         */
+        public @NonNull Builder setShareIdentityEnabled(boolean enabled) {
+            mShareIdentity = enabled;
+            return this;
+        }
+
+        /**
+         * Sets the target network {@link Network} to bind when launching a custom tab.
+         *
+         * This API allows the caller to specify the target network to bind when launching a URL
+         * via Custom Tabs, e.g. may want to open a custom tab over a Wi-Fi network, while the
+         * default network is a cellular connection. All URLRequests created in the future via this
+         * tab will be bound to {@link Network}.
+         *
+         * If the browser does not support this feature it will be ignored and a Custom Tab will
+         * be opened using the default network. Check the support by calling {@link
+         * CustomTabsClient#isSetNetworkSupported}.
+         *
+         * @param network {@link Network} the target network to be bound.
+         * @see CustomTabsIntent#EXTRA_NETWORK
+         */
+        public @NonNull Builder setNetwork(@NonNull Network network) {
+            mIntent.putExtra(EXTRA_NETWORK, network);
+            return this;
+        }
+
+        /**
+         * Sets whether to enable ephemeral browsing within the Custom Tab. If ephemeral browsing is
+         * enabled, and the browser supports it, the Custom Tab does not share cookies or other data
+         * with the browser.
+         *
+         *
+         * @param enabled Whether ephemeral browsing is enabled.
+         * @see CustomTabsIntent#EXTRA_ENABLE_EPHEMERAL_BROWSING
+         */
+        @ExperimentalEphemeralBrowsing
+        public @NonNull Builder setEphemeralBrowsingEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_ENABLE_EPHEMERAL_BROWSING, enabled);
+            return this;
+        }
+
+        /**
+         * Sets whether to enable the close button for custom tab.
+         *
+         * The close button is enabled by default. If the close button is disabled, calls
+         * to {@link #setCloseButtonIcon(Bitmap)} or {@link #setCloseButtonPosition(int)}
+         * have no effect.
+         *
+         * @param enabled Whether the close button is enabled.
+         * @see CustomTabsIntent#EXTRA_CLOSE_BUTTON_ENABLED
+         */
+        public @NonNull Builder setCloseButtonEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_CLOSE_BUTTON_ENABLED, enabled);
+            return this;
+        }
+
+        /**
          * Combines all the options that have been set and returns a new {@link CustomTabsIntent}
          * object.
          */
-        @NonNull
-        public CustomTabsIntent build() {
+        public @NonNull CustomTabsIntent build() {
             if (!mIntent.hasExtra(EXTRA_SESSION)) {
                 // The intent must have EXTRA_SESSION, even if it is null.
                 setSessionParameters(null, null);
@@ -1079,7 +1515,17 @@ public final class CustomTabsIntent {
                 setCurrentLocaleAsDefaultAcceptLanguage();
             }
 
-            return new CustomTabsIntent(mIntent, mStartAnimationBundle);
+            Bundle bundle = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                setShareIdentityEnabled();
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                setAllowPassThroughOnTouchOutside();
+            }
+            if (mActivityOptions != null) {
+                bundle = mActivityOptions.toBundle();
+            }
+            return new CustomTabsIntent(mIntent, bundle);
         }
 
         /**
@@ -1098,6 +1544,36 @@ public final class CustomTabsIntent {
                 }
             }
         }
+
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        private void setLanguageTag(@NonNull Locale locale) {
+            Api21Impl.setLanguageTag(mIntent, locale);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        private void setShareIdentityEnabled() {
+            if (mActivityOptions == null) {
+                mActivityOptions = Api23Impl.makeBasicActivityOptions();
+            }
+            Api34Impl.setShareIdentityEnabled(mActivityOptions, mShareIdentity);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.BAKLAVA)
+        private void setAllowPassThroughOnTouchOutside() {
+            if (mActivityOptions == null) {
+                mActivityOptions = Api23Impl.makeBasicActivityOptions();
+            }
+            boolean enabled = isBackgroundInteractionEnabled(mIntent);
+            Api36Impl.setAllowPassThroughOnTouchOutside(mActivityOptions, enabled);
+        }
+    }
+
+    /**
+     * Returns whether ephemeral browsing is enabled.
+     */
+    @ExperimentalEphemeralBrowsing
+    public boolean isEphemeralBrowsingEnabled() {
+        return intent.getBooleanExtra(EXTRA_ENABLE_EPHEMERAL_BROWSING, false);
     }
 
     /**
@@ -1116,8 +1592,7 @@ public final class CustomTabsIntent {
      * @param intent The intent to modify for always showing browser UI.
      * @return The same intent with the necessary flags and extras added.
      */
-    @NonNull
-    public static Intent setAlwaysUseBrowserUI(@Nullable Intent intent) {
+    public static @NonNull Intent setAlwaysUseBrowserUI(@Nullable Intent intent) {
         if (intent == null) intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra(EXTRA_USER_OPT_OUT_FROM_CUSTOM_TABS, true);
@@ -1146,9 +1621,8 @@ public final class CustomTabsIntent {
      *                    {@link #COLOR_SCHEME_SYSTEM}.
      * @return An instance of {@link CustomTabColorSchemeParams} with retrieved parameters.
      */
-    @NonNull
     @SuppressWarnings("deprecation")
-    public static CustomTabColorSchemeParams getColorSchemeParams(@NonNull Intent intent,
+    public static @NonNull CustomTabColorSchemeParams getColorSchemeParams(@NonNull Intent intent,
             @ColorScheme int colorScheme) {
         if (colorScheme < 0 || colorScheme > COLOR_SCHEME_MAX
                 || colorScheme == COLOR_SCHEME_SYSTEM) {
@@ -1203,6 +1677,88 @@ public final class CustomTabsIntent {
     }
 
     /**
+     * Gets the Custom Tab Activity's initial width.
+     *
+     * @param intent Intent to retrieve the initial Custom Tab Activity's width from.
+     * @return The initial Custom Tab Activity's width or 0 if it is not set.
+     * @see CustomTabsIntent#EXTRA_INITIAL_ACTIVITY_WIDTH_PX
+     */
+    @Dimension(unit = PX)
+    public static int getInitialActivityWidthPx(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_INITIAL_ACTIVITY_WIDTH_PX, 0);
+    }
+
+    /**
+     * Gets the breakpoint value in dp that will be used to decide if the Custom Tab will be
+     * displayed as a bottom sheet or as a side sheet.
+     *
+     * @param intent Intent to retrieve the breakpoint value from.
+     * @return The breakpoint value or 0 if it is not set.
+     * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP
+     */
+    @Dimension(unit = DP)
+    public static int getActivitySideSheetBreakpointDp(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP, 0);
+    }
+
+    /**
+     * Whether the Custom Tab Activity, when acting as a side sheet, can be maximized.
+     * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION
+     */
+    public static boolean isActivitySideSheetMaximizationEnabled(@NonNull Intent intent) {
+        return intent.getBooleanExtra(EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION, false);
+    }
+
+    /**
+     * Gets the position where the side sheet should be displayed on the screen.
+     *
+     * @param intent Intent to retrieve the side sheet position from.
+     * @return The position of the side sheet or the default value if it is not set.
+     * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_POSITION
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_POSITION_DEFAULT
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_POSITION_START
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_POSITION_END
+     */
+    @ActivitySideSheetPosition
+    public static int getActivitySideSheetPosition(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_POSITION,
+                ACTIVITY_SIDE_SHEET_POSITION_DEFAULT);
+    }
+
+    /**
+     * Gets the type of the decoration that will be used to separate the side sheet from the
+     * Custom Tabs embedder.
+     *
+     * @param intent Intent to retrieve the decoration type from.
+     * @return The position of the side sheet or the default value if it is not set.
+     * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DEFAULT
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_NONE
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DIVIDER
+     */
+    @ActivitySideSheetDecorationType
+    public static int getActivitySideSheetDecorationType(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE,
+                ACTIVITY_SIDE_SHEET_DECORATION_TYPE_DEFAULT);
+    }
+
+    /**
+     * Gets the type of rounded corners that will be used for the side sheet.
+     * @param intent Intent to retrieve the decoration type from.
+     * @return The position of the side sheet or the default value if it is not set.
+     * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_DECORATION_TYPE
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_DEFAULT
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_NONE
+     * @see CustomTabsIntent#ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP
+     */
+    @ActivitySideSheetRoundedCornersPosition
+    public static int getActivitySideSheetRoundedCornersPosition(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION,
+                ACTIVITY_SIDE_SHEET_POSITION_DEFAULT);
+    }
+
+    /**
      * Gets the toolbar's top corner radii in dp.
      *
      * @param intent Intent to retrieve the toolbar's top corner radii from.
@@ -1228,13 +1784,125 @@ public final class CustomTabsIntent {
         return intent.getIntExtra(EXTRA_CLOSE_BUTTON_POSITION, CLOSE_BUTTON_POSITION_DEFAULT);
     }
 
+    /**
+     * @return Whether the bookmarks button is enabled.
+     * @see CustomTabsIntent#EXTRA_DISABLE_BOOKMARKS_BUTTON
+     */
+    public static boolean isBookmarksButtonEnabled(@NonNull Intent intent) {
+        return !intent.getBooleanExtra(EXTRA_DISABLE_BOOKMARKS_BUTTON, false);
+    }
+
+    /**
+     * @return Whether the download button is enabled.
+     * @see CustomTabsIntent#EXTRA_DISABLE_DOWNLOAD_BUTTON
+     */
+    public static boolean isDownloadButtonEnabled(@NonNull Intent intent) {
+        return !intent.getBooleanExtra(EXTRA_DISABLE_DOWNLOAD_BUTTON, false);
+    }
+
+    /**
+     * @return Whether initial urls are to be sent to external handler apps.
+     * @see CustomTabsIntent#EXTRA_SEND_TO_EXTERNAL_DEFAULT_HANDLER
+     */
+    public static boolean isSendToExternalDefaultHandlerEnabled(@NonNull Intent intent) {
+        return intent.getBooleanExtra(EXTRA_SEND_TO_EXTERNAL_DEFAULT_HANDLER, false);
+    }
+
+    /**
+     * Gets the target locale for the Translate UI.
+     *
+     * @return The target locale the Translate UI should be triggered with.
+     * @see CustomTabsIntent#EXTRA_TRANSLATE_LANGUAGE_TAG
+     */
+    public static @Nullable Locale getTranslateLocale(@NonNull Intent intent) {
+        Locale locale = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            locale = getLocaleForLanguageTag(intent);
+        }
+        return locale;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private static @Nullable Locale getLocaleForLanguageTag(Intent intent) {
+        return Api21Impl.getLocaleForLanguageTag(intent);
+    }
+
+    /**
+     * Gets the target network that the custom tab is currently bound to if any.
+     *
+     * @return The target {@link Network} is bound to.
+     * @see CustomTabsIntent#EXTRA_NETWORK
+     */
+    public static @Nullable Network getNetwork(@NonNull Intent intent) {
+        return IntentCompat.getParcelableExtra(intent, EXTRA_NETWORK, Network.class);
+    }
+
+    /**
+     * @return Whether the background interaction is enabled.
+     * @see CustomTabsIntent#EXTRA_DISABLE_BACKGROUND_INTERACTION
+     */
+    public static boolean isBackgroundInteractionEnabled(@NonNull Intent intent) {
+        return !intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, false);
+    }
+
+    /**
+     * @return The {@link PendingIntent} that will be sent when the user swipes up
+     *     from the secondary toolbar.
+     * @see CustomTabsIntent#EXTRA_SECONDARY_TOOLBAR_SWIPE_UP_GESTURE
+     */
+    @SuppressWarnings("deprecation")
+    public static @Nullable PendingIntent getSecondaryToolbarSwipeUpGesture(
+            @NonNull Intent intent) {
+        return intent.getParcelableExtra(EXTRA_SECONDARY_TOOLBAR_SWIPE_UP_GESTURE);
+    }
+
+    /**
+     * @return Whether the close button is enabled.
+     * @see CustomTabsIntent#EXTRA_CLOSE_BUTTON_ENABLED
+     */
+    public static boolean isCloseButtonEnabled(@NonNull Intent intent) {
+        return intent.getBooleanExtra(EXTRA_CLOSE_BUTTON_ENABLED, true);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static class Api21Impl {
+        static void setLanguageTag(Intent intent, Locale locale) {
+            intent.putExtra(EXTRA_TRANSLATE_LANGUAGE_TAG, locale.toLanguageTag());
+        }
+
+        static @Nullable Locale getLocaleForLanguageTag(Intent intent) {
+            String languageTag = intent.getStringExtra(EXTRA_TRANSLATE_LANGUAGE_TAG);
+            return languageTag != null ? Locale.forLanguageTag(languageTag) : null;
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private static class Api23Impl {
+        static ActivityOptions makeBasicActivityOptions() {
+            return ActivityOptions.makeBasic();
+        }
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static class Api24Impl {
-        @DoNotInline
-        @Nullable
-        static String getDefaultLocale() {
+        static @Nullable String getDefaultLocale() {
             LocaleList defaultLocaleList = LocaleList.getAdjustedDefault();
             return (defaultLocaleList.size() > 0) ? defaultLocaleList.get(0).toLanguageTag(): null;
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private static class Api34Impl {
+        static void setShareIdentityEnabled(ActivityOptions activityOptions, boolean enabled) {
+            activityOptions.setShareIdentityEnabled(enabled);
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.BAKLAVA)
+    private static class Api36Impl {
+        static void setAllowPassThroughOnTouchOutside(
+                ActivityOptions activityOptions, boolean enabled) {
+            activityOptions.setAllowPassThroughOnTouchOutside(enabled);
         }
     }
 }

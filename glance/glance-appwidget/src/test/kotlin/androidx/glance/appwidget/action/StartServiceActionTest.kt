@@ -27,11 +27,11 @@ import androidx.glance.action.clickable
 import androidx.glance.findModifier
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertIs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -50,11 +50,8 @@ class StartServiceActionTest {
 
     @Test
     fun testLaunchClassWithForeground() {
-        val modifiers = GlanceModifier.clickable(
-            actionStartService<TestService>(
-                isForegroundService = true
-            )
-        )
+        val modifiers =
+            GlanceModifier.clickable(actionStartService<TestService>(isForegroundService = true))
         val modifier = checkNotNull(modifiers.findModifier<ActionModifier>())
         val action = assertIs<StartServiceClassAction>(modifier.action)
         assertThat(action.serviceClass).isEqualTo(TestService::class.java)
@@ -75,10 +72,11 @@ class StartServiceActionTest {
 
     @Test
     fun testLaunchComponent() {
-        val componentName = ComponentName(
-            "androidx.glance.appwidget.action",
-            "androidx.glance.appwidget.action.TestService"
-        )
+        val componentName =
+            ComponentName(
+                "androidx.glance.appwidget.action",
+                "androidx.glance.appwidget.action.TestService"
+            )
         val modifiers = GlanceModifier.clickable(actionStartService(componentName))
         val modifier = checkNotNull(modifiers.findModifier<ActionModifier>())
         val action = assertIs<StartServiceComponentAction>(modifier.action)

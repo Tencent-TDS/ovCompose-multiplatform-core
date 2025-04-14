@@ -16,13 +16,9 @@
 
 package androidx.camera.video.internal.config;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
-import androidx.camera.video.internal.encoder.EncoderConfig;
 
-import com.google.auto.value.AutoValue;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Data class containing information about a media mime.
@@ -32,13 +28,11 @@ import com.google.auto.value.AutoValue;
  * {@link VideoValidatedEncoderProfilesProxy}.
  */
 @SuppressWarnings("NullableProblems") // Problem from AutoValue generated class.
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-@AutoValue
+// Base class for @AutoValue subclasses
 public abstract class MimeInfo {
 
     /** Returns the mime type. */
-    @NonNull
-    public abstract String getMimeType();
+    public abstract @NonNull String getMimeType();
 
     /**
      * Returns the profile for the given mime.
@@ -50,42 +44,21 @@ public abstract class MimeInfo {
     public abstract int getProfile();
 
     /**
-     * Returns compatible {@link VideoValidatedEncoderProfilesProxy} that can be used to resolve
-     * settings.
+     * A Builder for a {@link androidx.camera.video.internal.config.MimeInfo}.
      *
-     * <p>If no EncoderProfiles is provided, returns {@code null}
+     * @param <B> The builder subclass.
      */
-    @Nullable
-    public abstract VideoValidatedEncoderProfilesProxy getCompatibleEncoderProfiles();
+    // Base class for @AutoValue.Builder subclasses
+    public abstract static class Builder<B> {
 
-    /** Creates a builder for the given mime type */
-    @NonNull
-    public static Builder builder(@NonNull String mimeType) {
-        return new AutoValue_MimeInfo.Builder()
-                .setMimeType(mimeType)
-                .setProfile(EncoderConfig.CODEC_PROFILE_NONE);
-    }
-
-    /** A Builder for a {@link androidx.camera.video.internal.config.MimeInfo} */
-    @AutoValue.Builder
-    public abstract static class Builder {
-
-        // Package-private since this should be passed to builder factory method.
-        @NonNull
-        abstract Builder setMimeType(@NonNull String mimeType);
+        // Protected since this should be passed to builder factory method.
+        protected abstract @NonNull B setMimeType(@NonNull String mimeType);
 
         /** Sets the mime profile */
-        @NonNull
-        public abstract Builder setProfile(int profile);
-
-        /** Sets a compatible EncoderProfiles */
-        @NonNull
-        public abstract Builder setCompatibleEncoderProfiles(
-                @Nullable VideoValidatedEncoderProfilesProxy encoderProfiles);
+        public abstract @NonNull B setProfile(int profile);
 
         /** Builds the {@link androidx.camera.video.internal.config.MimeInfo}. */
-        @NonNull
-        public abstract MimeInfo build();
+        public abstract @NonNull MimeInfo build();
     }
 
 }

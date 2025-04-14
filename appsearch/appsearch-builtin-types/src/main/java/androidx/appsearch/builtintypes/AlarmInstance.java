@@ -17,12 +17,15 @@
 package androidx.appsearch.builtintypes;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.utils.DateTimeFormatValidator;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -42,7 +45,7 @@ import java.util.List;
  */
 @Document(name = "builtin:AlarmInstance")
 public class AlarmInstance extends Thing {
-    /** @hide */
+    /** @exportToFramework:hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef({STATUS_UNKNOWN, STATUS_SCHEDULED, STATUS_FIRING, STATUS_DISMISSED, STATUS_SNOOZED,
             STATUS_MISSED})
@@ -71,13 +74,15 @@ public class AlarmInstance extends Thing {
     @Document.LongProperty
     private final long mSnoozeDurationMillis;
 
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     AlarmInstance(@NonNull String namespace, @NonNull String id, int documentScore,
             long creationTimestampMillis, long documentTtlMillis, @Nullable String name,
             @Nullable List<String> alternateNames, @Nullable String description,
-            @Nullable String image, @Nullable String url, @NonNull String scheduledTime,
+            @Nullable String image, @Nullable String url,
+            @NonNull List<PotentialAction> potentialActions, @NonNull String scheduledTime,
             int status, long snoozeDurationMillis) {
         super(namespace, id, documentScore, creationTimestampMillis, documentTtlMillis, name,
-                alternateNames, description, image, url);
+                alternateNames, description, image, url, potentialActions);
         mScheduledTime = Preconditions.checkNotNull(scheduledTime);
         mStatus = status;
         mSnoozeDurationMillis = snoozeDurationMillis;
@@ -90,8 +95,7 @@ public class AlarmInstance extends Thing {
      * <p>The scheduledTime is a timezone independent date time. When used, it should be
      * converted into a date time in the local timezone.
      */
-    @NonNull
-    public String getScheduledTime() {
+    public @NonNull String getScheduledTime() {
         return mScheduledTime;
     }
 
@@ -116,6 +120,7 @@ public class AlarmInstance extends Thing {
     }
 
     /** Builder for {@link AlarmInstance}. */
+    @Document.BuilderProducer
     public static final class Builder extends BuilderImpl<Builder> {
         /**
          * Constructor for {@link AlarmInstance.Builder}.
@@ -173,8 +178,7 @@ public class AlarmInstance extends Thing {
          * {@link #STATUS_FIRING}, {@link #STATUS_DISMISSED}, {@link #STATUS_SNOOZED}, or
          * {@link #STATUS_MISSED}.
          */
-        @NonNull
-        public T setStatus(@Status int status) {
+        public @NonNull T setStatus(@Status int status) {
             mStatus = status;
             return (T) this;
         }
@@ -185,18 +189,17 @@ public class AlarmInstance extends Thing {
          *
          * <p>If not set, or set to -1, then it does not support snoozing.
          */
-        @NonNull
-        public T setSnoozeDurationMillis(long snoozeDurationMillis) {
+        public @NonNull T setSnoozeDurationMillis(long snoozeDurationMillis) {
             mSnoozeDurationMillis = snoozeDurationMillis;
             return (T) this;
         }
 
         /** Builds the {@link AlarmInstance}. */
-        @NonNull
         @Override
-        public AlarmInstance build() {
+        public @NonNull AlarmInstance build() {
             return new AlarmInstance(mNamespace, mId, mDocumentScore, mCreationTimestampMillis,
                     mDocumentTtlMillis, mName, mAlternateNames, mDescription, mImage, mUrl,
+                    mPotentialActions,
                     mScheduledTime, mStatus, mSnoozeDurationMillis);
         }
     }

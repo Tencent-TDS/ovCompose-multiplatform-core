@@ -20,9 +20,10 @@ import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
+
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -37,7 +38,7 @@ import javax.crypto.KeyGenerator;
  *
  * <p>The master keys are used to encrypt data encryption keys for encrypting files and preferences.
  *
- * @deprecated Use {@link MasterKey.Builder} to work with master keys.
+ * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
  */
 @Deprecated
 @RequiresApi(Build.VERSION_CODES.M)
@@ -50,8 +51,11 @@ public final class MasterKeys {
 
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
 
-    @NonNull
-    public static final KeyGenParameterSpec AES256_GCM_SPEC =
+    /**
+     * @deprecated Use {@link android.security.keystore.KeyGenParameterSpec.Builder} instead.
+     */
+    @Deprecated
+    public static final @NonNull KeyGenParameterSpec AES256_GCM_SPEC =
             createAES256GCMKeyGenParameterSpec(MASTER_KEY_ALIAS);
 
     private static final Object sLock = new Object();
@@ -66,9 +70,8 @@ public final class MasterKeys {
      * @param keyAlias The alias for the master key
      * @return The spec for the master key with the specified keyAlias
      */
-    @NonNull
     @SuppressWarnings("SameParameterValue")
-    private static KeyGenParameterSpec createAES256GCMKeyGenParameterSpec(
+    private static @NonNull KeyGenParameterSpec createAES256GCMKeyGenParameterSpec(
             @NonNull String keyAlias) {
         KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(
                 keyAlias,
@@ -88,9 +91,7 @@ public final class MasterKeys {
      * @param keyGenParameterSpec The key encryption scheme
      * @return The key alias for the master key
      */
-    @NonNull
-    @SuppressWarnings("deprecation")
-    public static String getOrCreate(
+    public static @NonNull String getOrCreate(
             @NonNull KeyGenParameterSpec keyGenParameterSpec)
             throws GeneralSecurityException, IOException {
         validate(keyGenParameterSpec);

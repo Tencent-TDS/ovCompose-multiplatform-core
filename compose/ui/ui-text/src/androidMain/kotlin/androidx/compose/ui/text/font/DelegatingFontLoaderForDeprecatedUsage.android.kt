@@ -17,13 +17,11 @@
 package androidx.compose.ui.text.font
 
 import android.content.Context
-import androidx.compose.ui.text.ExperimentalTextApi
 
 /**
  * Bridge between subclasses of Font.ResourceLoader and the new FontFamily.Resolver API.
  *
  * To use add as a CompositionLocal replacing the default FontFamily.Resolver:
- *
  * ```
  * LocalFontFamilyResolver provides createFontFamilyResolver(myFontResourceLoader, context)
  * ```
@@ -38,9 +36,9 @@ import androidx.compose.ui.text.ExperimentalTextApi
  * A FontFamily.Resolver created this way will not share caches with other FontFamily.Resolvers.
  */
 @Suppress("DEPRECATION")
-@OptIn(ExperimentalTextApi::class)
-@Deprecated("This exists to bridge existing Font.ResourceLoader subclasses to be used as a" +
-    "FontFamily.ResourceLoader during upgrade.",
+@Deprecated(
+    "This exists to bridge existing Font.ResourceLoader subclasses to be used as a" +
+        "FontFamily.ResourceLoader during upgrade.",
     replaceWith = ReplaceWith("createFontFamilyResolver()"),
 )
 fun createFontFamilyResolver(
@@ -53,9 +51,8 @@ fun createFontFamilyResolver(
 }
 
 @Suppress("DEPRECATION")
-@OptIn(ExperimentalTextApi::class)
-@Deprecated("This exists to bridge existing Font.ResourceLoader APIs, and should be " +
-    "removed with them",
+@Deprecated(
+    "This exists to bridge existing Font.ResourceLoader APIs, and should be " + "removed with them",
     replaceWith = ReplaceWith("createFontFamilyResolver()"),
 )
 internal actual fun createFontFamilyResolver(
@@ -73,9 +70,8 @@ internal actual fun createFontFamilyResolver(
  * [FontFamily.Resolver] using [createFontFamilyResolver] (Font.ResourceLoader, Context).
  */
 @Suppress("DEPRECATION")
-internal class DelegatingFontLoaderForDeprecatedUsage(
-    internal val loader: Font.ResourceLoader
-) : PlatformFontLoader {
+internal class DelegatingFontLoaderForDeprecatedUsage(internal val loader: Font.ResourceLoader) :
+    PlatformFontLoader {
 
     // never consider these reusable for caching
     override val cacheKey: Any = Any()

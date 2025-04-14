@@ -16,8 +16,10 @@
 
 package androidx.camera.integration.uiwidgets.rotations
 
+import androidx.camera.testing.impl.CoreAppTestUtil
 import androidx.test.core.app.ActivityScenario
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -35,25 +37,28 @@ class ImageCaptureLockedOrientationTest(
 
     companion object {
         private val rotationDegrees = arrayOf(0, 90, 180, 270)
+
         @JvmStatic
         @Parameterized.Parameters(
             name = "lensFacing={0}, rotationDegrees={1}, captureMode={2}, cameraXConfig={3}"
         )
-        fun data() = mutableListOf<Array<Any?>>().apply {
-            lensFacingList.forEach { lens ->
-                rotationDegrees.forEach { rotation ->
-                    captureModes.forEach { mode ->
-                        cameraXConfigList.forEach { cameraXConfig ->
-                            add(arrayOf(lens, rotation, mode, cameraXConfig))
+        fun data() =
+            mutableListOf<Array<Any?>>().apply {
+                lensFacingList.forEach { lens ->
+                    rotationDegrees.forEach { rotation ->
+                        captureModes.forEach { mode ->
+                            cameraXConfigList.forEach { cameraXConfig ->
+                                add(arrayOf(lens, rotation, mode, cameraXConfig))
+                            }
                         }
                     }
                 }
             }
-        }
     }
 
     @Before
     fun before() {
+        CoreAppTestUtil.assumeCompatibleDevice()
         setUp(lensFacing)
     }
 
@@ -63,6 +68,7 @@ class ImageCaptureLockedOrientationTest(
     }
 
     @Test
+    @SdkSuppress(maxSdkVersion = 33) // b/360867144: Module crashes on API34
     fun verifyRotation() {
         verifyRotation<LockedOrientationActivity>(lensFacing, captureMode, cameraXConfig) {
             rotate(rotationDegrees)

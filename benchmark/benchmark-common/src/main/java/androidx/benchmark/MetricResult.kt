@@ -24,8 +24,6 @@ import kotlin.math.sqrt
 /**
  * Results for a given metric from a benchmark, including each measurement made and general stats
  * for those measurements (min/median/max).
- *
- * @suppress
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class MetricResult(
@@ -40,6 +38,7 @@ public class MetricResult(
     val max: Double
     val maxIndex: Int
     val standardDeviation: Double
+    val coefficientOfVariation: Double
 
     val p50: Double
     val p90: Double
@@ -49,7 +48,7 @@ public class MetricResult(
     init {
         val values = data.sorted()
         val size = values.size
-        require(size >= 1) { "At least one result is necessary." }
+        require(size >= 1) { "At least one result is necessary, $size found for $name." }
 
         val mean: Double = data.average()
         min = values.first()
@@ -65,12 +64,19 @@ public class MetricResult(
         maxIndex = data.indexOfFirst { it == max }
         medianIndex = data.size / 2
 
-        standardDeviation = if (data.size == 1) {
-            0.0
-        } else {
-            val sum = values.map { (it - mean).pow(2) }.sum()
-            sqrt(sum / (size - 1).toDouble())
-        }
+        standardDeviation =
+            if (data.size == 1) {
+                0.0
+            } else {
+                val sum = values.map { (it - mean).pow(2) }.sum()
+                sqrt(sum / (size - 1).toDouble())
+            }
+        coefficientOfVariation =
+            if (mean == 0.0) {
+                0.0
+            } else {
+                standardDeviation / mean
+            }
     }
 
     internal fun getSummary(): String {

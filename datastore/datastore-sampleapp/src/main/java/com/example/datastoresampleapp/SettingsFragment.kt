@@ -16,7 +16,6 @@
 
 package com.example.datastoresampleapp
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -27,13 +26,17 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.lifecycle.Lifecycle
-import androidx.preference.Preference
-import androidx.preference.SwitchPreference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreference
 import androidx.preference.TwoStatePreference
 import com.google.protobuf.InvalidProtocolBufferException
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -42,18 +45,16 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 
 private val TAG = "SettingsActivity"
 
 class SettingsFragmentActivity() : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportFragmentManager.beginTransaction()
-            .replace(android.R.id.content, SettingsFragment()).commit()
+        supportFragmentManager
+            .beginTransaction()
+            .replace(android.R.id.content, SettingsFragment())
+            .commit()
     }
 }
 
@@ -71,9 +72,9 @@ class SettingsFragment() : PreferenceFragmentCompat() {
     private val PROTO_STORE_FILE_NAME = "datastore_test_app.pb"
 
     private val settingsStore: DataStore<Settings> by lazy {
-        DataStoreFactory.create(
-            serializer = SettingsSerializer
-        ) { File(requireActivity().applicationContext.filesDir, PROTO_STORE_FILE_NAME) }
+        DataStoreFactory.create(serializer = SettingsSerializer) {
+            File(requireActivity().applicationContext.filesDir, PROTO_STORE_FILE_NAME)
+        }
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -83,7 +84,6 @@ class SettingsFragment() : PreferenceFragmentCompat() {
     }
 
     @Suppress("OPT_IN_MARKER_ON_OVERRIDE_WARNING")
-    @SuppressLint("SyntheticAccessor")
     @ExperimentalCoroutinesApi
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -91,37 +91,42 @@ class SettingsFragment() : PreferenceFragmentCompat() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 // Read the initial value from disk
-                val settings: Settings = try {
-                    settingsStore.data.first()
-                } catch (ex: IOException) {
-                    Log.e(TAG, "Could not read settings.", ex)
-                    // Show error to user here, or try re-reading.
-                    return@repeatOnLifecycle
-                }
+                val settings: Settings =
+                    try {
+                        settingsStore.data.first()
+                    } catch (ex: IOException) {
+                        Log.e(TAG, "Could not read settings.", ex)
+                        // Show error to user here, or try re-reading.
+                        return@repeatOnLifecycle
+                    }
 
                 // Set the toggle to the value read from disk and enable the toggle.
                 fooToggle.isChecked = settings.foo
                 fooToggle.isEnabled = true
 
-                fooToggle.changeFlow.flatMapLatest { (_: Preference?, newValue: Any?) ->
-                    val isChecked = newValue as Boolean
+                fooToggle.changeFlow
+                    .flatMapLatest { (_: Preference?, newValue: Any?) ->
+                        val isChecked = newValue as Boolean
 
-                    fooToggle.isEnabled = false // Disable the toggle until the write is completed
-                    fooToggle.isChecked = isChecked // Set the disabled toggle to the pending value
+                        fooToggle.isEnabled =
+                            false // Disable the toggle until the write is completed
+                        fooToggle.isChecked =
+                            isChecked // Set the disabled toggle to the pending value
 
-                    try {
-                        settingsStore.setFoo(isChecked)
-                    } catch (ex: IOException) { // setFoo can only throw IOExceptions
-                        Log.e(TAG, "Could not write settings", ex)
-                        // Show error to user here
+                        try {
+                            settingsStore.setFoo(isChecked)
+                        } catch (ex: IOException) { // setFoo can only throw IOExceptions
+                            Log.e(TAG, "Could not write settings", ex)
+                            // Show error to user here
+                        }
+                        settingsStore.data // Switch to data flow since it is the source of truth.
                     }
-                    settingsStore.data // Switch to data flow since it is the source of truth.
-                }.collect {
-                    // We update the toggle to the latest persisted value - whether or not the
-                    // update succeeded. If the write failed, this will reset to original state.
-                    fooToggle.isChecked = it.foo
-                    fooToggle.isEnabled = true
-                }
+                    .collect {
+                        // We update the toggle to the latest persisted value - whether or not the
+                        // update succeeded. If the write failed, this will reset to original state.
+                        fooToggle.isChecked = it.foo
+                        fooToggle.isEnabled = true
+                    }
             }
         }
     }
@@ -130,21 +135,20 @@ class SettingsFragment() : PreferenceFragmentCompat() {
         it.toBuilder().setFoo(foo).build()
     }
 
-    private fun createFooPreference(context: Context) = SwitchPreference(context).apply {
-        isEnabled = false // Start out disabled
-        isPersistent = false // Disable SharedPreferences
-        title = "Foo title"
-        summary = "Summary of Foo toggle"
-    }
+    private fun createFooPreference(context: Context) =
+        SwitchPreference(context).apply {
+            isEnabled = false // Start out disabled
+            isPersistent = false // Disable SharedPreferences
+            title = "Foo title"
+            summary = "Summary of Foo toggle"
+        }
 }
 
 @ExperimentalCoroutinesApi
 private val Preference.changeFlow: Flow<Pair<Preference?, Any?>>
     get() = callbackFlow {
         this@changeFlow.setOnPreferenceChangeListener { preference: Preference?, newValue: Any? ->
-            this@callbackFlow.launch {
-                send(Pair(preference, newValue))
-            }
+            this@callbackFlow.launch { send(Pair(preference, newValue)) }
             false // Do not update the state of the toggle.
         }
 

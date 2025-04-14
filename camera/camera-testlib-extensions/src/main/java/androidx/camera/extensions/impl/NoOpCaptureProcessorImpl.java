@@ -22,13 +22,12 @@ import android.util.Pair;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class NoOpCaptureProcessorImpl implements CaptureProcessorImpl {
     @Override
     public void onOutputSurface(@NonNull Surface surface, int imageFormat) {
@@ -51,8 +50,23 @@ final class NoOpCaptureProcessorImpl implements CaptureProcessorImpl {
     }
 
     @Override
-    public void process(Map<Integer, Pair<Image, TotalCaptureResult>> results,
-            ProcessResultImpl resultCallback, Executor executor) {
+    public void process(@NonNull Map<Integer, Pair<Image, TotalCaptureResult>> results,
+            @NonNull ProcessResultImpl resultCallback, @Nullable Executor executor) {
+    }
+
+    @Override
+    public void onPostviewOutputSurface(@NonNull Surface surface) {
+
+    }
+
+    @Override
+    public void onResolutionUpdate(@NonNull Size size, @NonNull Size postviewSize) {
+
+    }
+
+    @Override
+    public void processWithPostview(@NonNull Map<Integer, Pair<Image, TotalCaptureResult>> results,
+            @NonNull ProcessResultImpl resultCallback, @Nullable Executor executor) {
 
     }
 }

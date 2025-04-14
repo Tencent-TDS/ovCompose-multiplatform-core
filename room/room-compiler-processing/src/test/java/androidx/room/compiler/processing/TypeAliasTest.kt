@@ -16,6 +16,7 @@
 
 package androidx.room.compiler.processing
 
+import androidx.kruth.assertThat
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.asClassName
 import androidx.room.compiler.processing.util.CONTINUATION_JCLASS_NAME
@@ -26,13 +27,11 @@ import androidx.room.compiler.processing.util.compileFiles
 import androidx.room.compiler.processing.util.getField
 import androidx.room.compiler.processing.util.getMethodByJvmName
 import androidx.room.compiler.processing.util.runProcessorTest
-import com.google.common.truth.Truth.assertThat
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.javapoet.JParameterizedTypeName
 import com.squareup.kotlinpoet.javapoet.JTypeName
 import com.squareup.kotlinpoet.javapoet.JWildcardTypeName
-import com.squareup.kotlinpoet.javapoet.KWildcardTypeName
 import kotlin.coroutines.Continuation
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,9 +41,10 @@ import org.junit.runners.JUnit4
 class TypeAliasTest {
     @Test
     fun kotlinTypeAlias() {
-        fun produceSource(pkg: String) = Source.kotlin(
-            "$pkg/Foo.kt",
-            """
+        fun produceSource(pkg: String) =
+            Source.kotlin(
+                "$pkg/Foo.kt",
+                """
             package $pkg
             typealias MyLong = Long
             class Subject {
@@ -53,13 +53,11 @@ class TypeAliasTest {
                 val inGeneric : List<MyLong> = TODO()
                 suspend fun suspendFun() : MyLong = TODO()
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         val lib = compileFiles(listOf(produceSource("lib")))
-        runProcessorTest(
-            sources = listOf(produceSource("app")),
-            classpath = lib
-        ) { invocation ->
+        runProcessorTest(sources = listOf(produceSource("app")), classpath = lib) { invocation ->
             listOf("lib", "app").forEach { pkg ->
                 val elm = invocation.processingEnv.requireTypeElement("$pkg.Subject")
                 elm.getField("prop").type.let {
@@ -73,30 +71,29 @@ class TypeAliasTest {
                 }
                 elm.getField("inGeneric").type.let {
                     assertThat(it.nullability).isEqualTo(XNullability.NONNULL)
-                    assertThat(it.asTypeName().java).isEqualTo(
-                        JParameterizedTypeName.get(
-                            List::class.asJClassName(),
-                            JTypeName.LONG.box()
+                    assertThat(it.asTypeName().java)
+                        .isEqualTo(
+                            JParameterizedTypeName.get(
+                                List::class.asJClassName(),
+                                JTypeName.LONG.box()
+                            )
                         )
-                    )
                     if (invocation.isKsp) {
-                        assertThat(it.asTypeName().kotlin).isEqualTo(
-                            List::class.asKClassName().parameterizedBy(LONG)
-                        )
+                        assertThat(it.asTypeName().kotlin)
+                            .isEqualTo(List::class.asKClassName().parameterizedBy(LONG))
                     }
                 }
                 elm.getMethodByJvmName("suspendFun").parameters.last().type.let {
-                    assertThat(it.asTypeName().java).isEqualTo(
-                        JParameterizedTypeName.get(
-                            CONTINUATION_JCLASS_NAME,
-                            JWildcardTypeName.supertypeOf(JTypeName.LONG.box())
+                    assertThat(it.asTypeName().java)
+                        .isEqualTo(
+                            JParameterizedTypeName.get(
+                                CONTINUATION_JCLASS_NAME,
+                                JWildcardTypeName.supertypeOf(JTypeName.LONG.box())
+                            )
                         )
-                    )
                     if (invocation.isKsp) {
-                        assertThat(it.asTypeName().kotlin).isEqualTo(
-                            Continuation::class.asKClassName()
-                                .parameterizedBy(KWildcardTypeName.consumerOf(LONG))
-                        )
+                        assertThat(it.asTypeName().kotlin)
+                            .isEqualTo(Continuation::class.asKClassName().parameterizedBy(LONG))
                     }
                 }
             }

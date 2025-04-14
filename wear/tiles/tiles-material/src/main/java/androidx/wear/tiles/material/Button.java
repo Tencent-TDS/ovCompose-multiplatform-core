@@ -17,42 +17,18 @@
 package androidx.wear.tiles.material;
 
 import static androidx.annotation.Dimension.DP;
-import static androidx.wear.tiles.DimensionBuilders.dp;
-import static androidx.wear.tiles.LayoutElementBuilders.CONTENT_SCALE_MODE_FILL_BOUNDS;
-import static androidx.wear.tiles.material.ButtonDefaults.DEFAULT_SIZE;
-import static androidx.wear.tiles.material.ButtonDefaults.EXTRA_LARGE_SIZE;
-import static androidx.wear.tiles.material.ButtonDefaults.LARGE_SIZE;
-import static androidx.wear.tiles.material.ButtonDefaults.PRIMARY_COLORS;
-import static androidx.wear.tiles.material.Helper.checkNotNull;
-import static androidx.wear.tiles.material.Helper.checkTag;
-import static androidx.wear.tiles.material.Helper.getMetadataTagName;
-import static androidx.wear.tiles.material.Helper.getTagBytes;
-import static androidx.wear.tiles.material.Helper.radiusOf;
 
 import android.content.Context;
 
 import androidx.annotation.Dimension;
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
-import androidx.wear.tiles.ColorBuilders.ColorProp;
-import androidx.wear.tiles.DimensionBuilders.ContainerDimension;
-import androidx.wear.tiles.DimensionBuilders.DpProp;
-import androidx.wear.tiles.LayoutElementBuilders.Box;
-import androidx.wear.tiles.LayoutElementBuilders.ColorFilter;
-import androidx.wear.tiles.LayoutElementBuilders.Image;
-import androidx.wear.tiles.LayoutElementBuilders.LayoutElement;
-import androidx.wear.tiles.ModifiersBuilders;
-import androidx.wear.tiles.ModifiersBuilders.Background;
-import androidx.wear.tiles.ModifiersBuilders.Clickable;
-import androidx.wear.tiles.ModifiersBuilders.Corner;
-import androidx.wear.tiles.ModifiersBuilders.ElementMetadata;
-import androidx.wear.tiles.ModifiersBuilders.Modifiers;
-import androidx.wear.tiles.ModifiersBuilders.Semantics;
-import androidx.wear.tiles.material.Typography.TypographyName;
+import androidx.wear.protolayout.expression.Fingerprint;
 import androidx.wear.protolayout.proto.LayoutElementProto;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -86,52 +62,73 @@ import java.util.Map;
  * <pre>{@code
  * Button myButton = Button.fromLayoutElement(box.getContents().get(0));
  * }</pre>
+ *
+ * @deprecated Use the new class {@link androidx.wear.protolayout.material.Button} which provides
+ *     the same API and functionality.
  */
-public class Button implements LayoutElement {
-    /** Tool tag for Metadata in Modifiers, so we know that Box is actually a Button with text. */
-    static final String METADATA_TAG_TEXT = "TXTBTN";
-    /** Tool tag for Metadata in Modifiers, so we know that Box is actually a Button with icon. */
-    static final String METADATA_TAG_ICON = "ICNBTN";
-    /** Tool tag for Metadata in Modifiers, so we know that Box is actually a Button with image. */
-    static final String METADATA_TAG_IMAGE = "IMGBTN";
+@Deprecated
+@SuppressWarnings("deprecation")
+public class Button implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement {
     /**
-     * Tool tag for Metadata in Modifiers, so we know that Box is actually a Button with custom
-     * content.
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that
+     * androidx.wear.tiles.LayoutElementBuilders.Box is actually a Button with text.
+     */
+    static final String METADATA_TAG_TEXT = "TXTBTN";
+
+    /**
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that
+     * androidx.wear.tiles.LayoutElementBuilders.Box is actually a Button with icon.
+     */
+    static final String METADATA_TAG_ICON = "ICNBTN";
+
+    /**
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that
+     * androidx.wear.tiles.LayoutElementBuilders.Box is actually a Button with image.
+     */
+    static final String METADATA_TAG_IMAGE = "IMGBTN";
+
+    /**
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that
+     * androidx.wear.tiles.LayoutElementBuilders.Box is actually a Button with custom content.
      */
     static final String METADATA_TAG_CUSTOM_CONTENT = "CSTBTN";
 
-    @NonNull private final Box mElement;
+    private final androidx.wear.tiles.LayoutElementBuilders.@NonNull Box mElement;
 
-    Button(@NonNull Box element) {
+    Button(androidx.wear.tiles.LayoutElementBuilders.@NonNull Box element) {
         mElement = element;
     }
 
     /** Builder class for {@link Button}. */
-    public static final class Builder implements LayoutElement.Builder {
+    public static final class Builder
+            implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement.Builder {
         private static final int NOT_SET = -1;
         private static final int ICON = 0;
         private static final int TEXT = 1;
         private static final int IMAGE = 2;
         private static final int CUSTOM_CONTENT = 3;
 
-        @NonNull static final Map<Integer, String> TYPE_TO_TAG = new HashMap<>();
+        static final @NonNull Map<Integer, String> TYPE_TO_TAG = new HashMap<>();
 
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @Retention(RetentionPolicy.SOURCE)
         @IntDef({NOT_SET, ICON, TEXT, IMAGE, CUSTOM_CONTENT})
         @interface ButtonType {}
 
-        @NonNull private final Context mContext;
-        @Nullable private LayoutElement mCustomContent;
-        @NonNull private final Clickable mClickable;
-        @NonNull private CharSequence mContentDescription = "";
-        @NonNull private DpProp mSize = DEFAULT_SIZE;
-        @Nullable private String mText = null;
-        @Nullable private Integer mTypographyName = null;
-        @Nullable private String mIcon = null;
-        @Nullable private DpProp mIconSize = null;
-        @Nullable private String mImage = null;
-        @NonNull private ButtonColors mButtonColors = PRIMARY_COLORS;
+        private final @NonNull Context mContext;
+        private androidx.wear.tiles.LayoutElementBuilders.@Nullable LayoutElement mCustomContent;
+        private final androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable mClickable;
+        private @NonNull CharSequence mContentDescription = "";
+
+        private androidx.wear.tiles.DimensionBuilders.@NonNull DpProp mSize =
+                ButtonDefaults.DEFAULT_SIZE;
+
+        private @Nullable String mText = null;
+        private @Nullable Integer mTypographyName = null;
+        private @Nullable String mIcon = null;
+        private androidx.wear.tiles.DimensionBuilders.@Nullable DpProp mIconSize = null;
+        private @Nullable String mImage = null;
+        private @NonNull ButtonColors mButtonColors = ButtonDefaults.PRIMARY_COLORS;
         @ButtonType private int mType = NOT_SET;
 
         static {
@@ -147,10 +144,12 @@ public class Button implements LayoutElement {
          * {@link #setImageContent}.
          *
          * @param context The application's context.
-         * @param clickable Associated {@link Clickable} for click events. When the Button is
-         *     clicked it will fire the associated action.
+         * @param clickable Associated {@link androidx.wear.tiles.ModifiersBuilders.Clickable} for
+         *     click events. When the Button is clicked it will fire the associated action.
          */
-        public Builder(@NonNull Context context, @NonNull Clickable clickable) {
+        public Builder(
+                @NonNull Context context,
+                androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable clickable) {
             mClickable = clickable;
             mContext = context;
         }
@@ -159,8 +158,7 @@ public class Button implements LayoutElement {
          * Sets the content description for the {@link Button}. It is highly recommended to provide
          * this for button containing icon or image.
          */
-        @NonNull
-        public Builder setContentDescription(@NonNull CharSequence contentDescription) {
+        public @NonNull Builder setContentDescription(@NonNull CharSequence contentDescription) {
             this.mContentDescription = contentDescription;
             return this;
         }
@@ -171,8 +169,8 @@ public class Button implements LayoutElement {
          * ButtonDefaults#EXTRA_LARGE_SIZE}. If not set, {@link ButtonDefaults#DEFAULT_SIZE} will be
          * used.
          */
-        @NonNull
-        public Builder setSize(@NonNull DpProp size) {
+        public @NonNull Builder setSize(
+                androidx.wear.tiles.DimensionBuilders.@NonNull DpProp size) {
             mSize = size;
             return this;
         }
@@ -183,9 +181,8 @@ public class Button implements LayoutElement {
          * ButtonDefaults#EXTRA_LARGE_SIZE}. If not set, {@link ButtonDefaults#DEFAULT_SIZE} will be
          * used.
          */
-        @NonNull
-        public Builder setSize(@Dimension(unit = DP) float size) {
-            mSize = dp(size);
+        public @NonNull Builder setSize(@Dimension(unit = DP) float size) {
+            mSize = androidx.wear.tiles.DimensionBuilders.dp(size);
             return this;
         }
 
@@ -193,8 +190,7 @@ public class Button implements LayoutElement {
          * Sets the colors for the {@link Button}. If not set, {@link ButtonDefaults#PRIMARY_COLORS}
          * will be used.
          */
-        @NonNull
-        public Builder setButtonColors(@NonNull ButtonColors buttonColors) {
+        public @NonNull Builder setButtonColors(@NonNull ButtonColors buttonColors) {
             mButtonColors = buttonColors;
             return this;
         }
@@ -202,8 +198,8 @@ public class Button implements LayoutElement {
         /**
          * Sets the custom content for this Button. Any previously added content will be overridden.
          */
-        @NonNull
-        public Builder setCustomContent(@NonNull LayoutElement content) {
+        public @NonNull Builder setCustomContent(
+                androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement content) {
             resetContent();
             this.mCustomContent = content;
             this.mType = CUSTOM_CONTENT;
@@ -216,8 +212,9 @@ public class Button implements LayoutElement {
          * from {@link ButtonColors} and with the given size. This icon should be image with chosen
          * alpha channel and not an actual image.
          */
-        @NonNull
-        public Builder setIconContent(@NonNull String imageResourceId, @NonNull DpProp size) {
+        public @NonNull Builder setIconContent(
+                @NonNull String imageResourceId,
+                androidx.wear.tiles.DimensionBuilders.@NonNull DpProp size) {
             resetContent();
             this.mIcon = imageResourceId;
             this.mType = ICON;
@@ -231,8 +228,7 @@ public class Button implements LayoutElement {
          * icon will be tinted to the given content color from {@link ButtonColors}. This icon
          * should be image with chosen alpha channel and not an actual image.
          */
-        @NonNull
-        public Builder setIconContent(@NonNull String imageResourceId) {
+        public @NonNull Builder setIconContent(@NonNull String imageResourceId) {
             resetContent();
             this.mIcon = imageResourceId;
             this.mType = ICON;
@@ -247,8 +243,7 @@ public class Button implements LayoutElement {
          * Any previously added content will be overridden. Text should contain no more than 3
          * characters, otherwise it will overflow from the edges.
          */
-        @NonNull
-        public Builder setTextContent(@NonNull String text) {
+        public @NonNull Builder setTextContent(@NonNull String text) {
             resetContent();
             this.mText = text;
             this.mType = TEXT;
@@ -261,8 +256,8 @@ public class Button implements LayoutElement {
          * Text} component. Any previously added content will be overridden. Text should contain no
          * more than 3 characters, otherwise it will overflow from the edges.
          */
-        @NonNull
-        public Builder setTextContent(@NonNull String text, @TypographyName int typographyName) {
+        public @NonNull Builder setTextContent(
+                @NonNull String text, @Typography.TypographyName int typographyName) {
             resetContent();
             this.mText = text;
             this.mTypographyName = typographyName;
@@ -274,8 +269,7 @@ public class Button implements LayoutElement {
          * Sets the content of this Button to be the given image, i.e. contacts photo. Any
          * previously added content will be overridden.
          */
-        @NonNull
-        public Builder setImageContent(@NonNull String imageResourceId) {
+        public @NonNull Builder setImageContent(@NonNull String imageResourceId) {
             resetContent();
             this.mImage = imageResourceId;
             this.mType = IMAGE;
@@ -292,35 +286,37 @@ public class Button implements LayoutElement {
         }
 
         /** Constructs and returns {@link Button} with the provided field and look. */
-        @NonNull
         @Override
-        public Button build() {
-            Modifiers.Builder modifiers =
-                    new Modifiers.Builder()
+        public @NonNull Button build() {
+            androidx.wear.tiles.ModifiersBuilders.Modifiers.Builder modifiers =
+                    new androidx.wear.tiles.ModifiersBuilders.Modifiers.Builder()
                             .setClickable(mClickable)
                             .setBackground(
-                                    new Background.Builder()
+                                    new androidx.wear.tiles.ModifiersBuilders.Background.Builder()
                                             .setColor(mButtonColors.getBackgroundColor())
                                             .setCorner(
-                                                    new Corner.Builder()
-                                                            .setRadius(radiusOf(mSize))
+                                                    new androidx.wear.tiles.ModifiersBuilders.Corner
+                                                                    .Builder()
+                                                            .setRadius(Helper.radiusOf(mSize))
                                                             .build())
                                             .build())
                             .setMetadata(
-                                    new ElementMetadata.Builder()
+                                    new androidx.wear.tiles.ModifiersBuilders.ElementMetadata
+                                                    .Builder()
                                             .setTagData(
-                                                    getTagBytes(
-                                                            checkNotNull(TYPE_TO_TAG.get(mType))))
+                                                    Helper.getTagBytes(
+                                                            Helper.checkNotNull(
+                                                                    TYPE_TO_TAG.get(mType))))
                                             .build());
             if (mContentDescription.length() > 0) {
                 modifiers.setSemantics(
-                        new ModifiersBuilders.Semantics.Builder()
+                        new androidx.wear.tiles.ModifiersBuilders.Semantics.Builder()
                                 .setContentDescription(mContentDescription.toString())
                                 .build());
             }
 
-            Box.Builder element =
-                    new Box.Builder()
+            androidx.wear.tiles.LayoutElementBuilders.Box.Builder element =
+                    new androidx.wear.tiles.LayoutElementBuilders.Box.Builder()
                             .setHeight(mSize)
                             .setWidth(mSize)
                             .setModifiers(modifiers.build());
@@ -330,56 +326,61 @@ public class Button implements LayoutElement {
             return new Button(element.build());
         }
 
-        @NonNull
-        private LayoutElement getCorrectContent() {
-            LayoutElement.Builder content;
+        private androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement
+                getCorrectContent() {
+            androidx.wear.tiles.LayoutElementBuilders.LayoutElement.Builder content;
             switch (mType) {
                 case ICON:
-                {
-                    DpProp iconSize =
-                            mIconSize != null
-                                    ? mIconSize
-                                    : ButtonDefaults.recommendedIconSize(mSize);
-                    content =
-                            new Image.Builder()
-                                    .setResourceId(checkNotNull(mIcon))
-                                    .setHeight(checkNotNull(iconSize))
-                                    .setWidth(iconSize)
-                                    .setContentScaleMode(CONTENT_SCALE_MODE_FILL_BOUNDS)
-                                    .setColorFilter(
-                                            new ColorFilter.Builder()
-                                                    .setTint(mButtonColors.getContentColor())
-                                                    .build());
+                    {
+                        androidx.wear.tiles.DimensionBuilders.DpProp iconSize =
+                                mIconSize != null
+                                        ? mIconSize
+                                        : ButtonDefaults.recommendedIconSize(mSize);
+                        content =
+                                new androidx.wear.tiles.LayoutElementBuilders.Image.Builder()
+                                        .setResourceId(Helper.checkNotNull(mIcon))
+                                        .setHeight(Helper.checkNotNull(iconSize))
+                                        .setWidth(iconSize)
+                                        .setContentScaleMode(
+                                                androidx.wear.tiles.LayoutElementBuilders
+                                                        .CONTENT_SCALE_MODE_FILL_BOUNDS)
+                                        .setColorFilter(
+                                                new androidx.wear.tiles.LayoutElementBuilders
+                                                                .ColorFilter.Builder()
+                                                        .setTint(mButtonColors.getContentColor())
+                                                        .build());
 
-                    return content.build();
-                }
+                        return content.build();
+                    }
                 case TEXT:
-                {
-                    @TypographyName
-                    int typographyName =
-                            mTypographyName != null
-                                    ? mTypographyName
-                                    : getDefaultTypographyForSize(mSize);
-                    content =
-                            new Text.Builder(mContext, checkNotNull(mText))
-                                    .setMaxLines(1)
-                                    .setTypography(typographyName)
-                                    .setColor(mButtonColors.getContentColor());
+                    {
+                        @Typography.TypographyName
+                        int typographyName =
+                                mTypographyName != null
+                                        ? mTypographyName
+                                        : getDefaultTypographyForSize(mSize);
+                        content =
+                                new Text.Builder(mContext, Helper.checkNotNull(mText))
+                                        .setMaxLines(1)
+                                        .setTypography(typographyName)
+                                        .setColor(mButtonColors.getContentColor());
 
-                    return content.build();
-                }
+                        return content.build();
+                    }
                 case IMAGE:
-                {
-                    content =
-                            new Image.Builder()
-                                    .setResourceId(checkNotNull(mImage))
-                                    .setHeight(mSize)
-                                    .setWidth(mSize)
-                                    .setContentScaleMode(CONTENT_SCALE_MODE_FILL_BOUNDS);
-                    return content.build();
-                }
+                    {
+                        content =
+                                new androidx.wear.tiles.LayoutElementBuilders.Image.Builder()
+                                        .setResourceId(Helper.checkNotNull(mImage))
+                                        .setHeight(mSize)
+                                        .setWidth(mSize)
+                                        .setContentScaleMode(
+                                                androidx.wear.tiles.LayoutElementBuilders
+                                                        .CONTENT_SCALE_MODE_FILL_BOUNDS);
+                        return content.build();
+                    }
                 case CUSTOM_CONTENT:
-                    return checkNotNull(mCustomContent);
+                    return Helper.checkNotNull(mCustomContent);
                 case NOT_SET:
                     // Shouldn't happen.
                 default:
@@ -388,10 +389,11 @@ public class Button implements LayoutElement {
             }
         }
 
-        private static @TypographyName int getDefaultTypographyForSize(@NonNull DpProp size) {
-            if (size.getValue() == LARGE_SIZE.getValue()) {
+        private static @Typography.TypographyName int getDefaultTypographyForSize(
+                androidx.wear.tiles.DimensionBuilders.@NonNull DpProp size) {
+            if (size.getValue() == ButtonDefaults.LARGE_SIZE.getValue()) {
                 return Typography.TYPOGRAPHY_TITLE1;
-            } else if (size.getValue() == EXTRA_LARGE_SIZE.getValue()) {
+            } else if (size.getValue() == ButtonDefaults.EXTRA_LARGE_SIZE.getValue()) {
                 return Typography.TYPOGRAPHY_DISPLAY3;
             } else {
                 return Typography.TYPOGRAPHY_TITLE2;
@@ -402,8 +404,7 @@ public class Button implements LayoutElement {
     /**
      * Returns the custom content of this Button if it has been added. Otherwise, it returns null.
      */
-    @Nullable
-    public LayoutElement getCustomContent() {
+    public androidx.wear.tiles.LayoutElementBuilders.@Nullable LayoutElement getCustomContent() {
         if (!getMetadataTag().equals(METADATA_TAG_CUSTOM_CONTENT)) {
             return null;
         }
@@ -411,67 +412,59 @@ public class Button implements LayoutElement {
     }
 
     /** Returns the icon content of this Button if it has been added. Otherwise, it returns null. */
-    @Nullable
-    public String getIconContent() {
-        Image icon = getIconContentObject();
-        return icon != null ? checkNotNull(icon.getResourceId()).getValue() : null;
+    public @Nullable String getIconContent() {
+        androidx.wear.tiles.LayoutElementBuilders.Image icon = getIconContentObject();
+        return icon != null ? Helper.checkNotNull(icon.getResourceId()).getValue() : null;
     }
 
     /**
      * Returns the image content of this Button if it has been added. Otherwise, it returns null.
      */
-    @Nullable
-    public String getImageContent() {
-        Image image = getImageContentObject();
-        return image != null ? checkNotNull(image.getResourceId()).getValue() : null;
+    public @Nullable String getImageContent() {
+        androidx.wear.tiles.LayoutElementBuilders.Image image = getImageContentObject();
+        return image != null ? Helper.checkNotNull(image.getResourceId()).getValue() : null;
     }
 
     /** Returns the text content of this Button if it has been added. Otherwise, it returns null. */
-    @Nullable
-    public String getTextContent() {
+    public @Nullable String getTextContent() {
         Text text = getTextContentObject();
         return text != null ? text.getText() : null;
     }
 
-    @NonNull
-    private LayoutElement getAnyContent() {
-        return checkNotNull(mElement.getContents().get(0));
+    private androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement getAnyContent() {
+        return Helper.checkNotNull(mElement.getContents().get(0));
     }
 
-    @Nullable
-    private Image getIconContentObject() {
+    private androidx.wear.tiles.LayoutElementBuilders.@Nullable Image getIconContentObject() {
         if (!getMetadataTag().equals(METADATA_TAG_ICON)) {
             return null;
         }
-        return (Image) getAnyContent();
+        return (androidx.wear.tiles.LayoutElementBuilders.Image) getAnyContent();
     }
 
-    @Nullable
-    private Text getTextContentObject() {
+    private @Nullable Text getTextContentObject() {
         if (!getMetadataTag().equals(METADATA_TAG_TEXT)) {
             return null;
         }
         return Text.fromLayoutElement(getAnyContent());
     }
 
-    @Nullable
-    private Image getImageContentObject() {
+    private androidx.wear.tiles.LayoutElementBuilders.@Nullable Image getImageContentObject() {
         if (!getMetadataTag().equals(METADATA_TAG_IMAGE)) {
             return null;
         }
-        return (Image) getAnyContent();
+        return (androidx.wear.tiles.LayoutElementBuilders.Image) getAnyContent();
     }
 
     /** Returns click event action associated with this Button. */
-    @NonNull
-    public Clickable getClickable() {
-        return checkNotNull(checkNotNull(mElement.getModifiers()).getClickable());
+    public androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable getClickable() {
+        return Helper.checkNotNull(Helper.checkNotNull(mElement.getModifiers()).getClickable());
     }
 
     /** Returns content description for this Button. */
-    @Nullable
-    public CharSequence getContentDescription() {
-        Semantics semantics = checkNotNull(mElement.getModifiers()).getSemantics();
+    public @Nullable CharSequence getContentDescription() {
+        androidx.wear.tiles.ModifiersBuilders.Semantics semantics =
+                Helper.checkNotNull(mElement.getModifiers()).getSemantics();
         if (semantics == null) {
             return null;
         }
@@ -479,34 +472,37 @@ public class Button implements LayoutElement {
     }
 
     /** Returns size for this Button. */
-    @NonNull
-    public ContainerDimension getSize() {
-        return checkNotNull(mElement.getWidth());
+    public androidx.wear.tiles.DimensionBuilders.@NonNull ContainerDimension getSize() {
+        return Helper.checkNotNull(mElement.getWidth());
     }
 
-    private ColorProp getBackgroundColor() {
-        return checkNotNull(
-                checkNotNull(checkNotNull(mElement.getModifiers()).getBackground()).getColor());
+    private androidx.wear.tiles.ColorBuilders.ColorProp getBackgroundColor() {
+        return Helper.checkNotNull(
+                Helper.checkNotNull(Helper.checkNotNull(mElement.getModifiers()).getBackground())
+                        .getColor());
     }
 
     /** Returns button color of this Button. */
-    @NonNull
-    public ButtonColors getButtonColors() {
-        ColorProp backgroundColor = getBackgroundColor();
-        ColorProp contentColor = null;
+    public @NonNull ButtonColors getButtonColors() {
+        androidx.wear.tiles.ColorBuilders.ColorProp backgroundColor = getBackgroundColor();
+        androidx.wear.tiles.ColorBuilders.ColorProp contentColor = null;
 
         switch (getMetadataTag()) {
             case METADATA_TAG_TEXT:
-                contentColor = checkNotNull(getTextContentObject()).getColor();
+                contentColor = Helper.checkNotNull(getTextContentObject()).getColor();
                 break;
             case METADATA_TAG_ICON:
                 contentColor =
-                        checkNotNull(checkNotNull(getIconContentObject()).getColorFilter())
+                        Helper.checkNotNull(
+                                        Helper.checkNotNull(getIconContentObject())
+                                                .getColorFilter())
                                 .getTint();
                 break;
             case METADATA_TAG_IMAGE:
                 contentColor =
-                        checkNotNull(checkNotNull(getImageContentObject()).getColorFilter())
+                        Helper.checkNotNull(
+                                        Helper.checkNotNull(getImageContentObject())
+                                                .getColorFilter())
                                 .getTint();
                 break;
             case METADATA_TAG_CUSTOM_CONTENT:
@@ -514,44 +510,50 @@ public class Button implements LayoutElement {
         }
 
         if (contentColor == null) {
-            contentColor = new ColorProp.Builder().build();
+            contentColor = new androidx.wear.tiles.ColorBuilders.ColorProp.Builder().build();
         }
 
         return new ButtonColors(backgroundColor, contentColor);
     }
 
     /** Returns metadata tag set to this Button. */
-    @NonNull
-    String getMetadataTag() {
-        return getMetadataTagName(
-                checkNotNull(checkNotNull(mElement.getModifiers()).getMetadata()));
+    @NonNull String getMetadataTag() {
+        return Helper.getMetadataTagName(
+                Helper.checkNotNull(Helper.checkNotNull(mElement.getModifiers()).getMetadata()));
     }
 
     /**
-     * Returns Button object from the given LayoutElement (e.g. one retrieved from a container's
-     * content with {@code container.getContents().get(index)}) if that element can be converted to
-     * Button. Otherwise, it will return null.
+     * Returns Button object from the given androidx.wear.tiles.LayoutElementBuilders.LayoutElement
+     * (e.g. one retrieved from a container's content with {@code
+     * container.getContents().get(index)}) if that element can be converted to Button. Otherwise,
+     * it will return null.
      */
-    @Nullable
-    public static Button fromLayoutElement(@NonNull LayoutElement element) {
+    public static @Nullable Button fromLayoutElement(
+            androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement element) {
         if (element instanceof Button) {
             return (Button) element;
         }
-        if (!(element instanceof Box)) {
+        if (!(element instanceof androidx.wear.tiles.LayoutElementBuilders.Box)) {
             return null;
         }
-        Box boxElement = (Box) element;
-        if (!checkTag(boxElement.getModifiers(), Builder.TYPE_TO_TAG.values())) {
+        androidx.wear.tiles.LayoutElementBuilders.Box boxElement =
+                (androidx.wear.tiles.LayoutElementBuilders.Box) element;
+        if (!Helper.checkTag(boxElement.getModifiers(), Builder.TYPE_TO_TAG.values())) {
             return null;
         }
         // Now we are sure that this element is a Button.
         return new Button(boxElement);
     }
 
-    @NonNull
     @Override
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public LayoutElementProto.LayoutElement toLayoutElementProto() {
-        return checkNotNull(mElement.toLayoutElementProto());
+    public LayoutElementProto.@NonNull LayoutElement toLayoutElementProto() {
+        return Helper.checkNotNull(mElement.toLayoutElementProto());
+    }
+
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Override
+    public @Nullable Fingerprint getFingerprint() {
+        return mElement.getFingerprint();
     }
 }

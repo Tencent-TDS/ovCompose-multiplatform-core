@@ -20,10 +20,11 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutorService;
@@ -51,8 +52,7 @@ public class DefaultTaskExecutor extends TaskExecutor {
         }
     });
 
-    @Nullable
-    private volatile Handler mMainHandler;
+    private volatile @Nullable Handler mMainHandler;
 
     @Override
     public void executeOnDiskIO(@NonNull Runnable runnable) {
@@ -78,11 +78,10 @@ public class DefaultTaskExecutor extends TaskExecutor {
     }
 
     @SuppressWarnings("JavaReflectionMemberAccess")
-    @NonNull
-    private static Handler createAsync(@NonNull Looper looper) {
+    private static @NonNull Handler createAsync(@NonNull Looper looper) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.createAsync(looper);
-        } else if (Build.VERSION.SDK_INT >= 17) {
+        } else {
             try {
                 // This constructor was added as private in JB MR1:
                 // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/jb-mr1-release/core/java/android/os/Handler.java
@@ -105,8 +104,7 @@ public class DefaultTaskExecutor extends TaskExecutor {
             // Non-instantiable.
         }
 
-        @NonNull
-        public static Handler createAsync(@NonNull Looper looper) {
+        public static @NonNull Handler createAsync(@NonNull Looper looper) {
             return Handler.createAsync(looper);
         }
     }

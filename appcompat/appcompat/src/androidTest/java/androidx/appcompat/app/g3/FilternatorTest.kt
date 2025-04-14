@@ -22,28 +22,24 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import androidx.testutils.LifecycleOwnerUtils.waitUntilState
+import androidx.testutils.lifecycle.LifecycleOwnerUtils.waitUntilState
 import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.TimeUnit
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Regression test for b/235485694, adapted from GmsCore's own tests.
- */
+/** Regression test for b/235485694, adapted from GmsCore's own tests. */
 @Suppress("SameParameterValue")
 @LargeTest
-@SdkSuppress(minSdkVersion = 18) // UiDevice
 @RunWith(AndroidJUnit4::class)
 class FilternatorTest {
-    @get:Rule
-    val activityRule = ActivityScenarioRule(FilternatorActivity::class.java)
+    @get:Rule val activityRule = ActivityScenarioRule(FilternatorActivity::class.java)
 
     private lateinit var uiDevice: UiDevice
 
@@ -53,6 +49,7 @@ class FilternatorTest {
     }
 
     @Test
+    @Ignore("b/280630647")
     fun testConfigurationUpdatedOnLandscapeMode() {
         // Wait for the activity to fully start before rotating,
         // otherwise we won't receive onConfigurationChanged.

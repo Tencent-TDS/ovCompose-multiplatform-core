@@ -18,8 +18,6 @@ package androidx.compose.ui.input.key
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.DelegatableNode
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.platform.InspectorInfo
 
 /**
  * Implement this interface to create a [Modifier.Node] that can intercept hardware Key events.
@@ -32,63 +30,18 @@ import androidx.compose.ui.platform.InspectorInfo
 interface KeyInputModifierNode : DelegatableNode {
 
     /**
-     * This function is called when a [KeyEvent] is received by this node during the upward
-     * pass. While implementing this callback, return true to stop propagation of this event. If you
+     * This function is called when a [KeyEvent] is received by this node during the upward pass.
+     * While implementing this callback, return true to stop propagation of this event. If you
      * return false, the key event will be sent to this [KeyInputModifierNode]'s parent.
      */
     fun onKeyEvent(event: KeyEvent): Boolean
 
     /**
-     * This function is called when a [KeyEvent] is received by this node during the
-     * downward pass. It gives ancestors of a focused component the chance to intercept an event.
-     * Return true to stop propagation of this event. If you return false, the event will be sent
-     * to this [KeyInputModifierNode]'s child. If none of the children consume the event,
-     * it will be sent back up to the root using the [onKeyEvent] function.
+     * This function is called when a [KeyEvent] is received by this node during the downward pass.
+     * It gives ancestors of a focused component the chance to intercept an event. Return true to
+     * stop propagation of this event. If you return false, the event will be sent to this
+     * [KeyInputModifierNode]'s child. If none of the children consume the event, it will be sent
+     * back up to the root using the [onKeyEvent] function.
      */
     fun onPreKeyEvent(event: KeyEvent): Boolean
-}
-
-internal data class OnKeyEventElement(
-    val onKeyEvent: (KeyEvent) -> Boolean
-) : ModifierNodeElement<KeyInputInputModifierNodeImpl>() {
-    override fun create() = KeyInputInputModifierNodeImpl(
-        onEvent = onKeyEvent,
-        onPreEvent = null
-    )
-
-    override fun update(node: KeyInputInputModifierNodeImpl) = node.apply {
-        onEvent = onKeyEvent
-        onPreEvent = null
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "onKeyEvent"
-        properties["onKeyEvent"] = onKeyEvent
-    }
-}
-
-internal data class OnPreviewKeyEvent(
-    val onPreviewKeyEvent: (KeyEvent) -> Boolean
-) : ModifierNodeElement<KeyInputInputModifierNodeImpl>() {
-    override fun create(): KeyInputInputModifierNodeImpl {
-        return KeyInputInputModifierNodeImpl(onEvent = null, onPreEvent = onPreviewKeyEvent)
-    }
-
-    override fun update(node: KeyInputInputModifierNodeImpl) = node.apply {
-        onPreEvent = onPreviewKeyEvent
-        onEvent = null
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "onPreviewKeyEvent"
-        properties["onPreviewKeyEvent"] = onPreviewKeyEvent
-    }
-}
-
-internal class KeyInputInputModifierNodeImpl(
-    var onEvent: ((KeyEvent) -> Boolean)?,
-    var onPreEvent: ((KeyEvent) -> Boolean)?
-) : KeyInputModifierNode, Modifier.Node() {
-    override fun onKeyEvent(event: KeyEvent): Boolean = this.onEvent?.invoke(event) ?: false
-    override fun onPreKeyEvent(event: KeyEvent): Boolean = this.onPreEvent?.invoke(event) ?: false
 }

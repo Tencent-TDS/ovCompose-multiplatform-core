@@ -22,17 +22,17 @@ import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.camera.camera2.pipe.integration.adapter.CameraFactoryAdapter
+import androidx.camera.camera2.pipe.integration.adapter.CameraFactoryProvider
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraInfo
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraFilter
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.impl.CameraFactory
 import androidx.camera.core.impl.CameraThreadConfig
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth
-import java.util.Arrays
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
@@ -51,24 +51,16 @@ import org.robolectric.shadows.StreamConfigurationMapBuilder
     instrumentedPackages = ["androidx.camera.camera2.pipe.integration.adapter"]
 )
 class CameraSelectionOptimizerTest {
+    private lateinit var cameraFactory: CameraFactory
 
-    private var mCameraFactoryAdapter: CameraFactoryAdapter = CameraFactoryAdapter(
-        ApplicationProvider.getApplicationContext<Context>(),
-        CameraThreadConfig.create(
-            CameraXExecutors.mainThreadExecutor(),
-            Handler(Looper.getMainLooper())
-        ),
-        null
-    )
-
-    fun setupNormalCameras() {
+    private fun setupNormalCameras() {
         initCharacteristics("0", CameraCharacteristics.LENS_FACING_BACK, 3.52f)
         initCharacteristics("1", CameraCharacteristics.LENS_FACING_FRONT, 3.52f)
         initCharacteristics("2", CameraCharacteristics.LENS_FACING_BACK, 2.7f)
         initCharacteristics("3", CameraCharacteristics.LENS_FACING_BACK, 10.0f)
     }
 
-    fun setupAbnormalCameras() {
+    private fun setupAbnormalCameras() {
         // "0" is front
         initCharacteristics("0", CameraCharacteristics.LENS_FACING_FRONT, 3.52f)
         // "1" is back
@@ -89,15 +81,13 @@ class CameraSelectionOptimizerTest {
     @Test
     fun requireLensFacingBack() {
         setupNormalCameras()
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
         val cameraIds: List<String> = getCameraIdsBasedOnCameraSelector(cameraSelector)
 
         Truth.assertThat(cameraIds).containsExactly("0", "2", "3")
-        Mockito.verify<CameraFactoryAdapter>(mCameraFactoryAdapter, Mockito.never())
-            .getCamera("1")
+        Mockito.verify(cameraFactory, Mockito.never()).getCamera("1")
     }
 
     @Test
@@ -105,14 +95,12 @@ class CameraSelectionOptimizerTest {
 
         setupNormalCameras()
 
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT).build()
 
         val cameraIds: List<String> = getCameraIdsBasedOnCameraSelector(cameraSelector)
         Truth.assertThat(cameraIds).containsExactly("1")
-        Mockito.verify<CameraFactoryAdapter>(mCameraFactoryAdapter, Mockito.never())
-            .getCamera("0")
+        Mockito.verify(cameraFactory, Mockito.never()).getCamera("0")
     }
 
     @OptIn(ExperimentalCamera2Interop::class)
@@ -134,25 +122,24 @@ class CameraSelectionOptimizerTest {
                     minFocalCameraInfo = cameraInfo
                 }
             }
-            Arrays.asList(minFocalCameraInfo)
+            listOf(minFocalCameraInfo)
         }
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-            .addCameraFilter(widestAngleFilter)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .addCameraFilter(widestAngleFilter)
+                .build()
         val cameraIds: List<String> = getCameraIdsBasedOnCameraSelector(cameraSelector)
         Truth.assertThat(cameraIds).containsExactly("2")
         // only camera "1" 's getCameraCharacteristics can be avoided.
-        Mockito.verify<CameraFactoryAdapter>(mCameraFactoryAdapter, Mockito.never())
-            .getCamera("1")
+        Mockito.verify(cameraFactory, Mockito.never()).getCamera("1")
     }
 
     @Test
     fun abnormalCameraSetup_requireLensFacingBack() {
         setupAbnormalCameras()
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
         val cameraIds: List<String> = getCameraIdsBasedOnCameraSelector(cameraSelector)
 
         // even though heuristic failed, it still works as expected.
@@ -162,9 +149,8 @@ class CameraSelectionOptimizerTest {
     @Test
     fun abnormalCameraSetup_requireLensFacingFront() {
         setupAbnormalCameras()
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT).build()
 
         val cameraIds: List<String> = getCameraIdsBasedOnCameraSelector(cameraSelector)
 
@@ -201,24 +187,21 @@ class CameraSelectionOptimizerTest {
     }
 
     private fun getCameraIdsBasedOnCameraSelector(cameraSelector: CameraSelector?): List<String> {
+        val actualCameraFactory =
+            CameraFactoryProvider()
+                .newInstance(
+                    ApplicationProvider.getApplicationContext(),
+                    CameraThreadConfig.create(
+                        CameraXExecutors.mainThreadExecutor(),
+                        Handler(Looper.getMainLooper())
+                    ),
+                    cameraSelector,
+                    -1L
+                )
 
-        mCameraFactoryAdapter = Mockito.spy(
-            CameraFactoryAdapter(
-                ApplicationProvider.getApplicationContext<Context>(),
-                CameraThreadConfig.create(
-                    CameraXExecutors.mainThreadExecutor(),
-                    Handler(Looper.getMainLooper())
-                ),
-                cameraSelector
-            )
-        )
+        cameraFactory = Mockito.spy(actualCameraFactory)
 
-        val cameraIds: List<String> =
-            CameraSelectionOptimizer.getSelectedAvailableCameraIds(
-                mCameraFactoryAdapter,
-                cameraSelector
-            )
-        return cameraIds
+        return CameraSelectionOptimizer.getSelectedAvailableCameraIds(cameraFactory, cameraSelector)
     }
 
     private fun initCharacteristics(cameraId: String, lensFacing: Int, focalLength: Float) {
@@ -227,12 +210,8 @@ class CameraSelectionOptimizerTest {
 
         val characteristics = ShadowCameraCharacteristics.newCameraCharacteristics()
         Shadow.extract<ShadowCameraCharacteristics>(characteristics).apply {
-
             set(CameraCharacteristics.LENS_FACING, lensFacing)
-            set(
-                CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS,
-                floatArrayOf(focalLength)
-            )
+            set(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS, floatArrayOf(focalLength))
             set(
                 CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE,
                 Rect(0, 0, sensorWidth, sensorHeight)
@@ -249,9 +228,9 @@ class CameraSelectionOptimizerTest {
 
         // Add the camera to the camera service
         (Shadow.extract<Any>(
-            ApplicationProvider.getApplicationContext<Context>()
-                .getSystemService(Context.CAMERA_SERVICE)
-        ) as ShadowCameraManager)
+                ApplicationProvider.getApplicationContext<Context>()
+                    .getSystemService(Context.CAMERA_SERVICE)
+            ) as ShadowCameraManager)
             .addCamera(cameraId, characteristics)
     }
 }

@@ -43,6 +43,9 @@ import androidx.leanback.widget.SearchOrbView;
 import androidx.leanback.widget.SpeechRecognitionCallback;
 import androidx.leanback.widget.VerticalGridView;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -249,7 +252,8 @@ public class SearchSupportFragment extends Fragment {
     }
 
     /**
-     * @param args Bundle to use for the arguments, if null a new Bundle will be created.
+     * @param args  Bundle to use for the arguments, if null a new Bundle will be created.
+     * @param query The search query, which is added to the bundle
      */
     public static Bundle createArgs(Bundle args, String query) {
         return createArgs(args, query, null);
@@ -289,8 +293,8 @@ public class SearchSupportFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public @Nullable View onCreateView(@NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.lb_search_fragment, container, false);
 
         BrowseFrameLayout searchFrame = root.findViewById(R.id.lb_search_frame);

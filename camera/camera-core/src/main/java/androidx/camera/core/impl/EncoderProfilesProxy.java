@@ -35,13 +35,16 @@ import static android.media.MediaRecorder.VideoEncoder.VP9;
 import static java.util.Collections.unmodifiableList;
 
 import android.media.EncoderProfiles;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
 import android.media.MediaRecorder;
+import android.util.Size;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -52,7 +55,6 @@ import java.util.List;
  * EncoderProfilesProxy defines the get methods that is mapping to the fields of
  * {@link EncoderProfiles}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface EncoderProfilesProxy {
 
     /** Constant representing no codec profile. */
@@ -65,12 +67,10 @@ public interface EncoderProfilesProxy {
     int getRecommendedFileFormat();
 
     /** @see EncoderProfiles#getAudioProfiles() */
-    @NonNull
-    List<AudioProfileProxy> getAudioProfiles();
+    @NonNull List<AudioProfileProxy> getAudioProfiles();
 
     /** @see EncoderProfiles#getVideoProfiles() */
-    @NonNull
-    List<VideoProfileProxy> getVideoProfiles();
+    @NonNull List<VideoProfileProxy> getVideoProfiles();
 
     /**
      * VideoProfileProxy defines the get methods that is mapping to the fields of
@@ -85,6 +85,9 @@ public interface EncoderProfilesProxy {
         /** Constant representing bit depth 8. */
         public static final int BIT_DEPTH_8 = 8;
 
+        /** Constant representing bit depth 10. */
+        public static final int BIT_DEPTH_10 = 10;
+
         @Retention(RetentionPolicy.SOURCE)
         @IntDef({H263, H264, HEVC, VP8, MPEG_4_SP, VP9, DOLBY_VISION, AV1,
                 MediaRecorder.VideoEncoder.DEFAULT})
@@ -92,8 +95,7 @@ public interface EncoderProfilesProxy {
         }
 
         /** Creates a VideoProfileProxy instance. */
-        @NonNull
-        public static VideoProfileProxy create(
+        public static @NonNull VideoProfileProxy create(
                 @VideoEncoder int codec,
                 @NonNull String mediaType,
                 int bitrate,
@@ -123,8 +125,7 @@ public interface EncoderProfilesProxy {
         public abstract int getCodec();
 
         /** @see EncoderProfiles.VideoProfile#getMediaType() */
-        @NonNull
-        public abstract String getMediaType();
+        public abstract @NonNull String getMediaType();
 
         /** @see EncoderProfiles.VideoProfile#getBitrate() */
         public abstract int getBitrate();
@@ -149,6 +150,12 @@ public interface EncoderProfilesProxy {
 
         /** @see EncoderProfiles.VideoProfile#getHdrFormat() */
         public abstract int getHdrFormat();
+
+        /** Returns video resolution equivalent to {@code new Size(getWidth(), getHeight())}. */
+        @NonNull
+        public Size getResolution() {
+            return new Size(getWidth(), getHeight());
+        }
     }
 
     /**
@@ -168,8 +175,7 @@ public interface EncoderProfilesProxy {
         }
 
         /** Creates an AudioProfileProxy instance. */
-        @NonNull
-        public static AudioProfileProxy create(
+        public static @NonNull AudioProfileProxy create(
                 @AudioEncoder int codec,
                 @NonNull String mediaType,
                 int bitRate,
@@ -191,8 +197,7 @@ public interface EncoderProfilesProxy {
         public abstract int getCodec();
 
         /** @see EncoderProfiles.AudioProfile#getMediaType() */
-        @NonNull
-        public abstract String getMediaType();
+        public abstract @NonNull String getMediaType();
 
         /** @see EncoderProfiles.AudioProfile#getBitrate() */
         public abstract int getBitrate();
@@ -214,8 +219,7 @@ public interface EncoderProfilesProxy {
     abstract class ImmutableEncoderProfilesProxy implements EncoderProfilesProxy {
 
         /** Creates an EncoderProfilesProxy instance. */
-        @NonNull
-        public static ImmutableEncoderProfilesProxy create(
+        public static @NonNull ImmutableEncoderProfilesProxy create(
                 int defaultDurationSeconds,
                 int recommendedFileFormat,
                 @NonNull List<AudioProfileProxy> audioProfiles,
@@ -226,6 +230,96 @@ public interface EncoderProfilesProxy {
                     unmodifiableList(new ArrayList<>(audioProfiles)),
                     unmodifiableList(new ArrayList<>(videoProfiles))
             );
+        }
+    }
+
+    /**
+     * Returns a mime-type string for the given video codec type.
+     *
+     * @return A mime-type string or {@link VideoProfileProxy#MEDIA_TYPE_NONE} if the codec type is
+     * {@link MediaRecorder.VideoEncoder#DEFAULT}, as this type is under-defined and cannot be
+     * resolved to a specific mime type without more information.
+     */
+    static @NonNull String getVideoCodecMimeType(
+            @VideoProfileProxy.VideoEncoder int codec) {
+        switch (codec) {
+            // Mime-type definitions taken from
+            // frameworks/av/media/libstagefright/foundation/MediaDefs.cpp
+            case H263:
+                return MediaFormat.MIMETYPE_VIDEO_H263;
+            case H264:
+                return MediaFormat.MIMETYPE_VIDEO_AVC;
+            case HEVC:
+                return MediaFormat.MIMETYPE_VIDEO_HEVC;
+            case VP8:
+                return MediaFormat.MIMETYPE_VIDEO_VP8;
+            case MPEG_4_SP:
+                return MediaFormat.MIMETYPE_VIDEO_MPEG4;
+            case VP9:
+                return MediaFormat.MIMETYPE_VIDEO_VP9;
+            case DOLBY_VISION:
+                return MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION;
+            case AV1:
+                return MediaFormat.MIMETYPE_VIDEO_AV1;
+            case MediaRecorder.VideoEncoder.DEFAULT:
+                break;
+        }
+
+        return VideoProfileProxy.MEDIA_TYPE_NONE;
+    }
+
+    /**
+     * Returns a mime-type string for the given audio codec type.
+     *
+     * @return A mime-type string or {@link AudioProfileProxy#MEDIA_TYPE_NONE} if the codec type is
+     * {@link android.media.MediaRecorder.AudioEncoder#DEFAULT}, as this type is under-defined
+     * and cannot be resolved to a specific mime type without more information.
+     */
+    static @NonNull String getAudioCodecMimeType(@AudioProfileProxy.AudioEncoder int codec) {
+        // Mime-type definitions taken from
+        // frameworks/av/media/libstagefright/foundation/MediaDefs.cpp
+        switch (codec) {
+            case AAC: // Should use aac-profile LC
+            case HE_AAC: // Should use aac-profile HE
+            case AAC_ELD: // Should use aac-profile ELD
+                return MediaFormat.MIMETYPE_AUDIO_AAC;
+            case AMR_NB:
+                return MediaFormat.MIMETYPE_AUDIO_AMR_NB;
+            case AMR_WB:
+                return MediaFormat.MIMETYPE_AUDIO_AMR_WB;
+            case OPUS:
+                return MediaFormat.MIMETYPE_AUDIO_OPUS;
+            case VORBIS:
+                return MediaFormat.MIMETYPE_AUDIO_VORBIS;
+            case MediaRecorder.AudioEncoder.DEFAULT:
+                break;
+        }
+
+        return AudioProfileProxy.MEDIA_TYPE_NONE;
+    }
+
+    /**
+     * Returns the required audio profile for the given audio encoder.
+     *
+     * <p>For example, this can be used to differentiate between AAC encoders
+     * {@link android.media.MediaRecorder.AudioEncoder#AAC},
+     * {@link android.media.MediaRecorder.AudioEncoder#AAC_ELD},
+     * and {@link android.media.MediaRecorder.AudioEncoder#HE_AAC}.
+     * Should be used with the {@link MediaCodecInfo.CodecProfileLevel#profile} field.
+     *
+     * @return The profile required by the audio codec. If no profile is required, returns
+     * {@link EncoderProfilesProxy#CODEC_PROFILE_NONE}.
+     */
+    static int getRequiredAudioProfile(@AudioProfileProxy.AudioEncoder int codec) {
+        switch (codec) {
+            case AAC:
+                return MediaCodecInfo.CodecProfileLevel.AACObjectLC;
+            case AAC_ELD:
+                return MediaCodecInfo.CodecProfileLevel.AACObjectELD;
+            case HE_AAC:
+                return MediaCodecInfo.CodecProfileLevel.AACObjectHE;
+            default:
+                return EncoderProfilesProxy.CODEC_PROFILE_NONE;
         }
     }
 }

@@ -28,8 +28,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Space;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.preference.ListPreference;
 import androidx.preference.MultiSelectListPreference;
@@ -37,20 +35,23 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragment;
 import androidx.preference.PreferenceScreen;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * This fragment provides a container for displaying a {@link LeanbackPreferenceFragment}
  *
  * <p>The following sample code shows a simple leanback preference fragment that is
  * populated from a resource.  The resource it loads is:</p>
  *
- * {@sample frameworks/support/samples/SupportPreferenceDemos/src/main/res/xml/preferences.xml preferences}
+ * {@sample samples/SupportPreferenceDemos/src/main/res/xml/preferences.xml preferences}
  *
  * <p>The sample implements
  * {@link PreferenceFragment.OnPreferenceStartFragmentCallback#onPreferenceStartFragment(PreferenceFragment, Preference)},
  * {@link PreferenceFragment.OnPreferenceStartScreenCallback#onPreferenceStartScreen(PreferenceFragment, PreferenceScreen)},
  * and {@link #onPreferenceStartInitialScreen()}:</p>
  *
- * {@sample frameworks/support/samples/SupportPreferenceDemos/src/main/java/com/example/androidx/preference/LeanbackPreferences.java leanback_preferences}
+ * {@sample samples/SupportPreferenceDemos/src/main/java/com/example/androidx/preference/LeanbackPreferences.java leanback_preferences}
  * @deprecated Use {@link LeanbackSettingsFragmentCompat}
  */
 @Deprecated

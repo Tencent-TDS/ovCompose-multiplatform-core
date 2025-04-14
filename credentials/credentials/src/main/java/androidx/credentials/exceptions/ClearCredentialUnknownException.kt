@@ -21,12 +21,11 @@ package androidx.credentials.exceptions
  *
  * @see ClearCredentialException
  */
-class ClearCredentialUnknownException @JvmOverloads constructor(
-    errorMessage: CharSequence? = null
-) : ClearCredentialException(TYPE_CLEAR_CREDENTIAL_UNKNOWN_EXCEPTION, errorMessage) {
-
-    /** @hide */
-    companion object {
+class ClearCredentialUnknownException
+@JvmOverloads
+constructor(errorMessage: CharSequence? = null) :
+    ClearCredentialException(TYPE_CLEAR_CREDENTIAL_UNKNOWN_EXCEPTION, errorMessage) {
+    internal companion object {
         internal const val TYPE_CLEAR_CREDENTIAL_UNKNOWN_EXCEPTION =
             "android.credentials.ClearCredentialStateException.TYPE_UNKNOWN"
     }

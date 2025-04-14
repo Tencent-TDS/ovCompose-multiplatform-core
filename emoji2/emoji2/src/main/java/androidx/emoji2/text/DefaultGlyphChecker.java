@@ -22,14 +22,14 @@ import android.os.Build;
 import android.text.TextPaint;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.core.graphics.PaintCompat;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Utility class that checks if the system can render a given glyph.
  *
- * @hide
  */
 @AnyThread
 @RestrictTo(LIBRARY)

@@ -16,16 +16,12 @@
 
 package androidx.benchmark.integration.macrobenchmark.target
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.tracing.Trace
 
-/**
- * Trivial activity which triggers reportFullyDrawn ~500ms after resume
- */
-@SuppressLint("SyntheticAccessor")
+/** Trivial activity which triggers reportFullyDrawn ~500ms after resume */
 class TrivialStartupFullyDrawnActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

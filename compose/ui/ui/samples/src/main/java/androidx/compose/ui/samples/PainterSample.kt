@@ -18,8 +18,8 @@ package androidx.compose.ui.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
@@ -41,11 +41,7 @@ fun PainterModifierSample() {
             get() = Size(300.0f, 300.0f)
 
         override fun DrawScope.onDraw() {
-            drawCircle(
-                center = center,
-                radius = size.minDimension / 2.0f,
-                color = Color.Red
-            )
+            drawCircle(center = center, radius = size.minDimension / 2.0f, color = Color.Red)
         }
     }
 
@@ -55,7 +51,9 @@ fun PainterModifierSample() {
                 .padding(30.dp)
                 .background(color = Color.Yellow)
                 .paint(CustomPainter())
-    ) { /** intentionally empty **/ }
+    ) {
+        /** intentionally empty */
+    }
 }
 
 @Sampled

@@ -40,7 +40,11 @@ import java.util.Set;
 
 /**
  * Contains metadata about an item, such as the title, artist, etc.
+ *
+ * @deprecated androidx.media is deprecated. Please migrate to <a
+ *     href="https://developer.android.com/media/media3">androidx.media3</a>.
  */
+@Deprecated
 @SuppressLint("BanParcelableUsage")
 public final class MediaMetadataCompat implements Parcelable {
     private static final String TAG = "MediaMetadata";
@@ -425,13 +429,9 @@ public final class MediaMetadataCompat implements Parcelable {
     public RatingCompat getRating(@RatingKey String key) {
         RatingCompat rating = null;
         try {
-            if (Build.VERSION.SDK_INT >= 19) {
-                // On platform version 19 or higher, mBundle stores a Rating object. Convert it to
-                // RatingCompat.
-                rating = RatingCompat.fromRating(mBundle.getParcelable(key));
-            } else {
-                rating = mBundle.getParcelable(key);
-            }
+            // On platform version 19 or higher, mBundle stores a Rating object. Convert it to
+            // RatingCompat.
+            rating = RatingCompat.fromRating(mBundle.getParcelable(key));
         } catch (Exception e) {
             // ignore, value was not a bitmap
             Log.w(TAG, "Failed to retrieve a key as Rating.", e);
@@ -645,9 +645,13 @@ public final class MediaMetadataCompat implements Parcelable {
             };
 
     /**
-     * Use to build MediaMetadata objects. The system defined metadata keys must
-     * use the appropriate data type.
+     * Use to build MediaMetadata objects. The system defined metadata keys must use the appropriate
+     * data type.
+     *
+     * @deprecated androidx.media is deprecated. Please migrate to <a
+     *     href="https://developer.android.com/media/media3">androidx.media3</a>.
      */
+    @Deprecated
     public static final class Builder {
         private final Bundle mBundle;
 
@@ -819,13 +823,9 @@ public final class MediaMetadataCompat implements Parcelable {
                             + " key cannot be used to put a Rating");
                 }
             }
-            if (Build.VERSION.SDK_INT >= 19) {
-                // On platform version 19 or higher, use Rating instead of RatingCompat so mBundle
-                // can be unmarshalled.
-                mBundle.putParcelable(key, (Parcelable) value.getRating());
-            } else {
-                mBundle.putParcelable(key, value);
-            }
+            // On platform version 19 or higher, use Rating instead of RatingCompat so mBundle
+            // can be unmarshalled.
+            mBundle.putParcelable(key, (Parcelable) value.getRating());
             return this;
         }
 

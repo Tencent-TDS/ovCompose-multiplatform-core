@@ -24,20 +24,13 @@ import android.graphics.Insets;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.DrawableContainer;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.InsetDrawable;
-import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.ScaleDrawable;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
-import androidx.appcompat.graphics.drawable.DrawableWrapperCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.core.graphics.drawable.WrappedDrawable;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -59,8 +52,7 @@ public class DrawableUtils {
      * Allows us to get the optical insets for a {@link Drawable}. Since this is hidden we need to
      * use reflection. Since the {@code Insets} class is hidden also, we return a Rect instead.
      */
-    @NonNull
-    public static Rect getOpticalBounds(@NonNull Drawable drawable) {
+    public static @NonNull Rect getOpticalBounds(@NonNull Drawable drawable) {
         if (Build.VERSION.SDK_INT >= 29) {
             final Insets insets = Api29Impl.getOpticalInsets(drawable);
             return new Rect(
@@ -69,13 +61,9 @@ public class DrawableUtils {
                     insets.right,
                     insets.bottom
             );
-        } else if (Build.VERSION.SDK_INT >= 18) {
+        } else {
             return Api18Impl.getOpticalInsets(DrawableCompat.unwrap(drawable));
         }
-
-        // If we reach here, either we're running on a device pre-v18, the Drawable didn't have
-        // any optical insets, or a reflection issue, so we'll just return an empty rect.
-        return INSETS_NONE;
     }
 
     /**
@@ -101,43 +89,11 @@ public class DrawableUtils {
     /**
      * Some drawable implementations have problems with mutation. This method returns false if
      * there is a known issue in the given drawable's implementation.
+     *
+     * @deprecated it is always true.
      */
+    @Deprecated
     public static boolean canSafelyMutateDrawable(@NonNull Drawable drawable) {
-        if (Build.VERSION.SDK_INT >= 17) {
-            // We'll never return false on API level >= 17, stop early.
-            return true;
-        }
-
-        if (Build.VERSION.SDK_INT < 15 && drawable instanceof InsetDrawable) {
-            return false;
-        } else if (Build.VERSION.SDK_INT < 15 && drawable instanceof GradientDrawable) {
-            // GradientDrawable has a bug pre-ICS which results in mutate() resulting
-            // in loss of color
-            return false;
-        } else if (Build.VERSION.SDK_INT < 17 && drawable instanceof LayerDrawable) {
-            return false;
-        }
-
-        if (drawable instanceof DrawableContainer) {
-            // If we have a DrawableContainer, let's traverse its child array
-            final Drawable.ConstantState state = drawable.getConstantState();
-            if (state instanceof DrawableContainer.DrawableContainerState) {
-                final DrawableContainer.DrawableContainerState containerState =
-                        (DrawableContainer.DrawableContainerState) state;
-                for (final Drawable child : containerState.getChildren()) {
-                    if (!canSafelyMutateDrawable(child)) {
-                        return false;
-                    }
-                }
-            }
-        } else if (drawable instanceof WrappedDrawable) {
-            return canSafelyMutateDrawable(((WrappedDrawable) drawable).getWrappedDrawable());
-        } else if (drawable instanceof DrawableWrapperCompat) {
-            return canSafelyMutateDrawable(((DrawableWrapperCompat) drawable).getDrawable());
-        } else if (drawable instanceof ScaleDrawable) {
-            return canSafelyMutateDrawable(((ScaleDrawable) drawable).getDrawable());
-        }
-
         return true;
     }
 
@@ -179,8 +135,7 @@ public class DrawableUtils {
         }
     }
 
-    // Only accessible on SDK_INT >= 18 and < 29.
-    @RequiresApi(18)
+    // Only accessible on SDK_INT < 29.
     static class Api18Impl {
         private static final boolean sReflectionSuccessful;
         private static final Method sGetOpticalInsets;
@@ -234,8 +189,7 @@ public class DrawableUtils {
             // This class is not instantiable.
         }
 
-        @NonNull
-        static Rect getOpticalInsets(@NonNull Drawable drawable) {
+        static @NonNull Rect getOpticalInsets(@NonNull Drawable drawable) {
             // Check the SDK_INT to avoid UncheckedReflection error.
             if (Build.VERSION.SDK_INT < 29 && sReflectionSuccessful) {
                 try {
@@ -264,7 +218,6 @@ public class DrawableUtils {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Insets getOpticalInsets(Drawable drawable) {
             return drawable.getOpticalInsets();
         }

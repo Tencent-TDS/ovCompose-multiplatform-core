@@ -39,10 +39,11 @@ import android.util.Log;
 import androidx.annotation.ColorInt;
 import androidx.annotation.DimenRes;
 import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.R;
 import androidx.core.graphics.drawable.DrawableCompat;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  */
@@ -148,7 +149,7 @@ public final class AppCompatDrawableManager {
                             getThemeAttrColor(context, R.attr.colorAccent));
                 }
 
-                private ColorStateList createButtonColorStateList(@NonNull final Context context,
+                private ColorStateList createButtonColorStateList(final @NonNull Context context,
                         @ColorInt final int baseColor) {
                     final int[][] states = new int[4][];
                     final int[] colors = new int[4];
@@ -309,9 +310,7 @@ public final class AppCompatDrawableManager {
                 }
 
                 private void setPorterDuffColorFilter(Drawable d, int color, PorterDuff.Mode mode) {
-                    if (DrawableUtils.canSafelyMutateDrawable(d)) {
-                        d = d.mutate();
-                    }
+                    d = d.mutate();
                     d.setColorFilter(getPorterDuffColorFilter(color, mode == null ? DEFAULT_MODE
                             : mode));
                 }
@@ -423,9 +422,7 @@ public final class AppCompatDrawableManager {
                     }
 
                     if (colorAttrSet) {
-                        if (DrawableUtils.canSafelyMutateDrawable(drawable)) {
-                            drawable = drawable.mutate();
-                        }
+                        drawable = drawable.mutate();
 
                         final int color = getThemeAttrColor(context, colorAttr);
                         drawable.setColorFilter(getPorterDuffColorFilter(color, tintMode));

@@ -35,6 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+
+private var expandedWidthInit = false
+private var expandedHeightInit = false
+private var usePlatformDefaultWidthInit = false
 
 @Composable
 fun DialogDemo() {
@@ -42,11 +47,30 @@ fun DialogDemo() {
     var shape by remember { mutableStateOf(RectangleShape) }
     var elevation by remember { mutableStateOf(8.dp) }
     var openDialog by remember { mutableStateOf(true) }
+    var expandedWidth by remember { mutableStateOf(expandedWidthInit) }
+    var expandedHeight by remember { mutableStateOf(expandedHeightInit) }
+    var usePlatformDefaultWidth by remember { mutableStateOf(usePlatformDefaultWidthInit) }
 
+    TextButton(onClick = { openDialog = !openDialog }) { Text("Tap anywhere to reopen dialog") }
     if (openDialog) {
-        Dialog(onDismissRequest = { openDialog = false }) {
+        Dialog(
+            onDismissRequest = { openDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = usePlatformDefaultWidth)
+        ) {
+            val width =
+                if (expandedWidth) {
+                    1500.dp
+                } else {
+                    300.dp
+                }
+            val height =
+                if (expandedHeight) {
+                    600.dp
+                } else {
+                    400.dp
+                }
             Card(
-                modifier = Modifier.size(350.dp, 200.dp).padding(10.dp),
+                modifier = Modifier.size(width, height).padding(10.dp),
                 elevation = elevation,
                 shape = shape
             ) {
@@ -57,24 +81,47 @@ fun DialogDemo() {
                     Text("Dialog")
                     TextButton(
                         onClick = {
-                            shape = if (shape == roundedRectangleShape) {
-                                RectangleShape
-                            } else {
-                                roundedRectangleShape
-                            }
+                            shape =
+                                if (shape == roundedRectangleShape) {
+                                    RectangleShape
+                                } else {
+                                    roundedRectangleShape
+                                }
                         }
                     ) {
-                        Text("Toggle shape")
+                        Text("Toggle corners")
+                    }
+                    TextButton(
+                        onClick = {
+                            expandedWidth = !expandedWidth
+                            expandedWidthInit = expandedWidth
+                        }
+                    ) {
+                        Text("Toggle width")
+                    }
+                    TextButton(
+                        onClick = {
+                            expandedHeight = !expandedHeight
+                            expandedHeightInit = expandedHeight
+                        }
+                    ) {
+                        Text("Toggle height")
+                    }
+                    TextButton(
+                        onClick = {
+                            usePlatformDefaultWidth = !usePlatformDefaultWidth
+                            usePlatformDefaultWidthInit = usePlatformDefaultWidthInit
+                        }
+                    ) {
+                        Text("Toggle widthlock")
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { elevation -= 1.dp }) {
-                            Text("-1")
-                        }
+                        TextButton(onClick = { elevation -= 1.dp }) { Text("-1") }
                         Text("Elevation: $elevation")
-                        TextButton(onClick = { elevation += 1.dp }) {
-                            Text("+1")
-                        }
+                        TextButton(onClick = { elevation += 1.dp }) { Text("+1") }
                     }
+                    Text("Current size: [$width, $height]")
+                    Text("usePlatformDefaultWidth = $usePlatformDefaultWidth")
                 }
             }
         }

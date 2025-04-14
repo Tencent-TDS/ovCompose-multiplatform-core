@@ -18,16 +18,20 @@
 
 package androidx.appcompat.app
 
+import android.content.Context
 import android.content.Intent
 import androidx.appcompat.testutils.LocalesActivityTestRule
 import androidx.appcompat.testutils.LocalesUtils.CUSTOM_LOCALE_LIST
 import androidx.appcompat.testutils.LocalesUtils.assertConfigurationLocalesEquals
+import androidx.appcompat.testutils.LocalesUtils.setLocalesAndWait
 import androidx.appcompat.testutils.LocalesUtils.setLocalesAndWaitForRecreate
+import androidx.core.app.LocaleManagerCompat
 import androidx.core.os.LocaleListCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import junit.framework.Assert.assertEquals
 import junit.framework.Assert.assertNull
 import org.junit.After
 import org.junit.Before
@@ -39,8 +43,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(maxSdkVersion = 32)
 class LocalesPersistTestCase() {
-    @get:Rule
-    val rule = LocalesActivityTestRule(LocalesUpdateActivity::class.java)
+    @get:Rule val rule = LocalesActivityTestRule(LocalesUpdateActivity::class.java)
     private var systemLocales = LocaleListCompat.getEmptyLocaleList()
     private var expectedLocales = LocaleListCompat.getEmptyLocaleList()
 
@@ -48,24 +51,21 @@ class LocalesPersistTestCase() {
     fun setUp() {
         // Since no locales are applied as of now, current configuration will have system
         // locales.
-        systemLocales = LocalesUpdateActivity.getConfigLocales(
-            rule.activity.resources.configuration
-        )
-        expectedLocales = LocalesUpdateActivity.overlayCustomAndSystemLocales(
-            CUSTOM_LOCALE_LIST, systemLocales
-        )
+        systemLocales =
+            LocalesUpdateActivity.getConfigLocales(rule.activity.resources.configuration)
+        expectedLocales =
+            LocalesUpdateActivity.overlayCustomAndSystemLocales(CUSTOM_LOCALE_LIST, systemLocales)
     }
 
     /**
      * This test verifies that the locales persist in storage when a metadata entry for
-     * "autoStoreLocale" is provided as an opt-in.
-     * To replicate the scenario of app-startup a method resetStaticRequestedAndStoredLocales()
-     * is called to clear out the static storage of locales. The flow of the test is:
-     * setApplicationLocales is called on the firstActivity and it is recreated as recreatedFirst.
-     * Now the locales must have been stored and the static storage would also hold these. Then
-     * we clear out the static storage and create a new activity secondActivity by using an intent
-     * and because the static storage was already clear the activity should sync locales from
-     * storage and start up in the app-specific locales.
+     * "autoStoreLocale" is provided as an opt-in. To replicate the scenario of app-startup a method
+     * resetStaticRequestedAndStoredLocales() is called to clear out the static storage of locales.
+     * The flow of the test is: setApplicationLocales is called on the firstActivity and it is
+     * recreated as recreatedFirst. Now the locales must have been stored and the static storage
+     * would also hold these. Then we clear out the static storage and create a new activity
+     * secondActivity by using an intent and because the static storage was already clear the
+     * activity should sync locales from storage and start up in the app-specific locales.
      */
     @Test
     fun testLocalesAppliedInNewActivityAfterStaticStorageCleared() {
@@ -77,10 +77,7 @@ class LocalesPersistTestCase() {
         assertConfigurationLocalesEquals(systemLocales, firstActivity)
 
         // Now change the locales for the activity
-        val recreatedFirst = setLocalesAndWaitForRecreate(
-            firstActivity,
-            CUSTOM_LOCALE_LIST
-        )
+        val recreatedFirst = setLocalesAndWaitForRecreate(firstActivity, CUSTOM_LOCALE_LIST)
 
         assertConfigurationLocalesEquals(expectedLocales, recreatedFirst)
 
@@ -91,9 +88,10 @@ class LocalesPersistTestCase() {
         assertNull(AppCompatDelegate.getRequestedAppLocales())
 
         // Start a new Activity, so that the original Activity goes into the background
-        val intent = Intent(recreatedFirst, AppCompatActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        val intent =
+            Intent(recreatedFirst, AppCompatActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
         val secondActivity = instrumentation.startActivitySync(intent) as AppCompatActivity
 
         // assert that the new activity started with the app-specific locales after reading them
@@ -108,13 +106,24 @@ class LocalesPersistTestCase() {
         assertConfigurationLocalesEquals(systemLocales, firstActivity)
 
         // Start a new Activity, so that the original Activity goes into the background
-        val intent = Intent(firstActivity, AppCompatActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        val intent =
+            Intent(firstActivity, AppCompatActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
         val secondActivity = instrumentation.startActivitySync(intent) as AppCompatActivity
 
         // assert that the new activity started with the systemLocales.
         assertConfigurationLocalesEquals(systemLocales, secondActivity)
+    }
+
+    @Test
+    fun testGetAppLocalesFromNonActivityContext() {
+        AppCompatDelegate.setIsAutoStoreLocalesOptedIn(true)
+
+        setLocalesAndWait(rule, CUSTOM_LOCALE_LIST)
+
+        val appContext: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals(CUSTOM_LOCALE_LIST, LocaleManagerCompat.getApplicationLocales(appContext))
     }
 
     @After
