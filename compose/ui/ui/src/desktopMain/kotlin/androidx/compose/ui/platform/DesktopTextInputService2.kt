@@ -183,8 +183,8 @@ private class InputMethodRequestsImpl(
     }
 
     fun replaceInputMethodText(event: InputMethodEvent) {
-        val committed = event.text.substringSuitableForTextFieldOrEmpty(0, event.committedCharacterCount)
-        val composing = event.text.substringSuitableForTextFieldOrEmpty(event.committedCharacterCount, null)
+        val committed = event.committedText
+        val composing = event.composingText
 
         editText {
             if (needToDeletePreviousChar && selection.min > 0 && composing.isEmpty()) {
@@ -201,6 +201,20 @@ private class InputMethodRequestsImpl(
 }
 
 /**
+ * The committed text specified by the event, or an empty string if none.
+ */
+internal val InputMethodEvent.committedText: String
+    get() = text.substringSuitableForTextFieldOrEmpty(0, committedCharacterCount)
+
+
+/**
+ * The composing text specified by the event, or an empty string if none.
+ */
+internal val InputMethodEvent.composingText: String
+    get() = text.substringSuitableForTextFieldOrEmpty(committedCharacterCount, null)
+
+
+/**
  * Returns the substring between [start] (inclusive) and [end] (exclusive, or the end of the
  * iterator, if `null`) of the given [AttributedCharacterIterator].
  *
@@ -209,7 +223,7 @@ private class InputMethodRequestsImpl(
  * should not be added to a text field (e.g. the backspace character) in an [InputMethodEvent].
  * See https://youtrack.jetbrains.com/issue/CMP-7989
  */
-internal fun AttributedCharacterIterator?.substringSuitableForTextFieldOrEmpty(
+private fun AttributedCharacterIterator?.substringSuitableForTextFieldOrEmpty(
     start: Int,
     end: Int? = null
 ) : String {
