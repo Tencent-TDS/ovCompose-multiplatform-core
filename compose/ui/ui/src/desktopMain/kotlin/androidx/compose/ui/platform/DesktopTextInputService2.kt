@@ -183,8 +183,8 @@ private class InputMethodRequestsImpl(
     }
 
     fun replaceInputMethodText(event: InputMethodEvent) {
-        val committed = event.text?.toStringUntil(event.committedCharacterCount) ?: ""
-        val composing = event.text?.toStringFrom(event.committedCharacterCount) ?: ""
+        val committed = event.text.printableSubstringOrEmpty(0, event.committedCharacterCount)
+        val composing = event.text.printableSubstringOrEmpty(event.committedCharacterCount, null)
 
         editText {
             if (needToDeletePreviousChar && selection.min > 0 && composing.isEmpty()) {
@@ -200,22 +200,28 @@ private class InputMethodRequestsImpl(
 
 }
 
-private fun AttributedCharacterIterator.toStringUntil(index: Int) = StringBuilder().apply {
-    var i = index
-    if (i > 0) {
-        var c: Char = setIndex(0)
-        while (i > 0) {
-            append(c)
-            c = next()
-            i--
-        }
-    }
-}
+/**
+ * Returns the substring between [start] (inclusive) and [end] (exclusive, or the end of the
+ * iterator, if `null`) of the given [AttributedCharacterIterator].
+ *
+ * Only printable characters are returned.
+ * The reason unprintable characters need to be filtered is that the system sometimes sends
+ * unprintable ones (e.g. backspace.) in an [InputMethodEvent].
+ * See https://youtrack.jetbrains.com/issue/CMP-7989
+ */
+internal fun AttributedCharacterIterator?.printableSubstringOrEmpty(
+    start: Int,
+    end: Int? = null
+) : String {
+    if (this == null) return ""
 
-private fun AttributedCharacterIterator.toStringFrom(index: Int) = StringBuilder().apply {
-    var c: Char = setIndex(index)
-    while (c != CharacterIterator.DONE) {
-        append(c)
-        c = next()
+    return buildString {
+        index = start
+        var c: Char = current()
+        while ((c != CharacterIterator.DONE) && ((end == null) || (index < end))) {
+            if (!c.isISOControl())
+                append(c)
+            c = next()
+        }
     }
 }
