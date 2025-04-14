@@ -81,17 +81,10 @@ internal class UIKitBackGestureDispatcher(
         rightEdgePanGestureRecognizer.enabled = listener != null
     }
 
-    fun onDidMoveToWindow(window: UIWindow?, composeRootView: UIView) {
+    fun attachToView(view: UIView?) {
         if (enableBackGesture) {
-            if (window == null) {
-                removeGestureListeners()
-            } else {
-                var view: UIView = composeRootView
-                while (view.superview != window) {
-                    view = requireNotNull(view.superview) {
-                        "Window is not null, but superview is null for ${view.debugDescription}"
-                    }
-                }
+            removeGestureListeners()
+            if (view != null) {
                 addGestureListeners(view)
             }
         }
