@@ -16,6 +16,8 @@
 
 package androidx.pdf.viewer.fragment
 
+import android.content.ContentResolver.SCHEME_CONTENT
+import android.content.ContentResolver.SCHEME_FILE
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -45,6 +47,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.pdf.util.AnnotationUtils
+import androidx.pdf.util.Uris
 import androidx.pdf.view.PdfView
 import androidx.pdf.view.Selection
 import androidx.pdf.view.ToolBoxView
@@ -115,11 +118,31 @@ public open class PdfViewerFragment constructor() : Fragment() {
      * [onLoadDocumentSuccess] callback is invoked. If an error occurs during the loading phase, the
      * [onLoadDocumentError] callback is invoked with the exception.
      *
-     * <p>Note: This property is recommended to be set when the fragment is in the started state.
+     * <h5>Accepts the following URI schemes:</h5>
+     * <ul>
+     * <li>content ([android.content.ContentResolver.SCHEME_CONTENT])</li>
+     * <li>file ([android.content.ContentResolver.SCHEME_FILE])</li>
+     * </ul>
+     *
+     * <p>
+     * Setting a different URI will cancel any ongoing load operation, reset the fragment's state,
+     * and display a loading indicator until the new content is loaded.
+     *
+     * <p>
+     * If the same URI is set multiple times, the load operation will not be restarted. Instead, the
+     * existing load operation will continue.
+     *
+     * @throws IllegalArgumentException if the uri is not allowed.
      */
     public var documentUri: Uri?
         get() = documentViewModel.documentUriFromState
         set(value) {
+            if (value != null && !Uris.isContentUri(value) && !Uris.isFileUri(value)) {
+                throw IllegalArgumentException(
+                    "Supported URI schemes: $SCHEME_CONTENT and $SCHEME_FILE"
+                )
+            }
+
             documentViewModel.loadDocument(uri = value, password = null)
         }
 

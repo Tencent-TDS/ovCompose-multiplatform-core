@@ -72,6 +72,8 @@ import androidx.xr.compose.spatial.Orbiter
 import androidx.xr.compose.spatial.OrbiterEdge
 import androidx.xr.compose.spatial.OrbiterSettings
 import androidx.xr.compose.spatial.SpatialDialog
+import androidx.xr.compose.spatial.SpatialDialogProperties
+import androidx.xr.compose.spatial.SpatialElevationLevel
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MainPanel
 import androidx.xr.compose.subspace.SpatialColumn
@@ -303,7 +305,13 @@ class SpatialComposeAppActivity : ComponentActivity() {
             Spacer(modifier = Modifier.size(20.dp))
             Button(onClick = { showDialog = true }) { Text("show dialog") }
             if (showDialog) {
-                SpatialDialog(onDismissRequest = { showDialog = false }) {
+                SpatialDialog(
+                    onDismissRequest = { showDialog = false },
+                    properties =
+                        SpatialDialogProperties(
+                            spatialElevationLevel = SpatialElevationLevel(128.dp)
+                        ),
+                ) {
                     Surface(
                         color = Color.White,
                         modifier = Modifier.clip(RoundedCornerShape(5.dp))

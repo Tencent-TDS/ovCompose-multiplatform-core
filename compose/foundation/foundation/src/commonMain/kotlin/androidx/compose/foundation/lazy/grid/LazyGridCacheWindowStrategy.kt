@@ -108,10 +108,16 @@ private class LazyGridCacheWindowScope() : CacheWindowScope {
         get() = (layoutInfo as? LazyGridMeasureResult)?.density
 
     override fun schedulePrefetch(
-        laneIndex: Int,
-        onItemPrefetched: (Int) -> Unit
+        lineIndex: Int,
+        onItemPrefetched: (Int, Int) -> Unit
     ): List<PrefetchHandle> {
-        return prefetchScope.scheduleLinePrefetch(laneIndex) { onItemPrefetched(it.max()) }
+        return prefetchScope.scheduleLinePrefetch(lineIndex) {
+            var tallestElement = Int.MIN_VALUE
+            repeat(lineItemCount) { tallestElement = maxOf(getMainAxisSize(it)) }
+            if (tallestElement != Int.MIN_VALUE) {
+                onItemPrefetched(lineIndex, tallestElement)
+            }
+        }
     }
 
     override val visibleLineCount: Int

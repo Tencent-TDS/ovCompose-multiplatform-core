@@ -16,12 +16,32 @@
 
 package androidx.compose.foundation.text.contextmenu.test
 
+import android.view.ActionMode
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.compose.foundation.internal.checkPreconditionNotNull
+import androidx.compose.foundation.test.R
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuData
+import androidx.compose.foundation.text.contextmenu.data.TextContextMenuItem
+import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSession
+import androidx.compose.foundation.text.contextmenu.internal.TextActionModeCallback
 import androidx.compose.foundation.text.contextmenu.modifier.collectTextContextMenuData
+import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuDataProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toIntRect
+import androidx.compose.ui.unit.toOffset
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 
 /**
  * Can collect the context menu items wherever its associated
@@ -74,3 +94,111 @@ internal class TestTextContextMenuDataReaderNode(
 internal fun TextContextMenuData.assertItems(expectedKeys: List<Any>) {
     assertThat(components.map { it.key }).containsExactly(*expectedKeys.toTypedArray()).inOrder()
 }
+
+internal class SpyTextActionModeCallback : TextActionModeCallback {
+    lateinit var delegate: TextActionModeCallback
+    var actionMode: ActionMode? = null
+    var menu: Menu? = null
+    var contentRect: Rect? = null
+
+    override fun onGetContentRect(mode: ActionMode, view: View?): Rect {
+        this.actionMode = mode
+        return delegate.onGetContentRect(mode, view).also { contentRect = it }
+    }
+
+    override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+        this.actionMode = mode
+        this.menu = menu
+        return delegate.onPrepareActionMode(mode, menu)
+    }
+
+    override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+        this.actionMode = mode
+        this.menu = menu
+        return delegate.onCreateActionMode(mode, menu)
+    }
+
+    override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+        this.actionMode = mode
+        return delegate.onActionItemClicked(mode, item)
+    }
+
+    override fun onDestroyActionMode(mode: ActionMode) {
+        this.actionMode = null
+        this.menu = null
+        delegate.onDestroyActionMode(mode)
+    }
+}
+
+internal fun SpyTextActionModeCallback.assertShown(shown: Boolean = true) {
+    val message = "Text toolbar status should ${if (shown) "" else "not "}be shown."
+    val subject = assertWithMessage(message).that(menu)
+    if (shown) {
+        subject.isNotNull()
+    } else {
+        subject.isNull()
+    }
+}
+
+internal fun SemanticsNodeInteractionsProvider.onItemWithNumber(i: Int): SemanticsNodeInteraction =
+    onNodeWithText(labelForNumber(i))
+
+internal fun SemanticsNodeInteraction.positionInScreen(): IntOffset =
+    fetchSemanticsNode().positionOnScreen.round()
+
+internal fun testDataProvider(vararg itemNumbers: Int): TextContextMenuDataProvider =
+    testDataProvider(positioner = { defaultPositioner(it) }, data = { numbersToData(*itemNumbers) })
+
+internal fun numbersToData(vararg itemNumbers: Int): TextContextMenuData =
+    TextContextMenuData(itemNumbers.map { testItem(it) })
+
+internal fun testDataProvider(
+    positioner: (LayoutCoordinates) -> Offset = { defaultPositioner(it) },
+    data: () -> TextContextMenuData
+): TextContextMenuDataProvider =
+    object : TextContextMenuDataProvider {
+        override fun position(destinationCoordinates: LayoutCoordinates): Offset =
+            positioner(destinationCoordinates)
+
+        override fun contentBounds(destinationCoordinates: LayoutCoordinates): Rect =
+            position(destinationCoordinates).let { Rect(it, it) }
+
+        override fun data(): TextContextMenuData = data()
+    }
+
+internal fun defaultPositioner(destinationCoordinates: LayoutCoordinates): Offset =
+    destinationCoordinates.size.toIntRect().center.toOffset()
+
+internal fun testItem(
+    i: Int,
+    onClick: TextContextMenuSession.() -> Unit = {}
+): TextContextMenuItem =
+    TextContextMenuItem(
+        key = i,
+        label = labelForNumber(i),
+        leadingIcon = R.drawable.ic_vector_asset_test,
+        onClick = onClick
+    )
+
+internal fun labelForNumber(i: Int): String = "Item $i"
+
+internal fun numberForLabel(label: CharSequence): Int = label.split(" ").last().toInt()
+
+internal fun Menu.items(): List<MenuItem> {
+    val items = mutableListOf<MenuItem>()
+    for (i in 0 until size()) {
+        items.add(getItem(i))
+    }
+    return items
+}
+
+internal fun <T : Any> assertNotNull(obj: T?, messageBlock: (() -> String)? = null): T =
+    obj.also {
+        val subject =
+            if (messageBlock != null) {
+                assertWithMessage(messageBlock()).that(it)
+            } else {
+                assertThat(it)
+            }
+        subject.isNotNull()
+    }!!

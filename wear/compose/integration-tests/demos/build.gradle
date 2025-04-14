@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import androidx.build.KotlinTarget
 
 plugins {
     id("AndroidXPlugin")
@@ -28,8 +27,8 @@ android {
     defaultConfig {
         applicationId = "androidx.wear.compose.integration.demos"
         minSdk = 25
-        versionCode = 72
-        versionName = "1.72"
+        versionCode = 74
+        versionName = "1.74"
     }
 
     buildTypes {
@@ -87,5 +86,4 @@ dependencies {
 }
 
 androidx {
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

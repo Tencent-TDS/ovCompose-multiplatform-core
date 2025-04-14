@@ -16,10 +16,7 @@
 
 package androidx.compose.foundation.text.contextmenu.internal
 
-import android.view.ActionMode
 import android.view.Menu
-import android.view.MenuItem
-import android.view.View
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -27,13 +24,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.test.R
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuData
-import androidx.compose.foundation.text.contextmenu.data.TextContextMenuItem
-import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSession
 import androidx.compose.foundation.text.contextmenu.provider.LocalTextContextMenuToolbarProvider
 import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuDataProvider
 import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuProvider
+import androidx.compose.foundation.text.contextmenu.test.SpyTextActionModeCallback
+import androidx.compose.foundation.text.contextmenu.test.assertNotNull
+import androidx.compose.foundation.text.contextmenu.test.items
+import androidx.compose.foundation.text.contextmenu.test.numberForLabel
+import androidx.compose.foundation.text.contextmenu.test.numbersToData
+import androidx.compose.foundation.text.contextmenu.test.testDataProvider
+import androidx.compose.foundation.text.contextmenu.test.testItem
 import androidx.compose.foundation.text.test.assertThatJob
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -44,10 +45,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush.Companion.verticalGradient
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -58,8 +57,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.toIntRect
-import androidx.compose.ui.unit.toOffset
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -458,86 +455,3 @@ class AndroidTextContextMenuToolbarProviderTest {
         }
     }
 }
-
-private fun Menu.items(): List<MenuItem> {
-    val items = mutableListOf<MenuItem>()
-    for (i in 0 until size()) {
-        items.add(getItem(i))
-    }
-    return items
-}
-
-private class SpyTextActionModeCallback : TextActionModeCallback {
-    lateinit var delegate: TextActionModeCallback
-    var actionMode: ActionMode? = null
-    var menu: Menu? = null
-    var contentRect: Rect? = null
-
-    override fun onGetContentRect(mode: ActionMode, view: View?): Rect {
-        this.actionMode = mode
-        return delegate.onGetContentRect(mode, view).also { contentRect = it }
-    }
-
-    override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-        this.actionMode = mode
-        this.menu = menu
-        return delegate.onPrepareActionMode(mode, menu)
-    }
-
-    override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-        this.actionMode = mode
-        this.menu = menu
-        return delegate.onCreateActionMode(mode, menu)
-    }
-
-    override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-        this.actionMode = mode
-        return delegate.onActionItemClicked(mode, item)
-    }
-
-    override fun onDestroyActionMode(mode: ActionMode) {
-        this.actionMode = null
-        this.menu = null
-        delegate.onDestroyActionMode(mode)
-    }
-}
-
-// TODO(grantapher) extract below test utils, mostly shared with
-//  DefaultTextContextMenuDropdownProviderTest
-
-private fun <T : Any> assertNotNull(obj: T?): T = obj.also { assertThat(it).isNotNull() }!!
-
-private fun testDataProvider(vararg itemNumbers: Int): TextContextMenuDataProvider =
-    testDataProvider(positioner = { defaultPositioner(it) }, data = { numbersToData(*itemNumbers) })
-
-private fun numbersToData(vararg itemNumbers: Int): TextContextMenuData =
-    TextContextMenuData(itemNumbers.map { testItem(it) })
-
-private fun testDataProvider(
-    positioner: (LayoutCoordinates) -> Offset = { defaultPositioner(it) },
-    data: () -> TextContextMenuData
-): TextContextMenuDataProvider =
-    object : TextContextMenuDataProvider {
-        override fun position(destinationCoordinates: LayoutCoordinates): Offset =
-            positioner(destinationCoordinates)
-
-        override fun contentBounds(destinationCoordinates: LayoutCoordinates): Rect =
-            position(destinationCoordinates).let { Rect(it, it) }
-
-        override fun data(): TextContextMenuData = data()
-    }
-
-private fun defaultPositioner(destinationCoordinates: LayoutCoordinates): Offset =
-    destinationCoordinates.size.toIntRect().center.toOffset()
-
-private fun testItem(i: Int, onClick: TextContextMenuSession.() -> Unit = {}): TextContextMenuItem =
-    TextContextMenuItem(
-        key = i,
-        label = labelForNumber(i),
-        leadingIcon = R.drawable.ic_vector_asset_test,
-        onClick = onClick
-    )
-
-private fun labelForNumber(i: Int): String = "Item $i"
-
-private fun numberForLabel(label: CharSequence): Int = label.split(" ").last().toInt()

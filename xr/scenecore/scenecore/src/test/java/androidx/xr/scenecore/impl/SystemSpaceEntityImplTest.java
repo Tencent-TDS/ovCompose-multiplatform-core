@@ -23,19 +23,19 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.verify;
 
+import androidx.xr.runtime.internal.SystemSpaceEntity.OnSpaceUpdatedListener;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.SystemSpaceEntity.OnSpaceUpdatedListener;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.android.extensions.xr.node.FakeCloseable;
 import com.android.extensions.xr.node.Mat4f;
 import com.android.extensions.xr.node.Node;
 import com.android.extensions.xr.node.NodeRepository;
 import com.android.extensions.xr.node.NodeTransform;
+import com.android.extensions.xr.node.ShadowNode;
 import com.android.extensions.xr.node.ShadowNodeTransform;
 
 import org.junit.Test;
@@ -72,7 +72,7 @@ public abstract class SystemSpaceEntityImplTest {
         getDefaultFakeExecutor()
                 .simulateSleepExecutingAllTasks(
                         Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
+        ShadowNode node = ShadowNode.extract(systemSpaceEntity.getNode());
         assertThat(node.getTransformListener()).isNotNull();
         assertThat(node.getTransformExecutor()).isEqualTo(fakeExecutor);
         assertThat(systemSpaceEntity.mNodeTransformCloseable).isNotNull();
@@ -173,7 +173,6 @@ public abstract class SystemSpaceEntityImplTest {
         getDefaultFakeExecutor()
                 .simulateSleepExecutingAllTasks(
                         Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
         Mat4f mat4f =
                 new Mat4f( // --                Column major, right handed 4x4 Transformation Matrix
                         // with
@@ -186,7 +185,7 @@ public abstract class SystemSpaceEntityImplTest {
                         });
         NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
-        node.sendTransformEvent(nodeTransformEvent);
+        sendTransformEvent(systemSpaceEntity.getNode(), nodeTransformEvent);
         getDefaultFakeExecutor().runAll();
 
         Pose expectedPose =
@@ -197,6 +196,13 @@ public abstract class SystemSpaceEntityImplTest {
         assertPose(systemSpaceEntity.getPoseInOpenXrReferenceSpace(), expectedPose);
     }
 
+    private void sendTransformEvent(Node node, NodeTransform nodeTransform) {
+        ShadowNode shadowNode = ShadowNode.extract(node);
+        shadowNode
+                .getTransformExecutor()
+                .execute(() -> shadowNode.getTransformListener().accept(nodeTransform));
+    }
+
     @Test
     public void setOnSpaceUpdatedListener_callsListenerOnNodeTransformEvent() {
         SystemSpaceEntityImpl systemSpaceEntity = getSystemSpaceEntityImpl();
@@ -205,7 +211,6 @@ public abstract class SystemSpaceEntityImplTest {
         getDefaultFakeExecutor()
                 .simulateSleepExecutingAllTasks(
                         Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
         Mat4f mat4f = new Mat4f(Matrix4.Identity.getData());
         NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
@@ -213,7 +218,7 @@ public abstract class SystemSpaceEntityImplTest {
         FakeScheduledExecutorService executor = new FakeScheduledExecutorService();
         systemSpaceEntity.setOnSpaceUpdatedListener(listener, executor);
 
-        node.sendTransformEvent(nodeTransformEvent);
+        sendTransformEvent(systemSpaceEntity.getNode(), nodeTransformEvent);
         getDefaultFakeExecutor().runAll();
 
         assertThat(executor.hasNext()).isTrue();
@@ -231,7 +236,6 @@ public abstract class SystemSpaceEntityImplTest {
         // creation.
         fakeExecutor.simulateSleepExecutingAllTasks(
                 Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
         Mat4f mat4f = new Mat4f(Matrix4.Identity.getData());
         NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
@@ -241,7 +245,7 @@ public abstract class SystemSpaceEntityImplTest {
         systemSpaceEntity.setOnSpaceUpdatedListener(listener, executor);
         systemSpaceEntity.setOnSpaceUpdatedListener(listener2, executor);
 
-        node.sendTransformEvent(nodeTransformEvent);
+        sendTransformEvent(systemSpaceEntity.getNode(), nodeTransformEvent);
         fakeExecutor.runAll();
         assertThat(executor.hasNext()).isTrue();
         executor.runAll();
@@ -259,14 +263,13 @@ public abstract class SystemSpaceEntityImplTest {
         getDefaultFakeExecutor()
                 .simulateSleepExecutingAllTasks(
                         Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
         Mat4f mat4f = new Mat4f(Matrix4.Identity.getData());
         NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
         OnSpaceUpdatedListener listener = Mockito.mock(OnSpaceUpdatedListener.class);
         systemSpaceEntity.setOnSpaceUpdatedListener(listener, null);
 
-        node.sendTransformEvent(nodeTransformEvent);
+        sendTransformEvent(systemSpaceEntity.getNode(), nodeTransformEvent);
         getDefaultFakeExecutor().runAll();
 
         verify(listener).onSpaceUpdated();
@@ -280,7 +283,6 @@ public abstract class SystemSpaceEntityImplTest {
         getDefaultFakeExecutor()
                 .simulateSleepExecutingAllTasks(
                         Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
-        FakeNode node = new FakeNode(systemSpaceEntity.getNode());
         Mat4f mat4f = new Mat4f(Matrix4.Identity.getData());
         NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
@@ -288,7 +290,7 @@ public abstract class SystemSpaceEntityImplTest {
         systemSpaceEntity.setOnSpaceUpdatedListener(listener, null);
         systemSpaceEntity.setOnSpaceUpdatedListener(null, null);
 
-        node.sendTransformEvent(nodeTransformEvent);
+        sendTransformEvent(systemSpaceEntity.getNode(), nodeTransformEvent);
         getDefaultFakeExecutor().runAll();
 
         verify(listener, Mockito.never()).onSpaceUpdated();

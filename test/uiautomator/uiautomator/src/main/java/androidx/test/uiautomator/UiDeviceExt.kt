@@ -99,7 +99,7 @@ public fun UiDevice.pressDelete(count: Int) {
 public fun UiDevice.waitForAppToBeVisible(
     appPackageName: String,
     timeoutMs: Long = 10000L,
-): Boolean = onViewOrNull(timeoutMs = timeoutMs) { view.packageName == appPackageName } != null
+): Boolean = onViewOrNull(timeoutMs = timeoutMs) { packageName == appPackageName } != null
 
 /**
  * Performs a DFS on the accessibility tree starting from the root node in the active window and
@@ -109,7 +109,7 @@ public fun UiDevice.waitForAppToBeVisible(
  *
  * Example:
  * ```kotlin
- * uiDevice.onView { view.textAsString == "Search" }.click()
+ * uiDevice.onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -121,7 +121,7 @@ public fun UiDevice.waitForAppToBeVisible(
 public fun UiDevice.onView(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 =
     onViewOrNull(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, block = block)
         .notNull(ViewNotFoundException())
@@ -134,7 +134,7 @@ public fun UiDevice.onView(
  *
  * Example:
  * ```kotlin
- * uiDevice.onView { view.textAsString == "Search" }.click()
+ * uiDevice.onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -146,7 +146,7 @@ public fun UiDevice.onView(
 public fun UiDevice.onViewOrNull(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2? =
     findViews(
             shouldStop = { it.size == 1 },
@@ -166,7 +166,7 @@ public fun UiDevice.onViewOrNull(
  *
  * Example:
  * ```kotlin
- * node.onViews { view.className == Button::class.java.name }
+ * node.onViews { className == Button::class.java.name }
  * ```
  *
  * If multiple nodes are expected but they appear at different times, it's recommended to call
@@ -181,7 +181,7 @@ public fun UiDevice.onViewOrNull(
 public fun UiDevice.onViews(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): List<UiObject2> =
     findViews(
             shouldStop = { false },

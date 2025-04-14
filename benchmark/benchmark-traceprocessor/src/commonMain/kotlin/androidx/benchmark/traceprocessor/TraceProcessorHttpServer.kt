@@ -22,9 +22,9 @@ import java.io.OutputStream
 import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import perfetto.protos.AppendTraceDataResult
 import perfetto.protos.ComputeMetricArgs
 import perfetto.protos.ComputeMetricResult
@@ -34,7 +34,7 @@ import perfetto.protos.StatusResult
 @OptIn(ExperimentalTraceProcessorApi::class)
 internal class TraceProcessorHttpServer(
     private val serverLifecycleManager: ServerLifecycleManager,
-    private val timeout: Duration,
+    private val timeoutMs: Long,
 ) {
     companion object {
         private const val HTTP_ADDRESS = "http://localhost"
@@ -72,7 +72,7 @@ internal class TraceProcessorHttpServer(
             while (!isRunning()) {
                 Thread.sleep(WAIT_INTERVAL.toLong(DurationUnit.MILLISECONDS))
                 elapsed += WAIT_INTERVAL
-                if (elapsed >= timeout) {
+                if (elapsed >= timeoutMs.toDuration(DurationUnit.MILLISECONDS)) {
                     throw IllegalStateException(serverLifecycleManager.timeoutMessage())
                 }
             }
@@ -190,7 +190,7 @@ internal class TraceProcessorHttpServer(
     ): T {
         with(URL("$HTTP_ADDRESS:${port}$url").openConnection() as HttpURLConnection) {
             requestMethod = method
-            readTimeout = timeout.toInt(DurationUnit.MILLISECONDS)
+            readTimeout = timeoutMs.toInt()
             setRequestProperty("Content-Type", contentType)
             if (encodeBlock != null) {
                 doOutput = true

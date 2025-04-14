@@ -146,17 +146,13 @@ androidXMultiplatform {
             }
         }
 
-        nativeMain {
-            dependsOn(commonMain)
-        }
-        linuxMain.dependsOn(nativeMain)
-        darwinMain.dependsOn(nativeMain)
+        nativeMain { dependsOn(commonMain) }
+        linuxMain { dependsOn(nativeMain) }
+        darwinMain { dependsOn(nativeMain) }
 
-        nativeTest {
-            dependsOn(commonTest)
-        }
-        linuxTest.dependsOn(nativeTest)
-        darwinTest.dependsOn(nativeTest)
+        nativeTest { dependsOn(commonTest) }
+        linuxTest { dependsOn(nativeTest) }
+        darwinTest { dependsOn(nativeTest) }
 
         targets.configureEach { target ->
             if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {

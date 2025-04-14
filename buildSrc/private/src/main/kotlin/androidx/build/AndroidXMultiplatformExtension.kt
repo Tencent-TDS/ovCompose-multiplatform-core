@@ -47,6 +47,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
+import org.jetbrains.kotlin.gradle.targets.js.binaryen.BinaryenRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.DefaultIncrementalSyncTask
@@ -718,6 +719,7 @@ abstract class AndroidXMultiplatformExtension(val project: Project) {
 
 private fun Project.configureJs() {
     configureNode()
+    configureBinaryen()
     // Use DSL API when https://youtrack.jetbrains.com/issue/KT-70029 is closed for all tasks below
     tasks.named("jsDevelopmentLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
         it.destinationDirectory.set(file(layout.buildDirectory.dir("js/packages/js/dev/kotlin")))
@@ -729,6 +731,7 @@ private fun Project.configureJs() {
 
 private fun Project.configureWasm() {
     configureNode()
+    configureBinaryen()
     // Use DSL API when https://youtrack.jetbrains.com/issue/KT-70029 is closed for all tasks below
     tasks.named("wasmJsDevelopmentLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
         it.destinationDirectory.set(
@@ -763,12 +766,24 @@ private fun Project.configureNode() {
 
     // https://youtrack.jetbrains.com/issue/KT-73913/K-Wasm-yarn-version-per-project
     rootProject.extensions.findByType(YarnRootExtension::class.java)?.let { yarn ->
+        @Suppress("DEPRECATION")
         yarn.version = getVersionByName("yarn")
         yarn.yarnLockMismatchReport = YarnLockMismatchReport.FAIL
         if (!ProjectLayoutType.isPlayground(this)) {
             yarn.lockFileDirectory =
                 File(project.getPrebuiltsRoot(), "androidx/javascript-for-kotlin")
         }
+    }
+}
+
+private fun Project.configureBinaryen() {
+    // https://youtrack.jetbrains.com/issue/KT-74840
+    rootProject.extensions.findByType<BinaryenRootExtension>()?.let { binaryen ->
+        @Suppress("DEPRECATION")
+        binaryen.downloadBaseUrl =
+            File(project.getPrebuiltsRoot(), "androidx/javascript-for-kotlin/binaryen")
+                .toURI()
+                .toString()
     }
 }
 

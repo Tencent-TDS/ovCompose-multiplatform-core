@@ -17,13 +17,11 @@
 package androidx.compose.ui.autofill
 
 import android.graphics.Rect as AndroidRect
-import android.os.Build
 import android.util.SparseArray
 import android.view.View
 import android.view.View.AUTOFILL_TYPE_TEXT
 import android.view.ViewStructure
 import android.view.autofill.AutofillValue
-import androidx.annotation.RequiresApi
 import androidx.autofill.HintConstants
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +59,6 @@ import org.junit.runner.RunWith
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 26)
-@RequiresApi(Build.VERSION_CODES.O)
 class MixedAutofillTest {
     @get:Rule val rule = createComposeRule()
     private val height = 200.dp

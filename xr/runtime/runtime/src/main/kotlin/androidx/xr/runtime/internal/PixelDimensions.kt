@@ -20,7 +20,7 @@ import androidx.annotation.RestrictTo
 
 /** The dimensions of a UI element in pixels. These are always two dimensional. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class PixelDimensions(public val width: Int, public val height: Int) {
+public class PixelDimensions(@JvmField public val width: Int, @JvmField public val height: Int) {
 
     override fun toString(): String {
         return super.toString() + ": w $width x h $height"

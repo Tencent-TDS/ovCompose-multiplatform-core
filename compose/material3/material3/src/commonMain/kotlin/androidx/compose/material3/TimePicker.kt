@@ -142,6 +142,7 @@ import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
+import androidx.compose.ui.node.Ref
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.InspectorValueInfo
@@ -223,7 +224,18 @@ fun TimePicker(
     layoutType: TimePickerLayoutType = TimePickerDefaults.layoutType(),
 ) {
     val a11yServicesEnabled by rememberAccessibilityServiceState()
-    val analogState = remember(state) { AnalogTimePickerState(state) }
+    val userOverride = remember { Ref<Boolean>() }
+
+    val analogState = remember(state) { AnalogTimePickerState(state, userOverride) }
+
+    LaunchedEffect(state.hour, state.minute) {
+        if (userOverride.value == true) {
+            analogState.hour = state.hour
+            analogState.minute = state.minute
+        }
+        userOverride.value = true
+    }
+
     if (layoutType == TimePickerLayoutType.Vertical) {
         VerticalTimePicker(
             state = analogState,
@@ -718,7 +730,10 @@ private class TimePickerStateImpl(
     }
 }
 
-internal class AnalogTimePickerState(val state: TimePickerState) : TimePickerState by state {
+internal class AnalogTimePickerState(
+    val state: TimePickerState,
+    val userOverride: Ref<Boolean> = Ref<Boolean>(),
+) : TimePickerState by state {
 
     var currentDiameter by mutableStateOf(0.dp)
 
@@ -797,6 +812,7 @@ internal class AnalogTimePickerState(val state: TimePickerState) : TimePickerSta
         animationSpec: AnimationSpec<Float>,
         animate: Boolean = false
     ) {
+        userOverride.value = false
         mutex.mutate(MutatePriority.UserInput) {
             if (selection == TimePickerSelectionMode.Hour) {
                 hourAngle = angle.toHour() % 12 * RadiansPerHour
@@ -988,14 +1004,25 @@ private fun TimeInputImpl(
     colors: TimePickerColors,
     state: TimePickerState,
 ) {
+    fun hourTextValue() = TextFieldValue(state.hourForDisplay.toLocalString(minDigits = 2))
+    fun minuteTextValue() = TextFieldValue(state.minute.toLocalString(minDigits = 2))
+
     var hourValue by
-        rememberSaveable(stateSaver = TextFieldValue.Saver) {
-            mutableStateOf(TextFieldValue(text = state.hourForDisplay.toLocalString(minDigits = 2)))
-        }
+        rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(hourTextValue()) }
+
     var minuteValue by
-        rememberSaveable(stateSaver = TextFieldValue.Saver) {
-            mutableStateOf(TextFieldValue(text = state.minute.toLocalString(minDigits = 2)))
+        rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(minuteTextValue()) }
+
+    val userOverride = remember { Ref<Boolean>() }
+    // This is for manual overrides
+    LaunchedEffect(state.hour, state.minute) {
+        if (userOverride.value == true) {
+            hourValue = hourTextValue()
+            minuteValue = minuteTextValue()
         }
+        userOverride.value = true
+    }
+
     Row(
         modifier = modifier.padding(bottom = TimeInputBottomPadding),
         verticalAlignment = Alignment.Top
@@ -1035,6 +1062,7 @@ private fun TimeInputImpl(
                             value = newValue,
                             prevValue = hourValue,
                             max = if (state.is24hour) 23 else 12,
+                            userOverride = userOverride,
                         ) {
                             hourValue = it
                         }
@@ -1076,6 +1104,7 @@ private fun TimeInputImpl(
                             value = newValue,
                             prevValue = minuteValue,
                             max = 59,
+                            userOverride = userOverride,
                         ) {
                             minuteValue = it
                         }
@@ -1774,8 +1803,10 @@ private fun timeInputOnChange(
     value: TextFieldValue,
     prevValue: TextFieldValue,
     max: Int,
+    userOverride: Ref<Boolean>,
     onNewValue: (value: TextFieldValue) -> Unit
 ) {
+    userOverride.value = false
     if (value.text == prevValue.text) {
         // just selection change
         onNewValue(value)

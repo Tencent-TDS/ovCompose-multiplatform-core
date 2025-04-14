@@ -42,6 +42,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeInfo.TouchDelegateInfo;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
@@ -61,6 +62,8 @@ import androidx.core.view.accessibility.AccessibilityViewCommand.SetTextArgument
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -1636,6 +1639,9 @@ public class AccessibilityNodeInfoCompat {
     private static final String STATE_DESCRIPTION_KEY =
             "androidx.view.accessibility.AccessibilityNodeInfoCompat.STATE_DESCRIPTION_KEY";
 
+    private static final String SUPPLEMENTAL_DESCRIPTION_KEY =
+            "androidx.view.accessibility.AccessibilityNodeInfoCompat.SUPPLEMENTAL_DESCRIPTION_KEY";
+
     private static final String UNIQUE_ID_KEY =
             "androidx.view.accessibility.AccessibilityNodeInfoCompat.UNIQUE_ID_KEY";
 
@@ -1645,11 +1651,17 @@ public class AccessibilityNodeInfoCompat {
     private static final String BOUNDS_IN_WINDOW_KEY =
             "androidx.view.accessibility.AccessibilityNodeInfoCompat.BOUNDS_IN_WINDOW_KEY";
 
+    private static final String EXPANDED_STATE_KEY =
+            "androidx.view.accessibility.AccessibilityNodeInfoCompat.EXPANDED_STATE_KEY";
+
     private static final String MIN_DURATION_BETWEEN_CONTENT_CHANGES_KEY =
             "androidx.view.accessibility.AccessibilityNodeInfoCompat."
                     + "MIN_DURATION_BETWEEN_CONTENT_CHANGES_KEY";
     private static final String IS_REQUIRED_KEY =
             "androidx.view.accessibility.AccessibilityNodeInfoCompat.IS_REQUIRED_KEY";
+
+    private static final String CHECKED_KEY =
+            "androidx.view.accessibility.AccessibilityNodeInfoCompat.CHECKED_KEY";
 
     // These don't line up with the internal framework constants, since they are independent
     // and we might as well get all 32 bits of utility here.
@@ -2320,6 +2332,27 @@ public class AccessibilityNodeInfoCompat {
     @SuppressLint("MinMaxConstant")
     public static final int MAX_NUMBER_OF_PREFETCHED_NODES = 50;
 
+    @IntDef(
+            flag = false,
+            value = {
+                AccessibilityNodeInfo.EXPANDED_STATE_UNDEFINED,
+                AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED,
+                AccessibilityNodeInfo.EXPANDED_STATE_PARTIAL,
+                AccessibilityNodeInfo.EXPANDED_STATE_FULL,
+            })
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface ExpandedState {}
+
+    @IntDef(
+            flag = false,
+            value = {
+                AccessibilityNodeInfo.CHECKED_STATE_FALSE,
+                AccessibilityNodeInfo.CHECKED_STATE_TRUE,
+                AccessibilityNodeInfo.CHECKED_STATE_PARTIAL,
+            })
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface CheckedState {}
+
     private static int sClickableSpanId = 0;
 
     /**
@@ -2744,6 +2777,53 @@ public class AccessibilityNodeInfoCompat {
     }
 
     /**
+     * Gets the expanded state for this node.
+     *
+     * @return The expanded state, one of:
+     *     <ul>
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_UNDEFINED}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_COLLAPSED}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_FULL}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_PARTIAL}
+     *     </ul>
+     */
+    @ExpandedState
+    public int getExpandedState() {
+        if (Build.VERSION.SDK_INT >= 36) {
+            return Api36Impl.getExpandedState(mInfo);
+        } else {
+            return mInfo.getExtras().getInt(EXPANDED_STATE_KEY,
+                AccessibilityNodeInfo.EXPANDED_STATE_UNDEFINED);
+        }
+    }
+
+    /**
+     * Sets the expanded state of the node.
+     *
+     * <p><strong>Note:</strong> Cannot be called from an {@link
+     * android.accessibilityservice.AccessibilityService}. This class is made immutable before being
+     * delivered to an {@link android.accessibilityservice.AccessibilityService}.
+     *
+     * @param state new expanded state of this node.
+     * @throws IllegalArgumentException If state is not one of:
+     *     <ul>
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_UNDEFINED}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_COLLAPSED}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_PARTIAL}
+     *       <li>{@link AccessibilityNodeInfo#EXPANDED_STATE_FULL}
+     *     </ul>
+     *
+     * @throws IllegalStateException If called from an AccessibilityService
+     */
+    public void setExpandedState(@ExpandedState int state) {
+        if (Build.VERSION.SDK_INT >= 36) {
+            Api36Impl.setExpandedState(mInfo, state);
+        } else {
+            mInfo.getExtras().putInt(EXPANDED_STATE_KEY, state);
+        }
+    }
+
+    /**
      * Finds {@link android.view.accessibility.AccessibilityNodeInfo}s by text. The match
      * is case insensitive containment. The search is relative to this info i.e. this
      * info is the root of the traversed tree.
@@ -2991,7 +3071,10 @@ public class AccessibilityNodeInfoCompat {
      * Gets whether this node is checked.
      *
      * @return True if the node is checked.
+     *
+     * @deprecated Use {@link #getChecked()} instead.
      */
+    @Deprecated
     public boolean isChecked() {
         return mInfo.isChecked();
     }
@@ -3006,9 +3089,76 @@ public class AccessibilityNodeInfoCompat {
      *
      * @param checked True if the node is checked.
      * @throws IllegalStateException If called from an AccessibilityService.
+     *
+     * @deprecated Use {@link #setChecked(int)} instead.
      */
+    @Deprecated
     public void setChecked(boolean checked) {
         mInfo.setChecked(checked);
+    }
+
+    /**
+     * Gets the checked state of this node.
+     * <p>
+     * Note that this is only meaningful when {@link #isCheckable()} returns {@code true}.
+     *
+     * @see #setCheckable(boolean)
+     * @see #isCheckable()
+     * @see #setChecked(int)
+     * @return The checked state, one of:
+     *          <ul>
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_FALSE}
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_TRUE}
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_PARTIAL}
+     *          </ul>
+     */
+    @CheckedState
+    public int getChecked() {
+        if (Build.VERSION.SDK_INT >= 36) {
+            return Api36Impl.getChecked(mInfo);
+        } else {
+            return mInfo.getExtras().getInt(CHECKED_KEY,
+                    mInfo.isChecked() ? AccessibilityNodeInfo.CHECKED_STATE_TRUE
+                            : AccessibilityNodeInfo.CHECKED_STATE_FALSE);
+        }
+    }
+
+    /**
+     * Sets the checked state of this node. This is only meaningful
+     * when {@link #isCheckable()} returns {@code true}.
+     * <p><strong>Note:</strong> Cannot be called from an
+     *   {@link android.accessibilityservice.AccessibilityService}. This class is made immutable
+     *   before being delivered to an AccessibilityService.
+     *
+     * @see #setCheckable(boolean)
+     * @see #isCheckable()
+     * @see #getChecked()
+     * @param checked The checked state. One of
+     *          <ul>
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_FALSE}
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_TRUE}
+     *          <li>{@link AccessibilityNodeInfo#CHECKED_STATE_PARTIAL}
+     *          </ul>
+     * @throws IllegalStateException If called from an AccessibilityService.
+     * @throws IllegalArgumentException if {@code checked} is not one of
+     * {@link AccessibilityNodeInfo#CHECKED_STATE_FALSE},
+     *          {@link AccessibilityNodeInfo#CHECKED_STATE_TRUE}, or
+     *          {@link AccessibilityNodeInfo#CHECKED_STATE_PARTIAL}.
+     */
+    public void setChecked(@CheckedState int checked) {
+        if (Build.VERSION.SDK_INT >= 36) {
+            Api36Impl.setChecked(mInfo, checked);
+            return;
+        }
+
+        if (checked == AccessibilityNodeInfo.CHECKED_STATE_TRUE
+                || checked == AccessibilityNodeInfo.CHECKED_STATE_PARTIAL
+                || checked == AccessibilityNodeInfo.CHECKED_STATE_FALSE) {
+            mInfo.setChecked(checked == AccessibilityNodeInfo.CHECKED_STATE_TRUE);
+            mInfo.getExtras().putInt(CHECKED_KEY, checked);
+        } else {
+            throw new IllegalArgumentException("Unknown checked argument: " + checked);
+        }
     }
 
     /**
@@ -3018,7 +3168,11 @@ public class AccessibilityNodeInfoCompat {
      *     selection, {@code false} otherwise.
      */
     public boolean isFieldRequired() {
-        return mInfo.getExtras().getBoolean(IS_REQUIRED_KEY);
+        if (Build.VERSION.SDK_INT >= 36) {
+            return Api36Impl.isFieldRequired(mInfo);
+        } else {
+            return mInfo.getExtras().getBoolean(IS_REQUIRED_KEY);
+        }
     }
 
     /**
@@ -3032,7 +3186,11 @@ public class AccessibilityNodeInfoCompat {
      * @throws IllegalStateException If called from an AccessibilityService
      */
     public void setFieldRequired(boolean required) {
-        mInfo.getExtras().putBoolean(IS_REQUIRED_KEY, required);
+        if (Build.VERSION.SDK_INT >= 36) {
+            Api36Impl.setFieldRequired(mInfo, required);
+        } else {
+            mInfo.getExtras().putBoolean(IS_REQUIRED_KEY, required);
+        }
     }
 
     /**
@@ -5022,6 +5180,64 @@ public class AccessibilityNodeInfoCompat {
         }
     }
 
+    /**
+     * Returns the supplemental description of this {@link AccessibilityNodeInfoCompat}.
+     * <p>
+     * A supplemental description provides brief supplemental information for this node, such as
+     * the purpose of the node when that purpose is not conveyed within its textual representation.
+     * For example, if a dropdown select has a purpose of setting font family, the supplemental
+     * description could be "font family". If this node has children, its supplemental description
+     * serves as additional information and is not intended to replace any existing information in
+     * the subtree. This is different from the {@link #getContentDescription()} in that this
+     * description is purely supplemental while a content description may be used to replace a
+     * description for a node or its subtree that an assistive technology would otherwise compute
+     * based on other properties of the node and its descendants.
+     *
+     * @return The supplemental description.
+     * @see #setSupplementalDescription(CharSequence)
+     * @see #getContentDescription()
+     */
+    @Nullable
+    public CharSequence getSupplementalDescription() {
+        if (Build.VERSION.SDK_INT >= 36) {
+            return Api36Impl.getSupplementalDescription(mInfo);
+        } else {
+            return mInfo.getExtras().getCharSequence(SUPPLEMENTAL_DESCRIPTION_KEY);
+        }
+    }
+
+    /**
+     * Sets the supplemental description of this {@link AccessibilityNodeInfoCompat}.
+     * <p>
+     * A supplemental description provides brief supplemental information for this node, such as
+     * the purpose of the node when that purpose is not conveyed within its textual representation.
+     * For example, if a dropdown select has a purpose of setting font family, the supplemental
+     * description could be "font family". If this node has children, its supplemental description
+     * serves as additional information and is not intended to replace any existing information in
+     * the subtree. This is different from the {@link #setContentDescription(CharSequence)} in that
+     * this description is purely supplemental while a content description may be used to replace a
+     * description for a node or its subtree that an assistive technology would otherwise compute
+     * based on other properties of the node and its descendants.
+     *
+     * <p>
+     * <strong>Note:</strong> Cannot be called from an {@link
+     * android.accessibilityservice.AccessibilityService}. This class is made immutable before being
+     * delivered to an AccessibilityService.
+     *
+     * @param supplementalDescription The supplemental description.
+     * @throws IllegalStateException If called from an AccessibilityService.
+     * @see #getSupplementalDescription()
+     * @see #setContentDescription(CharSequence)
+     */
+    public void setSupplementalDescription(@Nullable CharSequence supplementalDescription) {
+        if (Build.VERSION.SDK_INT >= 36) {
+            Api36Impl.setSupplementalDescription(mInfo, supplementalDescription);
+        } else {
+            mInfo.getExtras()
+                    .putCharSequence(SUPPLEMENTAL_DESCRIPTION_KEY, supplementalDescription);
+        }
+    }
+
     @Override
     public int hashCode() {
         return (mInfo == null) ? 0 : mInfo.hashCode();
@@ -5079,12 +5295,13 @@ public class AccessibilityNodeInfoCompat {
         builder.append("; maxTextLength: ").append(getMaxTextLength());
         builder.append("; stateDescription: ").append(getStateDescription());
         builder.append("; contentDescription: ").append(getContentDescription());
+        builder.append("; supplementalDescription: ").append(getSupplementalDescription());
         builder.append("; tooltipText: ").append(getTooltipText());
         builder.append("; viewIdResName: ").append(getViewIdResourceName());
         builder.append("; uniqueId: ").append(getUniqueId());
 
         builder.append("; checkable: ").append(isCheckable());
-        builder.append("; checked: ").append(isChecked());
+        builder.append("; checked: ").append(getCheckedString());
         builder.append("; fieldRequired: ").append(isFieldRequired());
         builder.append("; focusable: ").append(isFocusable());
         builder.append("; focused: ").append(isFocused());
@@ -5092,6 +5309,8 @@ public class AccessibilityNodeInfoCompat {
         builder.append("; clickable: ").append(isClickable());
         builder.append("; longClickable: ").append(isLongClickable());
         builder.append("; contextClickable: ").append(isContextClickable());
+        builder.append("; expandedState: ").append(
+                getExpandedStateSymbolicName(getExpandedState()));
         builder.append("; enabled: ").append(isEnabled());
         builder.append("; password: ").append(isPassword());
         builder.append("; scrollable: " + isScrollable());
@@ -5134,6 +5353,17 @@ public class AccessibilityNodeInfoCompat {
         Bundle extras = getExtras();
         if (extras == null) return false;
         return (extras.getInt(BOOLEAN_PROPERTY_KEY, 0) & property) == property;
+    }
+
+    private String getCheckedString() {
+        @CheckedState int checkedState = getChecked();
+        if (checkedState == AccessibilityNodeInfo.CHECKED_STATE_TRUE) {
+            return "TRUE";
+        } else if (checkedState == AccessibilityNodeInfo.CHECKED_STATE_PARTIAL) {
+            return "PARTIAL";
+        } else {
+            return "FALSE";
+        }
     }
 
     static String getActionSymbolicName(int action) {
@@ -5224,6 +5454,21 @@ public class AccessibilityNodeInfoCompat {
                 return "ACTION_SCROLL_IN_DIRECTION";
             default:
                 return "ACTION_UNKNOWN";
+        }
+    }
+
+    static String getExpandedStateSymbolicName(@ExpandedState int state) {
+        switch(state) {
+            case AccessibilityNodeInfo.EXPANDED_STATE_UNDEFINED:
+                return "UNDEFINED";
+            case AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED:
+                return "COLLAPSED";
+            case AccessibilityNodeInfo.EXPANDED_STATE_PARTIAL:
+                return "PARTIAL";
+            case AccessibilityNodeInfo.EXPANDED_STATE_FULL:
+                return "FULL";
+            default:
+                return "UNKNOWN";
         }
     }
 
@@ -5397,6 +5642,49 @@ public class AccessibilityNodeInfoCompat {
                     .setItemCount(itemCount)
                     .setImportantForAccessibilityItemCount(importantForAccessibilityItemCount)
                     .build());
+        }
+    }
+
+    @RequiresApi(36)
+    private static class Api36Impl {
+        private Api36Impl() {
+            // This class is non instantiable.
+        }
+
+        @ExpandedState
+        public static int getExpandedState(AccessibilityNodeInfo info) {
+            return info.getExpandedState();
+        }
+
+        public static void setExpandedState(AccessibilityNodeInfo info, @ExpandedState int state) {
+            info.setExpandedState(state);
+        }
+
+        public static boolean isFieldRequired(AccessibilityNodeInfo info) {
+            return info.isFieldRequired();
+        }
+
+        public static void setFieldRequired(AccessibilityNodeInfo info, boolean required) {
+            info.setFieldRequired(required);
+        }
+
+        @Nullable
+        public static CharSequence getSupplementalDescription(AccessibilityNodeInfo info) {
+            return info.getSupplementalDescription();
+        }
+
+        public static void setSupplementalDescription(
+                AccessibilityNodeInfo info, @Nullable CharSequence supplementalDescription) {
+            info.setSupplementalDescription(supplementalDescription);
+        }
+
+        @CheckedState
+        private static int getChecked(AccessibilityNodeInfo info) {
+            return info.getChecked();
+        }
+
+        private static void setChecked(AccessibilityNodeInfo info, @CheckedState int checked) {
+            info.setChecked(checked);
         }
     }
 }

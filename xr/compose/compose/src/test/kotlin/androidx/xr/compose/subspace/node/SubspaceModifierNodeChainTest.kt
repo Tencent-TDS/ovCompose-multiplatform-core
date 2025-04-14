@@ -64,12 +64,8 @@ class SubspaceModifierNodeChainTest {
             }
         }
 
-        // There should be a single initial composition.
-        assertThat(nodeCount).isEqualTo(1)
-
-        // Trigger one recomposition.
-        composeTestRule.onNodeWithTag("button").performClick()
-        composeTestRule.waitForIdle()
+        // There should be two initial compositions (the initial measure pass and a single relayout
+        // pass triggered by the state observer).
         assertThat(nodeCount).isEqualTo(2)
 
         // Trigger one recomposition.
@@ -77,11 +73,16 @@ class SubspaceModifierNodeChainTest {
         composeTestRule.waitForIdle()
         assertThat(nodeCount).isEqualTo(3)
 
+        // Trigger one recomposition.
+        composeTestRule.onNodeWithTag("button").performClick()
+        composeTestRule.waitForIdle()
+        assertThat(nodeCount).isEqualTo(4)
+
         // Trigger two recompositions.
         composeTestRule.onNodeWithTag("button").performClick()
         composeTestRule.onNodeWithTag("button").performClick()
         composeTestRule.waitForIdle()
-        assertThat(nodeCount).isEqualTo(5)
+        assertThat(nodeCount).isEqualTo(6)
     }
 
     private fun SubspaceModifier.count(count: Int): SubspaceModifier =

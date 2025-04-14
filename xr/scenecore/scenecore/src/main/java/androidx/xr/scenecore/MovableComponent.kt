@@ -20,6 +20,8 @@ package androidx.xr.scenecore
 
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MoveEventListener as RtMoveEventListener
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 
@@ -47,8 +49,7 @@ private constructor(
             shouldDisposeParentAnchor,
         )
     }
-    private val moveListenersMap =
-        ConcurrentHashMap<MoveListener, JxrPlatformAdapter.MoveEventListener>()
+    private val moveListenersMap = ConcurrentHashMap<MoveListener, RtMoveEventListener>()
 
     private var entity: Entity? = null
 
@@ -60,7 +61,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtMovableComponent.setSize(value.toRtDimensions())
+                rtMovableComponent.size = value.toRtDimensions()
             }
         }
 
@@ -92,45 +93,45 @@ private constructor(
      * @param executor The executor to run the listener on.
      * @param moveListener The move event listener to set.
      */
+    @Suppress("ExecutorRegistration")
     public fun addMoveListener(executor: Executor, moveListener: MoveListener) {
-        val rtMoveEventListener =
-            JxrPlatformAdapter.MoveEventListener { rtMoveEvent ->
-                run {
-                    // TODO: b/369157703 - Mirror the callback hierarchy in the runtime API.
-                    val moveEvent = rtMoveEvent.toMoveEvent(entityManager)
-                    when (moveEvent.moveState) {
-                        MoveEvent.MOVE_STATE_START ->
-                            entity?.let {
-                                moveListener.onMoveStart(
-                                    it,
-                                    moveEvent.initialInputRay,
-                                    moveEvent.previousPose,
-                                    moveEvent.previousScale,
-                                    moveEvent.initialParent,
-                                )
-                            }
-                        MoveEvent.MOVE_STATE_ONGOING ->
-                            entity?.let {
-                                moveListener.onMoveUpdate(
-                                    it,
-                                    moveEvent.currentInputRay,
-                                    moveEvent.currentPose,
-                                    moveEvent.currentScale,
-                                )
-                            }
-                        MoveEvent.MOVE_STATE_END ->
-                            entity?.let {
-                                moveListener.onMoveEnd(
-                                    it,
-                                    moveEvent.currentInputRay,
-                                    moveEvent.currentPose,
-                                    moveEvent.currentScale,
-                                    moveEvent.updatedParent,
-                                )
-                            }
-                    }
+        val rtMoveEventListener = RtMoveEventListener { rtMoveEvent ->
+            run {
+                // TODO: b/369157703 - Mirror the callback hierarchy in the runtime API.
+                val moveEvent = rtMoveEvent.toMoveEvent(entityManager)
+                when (moveEvent.moveState) {
+                    MoveEvent.MOVE_STATE_START ->
+                        entity?.let {
+                            moveListener.onMoveStart(
+                                it,
+                                moveEvent.initialInputRay,
+                                moveEvent.previousPose,
+                                moveEvent.previousScale,
+                                moveEvent.initialParent,
+                            )
+                        }
+                    MoveEvent.MOVE_STATE_ONGOING ->
+                        entity?.let {
+                            moveListener.onMoveUpdate(
+                                it,
+                                moveEvent.currentInputRay,
+                                moveEvent.currentPose,
+                                moveEvent.currentScale,
+                            )
+                        }
+                    MoveEvent.MOVE_STATE_END ->
+                        entity?.let {
+                            moveListener.onMoveEnd(
+                                it,
+                                moveEvent.currentInputRay,
+                                moveEvent.currentPose,
+                                moveEvent.currentScale,
+                                moveEvent.updatedParent,
+                            )
+                        }
                 }
             }
+        }
         rtMovableComponent.addMoveEventListener(executor, rtMoveEventListener)
         moveListenersMap[moveListener] = rtMoveEventListener
     }

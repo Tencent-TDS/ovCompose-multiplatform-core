@@ -57,8 +57,7 @@ import kotlin.jvm.JvmInline
 import kotlin.math.max
 
 /**
- * <a href="https://m3.material.io/components/lists/overview" class="external"
- * target="_blank">Material Design list item.</a>
+ * [Material Design list item](https://m3.material.io/components/lists/overview)
  *
  * Lists are continuous, vertical indexes of text or images.
  *

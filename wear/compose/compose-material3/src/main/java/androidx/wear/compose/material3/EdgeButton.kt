@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
@@ -208,7 +209,7 @@ public fun EdgeButton(
                 )
                 .clip(shape = shape)
                 .paint(
-                    painter = colors.containerPainter(enabled = enabled),
+                    painter = ColorPainter(colors.containerColor(enabled = enabled)),
                     contentScale = ContentScale.Crop
                 )
                 .graphicsLayer {
@@ -400,7 +401,7 @@ internal class ShapeHelper(private val density: Density) {
     fun contentWidthDp() = with(density) { contentWindow.width.toDp() }
 
     fun updateIfNeeded(size: Size) {
-        if (size == lastSize || size.height == 0f) return
+        if (size == lastSize || size.height == 0f || size.height.isNaN()) return
 
         lastSize = size
 

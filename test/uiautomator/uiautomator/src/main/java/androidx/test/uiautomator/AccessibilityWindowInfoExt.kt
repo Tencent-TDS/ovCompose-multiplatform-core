@@ -125,7 +125,7 @@ public fun AccessibilityWindowInfo.waitForStable(
  *
  * Example:
  * ```kotlin
- * onView { view.textAsString == "Search" }.click()
+ * onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -137,7 +137,7 @@ public fun AccessibilityWindowInfo.waitForStable(
 public fun AccessibilityWindowInfo.onView(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 =
     waitForRoot(timeoutMs = timeoutMs, sleepIntervalMs = pollIntervalMs)
         .onView(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, block = block)
@@ -150,7 +150,7 @@ public fun AccessibilityWindowInfo.onView(
  *
  * Example:
  * ```kotlin
- * onView { view.textAsString == "Search" }.click()
+ * onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -162,7 +162,7 @@ public fun AccessibilityWindowInfo.onView(
 public fun AccessibilityWindowInfo.onViewOrNull(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2? =
     waitForRoot(timeoutMs = timeoutMs, sleepIntervalMs = pollIntervalMs)
         .onViewOrNull(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, block = block)
@@ -175,7 +175,7 @@ public fun AccessibilityWindowInfo.onViewOrNull(
  *
  * Example:
  * ```kotlin
- * node.onViews { view.className == Button::class.java.name }
+ * node.onViews { className == Button::class.java.name }
  * ```
  *
  * If multiple nodes are expected but they appear at different times, it's recommended to call
@@ -190,7 +190,7 @@ public fun AccessibilityWindowInfo.onViewOrNull(
 public fun AccessibilityWindowInfo.onViews(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): List<UiObject2> =
     waitForRoot(timeoutMs = timeoutMs, sleepIntervalMs = pollIntervalMs)
         .onViews(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, block = block)

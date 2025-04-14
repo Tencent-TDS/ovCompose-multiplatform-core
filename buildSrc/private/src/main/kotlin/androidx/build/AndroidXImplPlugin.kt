@@ -478,19 +478,19 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                         }
                     }
                 }
-                targets.withType<KotlinJvmTarget> {
+                targets.withType(KotlinJvmTarget::class.java).configureEach { target ->
                     val defaultTargetVersionForNonAndroidTargets =
                         project.provider {
                             getDefaultTargetJavaVersion(
                                     softwareType = androidXExtension.type,
                                     projectName = project.name,
-                                    targetName = name
+                                    targetName = target.name
                                 )
                                 .toString()
                         }
                     val defaultJvmTargetForNonAndroidTargets =
                         defaultTargetVersionForNonAndroidTargets.map { JvmTarget.fromTarget(it) }
-                    compilations.configureEach { compilation ->
+                    target.compilations.configureEach { compilation ->
                         compilation.compileJavaTaskProvider?.configure { javaCompile ->
                             javaCompile.targetCompatibility =
                                 defaultTargetVersionForNonAndroidTargets.get()
@@ -665,7 +665,10 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
     private fun configureWithKspPlugin(project: Project, androidXExtension: AndroidXExtension) =
         project.extensions.getByType<KspExtension>().apply {
             useKsp2.set(
-                androidXExtension.kotlinTarget.map { it.apiVersion == KotlinVersion.KOTLIN_2_0 }
+                androidXExtension.kotlinTarget.map {
+                    it.apiVersion == KotlinVersion.KOTLIN_2_0 ||
+                        it.apiVersion == KotlinVersion.KOTLIN_2_1
+                }
             )
         }
 
@@ -1757,6 +1760,7 @@ internal fun Project.hasAndroidMultiplatformPlugin(): Boolean =
     extensions.findByType(AndroidXMultiplatformExtension::class.java)?.hasAndroidMultiplatform()
         ?: false
 
+@Suppress("DEPRECATION")
 internal fun KotlinMultiplatformExtension.hasJavaEnabled(): Boolean =
     targets.withType(KotlinJvmTarget::class.java).singleOrNull()?.withJavaEnabled ?: false
 

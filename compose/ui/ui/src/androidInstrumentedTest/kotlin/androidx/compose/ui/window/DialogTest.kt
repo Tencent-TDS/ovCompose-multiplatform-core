@@ -16,6 +16,7 @@
 package androidx.compose.ui.window
 
 import android.graphics.Point
+import android.os.Build
 import android.util.DisplayMetrics
 import android.view.Gravity
 import android.view.InputDevice
@@ -81,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.UiDevice
 import com.google.common.truth.Truth.assertThat
@@ -320,6 +322,52 @@ class DialogTest {
         textInteraction.assertIsDisplayed()
 
         clickOutsideDialog()
+        // The Dialog should still be visible
+        textInteraction.assertIsDisplayed()
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+    @Test
+    fun dialogTest_isNotDismissed_whenPressOutside_releaseInside() {
+        setupDialogTest(dialogProperties = DialogProperties())
+        val textInteraction = rule.onNodeWithTag(testTag)
+        textInteraction.assertIsDisplayed()
+
+        clickDialog(pressOutside = true, releaseOutside = false)
+        // The Dialog should still be visible
+        textInteraction.assertIsDisplayed()
+    }
+
+    @Test
+    fun dialogTest_isNotDismissed_whenPressInside_releaseOutside() {
+        setupDialogTest(dialogProperties = DialogProperties())
+        val textInteraction = rule.onNodeWithTag(testTag)
+        textInteraction.assertIsDisplayed()
+
+        clickDialog(pressOutside = false, releaseOutside = true)
+        // The Dialog should still be visible
+        textInteraction.assertIsDisplayed()
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+    @Test
+    fun dialogTest_isNotDismissed_whenPressOutside_releaseInside_decorFitsFalse() {
+        setupDialogTest(dialogProperties = DialogProperties(decorFitsSystemWindows = false))
+        val textInteraction = rule.onNodeWithTag(testTag)
+        textInteraction.assertIsDisplayed()
+
+        clickDialog(pressOutside = true, releaseOutside = false)
+        // The Dialog should still be visible
+        textInteraction.assertIsDisplayed()
+    }
+
+    @Test
+    fun dialogTest_isNotDismissed_whenPressInside_releaseOutside_decorFitsFalse() {
+        setupDialogTest(dialogProperties = DialogProperties(decorFitsSystemWindows = false))
+        val textInteraction = rule.onNodeWithTag(testTag)
+        textInteraction.assertIsDisplayed()
+
+        clickDialog(pressOutside = false, releaseOutside = true)
         // The Dialog should still be visible
         textInteraction.assertIsDisplayed()
     }
@@ -993,10 +1041,36 @@ class DialogTest {
 
     /** Try to dismiss the dialog by clicking between the topLefts of the dialog and the root. */
     private fun clickOutsideDialog() {
+        clickDialog()
+    }
+
+    private fun clickDialog(pressOutside: Boolean = true, releaseOutside: Boolean = true) {
         val dialogBounds = rule.onNode(isRoot().and(hasAnyChild(isDialog()))).boundsOnScreen()
         val rootBounds = rule.onNode(isRoot().and(hasAnyChild(isDialog()).not())).boundsOnScreen()
-        val clickPosition = lerp(dialogBounds.topLeft, rootBounds.topLeft, 0.5f).round()
-        UiDevice.getInstance(getInstrumentation()).click(clickPosition.x, clickPosition.y)
+        val outsidePosition = lerp(dialogBounds.topLeft, rootBounds.topLeft, 0.5f).round()
+        val insidePosition = lerp(dialogBounds.topLeft, dialogBounds.bottomRight, 0.5f).round()
+        val uiDevice = UiDevice.getInstance(getInstrumentation())
+        if (pressOutside && releaseOutside) {
+            uiDevice.click(outsidePosition.x, outsidePosition.y)
+        } else if (!pressOutside && !releaseOutside) {
+            uiDevice.click(insidePosition.x, insidePosition.y)
+        } else if (pressOutside) {
+            uiDevice.drag(
+                outsidePosition.x,
+                outsidePosition.y,
+                insidePosition.x,
+                insidePosition.y,
+                10
+            )
+        } else {
+            uiDevice.drag(
+                insidePosition.x,
+                insidePosition.y,
+                outsidePosition.x,
+                outsidePosition.y,
+                10
+            )
+        }
     }
 
     private fun SemanticsNodeInteraction.boundsOnScreen(): Rect {

@@ -104,6 +104,8 @@ public fun FadingExpandingLabel(
     val density = LocalDensity.current
     var currentText by remember { mutableStateOf(text) }
     var maxTextWidth by remember { mutableStateOf<Int?>(null) }
+    var showAnimatedTextHeight by remember { mutableStateOf(false) }
+
     // Merge the optional parameters with the [TextStyle]
     val mergedTextStyle =
         textStyle.merge(
@@ -135,6 +137,13 @@ public fun FadingExpandingLabel(
     val animatedHeight = remember { Animatable(currentTextMeasureResult.size.height.toFloat()) }
 
     LaunchedEffect(textMeasureResult) {
+        // Don't animate if text hasn't changed
+        if (text == currentText && !showAnimatedTextHeight) {
+            currentTextMeasureResult = textMeasureResult
+            animatedHeight.snapTo(textMeasureResult.size.height.toFloat())
+            return@LaunchedEffect
+        }
+
         // If the text is expanding, update it before the fading lines animation, if it's
         // collapsing, update it after the animation. This is because we can only animate the
         // expanding fading effect on the larger text.
@@ -144,6 +153,7 @@ public fun FadingExpandingLabel(
             currentTextMeasureResult = textMeasureResult
         }
 
+        showAnimatedTextHeight = true
         // Animate to the new text height to reveal it with a fade-in animation
         animatedHeight.animateTo(textMeasureResult.size.height.toFloat(), animationSpec)
 
@@ -160,26 +170,31 @@ public fun FadingExpandingLabel(
             maxTextWidth = textLayoutResult.layoutInput.constraints.maxWidth
         },
         modifier =
-            modifier
-                .height(with(density) { animatedHeight.value.toDp() })
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    for (i in 0 until currentTextMeasureResult.lineCount) {
-                        val top = currentTextMeasureResult.getLineTop(i)
-                        val bottom = currentTextMeasureResult.getLineBottom(i)
+            if (showAnimatedTextHeight) {
+                modifier
+                    .height(with(density) { animatedHeight.value.toDp() })
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        for (i in 0 until currentTextMeasureResult.lineCount) {
+                            val top = currentTextMeasureResult.getLineTop(i)
+                            val bottom = currentTextMeasureResult.getLineBottom(i)
 
-                        if (animatedHeight.value < bottom) {
-                            val alpha = ((animatedHeight.value - top) / (bottom - top) - 0.5f) * 2
-                            drawRect(
-                                Color(255, 255, 255, (alpha * 255).toInt().coerceIn(0, 255)),
-                                topLeft = Offset(0f, top),
-                                size = Size(size.width, bottom),
-                                blendMode = BlendMode.Modulate
-                            )
+                            if (animatedHeight.value < bottom) {
+                                val alpha =
+                                    ((animatedHeight.value - top) / (bottom - top) - 0.5f) * 2
+                                drawRect(
+                                    Color(255, 255, 255, (alpha * 255).toInt().coerceIn(0, 255)),
+                                    topLeft = Offset(0f, top),
+                                    size = Size(size.width, bottom),
+                                    blendMode = BlendMode.Modulate
+                                )
+                            }
                         }
                     }
-                },
+            } else {
+                modifier
+            },
         style = mergedTextStyle,
         maxLines = maxLines,
         overflow = TextOverflow.Visible,

@@ -21,10 +21,28 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.widget.TextView
+import androidx.xr.runtime.internal.ActivityPanelEntity as RtActivityPanelEntity
+import androidx.xr.runtime.internal.ActivityPose as RtActivityPose
+import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue as RtHitTestRangeValue
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.AnchorEntity as RtAnchorEntity
+import androidx.xr.runtime.internal.Component as RtComponent
+import androidx.xr.runtime.internal.Dimensions as RtDimensions
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.GltfEntity as RtGltfEntity
+import androidx.xr.runtime.internal.HitTestResult as RtHitTestResult
+import androidx.xr.runtime.internal.InputEventListener as RtInputEventListener
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PanelEntity as RtPanelEntity
+import androidx.xr.runtime.internal.PixelDimensions as RtPixelDimensions
+import androidx.xr.runtime.internal.Space as RtSpace
+import androidx.xr.runtime.internal.SurfaceEntity as RtSurfaceEntity
+import androidx.xr.runtime.internal.SystemSpaceEntity as RtSystemSpaceEntity
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors.directExecutor
 import java.util.UUID
 import java.util.concurrent.Executor
@@ -51,12 +69,12 @@ import org.robolectric.RobolectricTestRunner
 class EntityTest {
     private val activity = Robolectric.buildActivity(Activity::class.java).create().start().get()
     private val mockPlatformAdapter = mock<JxrPlatformAdapter>()
-    private val mockGltfModelEntityImpl = mock<JxrPlatformAdapter.GltfEntity>()
-    private val mockPanelEntityImpl = mock<JxrPlatformAdapter.PanelEntity>()
-    private val mockAnchorEntityImpl = mock<JxrPlatformAdapter.AnchorEntity>()
-    private val mockActivityPanelEntity = mock<JxrPlatformAdapter.ActivityPanelEntity>()
-    private val mockContentlessEntity = mock<JxrPlatformAdapter.Entity>()
-    private val mockSurfaceEntity = mock<JxrPlatformAdapter.SurfaceEntity>()
+    private val mockGltfModelEntityImpl = mock<RtGltfEntity>()
+    private val mockPanelEntityImpl = mock<RtPanelEntity>()
+    private val mockAnchorEntityImpl = mock<RtAnchorEntity>()
+    private val mockActivityPanelEntity = mock<RtActivityPanelEntity>()
+    private val mockContentlessEntity = mock<RtEntity>()
+    private val mockSurfaceEntity = mock<RtSurfaceEntity>()
     private val entityManager = EntityManager()
     private lateinit var session: Session
     private lateinit var activitySpace: ActivitySpace
@@ -73,10 +91,8 @@ class EntityTest {
     interface SubtypeFakeComponent : FakeComponent
 
     // Introduce a test Runtime ActivitySpace to test the bounds changed callback.
-    class TestRtActivitySpace : JxrPlatformAdapter.ActivitySpace {
-        private var boundsChangedListener:
-            JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener? =
-            null
+    class TestRtActivitySpace : RtActivitySpace {
+        private var boundsChangedListener: RtActivitySpace.OnBoundsChangedListener? = null
         var getBoundsCalled: Boolean = false
         var setScaleCalled: Boolean = false
         var getScaleCalled: Boolean = false
@@ -87,26 +103,32 @@ class EntityTest {
         var getWorldSpaceScaleCalled: Boolean = false
         var getActivitySpaceScaleCalled: Boolean = false
 
-        override fun setPose(pose: Pose, @SpaceValue space: Int) {}
+        override fun setPose(pose: Pose, @SpaceValue relativeTo: Int) {}
 
-        override fun getPose(@SpaceValue space: Int): Pose {
+        override fun getPose(@SpaceValue relativeTo: Int): Pose {
             return Pose()
         }
 
-        override fun getActivitySpacePose(): Pose {
+        override val activitySpacePose: Pose = Pose()
+
+        override fun transformPoseTo(pose: Pose, destination: RtActivityPose): Pose {
             return Pose()
         }
 
-        override fun transformPoseTo(
-            pose: Pose,
-            destination: JxrPlatformAdapter.ActivityPose
-        ): Pose {
-            return Pose()
+        override fun hitTest(
+            origin: Vector3,
+            direction: Vector3,
+            @RtHitTestRangeValue hitTestRange: Int,
+        ): ListenableFuture<RtHitTestResult> {
+            return Futures.immediateFuture(
+                RtHitTestResult(Vector3(), Vector3(), 0, Float.POSITIVE_INFINITY)
+            )
         }
 
-        override fun getAlpha(@SpaceValue space: Int): Float = 1.0f.apply { getAlphaCalled = true }
+        override fun getAlpha(@SpaceValue relativeTo: Int): Float =
+            1.0f.apply { getAlphaCalled = true }
 
-        override fun setAlpha(alpha: Float, @SpaceValue space: Int) {
+        override fun setAlpha(alpha: Float, @SpaceValue relativeTo: Int) {
             setAlphaCalled = true
         }
 
@@ -115,81 +137,75 @@ class EntityTest {
             return false
         }
 
-        override fun setHidden(hidden: Boolean) {
+        override fun setHidden(hidden: Boolean): Unit {
             setHiddenCalled = true
         }
 
-        override fun setScale(scale: Vector3, @SpaceValue space: Int) {
+        override fun setScale(scale: Vector3, @SpaceValue relativeTo: Int) {
             setScaleCalled = true
         }
 
-        override fun getScale(@SpaceValue space: Int): Vector3 {
+        override fun getScale(@SpaceValue relativeTo: Int): Vector3 {
             getScaleCalled = true
             return Vector3()
         }
 
-        override fun getWorldSpaceScale(): Vector3 {
-            getWorldSpaceScaleCalled = true
-            return Vector3()
-        }
+        override val worldSpaceScale: Vector3
+            get() {
+                getWorldSpaceScaleCalled = true
+                return Vector3()
+            }
 
-        override fun getActivitySpaceScale(): Vector3 {
-            getActivitySpaceScaleCalled = true
-            return Vector3()
-        }
+        override val activitySpaceScale: Vector3
+            get() {
+                getActivitySpaceScaleCalled = true
+                return Vector3()
+            }
 
-        override fun addInputEventListener(
-            executor: Executor,
-            consumer: JxrPlatformAdapter.InputEventListener,
-        ) {}
+        override fun addInputEventListener(executor: Executor, listener: RtInputEventListener) {}
 
-        override fun removeInputEventListener(consumer: JxrPlatformAdapter.InputEventListener) {}
+        override fun removeInputEventListener(listener: RtInputEventListener) {}
 
-        override fun getParent(): JxrPlatformAdapter.Entity? {
-            return null
-        }
+        override var parent: RtEntity? = null
 
-        override fun setParent(parent: JxrPlatformAdapter.Entity?) {}
+        override fun addChild(child: RtEntity) {}
 
-        override fun addChild(child: JxrPlatformAdapter.Entity) {}
+        override fun addChildren(children: List<RtEntity>) {}
 
-        override fun addChildren(children: List<JxrPlatformAdapter.Entity>) {}
+        override val children: List<RtEntity> = emptyList()
 
-        override fun getChildren(): List<JxrPlatformAdapter.Entity> {
-            return emptyList()
-        }
-
-        override fun setContentDescription(text: String) {}
+        override var contentDescription: String = ""
+            set(value) {
+                field = value
+            }
 
         override fun dispose() {}
 
-        override fun addComponent(component: JxrPlatformAdapter.Component): Boolean = false
+        override fun addComponent(component: RtComponent): Boolean = false
 
-        override fun removeComponent(component: JxrPlatformAdapter.Component) {}
+        override fun removeComponent(component: RtComponent) {}
 
         override fun removeAllComponents() {}
 
-        override fun getBounds(): JxrPlatformAdapter.Dimensions =
-            JxrPlatformAdapter.Dimensions(1f, 1f, 1f).apply { getBoundsCalled = true }
+        override val bounds: RtDimensions =
+            RtDimensions(1f, 1f, 1f).apply { getBoundsCalled = true }
 
-        override fun addOnBoundsChangedListener(
-            listener: JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener
-        ) {
+        override fun addOnBoundsChangedListener(listener: RtActivitySpace.OnBoundsChangedListener) {
             boundsChangedListener = listener
         }
 
         override fun removeOnBoundsChangedListener(
-            listener: JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener
+            listener: RtActivitySpace.OnBoundsChangedListener
         ) {
             boundsChangedListener = null
         }
 
-        fun sendBoundsChanged(dimensions: JxrPlatformAdapter.Dimensions) {
+        fun sendBoundsChanged(dimensions: RtDimensions) {
             boundsChangedListener?.onBoundsChanged(dimensions)
         }
 
         override fun setOnSpaceUpdatedListener(
-            listener: JxrPlatformAdapter.SystemSpaceEntity.OnSpaceUpdatedListener?,
+            listener: RtSystemSpaceEntity.OnSpaceUpdatedListener?,
             executor: Executor?,
         ) {}
     }
@@ -203,7 +219,7 @@ class EntityTest {
         whenever(mockPlatformAdapter.activitySpaceRootImpl).thenReturn(mock())
         whenever(mockPlatformAdapter.headActivityPose).thenReturn(mock())
         whenever(mockPlatformAdapter.perceptionSpaceActivityPose).thenReturn(mock())
-        whenever(mockPlatformAdapter.loadGltfByAssetNameSplitEngine(Mockito.anyString()))
+        whenever(mockPlatformAdapter.loadGltfByAssetName(Mockito.anyString()))
             .thenReturn(Futures.immediateFuture(mock()))
         whenever(mockPlatformAdapter.createGltfEntity(any(), any(), any()))
             .thenReturn(mockGltfModelEntityImpl)
@@ -212,25 +228,22 @@ class EntityTest {
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockPanelEntityImpl)
         whenever(mockPlatformAdapter.createAnchorEntity(any(), any(), any(), any()))
             .thenReturn(mockAnchorEntityImpl)
-        whenever(mockAnchorEntityImpl.state)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.State.UNANCHORED)
-        whenever(mockAnchorEntityImpl.persistState)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.PersistState.PERSIST_NOT_REQUESTED)
+        whenever(mockAnchorEntityImpl.state).thenReturn(RtAnchorEntity.State.UNANCHORED)
         whenever(mockPlatformAdapter.createActivityPanelEntity(any(), any(), any(), any(), any()))
             .thenReturn(mockActivityPanelEntity)
         whenever(mockPlatformAdapter.createEntity(any(), any(), any()))
             .thenReturn(mockContentlessEntity)
         whenever(mockPlatformAdapter.createSurfaceEntity(any(), any(), any(), any()))
             .thenReturn(mockSurfaceEntity)
-        whenever(mockPlatformAdapter.getMainPanelEntity()).thenReturn(mockPanelEntityImpl)
+        whenever(mockPlatformAdapter.mainPanelEntity).thenReturn(mockPanelEntityImpl)
         session = Session.create(activity, mockPlatformAdapter)
         activitySpace = ActivitySpace.create(mockPlatformAdapter, entityManager)
         gltfModel = GltfModel.create(session, "test.glb").get()
@@ -377,20 +390,18 @@ class EntityTest {
         anchorEntity.setPose(pose, Space.ACTIVITY)
         activityPanelEntity.setPose(pose, Space.REAL_WORLD)
 
-        verify(mockPanelEntityImpl).setPose(any(), eq(JxrPlatformAdapter.Space.PARENT))
-        verify(mockGltfModelEntityImpl).setPose(any(), eq(JxrPlatformAdapter.Space.PARENT))
-        verify(mockAnchorEntityImpl).setPose(any(), eq(JxrPlatformAdapter.Space.ACTIVITY))
-        verify(mockActivityPanelEntity).setPose(any(), eq(JxrPlatformAdapter.Space.REAL_WORLD))
+        verify(mockPanelEntityImpl).setPose(any(), eq(RtSpace.PARENT))
+        verify(mockGltfModelEntityImpl).setPose(any(), eq(RtSpace.PARENT))
+        verify(mockAnchorEntityImpl).setPose(any(), eq(RtSpace.ACTIVITY))
+        verify(mockActivityPanelEntity).setPose(any(), eq(RtSpace.REAL_WORLD))
     }
 
     @Test
     fun allEntityGetPose_callsRuntimeEntityImplGetPose() {
-        whenever(mockPanelEntityImpl.getPose(JxrPlatformAdapter.Space.PARENT)).thenReturn(Pose())
-        whenever(mockGltfModelEntityImpl.getPose(JxrPlatformAdapter.Space.PARENT))
-            .thenReturn(Pose())
-        whenever(mockAnchorEntityImpl.getPose(JxrPlatformAdapter.Space.ACTIVITY)).thenReturn(Pose())
-        whenever(mockActivityPanelEntity.getPose(JxrPlatformAdapter.Space.REAL_WORLD))
-            .thenReturn(Pose())
+        whenever(mockPanelEntityImpl.getPose(RtSpace.PARENT)).thenReturn(Pose())
+        whenever(mockGltfModelEntityImpl.getPose(RtSpace.PARENT)).thenReturn(Pose())
+        whenever(mockAnchorEntityImpl.getPose(RtSpace.ACTIVITY)).thenReturn(Pose())
+        whenever(mockActivityPanelEntity.getPose(RtSpace.REAL_WORLD)).thenReturn(Pose())
         val pose = Pose.Identity
 
         assertThat(panelEntity.getPose()).isEqualTo(pose)
@@ -398,10 +409,10 @@ class EntityTest {
         assertThat(anchorEntity.getPose(Space.ACTIVITY)).isEqualTo(pose)
         assertThat(activityPanelEntity.getPose(Space.REAL_WORLD)).isEqualTo(pose)
 
-        verify(mockPanelEntityImpl).getPose(JxrPlatformAdapter.Space.PARENT)
-        verify(mockGltfModelEntityImpl).getPose(JxrPlatformAdapter.Space.PARENT)
-        verify(mockAnchorEntityImpl).getPose(JxrPlatformAdapter.Space.ACTIVITY)
-        verify(mockActivityPanelEntity).getPose(JxrPlatformAdapter.Space.REAL_WORLD)
+        verify(mockPanelEntityImpl).getPose(RtSpace.PARENT)
+        verify(mockGltfModelEntityImpl).getPose(RtSpace.PARENT)
+        verify(mockAnchorEntityImpl).getPose(RtSpace.ACTIVITY)
+        verify(mockActivityPanelEntity).getPose(RtSpace.REAL_WORLD)
     }
 
     @Test
@@ -434,21 +445,20 @@ class EntityTest {
         contentlessEntity.setAlpha(alpha)
         activitySpace.setAlpha(alpha)
 
-        verify(mockPanelEntityImpl).setAlpha(alpha, JxrPlatformAdapter.Space.PARENT)
-        verify(mockGltfModelEntityImpl).setAlpha(alpha, JxrPlatformAdapter.Space.PARENT)
-        verify(mockAnchorEntityImpl).setAlpha(alpha, JxrPlatformAdapter.Space.ACTIVITY)
-        verify(mockActivityPanelEntity).setAlpha(alpha, JxrPlatformAdapter.Space.REAL_WORLD)
-        verify(mockContentlessEntity).setAlpha(alpha, JxrPlatformAdapter.Space.PARENT)
+        verify(mockPanelEntityImpl).setAlpha(alpha, RtSpace.PARENT)
+        verify(mockGltfModelEntityImpl).setAlpha(alpha, RtSpace.PARENT)
+        verify(mockAnchorEntityImpl).setAlpha(alpha, RtSpace.ACTIVITY)
+        verify(mockActivityPanelEntity).setAlpha(alpha, RtSpace.REAL_WORLD)
+        verify(mockContentlessEntity).setAlpha(alpha, RtSpace.PARENT)
         assertThat(testActivitySpace.setAlphaCalled).isTrue()
     }
 
     @Test
     fun allEntityGetAlpha_callsRuntimeEntityImplGetAlpha() {
-        whenever(mockPanelEntityImpl.getAlpha(JxrPlatformAdapter.Space.PARENT)).thenReturn(0.1f)
-        whenever(mockGltfModelEntityImpl.getAlpha(JxrPlatformAdapter.Space.PARENT)).thenReturn(0.1f)
-        whenever(mockAnchorEntityImpl.getAlpha(JxrPlatformAdapter.Space.ACTIVITY)).thenReturn(0.1f)
-        whenever(mockActivityPanelEntity.getAlpha(JxrPlatformAdapter.Space.REAL_WORLD))
-            .thenReturn(0.1f)
+        whenever(mockPanelEntityImpl.getAlpha(RtSpace.PARENT)).thenReturn(0.1f)
+        whenever(mockGltfModelEntityImpl.getAlpha(RtSpace.PARENT)).thenReturn(0.1f)
+        whenever(mockAnchorEntityImpl.getAlpha(RtSpace.ACTIVITY)).thenReturn(0.1f)
+        whenever(mockActivityPanelEntity.getAlpha(RtSpace.REAL_WORLD)).thenReturn(0.1f)
 
         assertThat(panelEntity.getAlpha()).isEqualTo(0.1f)
         assertThat(gltfModelEntity.getAlpha(Space.PARENT)).isEqualTo(0.1f)
@@ -458,10 +468,10 @@ class EntityTest {
         assertThat(activitySpace.getAlpha()).isEqualTo(1.0f)
         assertThat(testActivitySpace.getAlphaCalled).isTrue()
 
-        verify(mockPanelEntityImpl).getAlpha(JxrPlatformAdapter.Space.PARENT)
-        verify(mockGltfModelEntityImpl).getAlpha(JxrPlatformAdapter.Space.PARENT)
-        verify(mockAnchorEntityImpl).getAlpha(JxrPlatformAdapter.Space.ACTIVITY)
-        verify(mockActivityPanelEntity).getAlpha(JxrPlatformAdapter.Space.REAL_WORLD)
+        verify(mockPanelEntityImpl).getAlpha(RtSpace.PARENT)
+        verify(mockGltfModelEntityImpl).getAlpha(RtSpace.PARENT)
+        verify(mockAnchorEntityImpl).getAlpha(RtSpace.ACTIVITY)
+        verify(mockActivityPanelEntity).getAlpha(RtSpace.REAL_WORLD)
     }
 
     @Test
@@ -483,11 +493,10 @@ class EntityTest {
 
     @Test
     fun allEntityGetActivitySpaceAlpha_callsRuntimeEntityImplGetActivitySpaceAlpha() {
-        whenever(mockPanelEntityImpl.getAlpha(JxrPlatformAdapter.Space.PARENT)).thenReturn(0.1f)
-        whenever(mockGltfModelEntityImpl.getAlpha(JxrPlatformAdapter.Space.PARENT)).thenReturn(0.1f)
-        whenever(mockAnchorEntityImpl.getAlpha(JxrPlatformAdapter.Space.ACTIVITY)).thenReturn(0.1f)
-        whenever(mockActivityPanelEntity.getAlpha(JxrPlatformAdapter.Space.REAL_WORLD))
-            .thenReturn(0.1f)
+        whenever(mockPanelEntityImpl.getAlpha(RtSpace.PARENT)).thenReturn(0.1f)
+        whenever(mockGltfModelEntityImpl.getAlpha(RtSpace.PARENT)).thenReturn(0.1f)
+        whenever(mockAnchorEntityImpl.getAlpha(RtSpace.ACTIVITY)).thenReturn(0.1f)
+        whenever(mockActivityPanelEntity.getAlpha(RtSpace.REAL_WORLD)).thenReturn(0.1f)
 
         assertThat(panelEntity.getAlpha(Space.PARENT)).isEqualTo(0.1f)
         assertThat(gltfModelEntity.getAlpha(Space.PARENT)).isEqualTo(0.1f)
@@ -496,10 +505,10 @@ class EntityTest {
 
         assertThat(activitySpace.getAlpha(Space.PARENT)).isEqualTo(1.0f)
 
-        verify(mockPanelEntityImpl).getAlpha(JxrPlatformAdapter.Space.PARENT)
-        verify(mockGltfModelEntityImpl).getAlpha(JxrPlatformAdapter.Space.PARENT)
-        verify(mockAnchorEntityImpl).getAlpha(JxrPlatformAdapter.Space.ACTIVITY)
-        verify(mockActivityPanelEntity).getAlpha(JxrPlatformAdapter.Space.REAL_WORLD)
+        verify(mockPanelEntityImpl).getAlpha(RtSpace.PARENT)
+        verify(mockGltfModelEntityImpl).getAlpha(RtSpace.PARENT)
+        verify(mockAnchorEntityImpl).getAlpha(RtSpace.ACTIVITY)
+        verify(mockActivityPanelEntity).getAlpha(RtSpace.REAL_WORLD)
     }
 
     @Test
@@ -516,11 +525,11 @@ class EntityTest {
         // Note that in production we expect this to do nothing.
         activitySpace.setScale(scale)
 
-        verify(mockPanelEntityImpl).setScale(any(), eq(JxrPlatformAdapter.Space.PARENT))
-        verify(mockGltfModelEntityImpl).setScale(any(), eq(JxrPlatformAdapter.Space.PARENT))
-        verify(mockAnchorEntityImpl).setScale(any(), eq(JxrPlatformAdapter.Space.ACTIVITY))
-        verify(mockActivityPanelEntity).setScale(any(), eq(JxrPlatformAdapter.Space.REAL_WORLD))
-        verify(mockContentlessEntity).setScale(any(), eq(JxrPlatformAdapter.Space.PARENT))
+        verify(mockPanelEntityImpl).setScale(any(), eq(RtSpace.PARENT))
+        verify(mockGltfModelEntityImpl).setScale(any(), eq(RtSpace.PARENT))
+        verify(mockAnchorEntityImpl).setScale(any(), eq(RtSpace.ACTIVITY))
+        verify(mockActivityPanelEntity).setScale(any(), eq(RtSpace.REAL_WORLD))
+        verify(mockContentlessEntity).setScale(any(), eq(RtSpace.PARENT))
         assertThat(testActivitySpace.setScaleCalled).isTrue()
     }
 
@@ -529,14 +538,10 @@ class EntityTest {
         val runtimeScale = Vector3(0.1f, 0.1f, 0.1f)
         val sdkScale = 0.1f
 
-        whenever(mockPanelEntityImpl.getScale(JxrPlatformAdapter.Space.PARENT))
-            .thenReturn(runtimeScale)
-        whenever(mockGltfModelEntityImpl.getScale(JxrPlatformAdapter.Space.PARENT))
-            .thenReturn(runtimeScale)
-        whenever(mockAnchorEntityImpl.getScale(JxrPlatformAdapter.Space.ACTIVITY))
-            .thenReturn(runtimeScale)
-        whenever(mockActivityPanelEntity.getScale(JxrPlatformAdapter.Space.REAL_WORLD))
-            .thenReturn(runtimeScale)
+        whenever(mockPanelEntityImpl.getScale(RtSpace.PARENT)).thenReturn(runtimeScale)
+        whenever(mockGltfModelEntityImpl.getScale(RtSpace.PARENT)).thenReturn(runtimeScale)
+        whenever(mockAnchorEntityImpl.getScale(RtSpace.ACTIVITY)).thenReturn(runtimeScale)
+        whenever(mockActivityPanelEntity.getScale(RtSpace.REAL_WORLD)).thenReturn(runtimeScale)
 
         assertThat(panelEntity.getScale()).isEqualTo(sdkScale)
         assertThat(gltfModelEntity.getScale(Space.PARENT)).isEqualTo(sdkScale)
@@ -547,10 +552,10 @@ class EntityTest {
         assertThat(activitySpace.getScale()).isEqualTo(0f)
         assertThat(testActivitySpace.getScaleCalled).isTrue()
 
-        verify(mockPanelEntityImpl).getScale(JxrPlatformAdapter.Space.PARENT)
-        verify(mockGltfModelEntityImpl).getScale(JxrPlatformAdapter.Space.PARENT)
-        verify(mockAnchorEntityImpl).getScale(JxrPlatformAdapter.Space.ACTIVITY)
-        verify(mockActivityPanelEntity).getScale(JxrPlatformAdapter.Space.REAL_WORLD)
+        verify(mockPanelEntityImpl).getScale(RtSpace.PARENT)
+        verify(mockGltfModelEntityImpl).getScale(RtSpace.PARENT)
+        verify(mockAnchorEntityImpl).getScale(RtSpace.ACTIVITY)
+        verify(mockActivityPanelEntity).getScale(RtSpace.REAL_WORLD)
     }
 
     @Test
@@ -582,12 +587,12 @@ class EntityTest {
         activityPanelEntity.setSizeInPixels(dimensions)
 
         verify(mockPanelEntityImpl).sizeInPixels = any()
-        verify(mockActivityPanelEntity).setSizeInPixels(any())
+        verify(mockActivityPanelEntity).sizeInPixels = any()
     }
 
     @Test
     fun allPanelEntityGetSizeInPixels_callsRuntimeEntityImplgetSizeInPixels() {
-        val pixelDimensions = JxrPlatformAdapter.PixelDimensions(320, 240)
+        val pixelDimensions = RtPixelDimensions(320, 240)
         val expectedPixelDimensions = pixelDimensions.toPixelDimensions()
 
         whenever(mockPanelEntityImpl.sizeInPixels).thenReturn(pixelDimensions)
@@ -649,33 +654,33 @@ class EntityTest {
             }
 
         activitySpace.addBoundsChangedListener(directExecutor(), boundsChangedListener)
-        testActivitySpace.sendBoundsChanged(JxrPlatformAdapter.Dimensions(0.3f, 0.2f, 0.1f))
+        testActivitySpace.sendBoundsChanged(RtDimensions(0.3f, 0.2f, 0.1f))
         assertThat(called).isTrue()
 
         called = false
         activitySpace.removeBoundsChangedListener(boundsChangedListener)
-        testActivitySpace.sendBoundsChanged(JxrPlatformAdapter.Dimensions(0.5f, 0.5f, 0.5f))
+        testActivitySpace.sendBoundsChanged(RtDimensions(0.5f, 0.5f, 0.5f))
         assertThat(called).isFalse()
     }
 
     @Test
     fun setOnSpaceUpdatedListener_withNullParams_callsRuntimeSetOnSpaceUpdatedListener() {
-        val mockRtActivitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
+        val mockRtActivitySpace = mock<RtActivitySpace>()
         whenever(mockPlatformAdapter.activitySpace).thenReturn(mockRtActivitySpace)
         val activitySpace = ActivitySpace.create(mockPlatformAdapter, entityManager)
 
         activitySpace.setOnSpaceUpdatedListener(null)
-        verify(mockRtActivitySpace).setOnSpaceUpdatedListener(null, null)
+        verify(mockRtActivitySpace).setOnSpaceUpdatedListener(any(), eq(null))
     }
 
     @Test
     fun setOnSpaceUpdatedListener_receivesRuntimeSetOnSpaceUpdatedListenerCallbacks() {
-        val mockRtActivitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
+        val mockRtActivitySpace = mock<RtActivitySpace>()
         whenever(mockPlatformAdapter.activitySpace).thenReturn(mockRtActivitySpace)
         val activitySpace = ActivitySpace.create(mockPlatformAdapter, entityManager)
 
         var listenerCalled = false
-        val captor = argumentCaptor<JxrPlatformAdapter.SystemSpaceEntity.OnSpaceUpdatedListener>()
+        val captor = argumentCaptor<RtSystemSpaceEntity.OnSpaceUpdatedListener>()
         activitySpace.setOnSpaceUpdatedListener({ listenerCalled = true }, directExecutor())
         verify(mockRtActivitySpace).setOnSpaceUpdatedListener(captor.capture(), any())
         captor.firstValue.onSpaceUpdated()
@@ -684,14 +689,14 @@ class EntityTest {
 
     @Test
     fun setOnSpaceUpdatedListener_anchorEntity_withNullParams_callsRuntimeSetOnSpaceUpdatedListener() {
-        anchorEntity.setOnSpaceUpdatedListener(null)
-        verify(mockAnchorEntityImpl).setOnSpaceUpdatedListener(null, null)
+        anchorEntity.setOnSpaceUpdatedListener(null, null)
+        verify(mockAnchorEntityImpl).setOnSpaceUpdatedListener(eq(null), eq(null))
     }
 
     @Test
     fun setOnSpaceUpdatedListener_anchorEntity_receivesRuntimeSetOnSpaceUpdatedListenerCallbacks() {
         var listenerCalled = false
-        val captor = argumentCaptor<JxrPlatformAdapter.SystemSpaceEntity.OnSpaceUpdatedListener>()
+        val captor = argumentCaptor<RtSystemSpaceEntity.OnSpaceUpdatedListener>()
         anchorEntity.setOnSpaceUpdatedListener({ listenerCalled = true }, directExecutor())
 
         verify(mockAnchorEntityImpl).setOnSpaceUpdatedListener(captor.capture(), any())
@@ -728,7 +733,7 @@ class EntityTest {
         entity.setPose(setPose)
 
         val captor = argumentCaptor<Pose>()
-        verify(mockContentlessEntity).setPose(captor.capture(), eq(JxrPlatformAdapter.Space.PARENT))
+        verify(mockContentlessEntity).setPose(captor.capture(), eq(RtSpace.PARENT))
 
         val pose = captor.firstValue
         assertThat(pose.translation.x).isEqualTo(setPose.translation.x)
@@ -738,13 +743,13 @@ class EntityTest {
 
     @Test
     fun contentlessEntity_canGetPose() {
-        whenever(mockContentlessEntity.getPose(JxrPlatformAdapter.Space.PARENT)).thenReturn(Pose())
+        whenever(mockContentlessEntity.getPose(RtSpace.PARENT)).thenReturn(Pose())
 
         val entity = ContentlessEntity.create(session, "test")
         val pose = Pose.Identity
 
         assertThat(entity.getPose()).isEqualTo(pose)
-        verify(mockContentlessEntity).getPose(JxrPlatformAdapter.Space.PARENT)
+        verify(mockContentlessEntity).getPose(RtSpace.PARENT)
     }
 
     @Test
@@ -981,12 +986,6 @@ class EntityTest {
     }
 
     @Test
-    fun anchorEntity_canGetDefaultPersistState() {
-        assertThat(anchorEntity.getPersistState())
-            .isEqualTo(AnchorEntity.PersistState.PERSIST_NOT_REQUESTED)
-    }
-
-    @Test
     fun anchorEntity_createPersistAnchorSuccess() {
         whenever(mockPlatformAdapter.createPersistedAnchorEntity(any(), any()))
             .thenReturn(mockAnchorEntityImpl)
@@ -1079,13 +1078,13 @@ class EntityTest {
     @Test
     fun SurfaceEntity_redirectsCallsToRtEntity() {
         surfaceEntity.stereoMode = SurfaceEntity.StereoMode.TOP_BOTTOM
-        verify(mockSurfaceEntity).setStereoMode(SurfaceEntity.StereoMode.TOP_BOTTOM)
+        verify(mockSurfaceEntity).stereoMode = SurfaceEntity.StereoMode.TOP_BOTTOM
 
         @Suppress("UNUSED_VARIABLE") var unusedMode = surfaceEntity.stereoMode
-        verify(mockSurfaceEntity).getStereoMode()
+        verify(mockSurfaceEntity).stereoMode
 
         surfaceEntity.canvasShape = SurfaceEntity.CanvasShape.Vr360Sphere(1.0f)
-        verify(mockSurfaceEntity).setCanvasShape(any())
+        verify(mockSurfaceEntity).canvasShape = any()
 
         // no equivalent test for getter - that just returns the Kotlin object for now.
     }

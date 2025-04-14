@@ -43,8 +43,7 @@ import androidx.compose.ui.window.DialogProperties
 import kotlin.jvm.JvmInline
 
 /**
- * <a href="https://m3.material.io/components/time-pickers/overview" class="external"
- * target="_blank">Material Design time picker dialog</a>.
+ * [Material Design time picker dialog](https://m3.material.io/components/time-pickers/overview)
  *
  * A dialog for displaying a [TimePicker]. Time pickers let people select a time.
  *

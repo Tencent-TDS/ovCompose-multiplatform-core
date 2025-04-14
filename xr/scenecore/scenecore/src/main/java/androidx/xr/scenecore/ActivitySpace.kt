@@ -19,6 +19,8 @@
 package androidx.xr.scenecore
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.Executor
@@ -32,10 +34,8 @@ import java.util.function.Consumer
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ActivitySpace
-private constructor(
-    rtActivitySpace: JxrPlatformAdapter.ActivitySpace,
-    entityManager: EntityManager,
-) : BaseEntity<JxrPlatformAdapter.ActivitySpace>(rtActivitySpace, entityManager) {
+private constructor(rtActivitySpace: RtActivitySpace, entityManager: EntityManager) :
+    BaseEntity<RtActivitySpace>(rtActivitySpace, entityManager) {
 
     internal companion object {
         internal fun create(
@@ -45,10 +45,7 @@ private constructor(
     }
 
     private val boundsListeners:
-        ConcurrentMap<
-            Consumer<Dimensions>,
-            JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener
-        > =
+        ConcurrentMap<Consumer<Dimensions>, RtActivitySpace.OnBoundsChangedListener> =
         ConcurrentHashMap()
 
     /**
@@ -90,8 +87,8 @@ private constructor(
         callbackExecutor: Executor,
         listener: Consumer<Dimensions>
     ) {
-        val rtListener: JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener =
-            JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener { rtDimensions ->
+        val rtListener: RtActivitySpace.OnBoundsChangedListener =
+            RtActivitySpace.OnBoundsChangedListener { rtDimensions ->
                 callbackExecutor.execute { listener.accept(rtDimensions.toDimensions()) }
             }
         boundsListeners.compute(
@@ -158,7 +155,10 @@ private constructor(
         listener: OnSpaceUpdatedListener?,
         executor: Executor? = null,
     ) {
-        rtEntity.setOnSpaceUpdatedListener(listener?.let { { it.onSpaceUpdated() } }, executor)
+        rtEntity.setOnSpaceUpdatedListener(
+            listener?.let { { it.onSpaceUpdated() } } ?: {},
+            executor
+        )
     }
 }
 

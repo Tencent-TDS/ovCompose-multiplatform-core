@@ -21,7 +21,7 @@ import android.os.Bundle
 /**
  * Thrown when an internal unexpected error comes from the system.
  *
- * <p>For example, the AppFunctionService implementation is not found by the system.
+ * For example, the AppFunctionService implementation is not found by the system.
  */
 public abstract class AppFunctionSystemException
 internal constructor(errorCode: Int, errorMessage: String? = null, extras: Bundle) :
@@ -30,7 +30,7 @@ internal constructor(errorCode: Int, errorMessage: String? = null, extras: Bundl
 /**
  * Thrown when an internal unexpected error comes from the system.
  *
- * <p>For example, the AppFunctionService implementation is not found by the system.
+ * For example, the AppFunctionService implementation is not found by the system.
  */
 public class AppFunctionSystemUnknownException
 internal constructor(errorMessage: String? = null, extras: Bundle) :

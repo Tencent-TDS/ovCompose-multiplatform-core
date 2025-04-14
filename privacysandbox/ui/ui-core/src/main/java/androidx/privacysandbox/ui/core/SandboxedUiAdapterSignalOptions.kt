@@ -33,5 +33,14 @@ class SandboxedUiAdapterSignalOptions {
          * [SandboxedSdkViewUiInfo.uiContainerOpacityHint].
          */
         const val GEOMETRY = "geometry"
+
+        /**
+         * When this signal option is set, information about obstructions on the UI container
+         * hosting the [SandboxedUiAdapter.Session] will be sent through
+         * [SessionObserver.onUiContainerChanged].
+         *
+         * The information that will be collected is [SandboxedSdkViewUiInfo.obstructedGeometry].
+         */
+        const val OBSTRUCTIONS = "obstructions"
     }
 }

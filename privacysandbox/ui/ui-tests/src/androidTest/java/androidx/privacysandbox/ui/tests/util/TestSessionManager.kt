@@ -431,7 +431,7 @@ class TestSessionManager(
         var latestUiChange: Bundle = Bundle()
         private val sessionOpenedLatch = CountDownLatch(1)
         private val sessionClosedLatch = CountDownLatch(1)
-        private val uiContainerChangedLatch = CountDownLatch(1)
+        private var uiContainerChangedLatch = CountDownLatch(1)
 
         override fun onSessionOpened(sessionObserverContext: SessionObserverContext) {
             this.sessionObserverContext = sessionObserverContext
@@ -461,6 +461,13 @@ class TestSessionManager(
 
         fun assertSessionClosed() {
             assertThat(sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        }
+
+        fun runAndRetrieveNextUiChange(runnable: Runnable): Bundle {
+            uiContainerChangedLatch = CountDownLatch(1)
+            runnable.run()
+            assertThat(uiContainerChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+            return latestUiChange
         }
     }
 

@@ -16,10 +16,16 @@
 
 package androidx.compose.material3
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +36,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.internal.ProvideContentColorTextStyle
+import androidx.compose.material3.internal.animateElevation
 import androidx.compose.material3.internal.rememberAnimatedShape
 import androidx.compose.material3.tokens.BaselineButtonTokens
 import androidx.compose.material3.tokens.ButtonLargeTokens
@@ -46,12 +53,16 @@ import androidx.compose.material3.tokens.OutlinedButtonTokens
 import androidx.compose.material3.tokens.TextButtonTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
@@ -63,8 +74,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design button</a>.
+ * [Material Design button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post.
@@ -142,14 +152,15 @@ fun Button(
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
     val containerColor = colors.containerColor(enabled)
     val contentColor = colors.contentColor(enabled)
+    val shadowElevation = elevation?.shadowElevation(enabled, interactionSource)?.value ?: 0.dp
     Surface(
         onClick = onClick,
-        elevation = elevation,
         modifier = modifier.semantics { role = Role.Button },
         enabled = enabled,
         shape = shape,
         color = containerColor,
         contentColor = contentColor,
+        shadowElevation = shadowElevation,
         border = border,
         interactionSource = interactionSource
     ) {
@@ -173,8 +184,7 @@ fun Button(
 
 // TODO add link to image of pressed button
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design button</a>.
+ * [Material Design button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post. It also morphs between the shapes provided in [shapes] depending on the state of the
@@ -244,6 +254,7 @@ fun Button(
     val pressed by interactionSource.collectIsPressedAsState()
     val containerColor = colors.containerColor(enabled)
     val contentColor = colors.contentColor(enabled)
+    val shadowElevation = elevation?.shadowElevation(enabled, interactionSource)?.value ?: 0.dp
     val buttonShape = shapeByInteraction(shapes, pressed, defaultAnimationSpec)
 
     Surface(
@@ -253,7 +264,7 @@ fun Button(
         shape = buttonShape,
         color = containerColor,
         contentColor = contentColor,
-        elevation = elevation,
+        shadowElevation = shadowElevation,
         border = border,
         interactionSource = interactionSource
     ) {
@@ -276,8 +287,7 @@ fun Button(
 }
 
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design elevated button</a>.
+ * [Material Design elevated button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post.
@@ -350,8 +360,7 @@ fun ElevatedButton(
 
 // TODO add link to image of pressed elevated button
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design elevated button</a>.
+ * [Material Design elevated button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post. It also morphs between the shapes provided in [shapes] depending on the state of the
@@ -427,8 +436,7 @@ fun ElevatedButton(
     )
 
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design filled tonal button</a>.
+ * [Material Design filled tonal button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post.
@@ -502,8 +510,7 @@ fun FilledTonalButton(
 
 // TODO add link to image of pressed filled tonal button
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design filled tonal button</a>.
+ * [Material Design filled tonal button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post. It also morphs between the shapes provided in [shapes] depending on the state of the
@@ -580,8 +587,7 @@ fun FilledTonalButton(
     )
 
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design outlined button</a>.
+ * [Material Design outlined button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post.
@@ -654,8 +660,7 @@ fun OutlinedButton(
 
 // TODO add link to image of pressed outlined button
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design outlined button</a>.
+ * [Material Design outlined button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post. It also morphs between the shapes provided in [shapes] depending on the state of the
@@ -731,8 +736,7 @@ fun OutlinedButton(
     )
 
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design text button</a>.
+ * [Material Design text button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post.
@@ -806,8 +810,7 @@ fun TextButton(
 
 // TODO add link to image of pressed text button
 /**
- * <a href="https://m3.material.io/components/buttons/overview" class="external"
- * target="_blank">Material Design text button</a>.
+ * [Material Design text button](https://m3.material.io/components/buttons/overview)
  *
  * Buttons help people initiate actions, from sending an email, to sharing a document, to liking a
  * post. It also morphs between the shapes provided in [shapes] depending on the state of the
@@ -1475,12 +1478,11 @@ object ButtonDefaults {
         disabledElevation: Dp = FilledButtonTokens.DisabledContainerElevation,
     ): ButtonElevation =
         ButtonElevation(
-            elevation = defaultElevation,
+            defaultElevation = defaultElevation,
             pressedElevation = pressedElevation,
             focusedElevation = focusedElevation,
             hoveredElevation = hoveredElevation,
             disabledElevation = disabledElevation,
-            draggedElevation = pressedElevation,
         )
 
     /**
@@ -1503,12 +1505,11 @@ object ButtonDefaults {
         disabledElevation: Dp = ElevatedButtonTokens.DisabledContainerElevation
     ): ButtonElevation =
         ButtonElevation(
-            elevation = defaultElevation,
+            defaultElevation = defaultElevation,
             pressedElevation = pressedElevation,
             focusedElevation = focusedElevation,
             hoveredElevation = hoveredElevation,
-            disabledElevation = disabledElevation,
-            draggedElevation = pressedElevation,
+            disabledElevation = disabledElevation
         )
 
     /**
@@ -1531,15 +1532,14 @@ object ButtonDefaults {
         pressedElevation: Dp = FilledTonalButtonTokens.PressedContainerElevation,
         focusedElevation: Dp = FilledTonalButtonTokens.FocusContainerElevation,
         hoveredElevation: Dp = FilledTonalButtonTokens.HoverContainerElevation,
-        disabledElevation: Dp = 0.dp,
+        disabledElevation: Dp = 0.dp
     ): ButtonElevation =
         ButtonElevation(
-            elevation = defaultElevation,
+            defaultElevation = defaultElevation,
             pressedElevation = pressedElevation,
             focusedElevation = focusedElevation,
             hoveredElevation = hoveredElevation,
-            disabledElevation = disabledElevation,
-            draggedElevation = pressedElevation,
+            disabledElevation = disabledElevation
         )
 
     /** The default [BorderStroke] used by [OutlinedButton]. */
@@ -1688,21 +1688,126 @@ object ButtonDefaults {
  *   [ElevatedButton].
  */
 @Stable
-class ButtonElevation(
-    override val elevation: Dp,
-    override val pressedElevation: Dp,
-    override val focusedElevation: Dp,
-    override val hoveredElevation: Dp,
-    override val draggedElevation: Dp,
-    override val disabledElevation: Dp
-) : ComponentElevation {
+class ButtonElevation
+internal constructor(
+    private val defaultElevation: Dp,
+    private val pressedElevation: Dp,
+    private val focusedElevation: Dp,
+    private val hoveredElevation: Dp,
+    private val disabledElevation: Dp,
+) {
+    /**
+     * Represents the shadow elevation used in a button, depending on its [enabled] state and
+     * [interactionSource].
+     *
+     * Shadow elevation is used to apply a shadow around the button to give it higher emphasis.
+     *
+     * @param enabled whether the button is enabled
+     * @param interactionSource the [InteractionSource] for this button
+     */
+    @Composable
+    internal fun shadowElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        return animateElevation(enabled = enabled, interactionSource = interactionSource)
+    }
+
+    @Composable
+    private fun animateElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        val interactions = remember { mutableStateListOf<Interaction>() }
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is HoverInteraction.Enter -> {
+                        interactions.add(interaction)
+                    }
+                    is HoverInteraction.Exit -> {
+                        interactions.remove(interaction.enter)
+                    }
+                    is FocusInteraction.Focus -> {
+                        interactions.add(interaction)
+                    }
+                    is FocusInteraction.Unfocus -> {
+                        interactions.remove(interaction.focus)
+                    }
+                    is PressInteraction.Press -> {
+                        interactions.add(interaction)
+                    }
+                    is PressInteraction.Release -> {
+                        interactions.remove(interaction.press)
+                    }
+                    is PressInteraction.Cancel -> {
+                        interactions.remove(interaction.press)
+                    }
+                }
+            }
+        }
+
+        val interaction = interactions.lastOrNull()
+
+        val target =
+            if (!enabled) {
+                disabledElevation
+            } else {
+                when (interaction) {
+                    is PressInteraction.Press -> pressedElevation
+                    is HoverInteraction.Enter -> hoveredElevation
+                    is FocusInteraction.Focus -> focusedElevation
+                    else -> defaultElevation
+                }
+            }
+
+        val animatable = remember { Animatable(target, Dp.VectorConverter) }
+
+        LaunchedEffect(target) {
+            if (animatable.targetValue != target) {
+                if (!enabled) {
+                    // No transition when moving to a disabled state
+                    animatable.snapTo(target)
+                } else {
+                    val lastInteraction =
+                        when (animatable.targetValue) {
+                            pressedElevation -> PressInteraction.Press(Offset.Zero)
+                            hoveredElevation -> HoverInteraction.Enter()
+                            focusedElevation -> FocusInteraction.Focus()
+                            else -> null
+                        }
+                    animatable.animateElevation(
+                        from = lastInteraction,
+                        to = interaction,
+                        target = target
+                    )
+                }
+            }
+        }
+
+        return animatable.asState()
+    }
 
     override fun equals(other: Any?): Boolean {
-        return ComponentElevation.equals(this, other)
+        if (this === other) return true
+        if (other == null || other !is ButtonElevation) return false
+
+        if (defaultElevation != other.defaultElevation) return false
+        if (pressedElevation != other.pressedElevation) return false
+        if (focusedElevation != other.focusedElevation) return false
+        if (hoveredElevation != other.hoveredElevation) return false
+        if (disabledElevation != other.disabledElevation) return false
+
+        return true
     }
 
     override fun hashCode(): Int {
-        return ComponentElevation.hashCode(this)
+        var result = defaultElevation.hashCode()
+        result = 31 * result + pressedElevation.hashCode()
+        result = 31 * result + focusedElevation.hashCode()
+        result = 31 * result + hoveredElevation.hashCode()
+        result = 31 * result + disabledElevation.hashCode()
+        return result
     }
 }
 
@@ -1719,7 +1824,8 @@ class ButtonElevation(
  * - See [ButtonDefaults.textButtonColors] for the default colors used in a [TextButton].
  */
 @Immutable
-class ButtonColors(
+class ButtonColors
+constructor(
     val containerColor: Color,
     val contentColor: Color,
     val disabledContainerColor: Color,

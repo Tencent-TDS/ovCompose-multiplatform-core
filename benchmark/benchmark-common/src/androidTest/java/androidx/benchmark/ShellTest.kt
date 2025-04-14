@@ -29,6 +29,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 import org.junit.After
 import org.junit.Assert
 import org.junit.Assume.assumeTrue
@@ -255,6 +256,15 @@ class ShellTest {
         assertTrue(backgroundProcess.isAlive())
         Shell.killProcessesAndWait(listOf(backgroundProcess))
         assertFalse(backgroundProcess.isAlive())
+    }
+
+    @SdkSuppress(minSdkVersion = 23)
+    @Test
+    fun killProcessesAndWait_nonExistentProcess() {
+        Shell.killProcessesAndWait(
+            processName = Packages.FAKE,
+            processKiller = { fail("shouldn't execute process killer, no process of this name") }
+        )
     }
 
     @SdkSuppress(minSdkVersion = 23)

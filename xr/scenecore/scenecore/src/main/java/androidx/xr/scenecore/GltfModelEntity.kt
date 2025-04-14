@@ -19,6 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.IntDef
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.GltfEntity as RtGltfEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -29,8 +31,8 @@ import androidx.xr.runtime.math.Pose
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class GltfModelEntity
-private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: EntityManager) :
-    BaseEntity<JxrPlatformAdapter.GltfEntity>(rtEntity, entityManager) {
+private constructor(rtEntity: RtGltfEntity, entityManager: EntityManager) :
+    BaseEntity<RtGltfEntity>(rtEntity, entityManager) {
     // TODO: b/362368652 - Add an OnAnimationEvent() Listener interface
 
     /** Specifies the current animation state of the GltfModelEntity. */
@@ -88,8 +90,8 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
     @AnimationStateValue
     public fun getAnimationState(): Int {
         return when (rtEntity.animationState) {
-            JxrPlatformAdapter.GltfEntity.AnimationState.PLAYING -> return AnimationState.PLAYING
-            JxrPlatformAdapter.GltfEntity.AnimationState.STOPPED -> return AnimationState.STOPPED
+            RtGltfEntity.AnimationState.PLAYING -> return AnimationState.PLAYING
+            RtGltfEntity.AnimationState.STOPPED -> return AnimationState.STOPPED
             else -> AnimationState.STOPPED
         }
     }

@@ -17,7 +17,18 @@
 package androidx.xr.scenecore
 
 import android.app.Activity
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.AnchorEntity as RtAnchorEntity
+import androidx.xr.runtime.internal.AnchorPlacement as RtAnchorPlacement
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MovableComponent as RtMovableComponent
+import androidx.xr.runtime.internal.MoveEvent as RtMoveEvent
+import androidx.xr.runtime.internal.MoveEventListener as RtMoveEventListener
+import androidx.xr.runtime.internal.PlaneSemantic as RtPlaneSemantic
+import androidx.xr.runtime.internal.PlaneType as RtPlaneType
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Ray
 import androidx.xr.runtime.math.Vector3
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.MoreExecutors.directExecutor
@@ -39,10 +50,17 @@ class MovableComponentTest {
     private val activity = Robolectric.buildActivity(Activity::class.java).create().start().get()
     private val mockRuntime = mock<JxrPlatformAdapter>()
     private lateinit var session: Session
-    private val mockActivitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
-    private val mockContentlessEntity = mock<JxrPlatformAdapter.Entity>()
-    private val mockAnchorEntity = mock<JxrPlatformAdapter.AnchorEntity>()
+    private val mockActivitySpace = mock<RtActivitySpace>()
+    private val mockContentlessEntity = mock<RtEntity>()
+    private val mockAnchorEntity = mock<RtAnchorEntity>()
     private val entityManager = EntityManager()
+
+    object MockitoHelper {
+        // use this in place of captor.capture() if you are trying to capture an argument that is
+        // not
+        // nullable
+        fun <T> capture(argumentCaptor: ArgumentCaptor<T>): T = argumentCaptor.capture()
+    }
 
     @Before
     fun setUp() {
@@ -51,14 +69,11 @@ class MovableComponentTest {
         whenever(mockRuntime.activitySpaceRootImpl).thenReturn(mock())
         whenever(mockRuntime.headActivityPose).thenReturn(mock())
         whenever(mockRuntime.perceptionSpaceActivityPose).thenReturn(mock())
-        whenever(mockRuntime.getMainPanelEntity()).thenReturn(mock())
+        whenever(mockRuntime.mainPanelEntity).thenReturn(mock())
         whenever(mockRuntime.createEntity(any(), any(), any())).thenReturn(mockContentlessEntity)
         whenever(mockRuntime.createAnchorEntity(any(), any(), any(), any()))
             .thenReturn(mockAnchorEntity)
-        whenever(mockAnchorEntity.state)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.State.UNANCHORED)
-        whenever(mockAnchorEntity.persistState)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.PersistState.PERSIST_NOT_REQUESTED)
+        whenever(mockAnchorEntity.state).thenReturn(RtAnchorEntity.State.UNANCHORED)
         session = Session.create(activity, mockRuntime)
     }
 
@@ -66,13 +81,13 @@ class MovableComponentTest {
     fun addMovableComponent_addsRuntimeMovableComponent() {
         val entity = ContentlessEntity.create(session, "test")
         assertThat(entity).isNotNull()
-        val mockAnchorPlacement = mock<JxrPlatformAdapter.AnchorPlacement>()
+        val mockAnchorPlacement = mock<RtAnchorPlacement>()
         whenever(mockRuntime.createMovableComponent(any(), any(), any(), any())).thenReturn(mock())
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
         whenever(
                 mockRuntime.createAnchorPlacementForPlanes(
-                    setOf(JxrPlatformAdapter.PlaneType.HORIZONTAL),
-                    setOf(JxrPlatformAdapter.PlaneSemantic.WALL),
+                    setOf(RtPlaneType.HORIZONTAL),
+                    setOf(RtPlaneSemantic.WALL),
                 )
             )
             .thenReturn(mockAnchorPlacement)
@@ -105,10 +120,10 @@ class MovableComponentTest {
         assertThat(entity.addComponent(movableComponent)).isTrue()
         verify(mockRuntime)
             .createMovableComponent(
-                /*systemMovable=*/ true,
-                /*scaleInZ=*/ true,
-                /*anchorPlacement=*/ emptySet(),
-                /*shouldDisposeParentAnchor=*/ true,
+                systemMovable = true,
+                scaleInZ = true,
+                anchorPlacement = emptySet(),
+                shouldDisposeParentAnchor = true,
             )
         verify(mockContentlessEntity).addComponent(any())
     }
@@ -144,7 +159,7 @@ class MovableComponentTest {
         val entity = ContentlessEntity.create(session, "test")
         assertThat(entity).isNotNull()
 
-        val mockRtMovableComponent = mock<JxrPlatformAdapter.MovableComponent>()
+        val mockRtMovableComponent = mock<RtMovableComponent>()
         whenever(mockRuntime.createMovableComponent(any(), any(), any(), any()))
             .thenReturn(mockRtMovableComponent)
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
@@ -155,14 +170,14 @@ class MovableComponentTest {
         movableComponent.size = testSize
 
         assertThat(movableComponent.size).isEqualTo(testSize)
-        verify(mockRtMovableComponent).setSize(any())
+        verify(mockRtMovableComponent).size = any()
     }
 
     @Test
     fun movableComponent_addMoveListenerInvokesRuntimeMovableComponentAddMoveEventListener() {
         val entity = ContentlessEntity.create(session, "test")
         assertThat(entity).isNotNull()
-        val mockRtMovableComponent = mock<JxrPlatformAdapter.MovableComponent>()
+        val mockRtMovableComponent = mock<RtMovableComponent>()
         whenever(mockRuntime.createMovableComponent(any(), any(), any(), any()))
             .thenReturn(mockRtMovableComponent)
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
@@ -171,55 +186,57 @@ class MovableComponentTest {
         val mockMoveListener = mock<MoveListener>()
         movableComponent.addMoveListener(directExecutor(), mockMoveListener)
 
-        val captor = ArgumentCaptor.forClass(JxrPlatformAdapter.MoveEventListener::class.java)
-        verify(mockRtMovableComponent).addMoveEventListener(any(), captor.capture())
+        val captor: ArgumentCaptor<RtMoveEventListener> =
+            ArgumentCaptor.forClass(RtMoveEventListener::class.java)
+
+        verify(mockRtMovableComponent).addMoveEventListener(any(), MockitoHelper.capture(captor))
         val rtMoveEventListener = captor.value
         var rtMoveEvent =
-            JxrPlatformAdapter.MoveEvent(
+            RtMoveEvent(
                 MoveEvent.MOVE_STATE_START,
-                JxrPlatformAdapter.Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
-                JxrPlatformAdapter.Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
+                Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
+                Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
                 Pose(),
                 Pose(),
                 Vector3(1f, 1f, 1f),
                 Vector3(1f, 1f, 1f),
                 mockActivitySpace,
-                /* updatedParent= */ null,
-                /* disposedEntity= */ null,
+                updatedParent = null,
+                disposedEntity = null,
             )
         rtMoveEventListener.onMoveEvent(rtMoveEvent)
 
         verify(mockMoveListener).onMoveStart(any(), any(), any(), any(), any())
 
         rtMoveEvent =
-            JxrPlatformAdapter.MoveEvent(
+            RtMoveEvent(
                 MoveEvent.MOVE_STATE_ONGOING,
-                JxrPlatformAdapter.Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
-                JxrPlatformAdapter.Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
+                Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
+                Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
                 Pose(),
                 Pose(),
                 Vector3(1f, 1f, 1f),
                 Vector3(1f, 1f, 1f),
                 mockActivitySpace,
-                /* updatedParent= */ null,
-                /* disposedEntity= */ null,
+                updatedParent = null,
+                disposedEntity = null,
             )
         rtMoveEventListener.onMoveEvent(rtMoveEvent)
 
         verify(mockMoveListener).onMoveUpdate(any(), any(), any(), any())
 
         rtMoveEvent =
-            JxrPlatformAdapter.MoveEvent(
+            RtMoveEvent(
                 MoveEvent.MOVE_STATE_END,
-                JxrPlatformAdapter.Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
-                JxrPlatformAdapter.Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
+                Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
+                Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
                 Pose(),
                 Pose(),
                 Vector3(1f, 1f, 1f),
                 Vector3(1f, 1f, 1f),
                 mockActivitySpace,
                 mockAnchorEntity,
-                /* disposedEntity= */ null,
+                disposedEntity = null,
             )
         rtMoveEventListener.onMoveEvent(rtMoveEvent)
 
@@ -230,7 +247,7 @@ class MovableComponentTest {
     fun movableComponent_addMultipleMoveEventListenersInvokesAllListeners() {
         val entity = ContentlessEntity.create(session, "test")
         assertThat(entity).isNotNull()
-        val mockRtMovableComponent = mock<JxrPlatformAdapter.MovableComponent>()
+        val mockRtMovableComponent = mock<RtMovableComponent>()
         whenever(mockRuntime.createMovableComponent(any(), any(), any(), any()))
             .thenReturn(mockRtMovableComponent)
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
@@ -241,22 +258,25 @@ class MovableComponentTest {
         val mockMoveListener2 = mock<MoveListener>()
         movableComponent.addMoveListener(directExecutor(), mockMoveListener2)
 
-        val captor = ArgumentCaptor.forClass(JxrPlatformAdapter.MoveEventListener::class.java)
-        verify(mockRtMovableComponent, times(2)).addMoveEventListener(any(), captor.capture())
+        val captor: ArgumentCaptor<RtMoveEventListener> =
+            ArgumentCaptor.forClass(RtMoveEventListener::class.java)
+
+        verify(mockRtMovableComponent, times(2))
+            .addMoveEventListener(any(), MockitoHelper.capture(captor))
         val rtMoveEventListener1 = captor.allValues[0]
         val rtMoveEventListener2 = captor.allValues[1]
         val rtMoveEvent =
-            JxrPlatformAdapter.MoveEvent(
+            RtMoveEvent(
                 MoveEvent.MOVE_STATE_START,
-                JxrPlatformAdapter.Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
-                JxrPlatformAdapter.Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
+                Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
+                Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
                 Pose(),
                 Pose(),
                 Vector3(1f, 1f, 1f),
                 Vector3(1f, 1f, 1f),
                 mockActivitySpace,
-                /* updatedParent= */ null,
-                /* disposedEntity= */ null,
+                updatedParent = null,
+                disposedEntity = null,
             )
 
         rtMoveEventListener1.onMoveEvent(rtMoveEvent)
@@ -270,7 +290,7 @@ class MovableComponentTest {
     fun movableComponent_removeMoveEventListenerInvokesRuntimeRemoveMoveEventListener() {
         val entity = ContentlessEntity.create(session, "test")
         assertThat(entity).isNotNull()
-        val mockRtMovableComponent = mock<JxrPlatformAdapter.MovableComponent>()
+        val mockRtMovableComponent = mock<RtMovableComponent>()
         whenever(mockRuntime.createMovableComponent(any(), any(), any(), any()))
             .thenReturn(mockRtMovableComponent)
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
@@ -281,22 +301,25 @@ class MovableComponentTest {
         val mockMoveListener2 = mock<MoveListener>()
         movableComponent.addMoveListener(directExecutor(), mockMoveListener2)
 
-        val captor = ArgumentCaptor.forClass(JxrPlatformAdapter.MoveEventListener::class.java)
-        verify(mockRtMovableComponent, times(2)).addMoveEventListener(any(), captor.capture())
+        val captor: ArgumentCaptor<RtMoveEventListener> =
+            ArgumentCaptor.forClass(RtMoveEventListener::class.java)
+
+        verify(mockRtMovableComponent, times(2))
+            .addMoveEventListener(any(), MockitoHelper.capture(captor))
         val rtMoveEventListener1 = captor.allValues[0]
         val rtMoveEventListener2 = captor.allValues[1]
         val rtMoveEvent =
-            JxrPlatformAdapter.MoveEvent(
+            RtMoveEvent(
                 MoveEvent.MOVE_STATE_START,
-                JxrPlatformAdapter.Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
-                JxrPlatformAdapter.Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
+                Ray(Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f)),
+                Ray(Vector3(1f, 1f, 1f), Vector3(2f, 2f, 2f)),
                 Pose(),
                 Pose(),
                 Vector3(1f, 1f, 1f),
                 Vector3(1f, 1f, 1f),
                 mockActivitySpace,
-                /* updatedParent= */ null,
-                /* disposedEntity= */ null,
+                updatedParent = null,
+                disposedEntity = null,
             )
 
         rtMoveEventListener1.onMoveEvent(rtMoveEvent)

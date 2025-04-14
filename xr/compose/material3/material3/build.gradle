@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.Publish
 
@@ -58,7 +57,6 @@ androidx {
     description = "Compose Material3 components for XR"
     type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2024"
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     // TODO: b/326456246
     optOutJSpecify = true
 }

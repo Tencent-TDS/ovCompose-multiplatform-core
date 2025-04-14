@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -182,5 +181,4 @@ androidx {
     inceptionYear = "2018"
     description = "Android Lifecycle ViewModel"
     samples(project(":lifecycle:lifecycle-viewmodel-savedstate-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

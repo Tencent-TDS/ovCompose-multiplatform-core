@@ -16,7 +16,6 @@
 
 package androidx.navigation3
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -38,21 +37,13 @@ class NavBackStackProviderTest {
         var calledWrapBackStack = false
         var calledWrapContent = false
         val provider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable () -> Unit
-                ) {
+            createTestNavLocalProvider<Any>(
+                provideToBackStack = { _, content ->
                     calledWrapBackStack = true
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
-                    calledWrapContent = true
-                }
-            }
+                },
+                provideToEntry = { _ -> calledWrapContent = true }
+            )
 
         composeTestRule.setContent {
             NavBackStackProvider(
@@ -73,21 +64,13 @@ class NavBackStackProviderTest {
         var calledWrapBackStackCount = 0
         var calledWrapContentCount = 0
         val provider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable () -> Unit
-                ) {
+            createTestNavLocalProvider<Any>(
+                provideToBackStack = { _, content ->
                     calledWrapBackStackCount++
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
-                    calledWrapContentCount++
-                }
-            }
+                },
+                provideToEntry = { _ -> calledWrapContentCount++ }
+            )
 
         composeTestRule.setContent {
             NavBackStackProvider(
@@ -109,22 +92,17 @@ class NavBackStackProviderTest {
         var backStackProvider: Int = -1
         var entryProvider: Int = -1
         val provider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider<Any>(
+                provideToBackStack = { _, content ->
                     backStackProvider = ++callOrder
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     entryProvider = ++callOrder
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
+
         lateinit var backStack: MutableList<Any>
 
         composeTestRule.setContent {
@@ -152,40 +130,29 @@ class NavBackStackProviderTest {
         var innerBackStackProvider: Int = -1
         var innerEntryProvider: Int = -1
         val innerProvider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider<Any>(
+                provideToBackStack = { _, content ->
                     innerBackStackProvider = ++callOrder
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     innerEntryProvider = ++callOrder
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
 
         val outerProvider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider<Any>(
+                provideToBackStack = { _, content ->
                     outerBackStackProvider = ++callOrder
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     outerEntryProvider = ++callOrder
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
+
         lateinit var backStack: MutableList<Any>
 
         composeTestRule.setContent {
@@ -213,24 +180,19 @@ class NavBackStackProviderTest {
         var backStackProvider: Int = -1
         var entryProvider: Int = -1
         val provider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider(
+                provideToBackStack = { backStack, content ->
                     DisposableEffect(backStack.lastOrNull()) {
                         onDispose { backStackProvider = ++callOrder }
                     }
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     DisposableEffect(entry.key) { onDispose { entryProvider = ++callOrder } }
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
+
         lateinit var backStack: MutableList<Any>
         composeTestRule.setContent {
             backStack = remember { mutableStateListOf("something") }
@@ -261,44 +223,33 @@ class NavBackStackProviderTest {
         var innerBackStackProvider: Int = -1
         var innerEntryProvider: Int = -1
         val innerProvider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider(
+                provideToBackStack = { backStack, content ->
                     DisposableEffect(backStack.lastOrNull()) {
                         onDispose { innerBackStackProvider = ++callOrder }
                     }
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     DisposableEffect(entry.key) { onDispose { innerEntryProvider = ++callOrder } }
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
 
         val outerProvider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable (() -> Unit)
-                ) {
+            createTestNavLocalProvider(
+                provideToBackStack = { backStack, content ->
                     DisposableEffect(backStack.lastOrNull()) {
                         onDispose { outerBackStackProvider = ++callOrder }
                     }
                     content.invoke()
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     DisposableEffect(entry.key) { onDispose { outerEntryProvider = ++callOrder } }
                     entry.content.invoke(entry.key)
                 }
-            }
+            )
+
         lateinit var backStack: MutableList<Any>
 
         composeTestRule.setContent {

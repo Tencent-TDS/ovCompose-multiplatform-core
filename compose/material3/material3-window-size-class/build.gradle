@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -123,6 +122,5 @@ androidx {
     description = "Provides window size classes for building responsive UIs"
     legacyDisableKotlinStrictApiMode = true
     samples(project(":compose:material3:material3-window-size-class:material3-window-size-class-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 

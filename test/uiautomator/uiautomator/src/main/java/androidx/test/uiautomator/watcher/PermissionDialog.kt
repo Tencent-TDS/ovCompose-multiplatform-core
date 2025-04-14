@@ -35,18 +35,16 @@ public object PermissionDialog : ScopedUiWatcher<PermissionDialog.Scope> {
         "com.android.permissioncontroller:id/permission_allow_button"
 
     public override fun isVisible(): Boolean =
-        uiDevice.onViewOrNull(0) { view.packageName == PACKAGE_NAME } != null
+        uiDevice.onViewOrNull(0) { packageName == PACKAGE_NAME } != null
 
     override fun scope(): Scope = Scope
 
     public object Scope {
 
         public fun clickAllow(): Unit =
-            uiDevice
-                .onView { view.viewIdResourceName == VIEW_ID_RESOURCE_NAME_BUTTON_ALLOW }
-                .click()
+            uiDevice.onView { viewIdResourceName == VIEW_ID_RESOURCE_NAME_BUTTON_ALLOW }.click()
 
         public fun clickDeny(): Unit =
-            uiDevice.onView { view.viewIdResourceName == VIEW_ID_RESOURCE_NAME_BUTTON_DENY }.click()
+            uiDevice.onView { viewIdResourceName == VIEW_ID_RESOURCE_NAME_BUTTON_DENY }.click()
     }
 }

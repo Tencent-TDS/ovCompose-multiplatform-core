@@ -87,6 +87,7 @@ import androidx.core.util.Preconditions;
 
 import com.google.android.icing.IcingSearchEngine;
 import com.google.android.icing.IcingSearchEngineInterface;
+import com.google.android.icing.proto.BatchGetResultProto;
 import com.google.android.icing.proto.BatchPutResultProto;
 import com.google.android.icing.proto.BlobProto;
 import com.google.android.icing.proto.DebugInfoProto;
@@ -330,15 +331,15 @@ public final class AppSearchImpl implements Closeable {
             // We synchronize here because we don't want to call IcingSearchEngine.initialize() more
             // than once. It's unnecessary and can be a costly operation.
             if (icingSearchEngine == null) {
+                mIsVMEnabled = false;
                 IcingSearchEngineOptions options = mConfig.toIcingSearchEngineOptions(
-                        icingDir.getAbsolutePath());
+                        icingDir.getAbsolutePath(), mIsVMEnabled);
                 LogUtil.piiTrace(TAG, "Constructing IcingSearchEngine, request", options);
                 mIcingSearchEngineLocked = new IcingSearchEngine(options);
                 LogUtil.piiTrace(
                         TAG,
                         "Constructing IcingSearchEngine, response",
                         ObjectsCompat.hashCode(mIcingSearchEngineLocked));
-                mIsVMEnabled = false;
             } else {
                 mIcingSearchEngineLocked = icingSearchEngine;
                 mIsVMEnabled = true;
@@ -522,6 +523,11 @@ public final class AppSearchImpl implements Closeable {
      */
     public @NonNull AppSearchConfig getConfig() {
         return mConfig;
+    }
+
+    /** Returns whether pVM is enabled in this AppSearchImpl instance. */
+    public boolean isVMEnabled() {
+        return mIsVMEnabled;
     }
 
     /**
@@ -1909,6 +1915,118 @@ public final class AppSearchImpl implements Closeable {
     }
 
     /**
+     * Retrieves a list document from the AppSearch index by namespace and document ID.
+     *
+     * <p>This method belongs to query group.
+     *
+     * @param packageName       The package that owns this document.
+     * @param databaseName      The databaseName this document resides in.
+     * @param request           The request configuration for BatchGet.
+     * @param callerAccess      The information about caller. Visibility will be checked if
+     *                          it is not NULL.
+     *
+     * @return The Document contents in a {@link AppSearchBatchResult}.
+     */
+    public @NonNull AppSearchBatchResult<String, GenericDocument> batchGetDocuments(
+            @NonNull String packageName,
+            @NonNull String databaseName,
+            @NonNull GetByDocumentIdRequest request,
+            @Nullable CallerAccess callerAccess) {
+        AppSearchBatchResult.Builder<String, GenericDocument> resultBuilder =
+                new AppSearchBatchResult.Builder<>();
+
+        // If the id list is empty, we can just return directly.
+        if (request.getIds().isEmpty()) {
+            return resultBuilder.build();
+        }
+
+        mReadWriteLock.readLock().lock();
+        try {
+            throwIfClosedLocked();
+
+            BatchGetResultProto batchGetResultProto = batchGetDocumentProtoByIdLocked(
+                    packageName, databaseName, request);
+
+            for (int i = 0; i < batchGetResultProto.getGetResultProtosCount(); ++i) {
+                GetResultProto getResultProto = batchGetResultProto.getGetResultProtos(i);
+                String id = getResultProto.getUri();
+                try {
+                    checkSuccess(getResultProto.getStatus());
+
+                    // Check if the schema is visible to the caller. This is only done if
+                    // callerAccess is not null.
+                    // TODO(b/404643381) We can cache the results and use those if we have seen
+                    //  the same schema before.
+                    if (callerAccess != null
+                            && !VisibilityUtil.isSchemaSearchableByCaller(
+                                callerAccess,
+                                packageName,
+                                getResultProto.getDocument().getSchema(),
+                                mDocumentVisibilityStoreLocked,
+                                mVisibilityCheckerLocked)) {
+                        throw new AppSearchException(AppSearchResult.RESULT_NOT_FOUND);
+                    }
+
+                    DocumentProto.Builder documentBuilder =
+                            getResultProto.getDocument().toBuilder();
+                    removePrefixesFromDocument(documentBuilder);
+                    String prefix = createPrefix(packageName, databaseName);
+                    // The schema type map cannot be null at this point. It could only be null if no
+                    // schema had ever been set for that prefix. Given we have retrieved a document
+                    // from the index, we know a schema had to have been set.
+                     GenericDocument doc = GenericDocumentToProtoConverter.toGenericDocument(
+                             documentBuilder.build(), prefix, mSchemaCacheLocked, mConfig);
+
+                     resultBuilder.setSuccess(id, doc);
+                } catch (Throwable t) {
+                    resultBuilder.setResult(id, throwableToFailedResult(t));
+                }
+            }
+
+            return resultBuilder.build();
+        } finally {
+            mReadWriteLock.readLock().unlock();
+        }
+    }
+
+    private GetResultSpecProto createGetResultSpecProto(
+            @NonNull String packageName,
+            @NonNull String databaseName,
+            @NonNull String namespace,
+            @NonNull Map<String, List<String>> typePropertyPaths,
+            @Nullable Set<String> ids) {
+        String prefix = createPrefix(packageName, databaseName);
+        List<TypePropertyMask.Builder> nonPrefixedPropertyMaskBuilders =
+                TypePropertyPathToProtoConverter
+                        .toTypePropertyMaskBuilderList(typePropertyPaths);
+        List<TypePropertyMask> prefixedPropertyMasks =
+                new ArrayList<>(nonPrefixedPropertyMaskBuilders.size());
+        for (int i = 0; i < nonPrefixedPropertyMaskBuilders.size(); ++i) {
+            String nonPrefixedType = nonPrefixedPropertyMaskBuilders.get(i).getSchemaType();
+            String prefixedType = nonPrefixedType;
+            if (!nonPrefixedType.equals(
+                    GetByDocumentIdRequest.PROJECTION_SCHEMA_TYPE_WILDCARD)) {
+                // Append prefix if it is not a wildcard.
+                prefixedType = prefix + nonPrefixedType;
+            }
+            prefixedPropertyMasks.add(
+                    nonPrefixedPropertyMaskBuilders.get(i).setSchemaType(prefixedType).build());
+        }
+
+       GetResultSpecProto.Builder resultSpecProtoBuilder = GetResultSpecProto.newBuilder()
+               .setNamespaceRequested(namespace)
+               .addAllTypePropertyMasks(prefixedPropertyMasks);
+
+        // For old getDocumentProtoByIdLocked, we don't need to set the ids in the request.
+        // So we don't pass the ids in from there.
+        if (ids != null && !ids.isEmpty()) {
+            resultSpecProtoBuilder.addAllIds(ids);
+        }
+
+        return resultSpecProtoBuilder.build();
+    }
+
+    /**
      * Returns a DocumentProto from Icing.
      *
      * @param packageName       The package that owns this document.
@@ -1930,25 +2048,10 @@ public final class AppSearchImpl implements Closeable {
             @NonNull String id,
             @NonNull Map<String, List<String>> typePropertyPaths)
             throws AppSearchException {
-        String prefix = createPrefix(packageName, databaseName);
-        List<TypePropertyMask.Builder> nonPrefixedPropertyMaskBuilders =
-                TypePropertyPathToProtoConverter
-                        .toTypePropertyMaskBuilderList(typePropertyPaths);
-        List<TypePropertyMask> prefixedPropertyMasks =
-                new ArrayList<>(nonPrefixedPropertyMaskBuilders.size());
-        for (int i = 0; i < nonPrefixedPropertyMaskBuilders.size(); ++i) {
-            String nonPrefixedType = nonPrefixedPropertyMaskBuilders.get(i).getSchemaType();
-            String prefixedType = nonPrefixedType.equals(
-                    GetByDocumentIdRequest.PROJECTION_SCHEMA_TYPE_WILDCARD)
-                    ? nonPrefixedType : prefix + nonPrefixedType;
-            prefixedPropertyMasks.add(
-                    nonPrefixedPropertyMaskBuilders.get(i).setSchemaType(prefixedType).build());
-        }
-        GetResultSpecProto getResultSpec =
-                GetResultSpecProto.newBuilder().addAllTypePropertyMasks(prefixedPropertyMasks)
-                        .build();
-
         String finalNamespace = createPrefix(packageName, databaseName) + namespace;
+        GetResultSpecProto getResultSpec = createGetResultSpecProto(
+                packageName, databaseName, finalNamespace, typePropertyPaths, /*ids=*/ null);
+
         if (LogUtil.isPiiTraceEnabled()) {
             LogUtil.piiTrace(
                     TAG, "getDocument, request", finalNamespace + ", " + id + "," + getResultSpec);
@@ -1959,6 +2062,32 @@ public final class AppSearchImpl implements Closeable {
         checkSuccess(getResultProto.getStatus());
 
         return getResultProto.getDocument();
+    }
+
+
+    /*
+     * Returns a BatchGetResultProto from Icing. It contains GetResultProto for each id.
+     */
+    @GuardedBy("mReadWriteLock")
+    @SuppressWarnings("LiteProtoToString")
+    private @NonNull BatchGetResultProto batchGetDocumentProtoByIdLocked(
+            @NonNull String packageName,
+            @NonNull String databaseName,
+            @NonNull GetByDocumentIdRequest request) {
+        String finalNamespace = createPrefix(packageName, databaseName) + request.getNamespace();
+        GetResultSpecProto getResultSpec = createGetResultSpecProto(
+                packageName, databaseName, finalNamespace,
+                request.getProjections(), request.getIds());
+
+        LogUtil.piiTrace(
+                TAG, "getDocument, request", getResultSpec);
+        BatchGetResultProto batchGetResultProto =
+                mIcingSearchEngineLocked.batchGet(getResultSpec);
+        LogUtil.piiTrace(TAG, "getDocument, response",
+                batchGetResultProto.getStatus(),
+                batchGetResultProto);
+
+        return batchGetResultProto;
     }
 
     /**

@@ -130,47 +130,26 @@ internal fun DateInputTextField(
     requestFocus: Boolean
 ) {
     var text by
-        rememberSaveable(stateSaver = TextFieldValue.Saver) {
-            val initialText =
-                initialDateMillis?.let {
-                    calendarModel.formatWithPattern(
-                        it,
-                        dateInputFormat.patternWithoutDelimiters,
-                        locale
+        rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    val errorText =
+        rememberSaveable(text) {
+            // Run an initial validation if the text is not empty.
+            var initialError = ""
+            if (text.text.isNotEmpty()) {
+                initialError =
+                    dateInputValidator.validate(
+                        dateToValidate =
+                            calendarModel.parse(
+                                date = text.text,
+                                pattern = dateInputFormat.patternWithoutDelimiters,
+                                locale = locale
+                            ),
+                        inputIdentifier = inputIdentifier,
+                        locale = locale
                     )
-                } ?: ""
-            mutableStateOf(
-                TextFieldValue(
-                    text = initialText,
-                    // Ensures that the initial cursor position is at the end of the text.
-                    selection =
-                        if (initialText.isEmpty()) {
-                            TextRange.Zero
-                        } else {
-                            TextRange(initialText.length, initialText.length)
-                        }
-                )
-            )
+            }
+            mutableStateOf(initialError)
         }
-
-    val errorText = rememberSaveable {
-        // Run an initial validation if the text is not empty.
-        var initialError = ""
-        if (text.text.isNotEmpty()) {
-            initialError =
-                dateInputValidator.validate(
-                    dateToValidate =
-                        calendarModel.parse(
-                            date = text.text,
-                            pattern = dateInputFormat.patternWithoutDelimiters,
-                            locale = locale
-                        ),
-                    inputIdentifier = inputIdentifier,
-                    locale = locale
-                )
-        }
-        mutableStateOf(initialError)
-    }
 
     // Calculate how much bottom padding should be added. In case there is an error text, which is
     // added as a supportingText, take into account the default supportingText padding to ensure
@@ -251,16 +230,33 @@ internal fun DateInputTextField(
     )
 
     LaunchedEffect(Unit) {
-        // Call the onDateSelectionChange in a LaunchedEffect to ensure the title is cleared in case
-        // the input was initialized with an invalid date.
-        if (errorText.value.isNotEmpty()) {
-            onDateSelectionChange(null)
-        }
         // In case a focus is to be requested, delay the request to allow a smooth transition in
         // case the DateInput is in a dialog.
         if (focusRequester != null) {
             delay(MotionTokens.DurationMedium2.toLong())
             focusRequester.requestFocus()
+        }
+    }
+
+    LaunchedEffect(initialDateMillis) {
+        initialDateMillis?.let {
+            val initialText =
+                calendarModel.formatWithPattern(
+                    it,
+                    dateInputFormat.patternWithoutDelimiters,
+                    locale
+                )
+            text =
+                TextFieldValue(
+                    text = initialText,
+                    // Ensures that the initial cursor position is at the end of the text.
+                    selection =
+                        if (initialText.isEmpty()) {
+                            TextRange.Zero
+                        } else {
+                            TextRange(initialText.length, initialText.length)
+                        }
+                )
         }
     }
 }

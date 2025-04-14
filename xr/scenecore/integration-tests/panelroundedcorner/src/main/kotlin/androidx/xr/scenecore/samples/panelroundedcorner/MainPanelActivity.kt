@@ -36,7 +36,6 @@ import androidx.xr.scenecore.samples.commontestview.CommonTestView
 
 const val TAG = "MainPanelActivity"
 
-@Suppress("DEPRECATION")
 class MainPanelActivity : AppCompatActivity() {
     private var activityPanelEntity: ActivityPanelEntity? = null
     private lateinit var panelEntity: PanelEntity
@@ -111,14 +110,14 @@ class MainPanelActivity : AppCompatActivity() {
     }
 
     fun calculateCornerRadiusInMeters(entity: PanelEntity, cornerRadiusDp: Float): Float {
-        val pixelDensity = entity.getPixelDensity()
+        val pixelDensity = entity.getSizeInPixels().width.toFloat() / entity.getSize().width
         val radiusPixels =
             TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
                 cornerRadiusDp,
                 Resources.getSystem().displayMetrics,
             )
-        return radiusPixels / pixelDensity.x
+        return radiusPixels / pixelDensity
     }
 
     override fun onDestroy() {

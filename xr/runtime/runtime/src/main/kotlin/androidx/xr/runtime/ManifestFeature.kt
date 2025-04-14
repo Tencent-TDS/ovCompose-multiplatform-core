@@ -18,21 +18,16 @@
 
 package androidx.xr.runtime
 
-import androidx.annotation.RestrictTo
-
 /**
  * Feature for {@link #getSystemAvailableFeatures} and {@link #hasSystemFeature}: This device
  * supports XR input from XR controllers.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val FEATURE_XR_INPUT_CONTROLLER: String = "android.hardware.xr.input.controller"
+@JvmField public val FEATURE_XR_INPUT_CONTROLLER: String = "android.hardware.xr.input.controller"
 
 /**
  * Feature for {@link #getSystemAvailableFeatures} and {@link #hasSystemFeature}: This device
  * supports XR input from the user's hands.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @JvmField
 public val FEATURE_XR_INPUT_HAND_TRACKING: String = "android.hardware.xr.input.hand_tracking"
 
@@ -40,7 +35,6 @@ public val FEATURE_XR_INPUT_HAND_TRACKING: String = "android.hardware.xr.input.h
  * Feature for {@link #getSystemAvailableFeatures} and {@link #hasSystemFeature}: This device
  * supports XR input from the user's eye gaze.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @JvmField
 public val FEATURE_XR_INPUT_EYE_TRACKING: String = "android.hardware.xr.input.eye_tracking"
 
@@ -58,9 +52,7 @@ public val FEATURE_XR_INPUT_EYE_TRACKING: String = "android.hardware.xr.input.ey
  * <p>
  * Example: OpenXR 1.1 support is encoded as 0x00010001.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val FEATURE_XR_API_OPENXR: String = "android.software.xr.api.openxr"
+@JvmField public val FEATURE_XR_API_OPENXR: String = "android.software.xr.api.openxr"
 
 /**
  * Feature for {@link #getSystemAvailableFeatures} and {@link #hasSystemFeature}: This device
@@ -70,6 +62,4 @@ public val FEATURE_XR_API_OPENXR: String = "android.software.xr.api.openxr"
  * <p>Also see <a href="https://developer.android.com/develop/xr">Develop with the Android XR
  * SDK</a>.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val FEATURE_XR_API_SPATIAL: String = "android.software.xr.api.spatial"
+@JvmField public val FEATURE_XR_API_SPATIAL: String = "android.software.xr.api.spatial"

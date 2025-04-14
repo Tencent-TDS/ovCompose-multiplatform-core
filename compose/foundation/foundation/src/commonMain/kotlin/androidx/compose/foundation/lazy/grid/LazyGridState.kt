@@ -129,9 +129,9 @@ fun rememberLazyGridState(
 ): LazyGridState {
     return rememberSaveable(cacheWindow, saver = LazyGridState.saver(cacheWindow)) {
         LazyGridState(
+            cacheWindow,
             initialFirstVisibleItemIndex,
             initialFirstVisibleItemScrollOffset,
-            LazyGridCacheWindowPrefetchStrategy(cacheWindow),
         )
     }
 }
@@ -190,6 +190,9 @@ constructor(
 
     internal var approachLayoutInfo: LazyGridMeasureResult? = null
         private set
+
+    // always execute requests in high priority
+    private var executeRequestsInHighPriorityMode = false
 
     /** The holder class for the current scroll position. */
     private val scrollPosition =
@@ -324,7 +327,7 @@ constructor(
             @Suppress("PrimitiveInCollection")
             override fun scheduleLinePrefetch(
                 lineIndex: Int,
-                onPrefetchFinished: ((List<Int>) -> Unit)?
+                onPrefetchFinished: (LazyGridPrefetchResultScope.() -> Unit)?
             ): List<LazyLayoutPrefetchState.PrefetchHandle> {
                 // Without read observation since this can be triggered from scroll - this will then
                 // cause us to recompose when the measure result changes. We don't care since the
@@ -348,7 +351,8 @@ constructor(
                             prefetchHandles.add(
                                 prefetchState.schedulePrecompositionAndPremeasure(
                                     lineInfo.first,
-                                    lineInfo.second
+                                    lineInfo.second,
+                                    executeRequestsInHighPriorityMode
                                 ) {
                                     var itemMainAxisItemSize = 0
                                     repeat(placeablesCount) {
@@ -364,7 +368,12 @@ constructor(
                                     // all items in this line were prefetched, report the size
                                     if (completedCount == itemsInLineInfo.size) {
                                         if (onPrefetchFinished != null && itemSizes != null) {
-                                            onPrefetchFinished.invoke(itemSizes)
+                                            onPrefetchFinished.invoke(
+                                                LazyGridPrefetchResultScopeImpl(
+                                                    lineIndex,
+                                                    itemSizes
+                                                )
+                                            )
                                         }
                                     } else {
                                         completedCount++
@@ -586,6 +595,10 @@ constructor(
         isLookingAhead: Boolean,
         visibleItemsStayedTheSame: Boolean = false
     ) {
+        // update the prefetch state with the number of nested prefetch items this layout
+        // should use.
+        prefetchState.idealNestedPrefetchCount = result.visibleItemsInfo.size
+
         if (!isLookingAhead && hasLookaheadOccurred) {
             // If there was already a lookahead pass, record this result as Approach result
             approachLayoutInfo = result

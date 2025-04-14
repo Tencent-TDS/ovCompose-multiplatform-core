@@ -19,6 +19,8 @@ package androidx.appfunctions.compiler.core
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeReference
+import com.squareup.kotlinpoet.ClassName
 
 /**
  * A class that represents a class annotated with @AppFunctionSerializableProxy.
@@ -26,7 +28,7 @@ import com.google.devtools.ksp.symbol.KSType
  * @param appFunctionSerializableProxyClass The class annotated with @AppFunctionSerializableProxy.
  */
 data class AnnotatedAppFunctionSerializableProxy(
-    private val appFunctionSerializableProxyClass: KSClassDeclaration
+    val appFunctionSerializableProxyClass: KSClassDeclaration
 ) : AnnotatedAppFunctionSerializable(appFunctionSerializableProxyClass) {
 
     /** The type of the class that the proxy class is proxying. */
@@ -53,6 +55,21 @@ data class AnnotatedAppFunctionSerializableProxy(
     /** The name of the companion method that returns an instance of the proxy class. */
     val fromTargetClassMethodName: String by lazy {
         "from${targetClassDeclaration.simpleName.asString()}"
+    }
+
+    /** The type of the serializable reference. */
+    // TODO(b/403199251): Clean up hack.
+    val serializableReferenceType: KSTypeReference by lazy {
+        checkNotNull(
+            appFunctionSerializableProxyClass.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { it.isCompanionObject }
+                .single()
+                .getAllFunctions()
+                .filter { it.simpleName.asString() == fromTargetClassMethodName }
+                .first()
+                .returnType
+        )
     }
 
     /**
@@ -130,15 +147,54 @@ data class AnnotatedAppFunctionSerializableProxy(
                 appFunctionSerializableProxyClass
             )
         }
+        val returnTypeClassDeclaration =
+            checkNotNull(fromTargetClassNameFunction.returnType).resolve().declaration
+                as KSClassDeclaration
         if (
-            checkNotNull(fromTargetClassNameFunction.returnType).toTypeName().toString() !=
+            checkNotNull(returnTypeClassDeclaration.qualifiedName).asString() !=
                 checkNotNull(appFunctionSerializableProxyClass.qualifiedName).asString()
         ) {
             throw ProcessingException(
                 "Function $fromTargetClassMethodName should return an instance of " +
-                    "this serializable class",
-                appFunctionSerializableProxyClass
+                    "this serializable class (${checkNotNull(appFunctionSerializableProxyClass
+                        .qualifiedName).asString()}). Instead, it returns ${checkNotNull(
+                            returnTypeClassDeclaration.qualifiedName).asString()}",
+                fromTargetClassNameFunction.returnType
             )
+        }
+    }
+
+    /**
+     * A class that represents a list of resolved AnnotatedAppFunctionSerializableProxy.
+     *
+     * @param resolvedAnnotatedSerializableProxies The list of resolved
+     *   AnnotatedAppFunctionSerializableProxy.
+     */
+    data class ResolvedAnnotatedSerializableProxies(
+        val resolvedAnnotatedSerializableProxies: List<AnnotatedAppFunctionSerializableProxy>
+    ) {
+        private val proxyTargetToSerializableProxy:
+            Map<ClassName, AnnotatedAppFunctionSerializableProxy> by lazy {
+            resolvedAnnotatedSerializableProxies.associateBy {
+                it.targetClassDeclaration.toClassName()
+            }
+        }
+
+        /**
+         * Returns the AnnotatedAppFunctionSerializableProxy for the given AppFunctionTypeReference.
+         *
+         * @param appFunctionTypeReference The AppFunctionTypeReference to get the
+         *   AnnotatedAppFunctionSerializableProxy for.
+         * @return The AnnotatedAppFunctionSerializableProxy for the given AppFunctionTypeReference.
+         */
+        fun getSerializableProxyForTypeReference(
+            appFunctionTypeReference: AppFunctionTypeReference,
+        ): AnnotatedAppFunctionSerializableProxy {
+            val targetClassName =
+                (appFunctionTypeReference.selfOrItemTypeReference.resolve().declaration
+                        as KSClassDeclaration)
+                    .toClassName()
+            return proxyTargetToSerializableProxy.getValue(targetClassName)
         }
     }
 }

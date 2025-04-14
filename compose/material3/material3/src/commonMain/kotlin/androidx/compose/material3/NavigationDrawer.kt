@@ -307,8 +307,7 @@ fun rememberDrawerState(
 }
 
 /**
- * <a href="https://m3.material.io/components/navigation-drawer/overview" class="external"
- * target="_blank">Material Design navigation drawer</a>.
+ * [Material Design navigation drawer](https://m3.material.io/components/navigation-drawer/overview)
  *
  * Navigation drawers provide ergonomic access to destinations in an app.
  *
@@ -440,8 +439,7 @@ fun ModalNavigationDrawer(
 }
 
 /**
- * <a href="https://m3.material.io/components/navigation-drawer/overview" class="external"
- * target="_blank">Material Design navigation drawer</a>.
+ * [Material Design navigation drawer](https://m3.material.io/components/navigation-drawer/overview)
  *
  * Navigation drawers provide ergonomic access to destinations in an app. They’re often next to app
  * content and affect the screen’s layout grid.
@@ -547,8 +545,8 @@ fun DismissibleNavigationDrawer(
 }
 
 /**
- * <a href="https://m3.material.io/components/navigation-drawer/overview" class="external"
- * target="_blank">Material Design navigation permanent drawer</a>.
+ * [Material Design navigation permanent
+ * drawer](https://m3.material.io/components/navigation-drawer/overview)
  *
  * Navigation drawers provide ergonomic access to destinations in an app. They’re often next to app
  * content and affect the screen’s layout grid.

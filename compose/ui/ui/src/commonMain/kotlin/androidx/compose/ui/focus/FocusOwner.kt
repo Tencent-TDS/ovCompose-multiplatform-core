@@ -24,6 +24,8 @@ import androidx.compose.ui.input.indirect.IndirectTouchEvent
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.rotary.RotaryScrollEvent
 
+internal const val FocusWarning = "FocusRelatedWarning"
+
 /** The focus owner provides some internal APIs that are not exposed by focus manager. */
 internal interface FocusOwner : FocusManager {
 

@@ -16,6 +16,7 @@
 
 package androidx.xr.scenecore
 
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test

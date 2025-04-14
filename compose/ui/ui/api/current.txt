@@ -132,14 +132,22 @@ package androidx.compose.ui {
   }
 
   @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public final class ComposeUiFlags {
+    property public boolean isAdaptiveRefreshRateEnabled;
+    property public boolean isClearFocusOnResetEnabled;
+    property public boolean isFocusActionExitsTouchModeEnabled;
     property public boolean isHitPathTrackerLoggingEnabled;
+    property public boolean isOutOfFrameDeactivationEnabled;
     property public boolean isRectTrackingEnabled;
     property public boolean isRemoveFocusedViewFixEnabled;
     property public boolean isSemanticAutofillEnabled;
     property public boolean isTrackFocusEnabled;
     property public boolean isViewFocusFixEnabled;
     field public static final androidx.compose.ui.ComposeUiFlags INSTANCE;
+    field public static boolean isAdaptiveRefreshRateEnabled;
+    field public static boolean isClearFocusOnResetEnabled;
+    field public static boolean isFocusActionExitsTouchModeEnabled;
     field public static boolean isHitPathTrackerLoggingEnabled;
+    field public static boolean isOutOfFrameDeactivationEnabled;
     field public static boolean isRectTrackingEnabled;
     field public static boolean isRemoveFocusedViewFixEnabled;
     field public static boolean isSemanticAutofillEnabled;
@@ -724,7 +732,7 @@ package androidx.compose.ui.focus {
   }
 
   @androidx.compose.runtime.Stable public final class FocusRequester {
-    ctor public FocusRequester();
+    ctor @androidx.compose.runtime.annotation.RememberInComposition public FocusRequester();
     method public boolean captureFocus();
     method public boolean freeFocus();
     method @Deprecated public void requestFocus();
@@ -2045,11 +2053,13 @@ package androidx.compose.ui.input.pointer {
     method public java.util.List<androidx.compose.ui.input.pointer.PointerInputChange> getChanges();
     method public int getClassification();
     method public int getKeyboardModifiers();
+    method public android.view.MotionEvent? getMotionEvent();
     method public int getType();
     property public int buttons;
     property public java.util.List<androidx.compose.ui.input.pointer.PointerInputChange> changes;
     property public int classification;
     property public int keyboardModifiers;
+    property public android.view.MotionEvent? motionEvent;
     property public int type;
   }
 
@@ -3981,7 +3991,9 @@ package androidx.compose.ui.semantics {
   }
 
   public final class SemanticsPropertiesAndroid {
+    method public androidx.compose.ui.semantics.SemanticsPropertyKey<java.lang.String> getAccessibilityClassName();
     method public androidx.compose.ui.semantics.SemanticsPropertyKey<java.lang.Boolean> getTestTagsAsResourceId();
+    property public androidx.compose.ui.semantics.SemanticsPropertyKey<java.lang.String> AccessibilityClassName;
     property public androidx.compose.ui.semantics.SemanticsPropertyKey<java.lang.Boolean> TestTagsAsResourceId;
     field public static final androidx.compose.ui.semantics.SemanticsPropertiesAndroid INSTANCE;
   }
@@ -4115,8 +4127,11 @@ package androidx.compose.ui.semantics {
   }
 
   public final class SemanticsProperties_androidKt {
+    method public static String getAccessibilityClassName(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
     method public static boolean getTestTagsAsResourceId(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
+    method public static void setAccessibilityClassName(androidx.compose.ui.semantics.SemanticsPropertyReceiver, String);
     method public static void setTestTagsAsResourceId(androidx.compose.ui.semantics.SemanticsPropertyReceiver, boolean);
+    property public static String androidx.compose.ui.semantics.SemanticsPropertyReceiver.accessibilityClassName;
     property public static boolean androidx.compose.ui.semantics.SemanticsPropertyReceiver.testTagsAsResourceId;
   }
 
@@ -4177,6 +4192,32 @@ package androidx.compose.ui.text {
 
   public final class TextMeasurerHelperKt {
     method @androidx.compose.runtime.Composable public static androidx.compose.ui.text.TextMeasurer rememberTextMeasurer(optional int cacheSize);
+  }
+
+}
+
+package androidx.compose.ui.ui {
+
+  @kotlin.jvm.JvmInline public final value class FrameRateCategory {
+    method public float getValue();
+    property public float value;
+    field public static final androidx.compose.ui.ui.FrameRateCategory.Companion Companion;
+  }
+
+  public static final class FrameRateCategory.Companion {
+    method public float getDefault();
+    method public float getHigh();
+    method public float getNoPreference();
+    method public float getNormal();
+    property public float Default;
+    property public float High;
+    property public float NoPreference;
+    property public float Normal;
+  }
+
+  public final class FrameRateKt {
+    method public static androidx.compose.ui.Modifier requestedFrameRate(androidx.compose.ui.Modifier, float frameRate);
+    method public static androidx.compose.ui.Modifier requestedFrameRate(androidx.compose.ui.Modifier, float frameRateCategory);
   }
 
 }

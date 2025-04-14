@@ -79,7 +79,7 @@ abstract class AndroidXExtension(
         newProjectMap
     }
 
-    val name: Property<String?> = project.objects.property(String::class.java)
+    val name: Property<String> = project.objects.property(String::class.java)
 
     /** The name for this artifact to be used in .pom files. */
     fun setName(newName: String) {

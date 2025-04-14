@@ -516,18 +516,6 @@ class PagerTest(val config: ParamConfig) : BasePagerTest(config) {
         }
     }
 
-    @Test
-    fun beyondBoundsPageCount_cannotBeTooLarge() {
-        val pageCount = DefaultPageCount + 1
-        val error = runCatching {
-            createPager(modifier = Modifier.fillMaxSize(), beyondViewportPageCount = pageCount)
-        }
-
-        assertThat(error.exceptionOrNull())
-            .hasMessageThat()
-            .contains(beyondBoundsPageCountErrorMessage(pageCount))
-    }
-
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
@@ -569,9 +557,4 @@ class PagerTest(val config: ParamConfig) : BasePagerTest(config) {
                 }
             }
     }
-}
-
-private fun beyondBoundsPageCountErrorMessage(selectedValue: Int): String {
-    return "beyondViewportPageCount should be greater than or equal to 0 and smaller than " +
-        "or equal to the total page count. You selected: $selectedValue"
 }

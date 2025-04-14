@@ -46,12 +46,12 @@ internal constructor(
     /**
      * Returns the error category.
      *
-     * <p> This method categorizes errors based on their underlying cause, allowing developers to
+     * This method categorizes errors based on their underlying cause, allowing developers to
      * implement targeted error handling and provide more informative error messages to users. It
      * maps ranges of error codes to specific error categories.
      *
-     * <p> This method returns [ERROR_CATEGORY_UNKNOWN] if the error code does not belong to any
-     * error category.
+     * This method returns [ERROR_CATEGORY_UNKNOWN] if the error code does not belong to any error
+     * category.
      */
     @ErrorCategory
     internal val errorCategory: Int =
@@ -141,28 +141,28 @@ internal constructor(
         /**
          * The error is caused by the app requesting a function execution.
          *
-         * <p>For example, the caller provided invalid parameters in the execution request e.g. an
+         * For example, the caller provided invalid parameters in the execution request e.g. an
          * invalid function ID.
          *
-         * <p>Errors in the category fall in the range 1000-1999 inclusive.
+         * Errors in the category fall in the range 1000-1999 inclusive.
          */
         internal const val ERROR_CATEGORY_REQUEST_ERROR: Int = 1
 
         /**
          * The error is caused by an issue in the system.
          *
-         * <p>For example, the AppFunctionService implementation is not found by the system.
+         * For example, the AppFunctionService implementation is not found by the system.
          *
-         * <p>Errors in the category fall in the range 2000-2999 inclusive.
+         * Errors in the category fall in the range 2000-2999 inclusive.
          */
         internal const val ERROR_CATEGORY_SYSTEM: Int = 2
 
         /**
          * The error is caused by the app providing the function.
          *
-         * <p>For example, the app crashed when the system is executing the request.
+         * For example, the app crashed when the system is executing the request.
          *
-         * <p>Errors in the category fall in the range 3000-3999 inclusive.
+         * Errors in the category fall in the range 3000-3999 inclusive.
          */
         internal const val ERROR_CATEGORY_APP: Int = 3
 
@@ -170,33 +170,33 @@ internal constructor(
         /**
          * The caller does not have the permission to execute an app function.
          *
-         * <p> This is different from [ERROR_PERMISSION_REQUIRED] in that the caller is missing this
+         * This is different from [ERROR_PERMISSION_REQUIRED] in that the caller is missing this
          * specific permission, as opposed to the target app missing a permission.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_DENIED: Int = 1000
 
         /**
          * The caller supplied invalid arguments to the execution request.
          *
-         * <p>This error may be considered similar to [IllegalArgumentException].
+         * This error may be considered similar to [IllegalArgumentException].
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_INVALID_ARGUMENT: Int = 1001
 
         /**
          * The caller tried to execute a disabled app function.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_DISABLED: Int = 1002
 
         /**
          * The caller tried to execute a function that does not exist.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_FUNCTION_NOT_FOUND: Int = 1003
 
@@ -204,14 +204,14 @@ internal constructor(
         /**
          * The caller tried to request a resource/entity that does not exist.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_RESOURCE_NOT_FOUND: Int = 1500
 
         /**
          * The caller exceeded the allowed request rate.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_LIMIT_EXCEEDED: Int = 1501
 
@@ -219,14 +219,14 @@ internal constructor(
          * The caller tried to create a resource/entity that already exists or has conflicts with
          * existing resource/entity.
          *
-         * <p>This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
+         * This error is in the [ERROR_CATEGORY_REQUEST_ERROR] category.
          */
         internal const val ERROR_RESOURCE_ALREADY_EXISTS: Int = 1502
 
         /**
          * An internal unexpected error coming from the system.
          *
-         * <p>This error is in the [ERROR_CATEGORY_SYSTEM] category.
+         * This error is in the [ERROR_CATEGORY_SYSTEM] category.
          */
         internal const val ERROR_SYSTEM_ERROR: Int = 2000
 
@@ -234,17 +234,17 @@ internal constructor(
          * The operation was cancelled. Use this error code to report that a cancellation is done
          * after receiving a cancellation signal.
          *
-         * <p>This error is in the [ERROR_CATEGORY_SYSTEM] category.
+         * This error is in the [ERROR_CATEGORY_SYSTEM] category.
          */
         internal const val ERROR_CANCELLED: Int = 2001
 
         /**
          * An unknown error occurred while processing the call in the AppFunctionService.
          *
-         * <p>This error is thrown when the service is connected in the remote application but an
+         * This error is thrown when the service is connected in the remote application but an
          * unexpected error is thrown from the bound application.
          *
-         * <p>This error is in the [ERROR_CATEGORY_APP] category.
+         * This error is in the [ERROR_CATEGORY_APP] category.
          */
         internal const val ERROR_APP_UNKNOWN_ERROR: Int = 3000
 
@@ -252,26 +252,25 @@ internal constructor(
         /**
          * Indicates the app lacks the necessary permission to fulfill the request.
          *
-         * <p>This occurs when the app attempts an operation requiring user-granted permission that
-         * has not been provided. For example, creating a calendar event requires access to the
-         * calendar content. If the user hasn't granted this permission, this error should be
-         * thrown.
+         * This occurs when the app attempts an operation requiring user-granted permission that has
+         * not been provided. For example, creating a calendar event requires access to the calendar
+         * content. If the user hasn't granted this permission, this error should be thrown.
          *
-         * <p> This is different from [ERROR_DENIED] in that the required permission is missing from
-         * the target app, as opposed to the caller.
+         * This is different from [ERROR_DENIED] in that the required permission is missing from the
+         * target app, as opposed to the caller.
          *
-         * <p>This error is in the [ERROR_CATEGORY_APP] category.
+         * This error is in the [ERROR_CATEGORY_APP] category.
          */
         internal const val ERROR_PERMISSION_REQUIRED: Int = 3500
 
         /**
          * Indicates the action is not supported by the app.
          *
-         * <p>This error occurs when an app receives a request to perform an unsupported action. For
+         * This error occurs when an app receives a request to perform an unsupported action. For
          * example, a clock app might support updating timer properties such as label but may not
          * allow updating the timer's duration once the timer has already started.
          *
-         * <p>This error is in the [ERROR_CATEGORY_APP] category.
+         * This error is in the [ERROR_CATEGORY_APP] category.
          */
         internal const val ERROR_NOT_SUPPORTED: Int = 3501
     }
@@ -280,11 +279,11 @@ internal constructor(
 /**
  * Thrown when an unknown error has occurred.
  *
- * <p> This Exception is used when the error doesn't belong to any other AppFunctionException. This
- * may happen due to version skews in the error codes between the platform and the sdk. E.g. if the
- * app is running on a newer platform version (with a new error code) and an older sdk.
+ * This Exception is used when the error doesn't belong to any other AppFunctionException. This may
+ * happen due to version skews in the error codes between the platform and the sdk. E.g. if the app
+ * is running on a newer platform version (with a new error code) and an older sdk.
  *
- * <p>Note that this is different from [AppFunctionAppUnknownException], in that the error wasn't
+ * Note that this is different from [AppFunctionAppUnknownException], in that the error wasn't
  * necessarily caused by the app.
  */
 public class AppFunctionUnknownException

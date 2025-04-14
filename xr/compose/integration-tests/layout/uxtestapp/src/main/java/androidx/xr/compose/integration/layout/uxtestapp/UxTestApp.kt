@@ -50,7 +50,6 @@ import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.width
-import androidx.xr.compose.unit.Meter
 import kotlin.math.roundToInt
 
 class UxTestApp : ComponentActivity() {
@@ -88,15 +87,12 @@ class UxTestApp : ComponentActivity() {
 
 @Composable
 fun TestPanel(initialElevationLevel: SpatialElevationLevel, levelName: String) {
-    var elevation by
-        remember(initialElevationLevel) {
-            mutableStateOf(Meter(initialElevationLevel.level).toDp())
-        }
+    var elevation by remember(initialElevationLevel) { mutableStateOf(initialElevationLevel.level) }
     Column(Modifier.width(200.dp)) {
         Box(Modifier.background(Color.White)) {
             Text(
-                "Initial Level: $levelName at ${Meter(initialElevationLevel.level).toDp()}",
-                Modifier.padding(10.dp),
+                "Initial Level: $levelName at ${initialElevationLevel.level}",
+                Modifier.padding(10.dp)
             )
         }
 

@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -59,7 +58,6 @@ androidx {
     type = SoftwareType.SAMPLES
     inceptionYear = "2021"
     description = "Contains the sample code for the AndroidX Compose Material You components."
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {

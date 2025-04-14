@@ -23,11 +23,14 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import androidx.xr.scenecore.JxrPlatformAdapter.ExrImageResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment;
+import androidx.xr.runtime.internal.ExrImageResource;
+import androidx.xr.runtime.internal.GltfModelResource;
+import androidx.xr.runtime.internal.MaterialResource;
+import androidx.xr.runtime.internal.SpatialCapabilities;
+import androidx.xr.runtime.internal.SpatialEnvironment;
+import androidx.xr.runtime.internal.SpatialEnvironment.SetPassthroughOpacityPreferenceResult;
+import androidx.xr.runtime.internal.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult;
+import androidx.xr.runtime.internal.SpatialEnvironment.SpatialEnvironmentPreference;
 
 import com.android.extensions.xr.XrExtensionResult;
 import com.android.extensions.xr.XrExtensions;
@@ -56,10 +59,8 @@ import java.util.function.Supplier;
 // TODO(b/373435470): Remove "deprecation"
 @SuppressWarnings({"deprecation", "BanSynchronizedMethods"})
 final class SpatialEnvironmentImpl implements SpatialEnvironment {
-
     public static final String TAG = "SpatialEnvironmentImpl";
 
-    public static final String SKYBOX_NODE_NAME = "EnvironmentSkyboxNode";
     public static final String GEOMETRY_NODE_NAME = "EnvironmentGeometryNode";
     public static final String PASSTHROUGH_NODE_NAME = "EnvironmentPassthroughNode";
     @VisibleForTesting final Node mPassthroughNode;
@@ -67,13 +68,10 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
     private final boolean mUseSplitEngine;
     @Nullable private Activity mActivity;
     private Node mRootEnvironmentNode;
-    // Used to represent the geometry
-    private Node mGeometryNode;
-    // the "xrExtensions.setEnvironment" call effectively makes a node into a skybox
-    private Node mSkyboxNode;
     private SubspaceNode mGeometrySubspaceSplitEngine;
     private int mGeometrySubspaceImpressNode;
     private boolean mIsSpatialEnvironmentPreferenceActive = false;
+
     @Nullable private SpatialEnvironmentPreference mSpatialEnvironmentPreference = null;
 
     // The active passthrough opacity value is updated with every opacity change event. A null value
@@ -93,9 +91,6 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
     private final Set<Consumer<Float>> mOnPassthroughOpacityChangedListeners =
             Collections.synchronizedSet(new HashSet<>());
 
-    // Assets used to turn the skybox black when devs pass in null for the skybox.
-    private ExrImageResource mNullSkyboxResource = null;
-
     SpatialEnvironmentImpl(
             @NonNull Activity activity,
             @NonNull XrExtensions xrExtensions,
@@ -106,18 +101,12 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
         mXrExtensions = xrExtensions;
         mPassthroughNode = xrExtensions.createNode();
         mRootEnvironmentNode = xrExtensions.createNode();
-        mGeometryNode = xrExtensions.createNode();
-        mSkyboxNode = xrExtensions.createNode();
         mUseSplitEngine = useSplitEngine;
         mSpatialStateProvider = spatialStateProvider;
 
         try (NodeTransaction transaction = xrExtensions.createNodeTransaction()) {
             transaction
-                    .setName(mGeometryNode, GEOMETRY_NODE_NAME)
-                    .setName(mSkyboxNode, SKYBOX_NODE_NAME)
                     .setName(mPassthroughNode, PASSTHROUGH_NODE_NAME)
-                    .setParent(mGeometryNode, mRootEnvironmentNode)
-                    .setParent(mSkyboxNode, mRootEnvironmentNode)
                     .setParent(mPassthroughNode, rootSceneNode)
                     .apply();
         }
@@ -224,9 +213,8 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
     }
 
     @Override
-    @NonNull
     @CanIgnoreReturnValue
-    public SetPassthroughOpacityPreferenceResult setPassthroughOpacityPreference(
+    public @SetPassthroughOpacityPreferenceResult int setPassthroughOpacityPreference(
             @Nullable Float opacity) {
         // To work around floating-point precision issues, the opacity preference is documented to
         // clamp
@@ -299,39 +287,15 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
     }
 
     /**
-     * Stages updates to the CPM graph for the Environment to reflect a new skybox preference. If
-     * skybox is null, this method unsets the client skybox preference, resulting in the system
-     * skybox being used.
-     */
-    private void applySkyboxLegacy(@Nullable ExrImageResourceImpl skybox) {
-        // We need to create a new node here because we can't re-use the old CPM node when changing
-        // geometry and skybox.
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            transaction.setParent(mSkyboxNode, null).apply();
-        }
-
-        mSkyboxNode = mXrExtensions.createNode();
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            NodeTransaction unused = transaction.setName(mSkyboxNode, SKYBOX_NODE_NAME);
-            if (skybox != null) {
-                unused = transaction.setEnvironment(mSkyboxNode, skybox.getToken());
-            }
-            transaction.apply();
-        }
-    }
-
-    /**
      * Updates the system's preferred IBL asset. This applies a skybox that has been generated from
      * a preprocessed EXR image through SplitEngine. If skybox is null, this method clears the
      * preferred IBL selection, resulting in the system skybox being used.
      */
-    private void applySkyboxSplitEngine(@Nullable ExrImageResourceImplSplitEngine skybox) {
+    private void applySkybox(@Nullable ExrImageResourceImpl skybox) {
         if (!Looper.getMainLooper().isCurrentThread()) {
             throw new IllegalStateException("This method must be called on the main thread.");
         }
 
-        // The skybox is not modeled by a node in the Split Engine, so we don't update mSkyboxNode
-        // here.
         mImpressApi.clearPreferredEnvironmentIblAsset();
         if (skybox != null) {
             mImpressApi.setPreferredEnvironmentLight(skybox.getExtensionImageToken());
@@ -342,32 +306,11 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
      * Stages updates to the CPM graph for the Environment to reflect a new geometry preference. If
      * geometry is null, this method unsets the client geometry preference, resulting in the system
      * geometry being used.
-     */
-    private void applyGeometryLegacy(@Nullable GltfModelResourceImpl geometry) {
-        // We need to create a new node here because we can't re-use the old CPM node when changing
-        // geometry and skybox.
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            transaction.setParent(mGeometryNode, null).apply();
-        }
-        mGeometryNode = mXrExtensions.createNode();
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            NodeTransaction unused = transaction.setName(mGeometryNode, GEOMETRY_NODE_NAME);
-            if (geometry != null) {
-                unused = transaction.setGltfModel(mGeometryNode, geometry.getExtensionModelToken());
-            }
-            transaction.apply();
-        }
-    }
-
-    /**
-     * Stages updates to the CPM graph for the Environment to reflect a new geometry preference. If
-     * geometry is null, this method unsets the client geometry preference, resulting in the system
-     * geometry being used.
      *
      * @throws IllegalStateException if called on a thread other than the main thread.
      */
-    private void applyGeometrySplitEngine(
-            @Nullable GltfModelResourceImplSplitEngine geometry,
+    private void applyGeometry(
+            @Nullable GltfModelResourceImpl geometry,
             @Nullable MaterialResource material,
             @Nullable String meshName,
             @Nullable String animationName) {
@@ -447,130 +390,82 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
         mImpressApi = api;
     }
 
-    void onNullSkyboxResourceReady(ExrImageResource nullSkyboxResource) {
-        mNullSkyboxResource = nullSkyboxResource;
-    }
-
     @Override
-    @NonNull
     @CanIgnoreReturnValue
-    public SetSpatialEnvironmentPreferenceResult setSpatialEnvironmentPreference(
+    public @SetSpatialEnvironmentPreferenceResult int setSpatialEnvironmentPreference(
             @Nullable SpatialEnvironmentPreference newPreference) {
         // TODO: b/378914007 This method is not safe for reentrant calls.
 
         if (Objects.equals(newPreference, mSpatialEnvironmentPreference)) {
-            return SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED;
+            return SpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED;
         }
 
-        GltfModelResource newGeometry = newPreference == null ? null : newPreference.geometry;
+        GltfModelResource newGeometry = newPreference == null ? null : newPreference.getGeometry();
         GltfModelResource prevGeometry =
                 mSpatialEnvironmentPreference == null
                         ? null
-                        : mSpatialEnvironmentPreference.geometry;
-        ExrImageResource newSkybox = newPreference == null ? null : newPreference.skybox;
+                        : mSpatialEnvironmentPreference.getGeometry();
+        ExrImageResource newSkybox = newPreference == null ? null : newPreference.getSkybox();
         ExrImageResource prevSkybox =
-                mSpatialEnvironmentPreference == null ? null : mSpatialEnvironmentPreference.skybox;
+                mSpatialEnvironmentPreference == null
+                        ? null
+                        : mSpatialEnvironmentPreference.getSkybox();
         MaterialResource newMaterial =
-                newPreference == null ? null : newPreference.geometryMaterial;
-        String newMeshName = newPreference == null ? null : newPreference.geometryMeshName;
+                newPreference == null ? null : newPreference.getGeometryMaterial();
+        String newMeshName = newPreference == null ? null : newPreference.getGeometryMeshName();
         String newAnimationName =
-                newPreference == null ? null : newPreference.geometryAnimationName;
+                newPreference == null ? null : newPreference.getGeometryAnimationName();
 
-        // TODO(b/329907079): Map GltfModelResourceImplSplitEngine to GltfModelResource in Impl
-        // Layer
+        // TODO(b/329907079): Map GltfModelResourceImpl to GltfModelResource in Impl Layer
         if (newGeometry != null) {
-            if (mUseSplitEngine && !(newGeometry instanceof GltfModelResourceImplSplitEngine)) {
+            if (mUseSplitEngine && !(newGeometry instanceof GltfModelResourceImpl)) {
                 throw new IllegalArgumentException(
                         "SplitEngine is enabled but the prefererred geometry is not of type"
-                                + " GltfModelResourceImplSplitEngine.");
-            } else if (!mUseSplitEngine && !(newGeometry instanceof GltfModelResourceImpl)) {
-                throw new IllegalArgumentException(
-                        "SplitEngine is disabled but the prefererred geometry is not of type"
                                 + " GltfModelResourceImpl.");
             }
         }
 
         // TODO b/329907079: Map ExrImageResourceImpl to ExrImageResource in Impl Layer
-        // TODO(b/396483557): Don't allow use of ExrImageResourceImpl when SplitEngine is enabled.
-        // This
-        // is a temporary measure to not break clients while they migrate to the Split Engine route.
         if (newSkybox != null) {
-            if (mUseSplitEngine
-                    && !((newSkybox instanceof ExrImageResourceImplSplitEngine)
-                            || (newSkybox instanceof ExrImageResourceImpl))) {
+            if (!(newSkybox instanceof ExrImageResourceImpl)) {
                 throw new IllegalArgumentException(
-                        "SplitEngine is enabled but the prefererred skybox is not of type"
-                                + " ExrImageResourceImplSplitEngine or ExrImageResourceImpl.");
-            } else if (!mUseSplitEngine && !(newSkybox instanceof ExrImageResourceImpl)) {
-                throw new IllegalArgumentException(
-                        "SplitEngine is disabled but the prefererred skybox is not of type"
-                                + " ExrImageResourceImpl.");
+                        "Prefererred skybox is not of type ExrImageResourceImpl.");
             }
         }
 
         if (!Objects.equals(newGeometry, prevGeometry)) {
-            // TODO: b/354711945 - Remove this check once we migrate completely to SplitEngine
             if (mUseSplitEngine) {
-                applyGeometrySplitEngine(
-                        (GltfModelResourceImplSplitEngine) newGeometry,
+                applyGeometry(
+                        (GltfModelResourceImpl) newGeometry,
                         newMaterial,
                         newMeshName,
                         newAnimationName);
-            } else {
-                applyGeometryLegacy((GltfModelResourceImpl) newGeometry);
+            } else if (newGeometry != null) {
+                // Only throw unsupported if the geometry is not null. If it is null, the system
+                // will remove
+                // the geometry which does not require the SplitEngine.
+                throw new UnsupportedOperationException(
+                        "Setting geometry is not supported without SplitEngine.");
             }
         }
 
         // TODO: b/392948759 - Fix StrictMode violations triggered whenever skybox is set.
         if (!Objects.equals(newSkybox, prevSkybox)
                 || (mSpatialEnvironmentPreference == null && newPreference != null)) {
-            // If the preference object is non-null but contains a null skybox, we set a black
-            // skybox.
-            if (newSkybox == null && newPreference != null) {
-                // Lazy initialization of the null skybox resource.
-                if (mNullSkyboxResource == null) {
-                    Log.e(TAG, "Black skybox resource is needed before it finishes loading.");
-                }
-                // Set the skybox to a black texture
-                if (mNullSkyboxResource != null) {
-                    newSkybox = mNullSkyboxResource;
-                }
-            }
-
-            // TODO(b/396483557): Don't allow use of applySkyboxLegacy when SplitEngine is enabled.
-            // This
-            // is a temporary measure to not break clients while they migrate to the Split Engine
-            // route.
-            // For the null case, Split Engine could be enabled but a non Split Engine skybox could
-            // be
-            // set. In that case only the skybox node would not be null and the legacy path would be
-            // followed.
-            if (newSkybox == null) {
-                if (mUseSplitEngine && mSkyboxNode == null) {
-                    applySkyboxSplitEngine(null);
+            if (mUseSplitEngine) {
+                if (newSkybox == null) {
+                    applySkybox(null);
                 } else {
-                    applySkyboxLegacy(null);
+                    applySkybox((ExrImageResourceImpl) newSkybox);
                 }
-            } else {
-                // For the non null case, Split Engine could be enabled but a non Split Engine
-                // skybox could
-                // be set. In that case newSkybox would be an instance of ExrImageResourceImpl and
-                // the
-                // legacy
-                // path would be followed.
-                if (mUseSplitEngine && (newSkybox instanceof ExrImageResourceImplSplitEngine)) {
-                    applySkyboxSplitEngine((ExrImageResourceImplSplitEngine) newSkybox);
-                } else {
-                    applySkyboxLegacy((ExrImageResourceImpl) newSkybox);
-                }
+            } else if (newSkybox != null) {
+                throw new UnsupportedOperationException(
+                        "Setting skybox is not supported without SplitEngine.");
             }
         }
 
         try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            if (newSkybox == null && newGeometry == null) {
-                if (mUseSplitEngine) {
-                    mImpressApi.clearPreferredEnvironmentIblAsset();
-                }
+            if (newPreference == null) {
                 mXrExtensions.detachSpatialEnvironment(
                         mActivity,
                         (result) -> logXrExtensionResult("detachSpatialEnvironment", result),
@@ -582,24 +477,21 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
                 // only
                 // trigger an environment transition if the root environment node changes.
                 Node newRootEnvironmentNode = mXrExtensions.createNode();
-                if (mSkyboxNode != null) {
-                    NodeTransaction unused =
-                            transaction.setParent(mSkyboxNode, newRootEnvironmentNode);
-                }
                 if (mGeometrySubspaceSplitEngine != null) {
                     NodeTransaction unused =
                             transaction.setParent(
                                     mGeometrySubspaceSplitEngine.getSubspaceNodeActual(),
                                     newRootEnvironmentNode);
                 }
-                if (mGeometryNode != null) {
-                    NodeTransaction unused =
-                            transaction.setParent(mGeometryNode, newRootEnvironmentNode);
-                }
                 transaction.apply();
+                int skyboxMode = XrExtensions.ENVIRONMENT_SKYBOX_APP;
+                if (newSkybox == null) {
+                    skyboxMode = XrExtensions.NO_SKYBOX;
+                }
                 mXrExtensions.attachSpatialEnvironment(
                         mActivity,
                         newRootEnvironmentNode,
+                        skyboxMode,
                         (result) -> {
                             // Update the root environment node to the new root node.
                             mRootEnvironmentNode = newRootEnvironmentNode;
@@ -616,7 +508,7 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
                 .hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_APP_ENVIRONMENT)) {
             return SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED;
         } else {
-            return SetSpatialEnvironmentPreferenceResult.CHANGE_PENDING;
+            return SpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_PENDING;
         }
     }
 
@@ -684,19 +576,15 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
                 }
                 mSplitEngineSubspaceManager.deleteSubspace(mGeometrySubspaceSplitEngine.subspaceId);
                 mGeometrySubspaceSplitEngine = null;
-                mImpressApi.destroyImpressNode(mGeometrySubspaceImpressNode);
                 mImpressApi.clearPreferredEnvironmentIblAsset();
+                // We don't need to destroy mGeometrySubspaceImpressNode because we indirectly
+                // already
+                // destroy it by deleting the subspace at the end of the apply geometry block.
+                mImpressApi.disposeAllResources();
             }
         }
         mActivePassthroughOpacity = null;
         mPassthroughOpacityPreference = null;
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            transaction
-                    .setParent(mSkyboxNode, null)
-                    .setParent(mGeometryNode, null)
-                    .setParent(mPassthroughNode, null)
-                    .apply();
-        }
         mRootEnvironmentNode = null;
         mGeometrySubspaceSplitEngine = null;
         mGeometrySubspaceImpressNode = 0;
@@ -706,7 +594,6 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
         mIsSpatialEnvironmentPreferenceActive = false;
         mOnPassthroughOpacityChangedListeners.clear();
         mOnSpatialEnvironmentChangedListeners.clear();
-        mNullSkyboxResource = null;
         // TODO: b/376934871 - Check async results.
         mXrExtensions.detachSpatialEnvironment(mActivity, (result) -> {}, Runnable::run);
         mActivity = null;

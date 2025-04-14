@@ -25,8 +25,8 @@ import kotlinx.coroutines.flow.StateFlow
  * Tracks requests to kick participants from a remote InCallService and invokes the supplied action
  * when a request comes in.
  *
- * @param participants A StateFlow containing the list of Participants in the call, which is used to
- *   validate the participant to kick is valid.
+ * @param participants A StateFlow containing a list of unique Participants in the call, which is
+ *   used to validate the participant to kick is valid.
  * @param onKickParticipant The action to perform when a request comes in from the remote
  *   InCallService to kick a participant.
  */

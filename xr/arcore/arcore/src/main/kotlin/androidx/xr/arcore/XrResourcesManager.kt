@@ -18,6 +18,7 @@ package androidx.xr.arcore
 
 import android.annotation.SuppressLint
 import androidx.xr.runtime.internal.Hand as RuntimeHand
+import androidx.xr.runtime.internal.LifecycleManager
 import androidx.xr.runtime.internal.Plane as RuntimePlane
 import androidx.xr.runtime.internal.Trackable as RuntimeTrackable
 import java.util.Queue
@@ -26,6 +27,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /** Manages all XR resources that are used by the ARCore for XR API. */
 internal class XrResourcesManager {
+
+    internal lateinit var lifecycleManager: LifecycleManager
 
     /** List of [Updatable]s that are updated every frame. */
     private val _updatables = CopyOnWriteArrayList<Updatable>()

@@ -348,7 +348,7 @@ public abstract class CustomTabsService extends Service {
                     callback.asBinder().linkToDeath(deathRecipient, 0);
                     mDeathRecipientMap.put(callback.asBinder(), deathRecipient);
                 }
-                return CustomTabsService.this.newAuthTabSession(sessionToken);
+                return CustomTabsService.this.registerAuthTabSession(sessionToken);
             } catch (RemoteException e) {
                 return false;
             }
@@ -390,8 +390,8 @@ public abstract class CustomTabsService extends Service {
      *
      * @param sessionToken The session token for which the {@link DeathRecipient} call has been
      *                     received.
-     * @return Whether the clean up was successful. Multiple calls with two tokens holdings the
-     * same binder will return false.
+     * @return True if the provided session was cleaned up as a result of this call, false if the
+     * session doesn't exist or has already been cleaned up.
      */
     @ExperimentalAuthTab
     protected boolean cleanUpSession(@NonNull AuthTabSessionToken sessionToken) {
@@ -679,7 +679,7 @@ public abstract class CustomTabsService extends Service {
      * @return Whether a new session was successfully created.
      */
     @ExperimentalAuthTab
-    protected boolean newAuthTabSession(@NonNull AuthTabSessionToken sessionToken) {
+    protected boolean registerAuthTabSession(@NonNull AuthTabSessionToken sessionToken) {
         return false;
     }
 }

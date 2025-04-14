@@ -29,7 +29,6 @@ import androidx.build.getProjectZipPath
 import androidx.build.getSupportRootFolder
 import androidx.build.gitclient.getHeadShaProvider
 import androidx.build.jetpad.LibraryBuildInfoFile
-import com.android.build.gradle.internal.tasks.factory.dependsOn
 import com.google.common.annotations.VisibleForTesting
 import com.google.gson.GsonBuilder
 import java.io.File
@@ -358,7 +357,7 @@ private fun Project.createTaskForComponent(
             kmpChildren = kmpChildren,
             testModuleNames = testModuleNames,
         )
-    anchorTask.dependsOn(task)
+    anchorTask.configure { it.dependsOn(task) }
     if (!isolatedProjectEnabled) {
         addTaskToAggregateBuildInfoFileTask(task)
     }

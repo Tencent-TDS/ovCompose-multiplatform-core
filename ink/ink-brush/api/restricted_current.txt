@@ -2,28 +2,28 @@
 package androidx.ink.brush {
 
   public final class Brush {
-    ctor public Brush(androidx.ink.brush.BrushFamily family, float size, float epsilon);
+    ctor public Brush(androidx.ink.brush.BrushFamily family, @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size, @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float epsilon);
     method public static androidx.ink.brush.Brush.Builder builder();
     method public androidx.ink.brush.Brush copy();
     method public androidx.ink.brush.Brush copy(optional androidx.ink.brush.BrushFamily family);
-    method public androidx.ink.brush.Brush copy(optional androidx.ink.brush.BrushFamily family, optional float size);
-    method public androidx.ink.brush.Brush copy(optional androidx.ink.brush.BrushFamily family, optional float size, optional float epsilon);
+    method public androidx.ink.brush.Brush copy(optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size);
+    method public androidx.ink.brush.Brush copy(optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float epsilon);
     method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb);
     method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb, optional androidx.ink.brush.BrushFamily family);
-    method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb, optional androidx.ink.brush.BrushFamily family, optional float size);
-    method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb, optional androidx.ink.brush.BrushFamily family, optional float size, optional float epsilon);
+    method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb, optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size);
+    method public androidx.ink.brush.Brush copyWithColorIntArgb(@ColorInt int colorIntArgb, optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float epsilon);
     method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong);
     method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong, optional androidx.ink.brush.BrushFamily family);
-    method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong, optional androidx.ink.brush.BrushFamily family, optional float size);
-    method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong, optional androidx.ink.brush.BrushFamily family, optional float size, optional float epsilon);
+    method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong, optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size);
+    method public androidx.ink.brush.Brush copyWithColorLong(@ColorLong long colorLong, optional androidx.ink.brush.BrushFamily family, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float size, optional @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) float epsilon);
     method public static androidx.ink.brush.Brush createWithColorIntArgb(androidx.ink.brush.BrushFamily family, @ColorInt int colorIntArgb, float size, float epsilon);
     method public static androidx.ink.brush.Brush createWithColorLong(androidx.ink.brush.BrushFamily family, @ColorLong long colorLong, float size, float epsilon);
     method protected void finalize();
     method @ColorInt public int getColorIntArgb();
     method @ColorLong public long getColorLong();
-    method public float getEpsilon();
+    method @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) public float getEpsilon();
     method public androidx.ink.brush.BrushFamily getFamily();
-    method public float getSize();
+    method @FloatRange(from=0.0, fromInclusive=false, to=kotlin.jvm.internal.DoubleCompanionObject.POSITIVE_INFINITY, toInclusive=false) public float getSize();
     method public androidx.ink.brush.Brush.Builder toBuilder();
     property @ColorInt public int colorIntArgb;
     property @ColorLong public long colorLong;

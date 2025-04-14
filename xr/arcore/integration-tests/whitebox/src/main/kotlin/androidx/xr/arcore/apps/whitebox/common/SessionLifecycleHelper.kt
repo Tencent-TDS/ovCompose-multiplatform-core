@@ -61,9 +61,6 @@ class SessionLifecycleHelper(val activity: ComponentActivity) : DefaultLifecycle
             is SessionResumePermissionsNotGranted -> {
                 requestPermissionLauncher.launch(result.permissions.toTypedArray())
             }
-            else -> {
-                showErrorMessage("Attempted to resume while session is null.")
-            }
         }
     }
 

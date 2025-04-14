@@ -19,7 +19,6 @@ package androidx.compose.ui.autofill
 import android.graphics.Rect
 import android.os.Build
 import android.view.View
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -98,7 +97,6 @@ import org.mockito.kotlin.verifyZeroInteractions
 
 @MediumTest
 @SdkSuppress(minSdkVersion = 26)
-@RequiresApi(Build.VERSION_CODES.O)
 @RunWith(AndroidJUnit4::class)
 class AndroidAutofillManagerTest {
     @get:Rule val rule = createAndroidComposeRule<TestActivity>()

@@ -18,41 +18,32 @@
 
 package androidx.xr.runtime
 
-import androidx.annotation.RestrictTo
-
 /**
  * Allows an application to get approximate eye gaze.
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val EYE_TRACKING_COARSE: String = "android.permission.EYE_TRACKING_COARSE"
+@JvmField public val EYE_TRACKING_COARSE: String = "android.permission.EYE_TRACKING_COARSE"
 
 /**
  * Allows an application to get face tracking data.
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val FACE_TRACKING: String = "android.permission.FACE_TRACKING"
+@JvmField public val FACE_TRACKING: String = "android.permission.FACE_TRACKING"
 
 /**
  * Allows an application to get hand tracking data.
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val HAND_TRACKING: String = "android.permission.HAND_TRACKING"
+@JvmField public val HAND_TRACKING: String = "android.permission.HAND_TRACKING"
 
 /**
  * Allows an application to get data derived by sensing the user's environment.
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @JvmField
 public val SCENE_UNDERSTANDING_COARSE: String = "android.permission.SCENE_UNDERSTANDING_COARSE"
 
@@ -61,9 +52,7 @@ public val SCENE_UNDERSTANDING_COARSE: String = "android.permission.SCENE_UNDERS
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val EYE_TRACKING_FINE: String = "android.permission.EYE_TRACKING_FINE"
+@JvmField public val EYE_TRACKING_FINE: String = "android.permission.EYE_TRACKING_FINE"
 
 /**
  * Allows an application to get head tracking data. Unmanaged activities (OpenXR activities with the
@@ -76,9 +65,7 @@ public val EYE_TRACKING_FINE: String = "android.permission.EYE_TRACKING_FINE"
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val HEAD_TRACKING: String = "android.permission.HEAD_TRACKING"
+@JvmField public val HEAD_TRACKING: String = "android.permission.HEAD_TRACKING"
 
 /**
  * Allows an application to get highly precise data derived by sensing the user's environment, such
@@ -86,6 +73,5 @@ public val HEAD_TRACKING: String = "android.permission.HEAD_TRACKING"
  *
  * <p>Protection level: dangerous
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @JvmField
 public val SCENE_UNDERSTANDING_FINE: String = "android.permission.SCENE_UNDERSTANDING_FINE"

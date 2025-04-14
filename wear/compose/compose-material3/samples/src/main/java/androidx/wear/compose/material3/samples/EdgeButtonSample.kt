@@ -17,6 +17,8 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -132,6 +135,15 @@ fun EdgeButtonListSample() {
         contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = verticalPadding),
         edgeButton = {
             EdgeButton(
+                modifier =
+                    Modifier.scrollable(
+                        state,
+                        orientation = Orientation.Vertical,
+                        reverseDirection = true,
+                        // An overscroll effect should be applied to the EdgeButton for proper
+                        // scrolling behavior.
+                        overscrollEffect = rememberOverscrollEffect()
+                    ),
                 onClick = {},
                 buttonSize = EdgeButtonSize.Medium,
                 colors = colors[selectedColor].second,

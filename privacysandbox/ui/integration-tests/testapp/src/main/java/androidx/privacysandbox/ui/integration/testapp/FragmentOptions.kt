@@ -41,6 +41,7 @@ data class FragmentOptions(
         const val FRAGMENT_RESIZE_HIDDEN = "resize-hidden"
         const val FRAGMENT_SCROLL = "scroll"
         const val FRAGMENT_POOLING_CONTAINER = "pooling-container"
+        const val FRAGMENT_OCCLUSIONS_HIDDEN = "occlusions-hidden"
 
         const val KEY_MEDIATION = "mediation"
         const val MEDIATION_TYPE_NON_MEDIATED = "non-mediated" // default
@@ -75,6 +76,7 @@ data class FragmentOptions(
                     FRAGMENT_RESIZE_HIDDEN -> FragmentOption.RESIZE_HIDDEN
                     FRAGMENT_POOLING_CONTAINER -> FragmentOption.POOLING_CONTAINER
                     FRAGMENT_SCROLL -> FragmentOption.SCROLL
+                    FRAGMENT_OCCLUSIONS_HIDDEN -> FragmentOption.OCCLUSIONS_HIDDEN
                     else -> FragmentOption.RESIZE
                 }
             val mediationExtra = extras.getString(KEY_MEDIATION)
@@ -145,6 +147,7 @@ data class FragmentOptions(
                     FragmentOption.RESIZE -> ResizeFragment()
                     FragmentOption.POOLING_CONTAINER -> PoolingContainerFragment()
                     FragmentOption.RESIZE_HIDDEN -> ResizeHiddenFragment()
+                    FragmentOption.OCCLUSIONS_HIDDEN -> OcclusionFragment()
                     else -> ResizeFragment()
                 }
             UiFrameworkOption.COMPOSE ->

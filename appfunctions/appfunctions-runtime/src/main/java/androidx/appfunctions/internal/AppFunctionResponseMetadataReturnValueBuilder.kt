@@ -16,6 +16,7 @@
 
 package androidx.appfunctions.internal
 
+import android.app.PendingIntent
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -34,6 +35,7 @@ import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_FLOAT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_INT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_LONG
+import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_PENDING_INTENT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_STRING
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_UNIT
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
@@ -144,6 +146,12 @@ private fun unsafeBuildSingleReturnValue(
         TYPE_BYTES -> {
             throw IllegalStateException("Type of a single byte is not supported")
         }
+        TYPE_PENDING_INTENT -> {
+            builder.setPendingIntent(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as PendingIntent
+            )
+        }
         TYPE_OBJECT -> {
             builder.setAppFunctionData(
                 ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
@@ -209,6 +217,13 @@ private fun unsafeBuildCollectionReturnValue(
             builder.setByteArray(
                 ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
                 result as ByteArray
+            )
+        }
+        TYPE_PENDING_INTENT -> {
+            @Suppress("UNCHECKED_CAST")
+            builder.setPendingIntentList(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as List<PendingIntent>
             )
         }
         TYPE_OBJECT -> {

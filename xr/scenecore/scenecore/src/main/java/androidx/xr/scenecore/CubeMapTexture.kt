@@ -18,7 +18,8 @@ package androidx.xr.scenecore
 
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource as RtTextureResource
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.TextureResource as RtTextureResource
 
 /** [CubeMapTexture] represents a cube map texture that can be used with materials. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)

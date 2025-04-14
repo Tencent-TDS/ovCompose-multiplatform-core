@@ -25,6 +25,7 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavViewModelStoreProvider
 import androidx.navigation.NavigatorState
 import androidx.navigation.SupportingPane
+import androidx.navigation.internal.NavContext
 import androidx.savedstate.SavedState
 import androidx.savedstate.savedState
 import kotlinx.coroutines.CoroutineDispatcher
@@ -49,6 +50,7 @@ constructor(
     private val context: Context? = null,
     private val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 ) : NavigatorState() {
+    internal val navContext = NavContext(context)
 
     private val viewModelStoreProvider =
         object : NavViewModelStoreProvider {
@@ -66,7 +68,7 @@ constructor(
         arguments: SavedState?
     ): NavBackStackEntry =
         NavBackStackEntry.create(
-            context,
+            navContext,
             destination,
             arguments,
             Lifecycle.State.RESUMED,
@@ -84,7 +86,7 @@ constructor(
                     "that was previously popped with popBackStack(previouslySavedEntry, true)"
             }
         return NavBackStackEntry.create(
-            context,
+            navContext,
             previouslySavedEntry.destination,
             previouslySavedEntry.arguments,
             Lifecycle.State.RESUMED,

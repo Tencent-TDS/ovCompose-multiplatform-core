@@ -49,6 +49,7 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.ui.FrameRateCategory
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -387,6 +388,7 @@ internal abstract class NodeCoordinator(
             updateLayerBlock(layerBlock)
         }
         if (this.position != position) {
+            layoutNode.requireOwner().voteFrameRate(FrameRateCategory.High.value)
             this.position = position
             layoutNode.layoutDelegate.measurePassDelegate
                 .notifyChildrenUsingCoordinatesWhilePlacing()

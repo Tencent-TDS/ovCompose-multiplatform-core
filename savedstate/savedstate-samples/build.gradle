@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -50,5 +49,4 @@ androidx {
     type = SoftwareType.SAMPLES
     inceptionYear = "2024"
     description = "Sample code for SavedState"
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

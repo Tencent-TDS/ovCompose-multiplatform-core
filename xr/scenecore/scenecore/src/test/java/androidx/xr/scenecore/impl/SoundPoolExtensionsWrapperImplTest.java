@@ -23,9 +23,10 @@ import static org.mockito.Mockito.when;
 
 import android.media.SoundPool;
 
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.SoundPoolExtensionsWrapper;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatializerConstants;
+import androidx.xr.runtime.internal.PointSourceParams;
+import androidx.xr.runtime.internal.SoundFieldAttributes;
+import androidx.xr.runtime.internal.SoundPoolExtensionsWrapper;
+import androidx.xr.runtime.internal.SpatializerConstants;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 
 import com.android.extensions.xr.XrExtensions;
@@ -66,8 +67,7 @@ public final class SoundPoolExtensionsWrapperImplTest {
         Node fakeNode = mXrExtensions.createNode();
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(fakeNode);
-        JxrPlatformAdapter.PointSourceAttributes rtAttributes =
-                new JxrPlatformAdapter.PointSourceAttributes(entity);
+        PointSourceParams rtParams = new PointSourceParams(entity);
 
         SoundPool soundPool = new SoundPool.Builder().build();
 
@@ -79,7 +79,7 @@ public final class SoundPoolExtensionsWrapperImplTest {
                 wrapper.play(
                         soundPool,
                         TEST_SOUND_ID,
-                        rtAttributes,
+                        rtParams,
                         TEST_VOLUME,
                         TEST_PRIORITY,
                         TEST_LOOP,
@@ -97,9 +97,8 @@ public final class SoundPoolExtensionsWrapperImplTest {
         ShadowSoundPoolExtensions.extract(mSoundPoolExtensions).setPlayAsSoundFieldResult(expected);
         SoundPoolExtensionsWrapper wrapper =
                 new SoundPoolExtensionsWrapperImpl(mSoundPoolExtensions);
-        JxrPlatformAdapter.SoundFieldAttributes attributes =
-                new JxrPlatformAdapter.SoundFieldAttributes(
-                        JxrPlatformAdapter.SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
+        SoundFieldAttributes attributes =
+                new SoundFieldAttributes(SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
 
         int actual =
                 wrapper.play(

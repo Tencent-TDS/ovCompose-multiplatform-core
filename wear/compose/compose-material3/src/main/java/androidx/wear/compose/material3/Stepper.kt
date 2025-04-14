@@ -40,7 +40,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -344,11 +346,19 @@ private fun StepperImpl(
         remember(value, valueRange, steps) {
             RangeDefaults.snapValueToStep(value, valueRange, steps)
         }
+    val hapticFeedback = LocalHapticFeedback.current
 
     val updateValue: (Int) -> Unit = { stepDiff ->
         val newValue =
             RangeDefaults.calculateCurrentStepValue(currentStep + stepDiff, steps, valueRange)
-        if (newValue != value) onValueChange(newValue)
+        if (newValue != value) {
+            onValueChange(newValue)
+            if (newValue > valueRange.start && newValue < valueRange.endInclusive) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            } else {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+            }
+        }
     }
 
     Column(

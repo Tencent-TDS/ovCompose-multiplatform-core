@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.ExportAtomicLibraryGroupsToTextTask
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -60,7 +59,6 @@ androidx {
     type = SoftwareType.LINT
     inceptionYear = "2018"
     description = "Internal lint checks"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 def exportTaskProvider = tasks.register(

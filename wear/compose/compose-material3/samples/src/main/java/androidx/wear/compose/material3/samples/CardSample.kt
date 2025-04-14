@@ -48,6 +48,7 @@ import androidx.wear.compose.material3.AppCard
 import androidx.wear.compose.material3.Card
 import androidx.wear.compose.material3.CardDefaults
 import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.ImageCard
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.OutlinedCard
 import androidx.wear.compose.material3.Text
@@ -211,20 +212,14 @@ fun TitleCardWithMultipleImagesSample() {
 
 @Sampled
 @Composable
-fun TitleCardWithImageBackgroundSample() {
-    TitleCard(
+fun ImageCardWithTimeAndTitleSample() {
+    ImageCard(
         onClick = { /* Do something */ },
+        containerPainter =
+            CardDefaults.containerPainter(image = painterResource(id = R.drawable.backgroundimage)),
         title = { Text("Card title") },
+        subtitle = { Text("Subtitle") },
         time = { Text("Now") },
-        colors =
-            CardDefaults.imageCardColors(
-                containerPainter =
-                    CardDefaults.imageWithScrimBackgroundPainter(
-                        backgroundImagePainter = painterResource(id = R.drawable.backgroundimage)
-                    ),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                titleColor = MaterialTheme.colorScheme.onSurface
-            ),
         contentPadding = CardDefaults.ImageContentPadding,
         modifier = Modifier.semantics { contentDescription = "Background image" }
     ) {
@@ -239,6 +234,18 @@ fun OutlinedCardSample() {
         onClick = { /* Do something */ },
     ) {
         Text("Outlined card")
+    }
+}
+
+@Sampled
+@Composable
+fun ImageCardSample() {
+    ImageCard(
+        onClick = { /* Do something */ },
+        containerPainter =
+            CardDefaults.containerPainter(image = painterResource(id = R.drawable.backgroundimage)),
+    ) {
+        Text("Image card")
     }
 }
 

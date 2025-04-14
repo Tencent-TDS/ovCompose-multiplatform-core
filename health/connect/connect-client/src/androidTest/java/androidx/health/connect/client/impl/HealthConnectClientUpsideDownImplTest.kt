@@ -180,8 +180,31 @@ class HealthConnectClientUpsideDownImplTest {
                 HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
                 HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY,
                 HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE,
-                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE
+                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE,
+                HealthConnectFeatures.FEATURE_MINDFULNESS_SESSION
             )
+
+        for (feature in features) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_UNAVAILABLE)
+        }
+    }
+
+    @Test
+    fun getFeatureStatus_featuresAddedInExt15_areAvailableInExt15() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 15)
+
+        for (feature in setOf(HealthConnectFeatures.FEATURE_MINDFULNESS_SESSION)) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_AVAILABLE)
+        }
+    }
+
+    @Test
+    fun getFeatureStatus_belowUExt15_noneIsAvailable() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) < 15)
+
+        val features = listOf(HealthConnectFeatures.FEATURE_MINDFULNESS_SESSION)
 
         for (feature in features) {
             assertThat(healthConnectClient.features.getFeatureStatus(feature))

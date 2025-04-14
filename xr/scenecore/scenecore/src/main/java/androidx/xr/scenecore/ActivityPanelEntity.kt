@@ -21,6 +21,8 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Bundle
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.ActivityPanelEntity as RtActivityPanelEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -31,7 +33,7 @@ import androidx.xr.runtime.math.Pose
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ActivityPanelEntity
 private constructor(
-    private val rtActivityPanelEntity: JxrPlatformAdapter.ActivityPanelEntity,
+    private val rtActivityPanelEntity: RtActivityPanelEntity,
     entityManager: EntityManager,
 ) : PanelEntity(rtActivityPanelEntity, entityManager) {
 
@@ -40,7 +42,7 @@ private constructor(
      * already existing activity in the panel with the new one. If the intent fails to launch the
      * activity, the panel will not be visible. Note this will not update the dimensions of the
      * surface underlying the panel. The Activity will be letterboxed as required to fit the size of
-     * the panel. The underlying surface can be resized by calling setPixelDimensions().
+     * the panel. The underlying surface can be resized by calling setSizeInPixels().
      *
      * @param intent Intent to launch the activity.
      * @param bundle Bundle to pass to the activity, can be null.
@@ -53,7 +55,7 @@ private constructor(
     /**
      * Moves the given activity into this panel. Note this will not update the dimensions of the
      * surface underlying the panel. The Activity will be letterboxed as required to fit the size of
-     * the panel. The underlying surface can be resized by calling setPixelDimensions().
+     * the panel. The underlying surface can be resized by calling setSizeInPixels().
      *
      * @param activity Activity to move into this panel.
      */

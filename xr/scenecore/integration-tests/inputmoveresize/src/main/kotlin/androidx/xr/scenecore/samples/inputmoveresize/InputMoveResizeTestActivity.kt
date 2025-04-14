@@ -251,6 +251,8 @@ class InputMoveResizeTestActivity : AppCompatActivity() {
         val movablePanelEntity = createPanelEntityWithText("Movable", movablePanelView)
         movablePanelEntity.setPose(Pose(Vector3(-0.8f, 0.2f, 0.1f)))
         movablePanelEntity.setParent(session.mainPanelEntity)
+        // Set the movable panel corner radius to 0.
+        movablePanelEntity.setCornerRadius(0.0f)
 
         val systemMovableCheckbox = movablePanelView.findViewById<CheckBox>(R.id.systemMovable)
         val scaleInZCheckBox = movablePanelView.findViewById<CheckBox>(R.id.scaleInZ)
@@ -310,6 +312,9 @@ class InputMoveResizeTestActivity : AppCompatActivity() {
         val everythingPanelEntity = createPanelEntityWithText("Everything", everythingPanelView)
         everythingPanelEntity.setParent(movablePanelEntity)
         everythingPanelEntity.setPose(Pose(Vector3(0.0f, -0.5f, 0.0f)))
+        // Set the everything panel corner radius to 0.
+        everythingPanelEntity.setCornerRadius(0.0f)
+
         val everythingPanelSwitch = everythingPanelView.findViewById<Switch>(R.id.switch1)
         val everythingPanelInteractableComponent =
             InteractableComponent.create(session, executor) {
@@ -355,6 +360,9 @@ class InputMoveResizeTestActivity : AppCompatActivity() {
         val resizablePanelEntity = createPanelEntityWithText("Resizable", resizablePanelView)
         resizablePanelEntity.setPose(Pose(Vector3(0.9f, 0.2f, -0.1f)))
         resizablePanelEntity.setParent(session.mainPanelEntity)
+        // Set the resizable panel corner radius to 0.
+        resizablePanelEntity.setCornerRadius(0.0f)
+
         val resizablePanelComponent = ResizableComponent.create(session)
         resizablePanelComponent.size = resizablePanelEntity.getSize()
         resizablePanelComponent.addResizeListener(mainExecutor, resizeListener)
@@ -399,8 +407,10 @@ class InputMoveResizeTestActivity : AppCompatActivity() {
         val interactablePanelEntity =
             createPanelEntityWithText("Interactable", interactablePanelView)
         interactablePanelEntity.setParent(resizablePanelEntity)
-
         interactablePanelEntity.setPose(Pose(Vector3(0f, -0.5f, 0.0f)))
+        // Set the interactable panel corner radius to 0.
+        interactablePanelEntity.setCornerRadius(0.0f)
+
         val interactablePanelTextView = interactablePanelView.findViewById<TextView>(R.id.textView)
         val interactableComponent =
             InteractableComponent.create(session, mainExecutor) {

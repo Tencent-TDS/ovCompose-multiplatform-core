@@ -20,9 +20,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.xr.runtime.internal.CameraViewActivityPose;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
 import androidx.xr.scenecore.common.BaseActivityPose;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
@@ -81,9 +81,9 @@ final class CameraViewActivityPoseImpl extends BaseActivityPose implements Camer
             Log.e(TAG, "Error retrieving the camera.");
             return null;
         }
-        if (mCameraType == CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE) {
+        if (mCameraType == CameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE) {
             return perceptionViews.getLeftEye();
-        } else if (mCameraType == CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE) {
+        } else if (mCameraType == CameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE) {
             return perceptionViews.getRightEye();
         } else {
             Log.w(TAG, "Unsupported camera type: " + mCameraType);

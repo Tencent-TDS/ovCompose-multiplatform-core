@@ -123,7 +123,7 @@ class DialogTest {
 
     @Test
     fun shrink_background_when_dialog_is_shown() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = false)
+        var scaffoldState = ScaffoldState()
         rule.setContentWithTheme {
             CompositionLocalProvider(
                 LocalScaffoldState provides scaffoldState,
@@ -148,7 +148,7 @@ class DialogTest {
 
     @Test
     fun expand_background_when_dialog_is_hidden() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = false)
+        var scaffoldState = ScaffoldState()
         rule.setContentWithTheme {
             CompositionLocalProvider(
                 LocalScaffoldState provides scaffoldState,
@@ -173,7 +173,7 @@ class DialogTest {
 
     @Test
     fun expand_background_when_dialog_is_removed() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = false)
+        var scaffoldState = ScaffoldState()
         rule.setContentWithTheme {
             CompositionLocalProvider(
                 LocalScaffoldState provides scaffoldState,
@@ -197,194 +197,6 @@ class DialogTest {
         rule.waitForIdle()
         Assert.assertEquals(scaffoldState.parentScale.floatValue, 1f, 0.01f)
     }
-
-    @Test
-    fun hidden_dialog_is_not_added_to_fullScreenContent() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = true)
-        rule.setContentWithTheme {
-            CompositionLocalProvider(
-                LocalScaffoldState provides scaffoldState,
-            ) {
-                var visible by remember { mutableStateOf(false) }
-                Button(
-                    modifier = Modifier.testTag(SHOW_BUTTON_TAG),
-                    onClick = { visible = false }
-                ) {}
-
-                if (visible) {
-                    Dialog(
-                        visible = visible,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {}
-                }
-            }
-        }
-        rule.waitForIdle()
-        Assert.assertTrue(scaffoldState.fullScreenContent.contentItems.isEmpty())
-    }
-
-    @Test
-    fun single_dialog_added_to_fullScreenContent() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = true)
-        rule.setContentWithTheme {
-            CompositionLocalProvider(
-                LocalScaffoldState provides scaffoldState,
-            ) {
-                var visible by remember { mutableStateOf(false) }
-                Button(
-                    modifier = Modifier.testTag(SHOW_BUTTON_TAG),
-                    onClick = { visible = true }
-                ) {}
-
-                if (visible) {
-                    Dialog(
-                        visible = visible,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {}
-                }
-            }
-        }
-        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertTrue(scaffoldState.fullScreenContent.contentItems.isNotEmpty())
-    }
-
-    @Test
-    fun dialog_removed_from_fullScreenContent() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = true)
-        rule.setContentWithTheme {
-            CompositionLocalProvider(
-                LocalScaffoldState provides scaffoldState,
-            ) {
-                var visible by remember { mutableStateOf(true) }
-                Button(
-                    modifier = Modifier.testTag(HIDE_BUTTON_TAG),
-                    onClick = { visible = false }
-                ) {}
-
-                if (visible) {
-                    Dialog(
-                        visible = visible,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {}
-                }
-            }
-        }
-        rule.onNodeWithTag(HIDE_BUTTON_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertTrue(scaffoldState.fullScreenContent.contentItems.isEmpty())
-    }
-
-    @Test
-    fun multiple_dialogs_added_to_fullScreenContent() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = true)
-
-        rule.setContentWithTheme {
-            AppScaffold {
-                var visible1 by remember { mutableStateOf(false) }
-                var visible2 by remember { mutableStateOf(false) }
-                scaffoldState = LocalScaffoldState.current
-                Button(
-                    modifier = Modifier.testTag(SHOW_BUTTON_TAG),
-                    onClick = { visible1 = true }
-                ) {}
-
-                if (visible1) {
-                    Dialog(
-                        visible = true,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {
-                        Button(
-                            modifier = Modifier.testTag(SHOW_SECOND_DIALOG_TAG),
-                            onClick = { visible2 = true }
-                        ) {}
-                    }
-                }
-                if (visible2) {
-                    Dialog(
-                        visible = visible2,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {
-                        Button(
-                            modifier = Modifier.testTag(HIDE_SECOND_DIALOG_TAG),
-                            onClick = { visible2 = false }
-                        ) {}
-                    }
-                }
-            }
-        }
-        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertEquals(1, scaffoldState.fullScreenContent.contentItems.size)
-        val firstDialog = scaffoldState.fullScreenContent.contentItems.first()
-
-        rule.onNodeWithTag(SHOW_SECOND_DIALOG_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertEquals(2, scaffoldState.fullScreenContent.contentItems.size)
-        rule.onNodeWithTag(HIDE_SECOND_DIALOG_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertEquals(1, scaffoldState.fullScreenContent.contentItems.size)
-        // Check that the first dialog is still in the contentItems
-        Assert.assertTrue(scaffoldState.fullScreenContent.contentItems.contains(firstDialog))
-    }
-
-    @Test
-    fun dialog_opened_from_dialog_and_replaced() {
-        var scaffoldState = ScaffoldState(appScaffoldPresent = true)
-
-        rule.setContentWithTheme {
-            AppScaffold {
-                var visible1 by remember { mutableStateOf(false) }
-                var visible2 by remember { mutableStateOf(false) }
-                scaffoldState = LocalScaffoldState.current
-                Button(
-                    modifier = Modifier.testTag(SHOW_BUTTON_TAG),
-                    onClick = { visible1 = true }
-                ) {}
-
-                if (visible1) {
-                    Dialog(
-                        visible = true,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {
-                        Button(
-                            modifier = Modifier.testTag(SHOW_SECOND_DIALOG_TAG),
-                            onClick = {
-                                visible1 = false
-                                visible2 = true
-                            }
-                        ) {}
-                    }
-                }
-                if (visible2) {
-                    Dialog(
-                        visible = visible2,
-                        modifier = Modifier.testTag(TEST_TAG),
-                        onDismissRequest = {}
-                    ) {}
-                }
-            }
-        }
-        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertEquals(1, scaffoldState.fullScreenContent.contentItems.size)
-        val firstDialog = scaffoldState.fullScreenContent.contentItems.first()
-
-        rule.onNodeWithTag(SHOW_SECOND_DIALOG_TAG).performClick()
-        rule.waitForIdle()
-        Assert.assertEquals(1, scaffoldState.fullScreenContent.contentItems.size)
-        // Check that the first dialog was removed from contentItems
-        Assert.assertFalse(scaffoldState.fullScreenContent.contentItems.contains(firstDialog))
-    }
 }
 
 private const val SHOW_BUTTON_TAG = "show-button"
-private const val HIDE_BUTTON_TAG = "hide-button"
-private const val SHOW_SECOND_DIALOG_TAG = "show-second-dialog"
-private const val HIDE_SECOND_DIALOG_TAG = "hide-second-dialog"

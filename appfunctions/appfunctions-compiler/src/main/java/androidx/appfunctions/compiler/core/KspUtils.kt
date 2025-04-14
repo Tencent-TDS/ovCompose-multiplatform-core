@@ -22,6 +22,7 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSName
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeArgument
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.symbol.Variance.CONTRAVARIANT
@@ -32,9 +33,15 @@ import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.WildcardTypeName
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+
+/** Gets the [TypeVariableName] from [KSTypeParameter]. */
+fun KSTypeParameter.toTypeVariableName(): TypeVariableName {
+    return TypeVariableName(name.asString())
+}
 
 /**
  * Gets the qualified name from [KSFunctionDeclaration].
@@ -123,7 +130,7 @@ fun <T : Any> KSAnnotation.requirePropertyValueOfType(
 
 // TODO: Import KotlinPoet KSP to replace these KSPUtils.
 fun KSTypeReference.toTypeName(): TypeName {
-    val args = element?.typeArguments ?: emptyList()
+    val args = resolve().arguments
     return resolve().toTypeName(args)
 }
 

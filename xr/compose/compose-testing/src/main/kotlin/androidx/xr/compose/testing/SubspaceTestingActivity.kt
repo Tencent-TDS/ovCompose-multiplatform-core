@@ -23,9 +23,9 @@ import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.xr.compose.platform.SceneManager
-import androidx.xr.compose.platform.setSubspaceContent
+import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.SubspaceComposable
-import androidx.xr.scenecore.JxrPlatformAdapter
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.scenecore.Session
 import androidx.xr.scenecore.impl.JxrPlatformAdapterAxr
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider
@@ -64,8 +64,7 @@ public class SubspaceTestingActivity : ComponentActivity() {
 public fun AndroidComposeTestRule<*, SubspaceTestingActivity>.setSubspaceContent(
     content: @Composable @SubspaceComposable () -> Unit
 ) {
-    setContent {} // Necessary to avoid crashes, as ComposeTestRule expects a call to setContent {}
-    activity.setSubspaceContent(session = activity.session, content = content)
+    setContent { TestSetup { Subspace { content() } } }
 }
 
 /** Analog to [AndroidComposeTestRule.setContent] for testing [SubspaceComposable] content. */
@@ -74,8 +73,12 @@ public fun AndroidComposeTestRule<*, SubspaceTestingActivity>.setSubspaceContent
     uiContent: @Composable () -> Unit,
     content: @Composable @SubspaceComposable () -> Unit,
 ) {
-    setContent(uiContent)
-    activity.setSubspaceContent(session = activity.session, content = content)
+    setContent {
+        TestSetup {
+            uiContent()
+            Subspace { content() }
+        }
+    }
 }
 
 /** Subspace version of onNode in Compose. */

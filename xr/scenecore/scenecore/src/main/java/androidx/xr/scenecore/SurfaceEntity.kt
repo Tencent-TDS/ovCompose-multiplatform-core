@@ -20,6 +20,8 @@ import android.view.Surface
 import androidx.annotation.IntDef
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.SurfaceEntity as RtSurfaceEntity
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -37,14 +39,23 @@ import androidx.xr.runtime.math.Pose
  *   the user's eyes.
  * @property dimensions The dimensions of the canvas in the local spatial coordinate system of the
  *   entity.
+ * @property alphaMaskTexture The texture to be composited into the alpha channel of the surface. If
+ *   null, the alpha mask will be disabled.
+ * @property auxiliaryAlphaMaskTexture The texture to be composited into the alpha channel of the
+ *   secondary view of the surface. This is only used for interleaved stereo content. If null, the
+ *   alpha mask will be disabled.
+ * @property featherRadiusX a [Float] which controls the canvas-relative radius of the edge fadeout
+ *   on the left and right edges of the SurfaceEntity canvas.
+ * @property featherRadiusY a [Float] which controls the canvas-relative radius of the edge fadeout
+ *   on the top and bottom edges of the SurfaceEntity canvas.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SurfaceEntity
 private constructor(
-    rtEntity: JxrPlatformAdapter.SurfaceEntity,
+    rtEntity: RtSurfaceEntity,
     entityManager: EntityManager,
     canvasShape: CanvasShape,
-) : BaseEntity<JxrPlatformAdapter.SurfaceEntity>(rtEntity, entityManager) {
+) : BaseEntity<RtSurfaceEntity>(rtEntity, entityManager) {
 
     /** Represents the shape of the Canvas that backs a SurfaceEntity. */
     public abstract class CanvasShape private constructor() {
@@ -110,13 +121,13 @@ private constructor(
     public companion object {
         private fun getRtStereoMode(stereoMode: Int): Int {
             return when (stereoMode) {
-                StereoMode.MONO -> JxrPlatformAdapter.SurfaceEntity.StereoMode.MONO
-                StereoMode.TOP_BOTTOM -> JxrPlatformAdapter.SurfaceEntity.StereoMode.TOP_BOTTOM
+                StereoMode.MONO -> RtSurfaceEntity.StereoMode.MONO
+                StereoMode.TOP_BOTTOM -> RtSurfaceEntity.StereoMode.TOP_BOTTOM
                 StereoMode.MULTIVIEW_LEFT_PRIMARY ->
-                    JxrPlatformAdapter.SurfaceEntity.StereoMode.MULTIVIEW_LEFT_PRIMARY
+                    RtSurfaceEntity.StereoMode.MULTIVIEW_LEFT_PRIMARY
                 StereoMode.MULTIVIEW_RIGHT_PRIMARY ->
-                    JxrPlatformAdapter.SurfaceEntity.StereoMode.MULTIVIEW_RIGHT_PRIMARY
-                else -> JxrPlatformAdapter.SurfaceEntity.StereoMode.SIDE_BY_SIDE
+                    RtSurfaceEntity.StereoMode.MULTIVIEW_RIGHT_PRIMARY
+                else -> RtSurfaceEntity.StereoMode.SIDE_BY_SIDE
             }
         }
 
@@ -139,16 +150,11 @@ private constructor(
             val rtCanvasShape =
                 when (canvasShape) {
                     is CanvasShape.Quad ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(
-                            canvasShape.width,
-                            canvasShape.height
-                        )
+                        RtSurfaceEntity.CanvasShape.Quad(canvasShape.width, canvasShape.height)
                     is CanvasShape.Vr360Sphere ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(canvasShape.radius)
+                        RtSurfaceEntity.CanvasShape.Vr360Sphere(canvasShape.radius)
                     is CanvasShape.Vr180Hemisphere ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(
-                            canvasShape.radius
-                        )
+                        RtSurfaceEntity.CanvasShape.Vr180Hemisphere(canvasShape.radius)
                     else -> throw IllegalArgumentException("Unsupported canvas shape: $canvasShape")
                 }
             return SurfaceEntity(
@@ -228,15 +234,71 @@ private constructor(
             val rtCanvasShape =
                 when (value) {
                     is CanvasShape.Quad ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(value.width, value.height)
+                        RtSurfaceEntity.CanvasShape.Quad(value.width, value.height)
                     is CanvasShape.Vr360Sphere ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(value.radius)
+                        RtSurfaceEntity.CanvasShape.Vr360Sphere(value.radius)
                     is CanvasShape.Vr180Hemisphere ->
-                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(value.radius)
+                        RtSurfaceEntity.CanvasShape.Vr180Hemisphere(value.radius)
                     else -> throw IllegalArgumentException("Unsupported canvas shape: $value")
                 }
-            rtEntity.setCanvasShape(rtCanvasShape)
+            rtEntity.canvasShape = rtCanvasShape
             field = value
+        }
+
+    /**
+     * The texture to be composited into the alpha channel of the surface. If null, the alpha mask
+     * will be disabled.
+     */
+    public var primaryAlphaMaskTexture: Texture? = null
+        @MainThread
+        set(value) {
+            rtEntity.setPrimaryAlphaMaskTexture(value?.texture)
+            field = value
+        }
+
+    /**
+     * The texture to be composited into the alpha channel of the secondary view of the surface.
+     * This is only used for interleaved stereo content. If null, the alpha mask will be disabled.
+     */
+    public var auxiliaryAlphaMaskTexture: Texture? = null
+        @MainThread
+        set(value) {
+            rtEntity.setAuxiliaryAlphaMaskTexture(value?.texture)
+            field = value
+        }
+
+    /**
+     * Controls the canvas-relative radius of the edge fadeout on the left and right edges of the
+     * SurfaceEntity canvas. A radius of 0.05 represents 5% of the width of the visible canvas
+     * surface. Please note that this is scaled by the aspect ratio of Quad-shaped canvases.
+     *
+     * Applications are encouraged to set this to 0.0 on 360 canvases. The behavior is only defined
+     * between [0.0f - 0.5f]. Default value is 0.0f.
+     *
+     * Setter must be called from the main thread.
+     */
+    public var featherRadiusX: Float
+        get() = rtEntity.featherRadiusX
+        @MainThread
+        set(value) {
+            rtEntity.featherRadiusX = value
+        }
+
+    /**
+     * Controls the canvas-relative radius of the edge fadeout on the top and bottom edges of the
+     * SurfaceEntity canvas. A radius of 0.05 represents 5% of the height of the visible canvas
+     * surface. Please note that this is scaled by the aspect ratio of Quad-shaped canvases.
+     *
+     * Applications are encouraged to set this to 0.0 on 360 canvases. The behavior is only defined
+     * between [0.0f - 0.5f]. Default value is 0.0f.
+     *
+     * Setter must be called from the main thread.
+     */
+    public var featherRadiusY: Float
+        get() = rtEntity.featherRadiusY
+        @MainThread
+        set(value) {
+            rtEntity.featherRadiusY = value
         }
 
     /**

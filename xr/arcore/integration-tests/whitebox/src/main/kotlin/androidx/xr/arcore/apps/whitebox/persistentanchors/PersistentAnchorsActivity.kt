@@ -56,10 +56,13 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.xr.arcore.Anchor
+import androidx.xr.arcore.AnchorCreateNotTracking
 import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
 import androidx.xr.arcore.apps.whitebox.common.BackToMainActivityButton
 import androidx.xr.arcore.apps.whitebox.common.SessionLifecycleHelper
+import androidx.xr.runtime.AnchorPersistenceMode
+import androidx.xr.runtime.Config
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
@@ -96,10 +99,13 @@ class PersistentAnchorsActivity : ComponentActivity() {
         jxrCoreSession = JxrCoreSession.create(this)
 
         createTargetPanel()
-        setContent { MainPanel() }
 
         session.lifecycleScope.launch {
-            session.repeatOnLifecycle(Lifecycle.State.RESUMED) { onResumeCallback() }
+            session.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                session.configure(Config(anchorPersistence = AnchorPersistenceMode.Enabled))
+                setContent { MainPanel() }
+                onResumeCallback()
+            }
         }
     }
 
@@ -230,6 +236,10 @@ class PersistentAnchorsActivity : ComponentActivity() {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
                     Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
                 }
+                is AnchorCreateNotTracking -> {
+                    Log.e(ACTIVITY_NAME, "Failed to create anchor: camera not tracking.")
+                    Toast.makeText(this, "Camera not tracking.", Toast.LENGTH_LONG).show()
+                }
             }
         } catch (e: IllegalStateException) {
             Log.e(ACTIVITY_NAME, "Failed to create anchor: ${e.message}")
@@ -314,6 +324,10 @@ class PersistentAnchorsActivity : ComponentActivity() {
                 is AnchorCreateResourcesExhausted -> {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
                     Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
+                }
+                is AnchorCreateNotTracking -> {
+                    Log.e(ACTIVITY_NAME, "Failed to create anchor: camera not tracking.")
+                    Toast.makeText(this, "Camera not tracking.", Toast.LENGTH_LONG).show()
                 }
             }
         } catch (e: IllegalStateException) {

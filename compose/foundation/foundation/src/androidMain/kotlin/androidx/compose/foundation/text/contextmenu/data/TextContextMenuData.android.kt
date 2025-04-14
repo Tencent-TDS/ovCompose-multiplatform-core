@@ -16,5 +16,4 @@
 
 package androidx.compose.foundation.text.contextmenu.data
 
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias PlatformIcon = Int

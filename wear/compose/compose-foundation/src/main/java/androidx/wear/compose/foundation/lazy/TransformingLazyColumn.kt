@@ -156,6 +156,7 @@ public fun TransformingLazyColumn(
         itemProvider = itemProviderLambda,
         modifier =
             modifier
+                .then(state.awaitLayoutModifier)
                 .then(state.remeasurementModifier)
                 .then(state.animator.modifier)
                 .then(

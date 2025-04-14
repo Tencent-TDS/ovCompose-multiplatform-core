@@ -21,7 +21,7 @@ import android.os.Bundle
 /**
  * Thrown when an error is caused by the app providing the function.
  *
- * <p>For example, the app crashed when the system is executing the request.
+ * For example, the app crashed when the system is executing the request.
  */
 public abstract class AppFunctionAppException
 internal constructor(errorCode: Int, errorMessage: String? = null, extras: Bundle) :
@@ -30,7 +30,7 @@ internal constructor(errorCode: Int, errorMessage: String? = null, extras: Bundl
 /**
  * Thrown when an unknown error occurred while processing the call in the AppFunctionService.
  *
- * <p>This error is thrown when the service is connected in the remote application but an unexpected
+ * This error is thrown when the service is connected in the remote application but an unexpected
  * error is thrown from the bound application.
  */
 public class AppFunctionAppUnknownException
@@ -43,12 +43,12 @@ internal constructor(errorMessage: String? = null, extras: Bundle) :
 /**
  * Thrown when the app lacks the necessary permission to fulfill the request.
  *
- * <p>This occurs when the app attempts an operation requiring user-granted permission that has not
+ * This occurs when the app attempts an operation requiring user-granted permission that has not
  * been provided. For example, creating a calendar event requires access to the calendar content. If
  * the user hasn't granted this permission, this error should be thrown.
  *
- * <p> This is different from [AppFunctionDeniedException] in that the required permission is
- * missing from the target app, as opposed to the caller.
+ * This is different from [AppFunctionDeniedException] in that the required permission is missing
+ * from the target app, as opposed to the caller.
  */
 public class AppFunctionPermissionRequiredException
 internal constructor(errorMessage: String? = null, extras: Bundle) :
@@ -60,8 +60,8 @@ internal constructor(errorMessage: String? = null, extras: Bundle) :
 /**
  * Thrown when an app receives a request to perform an unsupported action.
  *
- * <p>For example, a clock app might support updating timer properties such as label but may not
- * allow updating the timer's duration once the timer has already started.
+ * For example, a clock app might support updating timer properties such as label but may not allow
+ * updating the timer's duration once the timer has already started.
  */
 public class AppFunctionNotSupportedException
 internal constructor(errorMessage: String? = null, extras: Bundle) :

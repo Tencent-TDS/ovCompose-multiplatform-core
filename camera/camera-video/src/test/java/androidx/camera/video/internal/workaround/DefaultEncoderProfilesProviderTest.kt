@@ -30,6 +30,7 @@ import androidx.camera.testing.impl.fakes.FakeVideoEncoderInfo
 import androidx.camera.video.Quality
 import androidx.camera.video.Quality.FHD
 import androidx.camera.video.Quality.HD
+import androidx.camera.video.Quality.QUALITY_SOURCE_REGULAR
 import androidx.camera.video.Quality.SD
 import androidx.camera.video.Quality.UHD
 import androidx.camera.video.internal.encoder.VideoEncoderInfo
@@ -373,7 +374,7 @@ class DefaultEncoderProfilesProviderTest {
     }
 
     private val Quality.value: Int
-        get() = (this as Quality.ConstantQuality).value
+        get() = (this as Quality.ConstantQuality).getQualityValue(QUALITY_SOURCE_REGULAR)
 
     private class FakeVideoEncoderInfoFinder(
         private val maxSupportedBitrate: Int = Int.MAX_VALUE,

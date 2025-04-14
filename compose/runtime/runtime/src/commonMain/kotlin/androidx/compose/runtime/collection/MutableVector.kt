@@ -1090,6 +1090,7 @@ inline fun <reified T> MutableVector(capacity: Int = 16) =
  * [init] is called for each element in the [MutableVector], starting from the first one and should
  * return the value to be assigned to the element at its given index.
  */
+@Suppress("LEAKED_IN_PLACE_LAMBDA")
 @OptIn(ExperimentalContracts::class)
 inline fun <reified T> MutableVector(size: Int, noinline init: (Int) -> T): MutableVector<T> {
     contract { callsInPlace(init) }

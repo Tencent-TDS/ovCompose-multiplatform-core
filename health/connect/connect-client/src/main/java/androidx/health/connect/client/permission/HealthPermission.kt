@@ -18,6 +18,7 @@ package androidx.health.connect.client.permission
 import androidx.annotation.RestrictTo
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
+import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
@@ -415,6 +416,7 @@ public class HealthPermission internal constructor() {
         internal const val READ_SEXUAL_ACTIVITY = PERMISSION_PREFIX + "READ_SEXUAL_ACTIVITY"
 
         // Read permissions for WELLNESS
+        @ExperimentalMindfulnessSessionApi
         internal const val READ_MINDFULNESS_SESSION = PERMISSION_PREFIX + "READ_MINDFULNESS_SESSION"
 
         // Read permissions for NUTRITION.
@@ -479,6 +481,7 @@ public class HealthPermission internal constructor() {
         internal const val WRITE_NUTRITION = PERMISSION_PREFIX + "WRITE_NUTRITION"
 
         // Write permissions for WELLNESS
+        @ExperimentalMindfulnessSessionApi
         internal const val WRITE_MINDFULNESS_SESSION =
             PERMISSION_PREFIX + "WRITE_MINDFULNESS_SESSION"
 
@@ -502,6 +505,7 @@ public class HealthPermission internal constructor() {
         internal const val READ_PERMISSION_PREFIX = PERMISSION_PREFIX + "READ_"
         internal const val WRITE_PERMISSION_PREFIX = PERMISSION_PREFIX + "WRITE_"
 
+        @OptIn(ExperimentalMindfulnessSessionApi::class)
         internal val RECORD_TYPE_TO_PERMISSION =
             mapOf<KClass<out Record>, String>(
                 ActiveCaloriesBurnedRecord::class to

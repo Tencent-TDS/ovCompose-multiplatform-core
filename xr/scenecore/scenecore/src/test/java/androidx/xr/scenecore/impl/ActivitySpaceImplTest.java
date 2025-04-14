@@ -30,12 +30,15 @@ import static org.mockito.Mockito.when;
 import android.app.Activity;
 import android.util.Size;
 
+import androidx.xr.runtime.internal.ActivityPose.HitTestRange;
+import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.HitTestResult;
+import androidx.xr.runtime.internal.JxrPlatformAdapter;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
@@ -48,6 +51,7 @@ import com.android.extensions.xr.environment.EnvironmentVisibilityState;
 import com.android.extensions.xr.environment.PassthroughVisibilityState;
 import com.android.extensions.xr.environment.ShadowEnvironmentVisibilityState;
 import com.android.extensions.xr.environment.ShadowPassthroughVisibilityState;
+import com.android.extensions.xr.node.Vec3;
 import com.android.extensions.xr.space.Bounds;
 import com.android.extensions.xr.space.ShadowSpatialCapabilities;
 import com.android.extensions.xr.space.ShadowSpatialState;
@@ -56,6 +60,7 @@ import com.android.extensions.xr.space.SpatialState;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.junit.After;
 import org.junit.Before;
@@ -179,8 +184,8 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
 
     @Test
     public void addBoundsChangedListener_happyPath() {
-        JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener listener =
-                Mockito.mock(JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener.class);
+        ActivitySpace.OnBoundsChangedListener listener =
+                Mockito.mock(ActivitySpace.OnBoundsChangedListener.class);
 
         SpatialState spatialState =
                 createSpatialState(/* bounds= */ new Bounds(100.0f, 200.0f, 300.0f));
@@ -192,8 +197,8 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
 
     @Test
     public void removeBoundsChangedListener_happyPath() {
-        JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener listener =
-                Mockito.mock(JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener.class);
+        ActivitySpace.OnBoundsChangedListener listener =
+                Mockito.mock(ActivitySpace.OnBoundsChangedListener.class);
 
         mActivitySpace.addOnBoundsChangedListener(listener);
         mActivitySpace.removeOnBoundsChangedListener(listener);
@@ -229,5 +234,33 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
         assertThat(mActivitySpace.getScale().getZ()).isWithin(1e-5f).of(1.0f);
 
         // Note that there's no exception thrown.
+    }
+
+    @Test
+    public void hitTest_returnsHitTest() throws Exception {
+        float distance = 2.0f;
+        Vec3 hitPosition = new Vec3(1.0f, 2.0f, 3.0f);
+        Vec3 surfaceNormal = new Vec3(4.0f, 5.0f, 6.0f);
+        int surfaceType = com.android.extensions.xr.space.HitTestResult.SURFACE_PANEL;
+        @HitTestRangeValue int hitTestRange = HitTestRange.HIT_TEST_RANGE_ALL_SCENES;
+
+        com.android.extensions.xr.space.HitTestResult.Builder hitTestResultBuilder =
+                new com.android.extensions.xr.space.HitTestResult.Builder(
+                        distance, hitPosition, true, surfaceType);
+        com.android.extensions.xr.space.HitTestResult extensionsHitTestResult =
+                hitTestResultBuilder.setSurfaceNormal(surfaceNormal).build();
+        ShadowXrExtensions.extract(mXrExtensions)
+                .setHitTestResult(mActivity, extensionsHitTestResult);
+
+        ListenableFuture<HitTestResult> hitTestResultFuture =
+                mActivitySpace.hitTest(new Vector3(1, 1, 1), new Vector3(1, 1, 1), hitTestRange);
+        mFakeExecutor.runAll();
+        HitTestResult hitTestResult = hitTestResultFuture.get();
+
+        assertThat(hitTestResult.getDistance()).isEqualTo(distance);
+        assertVector3(hitTestResult.getHitPosition(), new Vector3(1, 2, 3));
+        assertVector3(hitTestResult.getSurfaceNormal(), new Vector3(4, 5, 6));
+        assertThat(hitTestResult.getSurfaceType())
+                .isEqualTo(HitTestResult.HitTestSurfaceType.HIT_TEST_RESULT_SURFACE_TYPE_PLANE);
     }
 }

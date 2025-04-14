@@ -1,4 +1,4 @@
-package com.testdata
+package androidx.appfunctions.`internal`.serializableproxies
 
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.`internal`.AppFunctionSerializableFactory
@@ -24,7 +24,7 @@ public class `$LocalDateTimeFactory` : AppFunctionSerializableFactory<LocalDateT
   override fun toAppFunctionData(appFunctionSerializable: LocalDateTime): AppFunctionData {
     val appFunctionLocalDateTime_appFunctionSerializable = AppFunctionLocalDateTime.fromLocalDateTime(appFunctionSerializable)
 
-    val builder = AppFunctionData.Builder("com.testdata.AppFunctionLocalDateTime")
+    val builder = AppFunctionData.Builder("androidx.appfunctions.internal.serializableproxies.AppFunctionLocalDateTime")
     val year = appFunctionLocalDateTime_appFunctionSerializable.year
     builder.setInt("year", year)
     val month = appFunctionLocalDateTime_appFunctionSerializable.month

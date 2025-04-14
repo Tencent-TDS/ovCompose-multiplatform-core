@@ -170,6 +170,27 @@ class FloatingToolbarTest {
         )
     }
 
+    // Regression test for b/406014787
+    @Test
+    fun horizontalFloatingToolbar_interactiveSize_doesNotResizeToolbar() {
+
+        rule
+            .setMaterialContentForSizeAssertions {
+                val text = listOf("Long Text", "Y", "M3", "M", "W", "D")
+
+                HorizontalFloatingToolbar(
+                    expanded = false,
+                    collapsedShadowElevation = 5.dp,
+                    content = {
+                        text.forEach {
+                            Box(Modifier.minimumInteractiveComponentSize()) { Text(it) }
+                        }
+                    }
+                )
+            }
+            .assertHeightIsEqualTo(64.0.dp)
+    }
+
     @Test
     fun verticalFloatingToolbar_default_scrolledPositioning() {
         lateinit var scrollBehavior: FloatingToolbarScrollBehavior

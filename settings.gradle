@@ -33,7 +33,7 @@ buildscript {
         if (agpOverride != null) {
             classpath("com.android.settings:com.android.settings.gradle.plugin:$agpOverride")
         } else {
-            classpath("com.android.settings:com.android.settings.gradle.plugin:8.10.0-alpha07")
+            classpath("com.android.settings:com.android.settings.gradle.plugin:8.11.0-alpha03")
         }
         // set guava version to be compatible with Depdendency analysis gradle plugin
         classpath("com.google.guava:guava:33.3.1-jre")
@@ -437,9 +437,6 @@ includeProject(":binarycompatibilityvalidator:binarycompatibilityvalidator", [Bu
 includeProject(":biometric:biometric", [BuildType.MAIN])
 includeProject(":biometric:biometric-samples", "biometric/biometric/samples", [BuildType.MAIN])
 includeProject(":biometric:integration-tests:testapp", [BuildType.MAIN])
-includeProject(":bluetooth:bluetooth", [BuildType.MAIN])
-includeProject(":bluetooth:bluetooth-testing", [BuildType.MAIN])
-includeProject(":bluetooth:integration-tests:testapp", [BuildType.MAIN])
 includeProject(":browser:browser", [BuildType.MAIN])
 includeProject(":buildSrc-tests", [BuildType.MAIN, BuildType.TOOLS])
 // these projects intentionally fail to compile unless androidx.useMaxDepVersions is enabled
@@ -572,6 +569,8 @@ includeProject(":compose:material3:integration-tests:macrobenchmark-target", [Bu
 includeProject(":compose:material:material:material-samples", "compose/material/material/samples", [BuildType.COMPOSE])
 includeProject(":compose:material3:material3:material3-samples", "compose/material3/material3/samples", [BuildType.COMPOSE])
 includeProject(":compose:runtime:runtime", [BuildType.COMPOSE, BuildType.KMP])
+includeProject(":compose:runtime:runtime-annotation", [BuildType.COMPOSE, BuildType.KMP])
+includeProject(":compose:runtime:runtime-annotation:runtime-annotation-samples", "compose/runtime/runtime-annotation/samples", [BuildType.COMPOSE])
 includeProject(":compose:runtime:runtime-lint", [BuildType.COMPOSE])
 includeProject(":compose:runtime:runtime-livedata", [BuildType.COMPOSE])
 includeProject(":compose:runtime:runtime-livedata:runtime-livedata-samples", "compose/runtime/runtime-livedata/samples", [BuildType.COMPOSE])
@@ -1002,7 +1001,6 @@ includeProject(":savedstate:savedstate-ktx", [BuildType.MAIN, BuildType.COMPOSE,
 includeProject(":savedstate:savedstate-samples", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.KMP])
 includeProject(":security:security-app-authenticator", [BuildType.MAIN])
 includeProject(":security:security-app-authenticator-testing", [BuildType.MAIN])
-includeProject(":security:security-biometric", [BuildType.MAIN])
 includeProject(":security:security-crypto", [BuildType.MAIN])
 includeProject(":security:security-crypto-ktx", [BuildType.MAIN])
 includeProject(":security:security-mls", [BuildType.MAIN])
@@ -1222,7 +1220,6 @@ includeProject(":xr:scenecore:integration-tests:standalone", [BuildType.XR])
 includeProject(":xr:scenecore:integration-tests:svxr-example", [BuildType.XR])
 includeProject(":xr:scenecore:integration-tests:transformationtests", [BuildType.XR])
 includeProject(":xr:scenecore:integration-tests:visibilitytest", [BuildType.XR])
-includeProject(":xr:xr-stubs", [BuildType.XR])
 
 /////////////////////////////
 //
@@ -1273,6 +1270,7 @@ includeProject(":internal-testutils-paging", "testutils/testutils-paging", [Buil
 includeProject(":internal-testutils-gradle-plugin", "testutils/testutils-gradle-plugin", [BuildType.MAIN, BuildType.FLAN, BuildType.COMPOSE, BuildType.TOOLS])
 includeProject(":internal-testutils-mockito", "testutils/testutils-mockito", [BuildType.MAIN, BuildType.MEDIA, BuildType.FLAN, BuildType.COMPOSE])
 includeProject(":internal-testutils-lifecycle", "testutils/testutils-lifecycle", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.KMP])
+includeProject(":internal-testutils-appfunctions", "testutils/testutils-appfunctions", [BuildType.MAIN])
 includeProject(":kruth:kruth", [BuildType.MAIN, BuildType.INFRAROGUE, BuildType.KMP, BuildType.COMPOSE])
 
 /////////////////////////////

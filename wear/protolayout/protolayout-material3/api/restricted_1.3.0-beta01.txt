@@ -257,11 +257,9 @@ package androidx.wear.protolayout.material3 {
 
   @androidx.wear.protolayout.material3.MaterialScopeMarker public class MaterialScope {
     method public final androidx.wear.protolayout.material3.ColorScheme getColorScheme();
-    method public final android.content.Context getContext();
     method public final androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters getDeviceConfiguration();
     method public final androidx.wear.protolayout.material3.Shapes getShapes();
     property public final androidx.wear.protolayout.material3.ColorScheme colorScheme;
-    property public final android.content.Context context;
     property public final androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters deviceConfiguration;
     property public final androidx.wear.protolayout.material3.Shapes shapes;
   }

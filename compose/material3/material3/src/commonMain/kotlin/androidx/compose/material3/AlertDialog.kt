@@ -47,8 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import kotlin.math.max
 
 /**
- * <a href="https://m3.material.io/components/dialogs/overview" class="external"
- * target="_blank">Material Design basic dialog</a>.
+ * [Material Design basic dialog](https://m3.material.io/components/dialogs/overview)
  *
  * Dialogs provide important prompts in a user flow. They can require an action, communicate
  * information, or help users accomplish a task.
@@ -111,8 +110,7 @@ expect fun AlertDialog(
 )
 
 /**
- * <a href="https://m3.material.io/components/dialogs/overview" class="external"
- * target="_blank">Basic alert dialog dialog</a>.
+ * [Basic alert dialog dialog](https://m3.material.io/components/dialogs/overview)
  *
  * Dialogs provide important prompts in a user flow. They can require an action, communicate
  * information, or help users accomplish a task.
@@ -185,8 +183,7 @@ object DefaultBasicAlertDialogOverride : BasicAlertDialogOverride {
 }
 
 /**
- * <a href="https://m3.material.io/components/dialogs/overview" class="external"
- * target="_blank">Basic alert dialog dialog</a>.
+ * [Basic alert dialog dialog](https://m3.material.io/components/dialogs/overview)
  *
  * Dialogs provide important prompts in a user flow. They can require an action, communicate
  * information, or help users accomplish a task.

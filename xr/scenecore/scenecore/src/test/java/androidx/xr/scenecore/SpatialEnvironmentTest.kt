@@ -16,6 +16,11 @@
 
 package androidx.xr.scenecore
 
+import androidx.xr.runtime.internal.ExrImageResource as RtExrImageResource
+import androidx.xr.runtime.internal.GltfModelResource as RtGltfModelResource
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MaterialResource as RtMaterialResource
+import androidx.xr.runtime.internal.SpatialEnvironment as RtSpatialEnvironment
 import com.google.common.truth.Truth.assertThat
 import java.util.function.Consumer
 import org.junit.Before
@@ -39,12 +44,12 @@ import org.mockito.kotlin.whenever
 class SpatialEnvironmentTest {
 
     private var mockRuntime: JxrPlatformAdapter = mock<JxrPlatformAdapter>()
-    private var mockRtEnvironment: JxrPlatformAdapter.SpatialEnvironment? = null
+    private var mockRtEnvironment: RtSpatialEnvironment? = null
     private var environment: SpatialEnvironment? = null
 
     @Before
     fun setUp() {
-        mockRtEnvironment = mock<JxrPlatformAdapter.SpatialEnvironment>()
+        mockRtEnvironment = mock<RtSpatialEnvironment>()
         whenever(mockRuntime.spatialEnvironment).thenReturn(mockRtEnvironment)
 
         environment = SpatialEnvironment(mockRuntime)
@@ -81,20 +86,14 @@ class SpatialEnvironmentTest {
         val preference = 0.3f
 
         whenever(mockRtEnvironment!!.setPassthroughOpacityPreference(any()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetPassthroughOpacityPreferenceResult
-                    .CHANGE_APPLIED
-            )
+            .thenReturn(RtSpatialEnvironment.SetPassthroughOpacityPreferenceResult.CHANGE_APPLIED)
         assertThat(environment!!.setPassthroughOpacityPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetPassthroughOpacityPreferenceChangeApplied::class.java
             )
 
         whenever(mockRtEnvironment!!.setPassthroughOpacityPreference(any()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetPassthroughOpacityPreferenceResult
-                    .CHANGE_PENDING
-            )
+            .thenReturn(RtSpatialEnvironment.SetPassthroughOpacityPreferenceResult.CHANGE_PENDING)
         assertThat(environment!!.setPassthroughOpacityPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetPassthroughOpacityPreferenceChangePending::class.java
@@ -108,20 +107,14 @@ class SpatialEnvironmentTest {
         val preference = null as Float?
 
         whenever(mockRtEnvironment!!.setPassthroughOpacityPreference(anyOrNull()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetPassthroughOpacityPreferenceResult
-                    .CHANGE_APPLIED
-            )
+            .thenReturn(RtSpatialEnvironment.SetPassthroughOpacityPreferenceResult.CHANGE_APPLIED)
         assertThat(environment!!.setPassthroughOpacityPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetPassthroughOpacityPreferenceChangeApplied::class.java
             )
 
         whenever(mockRtEnvironment!!.setPassthroughOpacityPreference(anyOrNull()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetPassthroughOpacityPreferenceResult
-                    .CHANGE_PENDING
-            )
+            .thenReturn(RtSpatialEnvironment.SetPassthroughOpacityPreferenceResult.CHANGE_PENDING)
         assertThat(environment!!.setPassthroughOpacityPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetPassthroughOpacityPreferenceChangePending::class.java
@@ -152,13 +145,13 @@ class SpatialEnvironmentTest {
 
     @Test
     fun spatialEnvironmentPreferenceEqualsHashcode_returnsTrueIfAllPropertiesAreEqual() {
-        val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
-        val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
-        val rtMaterialMock = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtImageMock = mock<RtExrImageResource>()
+        val rtModelMock = mock<RtGltfModelResource>()
+        val rtMaterialMock = mock<RtMaterialResource>()
         val rtMeshName = "meshName"
         val rtAnimationName = "animationName"
         val rtPreference =
-            JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference(
+            RtSpatialEnvironment.SpatialEnvironmentPreference(
                 rtImageMock,
                 rtModelMock,
                 rtMaterialMock,
@@ -181,18 +174,18 @@ class SpatialEnvironmentTest {
 
     @Test
     fun spatialEnvironmentPreferenceEqualsHashcode_returnsFalseIfAnyPropertiesAreNotEqual() {
-        val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
-        val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
-        val rtMaterialMock = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtImageMock = mock<RtExrImageResource>()
+        val rtModelMock = mock<RtGltfModelResource>()
+        val rtMaterialMock = mock<RtMaterialResource>()
         val rtMeshName = "meshName"
         val rtAnimationName = "animationName"
-        val rtImageMock2 = mock<JxrPlatformAdapter.ExrImageResource>()
-        val rtModelMock2 = mock<JxrPlatformAdapter.GltfModelResource>()
-        val rtMaterialMock2 = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtImageMock2 = mock<RtExrImageResource>()
+        val rtModelMock2 = mock<RtGltfModelResource>()
+        val rtMaterialMock2 = mock<RtMaterialResource>()
         val rtMeshName2 = "meshName2"
         val rtAnimationName2 = "animationName2"
         val rtPreference =
-            JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference(
+            RtSpatialEnvironment.SpatialEnvironmentPreference(
                 rtImageMock,
                 rtModelMock,
                 rtMaterialMock,
@@ -228,8 +221,8 @@ class SpatialEnvironmentTest {
 
     @Test
     fun setSpatialEnvironmentPreference_returnsRuntimeEnvironmentResultObject() {
-        val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
-        val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
+        val rtImageMock = mock<RtExrImageResource>()
+        val rtModelMock = mock<RtGltfModelResource>()
 
         val preference =
             SpatialEnvironment.SpatialEnvironmentPreference(
@@ -238,20 +231,14 @@ class SpatialEnvironmentTest {
             )
 
         whenever(mockRtEnvironment!!.setSpatialEnvironmentPreference(any()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult
-                    .CHANGE_APPLIED
-            )
+            .thenReturn(RtSpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED)
         assertThat(environment!!.setSpatialEnvironmentPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetSpatialEnvironmentPreferenceChangeApplied::class.java
             )
 
         whenever(mockRtEnvironment!!.setSpatialEnvironmentPreference(any()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult
-                    .CHANGE_PENDING
-            )
+            .thenReturn(RtSpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_PENDING)
         assertThat(environment!!.setSpatialEnvironmentPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetSpatialEnvironmentPreferenceChangePending::class.java
@@ -265,20 +252,14 @@ class SpatialEnvironmentTest {
         val preference = null as SpatialEnvironment.SpatialEnvironmentPreference?
 
         whenever(mockRtEnvironment!!.setSpatialEnvironmentPreference(anyOrNull()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult
-                    .CHANGE_APPLIED
-            )
+            .thenReturn(RtSpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED)
         assertThat(environment!!.setSpatialEnvironmentPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetSpatialEnvironmentPreferenceChangeApplied::class.java
             )
 
         whenever(mockRtEnvironment!!.setSpatialEnvironmentPreference(anyOrNull()))
-            .thenReturn(
-                JxrPlatformAdapter.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult
-                    .CHANGE_PENDING
-            )
+            .thenReturn(RtSpatialEnvironment.SetSpatialEnvironmentPreferenceResult.CHANGE_PENDING)
         assertThat(environment!!.setSpatialEnvironmentPreference(preference))
             .isInstanceOf(
                 SpatialEnvironment.SetSpatialEnvironmentPreferenceChangePending::class.java
@@ -289,13 +270,10 @@ class SpatialEnvironmentTest {
 
     @Test
     fun getSpatialEnvironmentPreference_getsRuntimeEnvironmentSpatialEnvironmentPreference() {
-        val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
-        val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
+        val rtImageMock = mock<RtExrImageResource>()
+        val rtModelMock = mock<RtGltfModelResource>()
         val rtPreference =
-            JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference(
-                rtImageMock,
-                rtModelMock
-            )
+            RtSpatialEnvironment.SpatialEnvironmentPreference(rtImageMock, rtModelMock)
         whenever(mockRtEnvironment!!.spatialEnvironmentPreference).thenReturn(rtPreference)
 
         assertThat(environment!!.getSpatialEnvironmentPreference())
@@ -305,8 +283,7 @@ class SpatialEnvironmentTest {
 
     @Test
     fun getSpatialEnvironmentPreferenceNull_getsRuntimeEnvironmentSpatialEnvironmentPreference() {
-        val rtPreference =
-            null as JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference?
+        val rtPreference = null as RtSpatialEnvironment.SpatialEnvironmentPreference?
         whenever(mockRtEnvironment!!.spatialEnvironmentPreference).thenReturn(rtPreference)
 
         assertThat(environment!!.getSpatialEnvironmentPreference()).isEqualTo(null)
@@ -315,9 +292,9 @@ class SpatialEnvironmentTest {
 
     @Test
     fun isSpatialEnvironmentPreferenceActive_callsRuntimeEnvironmentisSpatialEnvironmentPreferenceActive() {
-        whenever(mockRtEnvironment!!.isSpatialEnvironmentPreferenceActive).thenReturn(true)
+        whenever(mockRtEnvironment!!.isSpatialEnvironmentPreferenceActive()).thenReturn(true)
         assertThat(environment!!.isSpatialEnvironmentPreferenceActive()).isTrue()
-        verify(mockRtEnvironment!!).isSpatialEnvironmentPreferenceActive
+        verify(mockRtEnvironment!!).isSpatialEnvironmentPreferenceActive()
     }
 
     @Test

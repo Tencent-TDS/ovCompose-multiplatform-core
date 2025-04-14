@@ -92,10 +92,11 @@ internal class AppFunctionMetadataTestHelper(private val context: Context) {
     suspend fun isDynamicIndexerAvailable(): Boolean =
         // TODO - Check AppSearch version when new indexer is available in AppSearch.
         createSearchSession().use { session ->
+            // Only check for current package functions.
             val metadataDocument =
                 session
                     .search(
-                        "",
+                        "packageName:\"${context.packageName}\"",
                         SearchSpec.Builder()
                             .addFilterNamespaces("app_functions")
                             .addFilterDocumentClasses(AppFunctionMetadataDocument::class.java)

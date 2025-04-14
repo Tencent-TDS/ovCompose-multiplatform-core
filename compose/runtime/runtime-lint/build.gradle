@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.BundleInsideHelper
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -50,5 +49,4 @@ androidx {
     type = SoftwareType.STANDALONE_PUBLISHED_LINT
     inceptionYear = "2020"
     description = "Compose Runtime Lint Checks"
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

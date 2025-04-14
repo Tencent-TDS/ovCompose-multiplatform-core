@@ -148,6 +148,7 @@ abstract interface androidx.compose.material3/BottomAppBarState { // androidx.co
 
 abstract interface androidx.compose.material3/ButtonGroupScope { // androidx.compose.material3/ButtonGroupScope|null[0]
     abstract fun (androidx.compose.ui/Modifier).animateWidth(androidx.compose.foundation.interaction/InteractionSource): androidx.compose.ui/Modifier // androidx.compose.material3/ButtonGroupScope.animateWidth|animateWidth@androidx.compose.ui.Modifier(androidx.compose.foundation.interaction.InteractionSource){}[0]
+    abstract fun (androidx.compose.ui/Modifier).weight(kotlin/Float): androidx.compose.ui/Modifier // androidx.compose.material3/ButtonGroupScope.weight|weight@androidx.compose.ui.Modifier(kotlin.Float){}[0]
     abstract fun (androidx.compose.ui/Modifier).weight(kotlin/Float, kotlin/Boolean = ...): androidx.compose.ui/Modifier // androidx.compose.material3/ButtonGroupScope.weight|weight@androidx.compose.ui.Modifier(kotlin.Float;kotlin.Boolean){}[0]
 }
 
@@ -341,8 +342,6 @@ abstract interface androidx.compose.material3/TopAppBarScrollBehavior { // andro
         abstract fun <get-isPinned>(): kotlin/Boolean // androidx.compose.material3/TopAppBarScrollBehavior.isPinned.<get-isPinned>|<get-isPinned>(){}[0]
     abstract val nestedScrollConnection // androidx.compose.material3/TopAppBarScrollBehavior.nestedScrollConnection|{}nestedScrollConnection[0]
         abstract fun <get-nestedScrollConnection>(): androidx.compose.ui.input.nestedscroll/NestedScrollConnection // androidx.compose.material3/TopAppBarScrollBehavior.nestedScrollConnection.<get-nestedScrollConnection>|<get-nestedScrollConnection>(){}[0]
-    abstract val reverseLayout // androidx.compose.material3/TopAppBarScrollBehavior.reverseLayout|{}reverseLayout[0]
-        abstract fun <get-reverseLayout>(): kotlin/Boolean // androidx.compose.material3/TopAppBarScrollBehavior.reverseLayout.<get-reverseLayout>|<get-reverseLayout>(){}[0]
     abstract val snapAnimationSpec // androidx.compose.material3/TopAppBarScrollBehavior.snapAnimationSpec|{}snapAnimationSpec[0]
         abstract fun <get-snapAnimationSpec>(): androidx.compose.animation.core/AnimationSpec<kotlin/Float>? // androidx.compose.material3/TopAppBarScrollBehavior.snapAnimationSpec.<get-snapAnimationSpec>|<get-snapAnimationSpec>(){}[0]
     abstract val state // androidx.compose.material3/TopAppBarScrollBehavior.state|{}state[0]
@@ -385,23 +384,6 @@ sealed interface androidx.compose.material3.carousel/CarouselItemScope { // andr
     abstract fun (androidx.compose.ui/Modifier).maskBorder(androidx.compose.foundation/BorderStroke, androidx.compose.ui.graphics/Shape): androidx.compose.ui/Modifier // androidx.compose.material3.carousel/CarouselItemScope.maskBorder|maskBorder@androidx.compose.ui.Modifier(androidx.compose.foundation.BorderStroke;androidx.compose.ui.graphics.Shape){}[0]
     abstract fun (androidx.compose.ui/Modifier).maskClip(androidx.compose.ui.graphics/Shape): androidx.compose.ui/Modifier // androidx.compose.material3.carousel/CarouselItemScope.maskClip|maskClip@androidx.compose.ui.Modifier(androidx.compose.ui.graphics.Shape){}[0]
     abstract fun rememberMaskShape(androidx.compose.ui.graphics/Shape): androidx.compose.foundation.shape/GenericShape // androidx.compose.material3.carousel/CarouselItemScope.rememberMaskShape|rememberMaskShape(androidx.compose.ui.graphics.Shape){}[0]
-}
-
-sealed interface androidx.compose.material3/ComponentElevation { // androidx.compose.material3/ComponentElevation|null[0]
-    abstract val disabledElevation // androidx.compose.material3/ComponentElevation.disabledElevation|{}disabledElevation[0]
-        abstract fun <get-disabledElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.disabledElevation.<get-disabledElevation>|<get-disabledElevation>(){}[0]
-    abstract val draggedElevation // androidx.compose.material3/ComponentElevation.draggedElevation|{}draggedElevation[0]
-        abstract fun <get-draggedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.draggedElevation.<get-draggedElevation>|<get-draggedElevation>(){}[0]
-    abstract val elevation // androidx.compose.material3/ComponentElevation.elevation|{}elevation[0]
-        abstract fun <get-elevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.elevation.<get-elevation>|<get-elevation>(){}[0]
-    abstract val focusedElevation // androidx.compose.material3/ComponentElevation.focusedElevation|{}focusedElevation[0]
-        abstract fun <get-focusedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.focusedElevation.<get-focusedElevation>|<get-focusedElevation>(){}[0]
-    abstract val hoveredElevation // androidx.compose.material3/ComponentElevation.hoveredElevation|{}hoveredElevation[0]
-        abstract fun <get-hoveredElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.hoveredElevation.<get-hoveredElevation>|<get-hoveredElevation>(){}[0]
-    abstract val pressedElevation // androidx.compose.material3/ComponentElevation.pressedElevation|{}pressedElevation[0]
-        abstract fun <get-pressedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ComponentElevation.pressedElevation.<get-pressedElevation>|<get-pressedElevation>(){}[0]
-
-    final object Companion // androidx.compose.material3/ComponentElevation.Companion|null[0]
 }
 
 sealed interface androidx.compose.material3/FloatingToolbarScrollBehavior : androidx.compose.ui.input.nestedscroll/NestedScrollConnection { // androidx.compose.material3/FloatingToolbarScrollBehavior|null[0]
@@ -501,22 +483,7 @@ final class androidx.compose.material3/ButtonColors { // androidx.compose.materi
     final fun hashCode(): kotlin/Int // androidx.compose.material3/ButtonColors.hashCode|hashCode(){}[0]
 }
 
-final class androidx.compose.material3/ButtonElevation : androidx.compose.material3/ComponentElevation { // androidx.compose.material3/ButtonElevation|null[0]
-    constructor <init>(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp) // androidx.compose.material3/ButtonElevation.<init>|<init>(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
-
-    final val disabledElevation // androidx.compose.material3/ButtonElevation.disabledElevation|{}disabledElevation[0]
-        final fun <get-disabledElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.disabledElevation.<get-disabledElevation>|<get-disabledElevation>(){}[0]
-    final val draggedElevation // androidx.compose.material3/ButtonElevation.draggedElevation|{}draggedElevation[0]
-        final fun <get-draggedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.draggedElevation.<get-draggedElevation>|<get-draggedElevation>(){}[0]
-    final val elevation // androidx.compose.material3/ButtonElevation.elevation|{}elevation[0]
-        final fun <get-elevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.elevation.<get-elevation>|<get-elevation>(){}[0]
-    final val focusedElevation // androidx.compose.material3/ButtonElevation.focusedElevation|{}focusedElevation[0]
-        final fun <get-focusedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.focusedElevation.<get-focusedElevation>|<get-focusedElevation>(){}[0]
-    final val hoveredElevation // androidx.compose.material3/ButtonElevation.hoveredElevation|{}hoveredElevation[0]
-        final fun <get-hoveredElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.hoveredElevation.<get-hoveredElevation>|<get-hoveredElevation>(){}[0]
-    final val pressedElevation // androidx.compose.material3/ButtonElevation.pressedElevation|{}pressedElevation[0]
-        final fun <get-pressedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/ButtonElevation.pressedElevation.<get-pressedElevation>|<get-pressedElevation>(){}[0]
-
+final class androidx.compose.material3/ButtonElevation { // androidx.compose.material3/ButtonElevation|null[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // androidx.compose.material3/ButtonElevation.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // androidx.compose.material3/ButtonElevation.hashCode|hashCode(){}[0]
 }
@@ -555,22 +522,7 @@ final class androidx.compose.material3/CardColors { // androidx.compose.material
     final fun hashCode(): kotlin/Int // androidx.compose.material3/CardColors.hashCode|hashCode(){}[0]
 }
 
-final class androidx.compose.material3/CardElevation : androidx.compose.material3/ComponentElevation { // androidx.compose.material3/CardElevation|null[0]
-    constructor <init>(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp) // androidx.compose.material3/CardElevation.<init>|<init>(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
-
-    final val disabledElevation // androidx.compose.material3/CardElevation.disabledElevation|{}disabledElevation[0]
-        final fun <get-disabledElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.disabledElevation.<get-disabledElevation>|<get-disabledElevation>(){}[0]
-    final val draggedElevation // androidx.compose.material3/CardElevation.draggedElevation|{}draggedElevation[0]
-        final fun <get-draggedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.draggedElevation.<get-draggedElevation>|<get-draggedElevation>(){}[0]
-    final val elevation // androidx.compose.material3/CardElevation.elevation|{}elevation[0]
-        final fun <get-elevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.elevation.<get-elevation>|<get-elevation>(){}[0]
-    final val focusedElevation // androidx.compose.material3/CardElevation.focusedElevation|{}focusedElevation[0]
-        final fun <get-focusedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.focusedElevation.<get-focusedElevation>|<get-focusedElevation>(){}[0]
-    final val hoveredElevation // androidx.compose.material3/CardElevation.hoveredElevation|{}hoveredElevation[0]
-        final fun <get-hoveredElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.hoveredElevation.<get-hoveredElevation>|<get-hoveredElevation>(){}[0]
-    final val pressedElevation // androidx.compose.material3/CardElevation.pressedElevation|{}pressedElevation[0]
-        final fun <get-pressedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/CardElevation.pressedElevation.<get-pressedElevation>|<get-pressedElevation>(){}[0]
-
+final class androidx.compose.material3/CardElevation { // androidx.compose.material3/CardElevation|null[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // androidx.compose.material3/CardElevation.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // androidx.compose.material3/CardElevation.hashCode|hashCode(){}[0]
 }
@@ -638,7 +590,7 @@ final class androidx.compose.material3/ChipColors { // androidx.compose.material
     final fun hashCode(): kotlin/Int // androidx.compose.material3/ChipColors.hashCode|hashCode(){}[0]
 }
 
-final class androidx.compose.material3/ChipElevation : androidx.compose.material3/ComponentElevation { // androidx.compose.material3/ChipElevation|null[0]
+final class androidx.compose.material3/ChipElevation { // androidx.compose.material3/ChipElevation|null[0]
     constructor <init>(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp) // androidx.compose.material3/ChipElevation.<init>|<init>(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
 
     final val disabledElevation // androidx.compose.material3/ChipElevation.disabledElevation|{}disabledElevation[0]
@@ -1016,12 +968,9 @@ final class androidx.compose.material3/MenuItemColors { // androidx.compose.mate
 }
 
 final class androidx.compose.material3/ModalBottomSheetProperties { // androidx.compose.material3/ModalBottomSheetProperties|null[0]
-    constructor <init>(kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ...) // androidx.compose.material3/ModalBottomSheetProperties.<init>|<init>(kotlin.Boolean;kotlin.Boolean;kotlin.Boolean){}[0]
+    constructor <init>(kotlin/Boolean = ...) // androidx.compose.material3/ModalBottomSheetProperties.<init>|<init>(kotlin.Boolean){}[0]
+    constructor <init>(kotlin/Boolean, kotlin/Boolean, kotlin/Boolean) // androidx.compose.material3/ModalBottomSheetProperties.<init>|<init>(kotlin.Boolean;kotlin.Boolean;kotlin.Boolean){}[0]
 
-    final val isAppearanceLightNavigationBars // androidx.compose.material3/ModalBottomSheetProperties.isAppearanceLightNavigationBars|{}isAppearanceLightNavigationBars[0]
-        final fun <get-isAppearanceLightNavigationBars>(): kotlin/Boolean // androidx.compose.material3/ModalBottomSheetProperties.isAppearanceLightNavigationBars.<get-isAppearanceLightNavigationBars>|<get-isAppearanceLightNavigationBars>(){}[0]
-    final val isAppearanceLightStatusBars // androidx.compose.material3/ModalBottomSheetProperties.isAppearanceLightStatusBars|{}isAppearanceLightStatusBars[0]
-        final fun <get-isAppearanceLightStatusBars>(): kotlin/Boolean // androidx.compose.material3/ModalBottomSheetProperties.isAppearanceLightStatusBars.<get-isAppearanceLightStatusBars>|<get-isAppearanceLightStatusBars>(){}[0]
     final val shouldDismissOnBackPress // androidx.compose.material3/ModalBottomSheetProperties.shouldDismissOnBackPress|{}shouldDismissOnBackPress[0]
         final fun <get-shouldDismissOnBackPress>(): kotlin/Boolean // androidx.compose.material3/ModalBottomSheetProperties.shouldDismissOnBackPress.<get-shouldDismissOnBackPress>|<get-shouldDismissOnBackPress>(){}[0]
 }
@@ -1285,7 +1234,7 @@ final class androidx.compose.material3/SelectableChipColors { // androidx.compos
     final fun hashCode(): kotlin/Int // androidx.compose.material3/SelectableChipColors.hashCode|hashCode(){}[0]
 }
 
-final class androidx.compose.material3/SelectableChipElevation : androidx.compose.material3/ComponentElevation { // androidx.compose.material3/SelectableChipElevation|null[0]
+final class androidx.compose.material3/SelectableChipElevation { // androidx.compose.material3/SelectableChipElevation|null[0]
     constructor <init>(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp) // androidx.compose.material3/SelectableChipElevation.<init>|<init>(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
 
     final val disabledElevation // androidx.compose.material3/SelectableChipElevation.disabledElevation|{}disabledElevation[0]
@@ -1773,8 +1722,6 @@ final class androidx.compose.material3/TopAppBarState { // androidx.compose.mate
         final fun <get-heightOffsetLimit>(): kotlin/Float // androidx.compose.material3/TopAppBarState.heightOffsetLimit.<get-heightOffsetLimit>|<get-heightOffsetLimit>(){}[0]
         final fun <set-heightOffsetLimit>(kotlin/Float) // androidx.compose.material3/TopAppBarState.heightOffsetLimit.<set-heightOffsetLimit>|<set-heightOffsetLimit>(kotlin.Float){}[0]
 
-    final fun overlappedFraction(kotlin/Boolean = ...): kotlin/Float // androidx.compose.material3/TopAppBarState.overlappedFraction|overlappedFraction(kotlin.Boolean){}[0]
-
     final object Companion { // androidx.compose.material3/TopAppBarState.Companion|null[0]
         final val Saver // androidx.compose.material3/TopAppBarState.Companion.Saver|{}Saver[0]
             final fun <get-Saver>(): androidx.compose.runtime.saveable/Saver<androidx.compose.material3/TopAppBarState, *> // androidx.compose.material3/TopAppBarState.Companion.Saver.<get-Saver>|<get-Saver>(){}[0]
@@ -2065,22 +2012,7 @@ final value class androidx.compose.material3/TimePickerSelectionMode { // androi
     }
 }
 
-open class androidx.compose.material3/FloatingActionButtonElevation : androidx.compose.material3/ComponentElevation { // androidx.compose.material3/FloatingActionButtonElevation|null[0]
-    constructor <init>(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp) // androidx.compose.material3/FloatingActionButtonElevation.<init>|<init>(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
-
-    open val disabledElevation // androidx.compose.material3/FloatingActionButtonElevation.disabledElevation|{}disabledElevation[0]
-        open fun <get-disabledElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.disabledElevation.<get-disabledElevation>|<get-disabledElevation>(){}[0]
-    open val draggedElevation // androidx.compose.material3/FloatingActionButtonElevation.draggedElevation|{}draggedElevation[0]
-        open fun <get-draggedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.draggedElevation.<get-draggedElevation>|<get-draggedElevation>(){}[0]
-    open val elevation // androidx.compose.material3/FloatingActionButtonElevation.elevation|{}elevation[0]
-        open fun <get-elevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.elevation.<get-elevation>|<get-elevation>(){}[0]
-    open val focusedElevation // androidx.compose.material3/FloatingActionButtonElevation.focusedElevation|{}focusedElevation[0]
-        open fun <get-focusedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.focusedElevation.<get-focusedElevation>|<get-focusedElevation>(){}[0]
-    open val hoveredElevation // androidx.compose.material3/FloatingActionButtonElevation.hoveredElevation|{}hoveredElevation[0]
-        open fun <get-hoveredElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.hoveredElevation.<get-hoveredElevation>|<get-hoveredElevation>(){}[0]
-    open val pressedElevation // androidx.compose.material3/FloatingActionButtonElevation.pressedElevation|{}pressedElevation[0]
-        open fun <get-pressedElevation>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/FloatingActionButtonElevation.pressedElevation.<get-pressedElevation>|<get-pressedElevation>(){}[0]
-
+open class androidx.compose.material3/FloatingActionButtonElevation { // androidx.compose.material3/FloatingActionButtonElevation|null[0]
     open fun equals(kotlin/Any?): kotlin/Boolean // androidx.compose.material3/FloatingActionButtonElevation.equals|equals(kotlin.Any?){}[0]
     open fun hashCode(): kotlin/Int // androidx.compose.material3/FloatingActionButtonElevation.hashCode|hashCode(){}[0]
 }
@@ -2622,6 +2554,30 @@ final object androidx.compose.material3/FloatingToolbarDefaults { // androidx.co
 final object androidx.compose.material3/IconButtonDefaults { // androidx.compose.material3/IconButtonDefaults|null[0]
     final val SmallSelectedSquareShape // androidx.compose.material3/IconButtonDefaults.SmallSelectedSquareShape|{}SmallSelectedSquareShape[0]
         final fun <get-SmallSelectedSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.SmallSelectedSquareShape.<get-SmallSelectedSquareShape>|<get-SmallSelectedSquareShape>(){}[0]
+    final val extraLargeIconSize // androidx.compose.material3/IconButtonDefaults.extraLargeIconSize|{}extraLargeIconSize[0]
+        final fun <get-extraLargeIconSize>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/IconButtonDefaults.extraLargeIconSize.<get-extraLargeIconSize>|<get-extraLargeIconSize>(){}[0]
+    final val extraLargePressedShape // androidx.compose.material3/IconButtonDefaults.extraLargePressedShape|{}extraLargePressedShape[0]
+        final fun <get-extraLargePressedShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraLargePressedShape.<get-extraLargePressedShape>|<get-extraLargePressedShape>(){}[0]
+    final val extraLargeRoundShape // androidx.compose.material3/IconButtonDefaults.extraLargeRoundShape|{}extraLargeRoundShape[0]
+        final fun <get-extraLargeRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraLargeRoundShape.<get-extraLargeRoundShape>|<get-extraLargeRoundShape>(){}[0]
+    final val extraLargeSelectedRoundShape // androidx.compose.material3/IconButtonDefaults.extraLargeSelectedRoundShape|{}extraLargeSelectedRoundShape[0]
+        final fun <get-extraLargeSelectedRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraLargeSelectedRoundShape.<get-extraLargeSelectedRoundShape>|<get-extraLargeSelectedRoundShape>(){}[0]
+    final val extraLargeSelectedSquareShape // androidx.compose.material3/IconButtonDefaults.extraLargeSelectedSquareShape|{}extraLargeSelectedSquareShape[0]
+        final fun <get-extraLargeSelectedSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraLargeSelectedSquareShape.<get-extraLargeSelectedSquareShape>|<get-extraLargeSelectedSquareShape>(){}[0]
+    final val extraLargeSquareShape // androidx.compose.material3/IconButtonDefaults.extraLargeSquareShape|{}extraLargeSquareShape[0]
+        final fun <get-extraLargeSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraLargeSquareShape.<get-extraLargeSquareShape>|<get-extraLargeSquareShape>(){}[0]
+    final val extraSmallIconSize // androidx.compose.material3/IconButtonDefaults.extraSmallIconSize|{}extraSmallIconSize[0]
+        final fun <get-extraSmallIconSize>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/IconButtonDefaults.extraSmallIconSize.<get-extraSmallIconSize>|<get-extraSmallIconSize>(){}[0]
+    final val extraSmallPressedShape // androidx.compose.material3/IconButtonDefaults.extraSmallPressedShape|{}extraSmallPressedShape[0]
+        final fun <get-extraSmallPressedShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraSmallPressedShape.<get-extraSmallPressedShape>|<get-extraSmallPressedShape>(){}[0]
+    final val extraSmallRoundShape // androidx.compose.material3/IconButtonDefaults.extraSmallRoundShape|{}extraSmallRoundShape[0]
+        final fun <get-extraSmallRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraSmallRoundShape.<get-extraSmallRoundShape>|<get-extraSmallRoundShape>(){}[0]
+    final val extraSmallSelectedRoundShape // androidx.compose.material3/IconButtonDefaults.extraSmallSelectedRoundShape|{}extraSmallSelectedRoundShape[0]
+        final fun <get-extraSmallSelectedRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraSmallSelectedRoundShape.<get-extraSmallSelectedRoundShape>|<get-extraSmallSelectedRoundShape>(){}[0]
+    final val extraSmallSelectedSquareShape // androidx.compose.material3/IconButtonDefaults.extraSmallSelectedSquareShape|{}extraSmallSelectedSquareShape[0]
+        final fun <get-extraSmallSelectedSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraSmallSelectedSquareShape.<get-extraSmallSelectedSquareShape>|<get-extraSmallSelectedSquareShape>(){}[0]
+    final val extraSmallSquareShape // androidx.compose.material3/IconButtonDefaults.extraSmallSquareShape|{}extraSmallSquareShape[0]
+        final fun <get-extraSmallSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.extraSmallSquareShape.<get-extraSmallSquareShape>|<get-extraSmallSquareShape>(){}[0]
     final val filledShape // androidx.compose.material3/IconButtonDefaults.filledShape|{}filledShape[0]
         final fun <get-filledShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.filledShape.<get-filledShape>|<get-filledShape>(){}[0]
     final val largeIconSize // androidx.compose.material3/IconButtonDefaults.largeIconSize|{}largeIconSize[0]
@@ -2662,31 +2618,9 @@ final object androidx.compose.material3/IconButtonDefaults { // androidx.compose
         final fun <get-smallSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.smallSquareShape.<get-smallSquareShape>|<get-smallSquareShape>(){}[0]
     final val standardShape // androidx.compose.material3/IconButtonDefaults.standardShape|{}standardShape[0]
         final fun <get-standardShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.standardShape.<get-standardShape>|<get-standardShape>(){}[0]
-    final val xLargeIconSize // androidx.compose.material3/IconButtonDefaults.xLargeIconSize|{}xLargeIconSize[0]
-        final fun <get-xLargeIconSize>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/IconButtonDefaults.xLargeIconSize.<get-xLargeIconSize>|<get-xLargeIconSize>(){}[0]
-    final val xLargePressedShape // androidx.compose.material3/IconButtonDefaults.xLargePressedShape|{}xLargePressedShape[0]
-        final fun <get-xLargePressedShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xLargePressedShape.<get-xLargePressedShape>|<get-xLargePressedShape>(){}[0]
-    final val xLargeRoundShape // androidx.compose.material3/IconButtonDefaults.xLargeRoundShape|{}xLargeRoundShape[0]
-        final fun <get-xLargeRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xLargeRoundShape.<get-xLargeRoundShape>|<get-xLargeRoundShape>(){}[0]
-    final val xLargeSelectedRoundShape // androidx.compose.material3/IconButtonDefaults.xLargeSelectedRoundShape|{}xLargeSelectedRoundShape[0]
-        final fun <get-xLargeSelectedRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xLargeSelectedRoundShape.<get-xLargeSelectedRoundShape>|<get-xLargeSelectedRoundShape>(){}[0]
-    final val xLargeSelectedSquareShape // androidx.compose.material3/IconButtonDefaults.xLargeSelectedSquareShape|{}xLargeSelectedSquareShape[0]
-        final fun <get-xLargeSelectedSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xLargeSelectedSquareShape.<get-xLargeSelectedSquareShape>|<get-xLargeSelectedSquareShape>(){}[0]
-    final val xLargeSquareShape // androidx.compose.material3/IconButtonDefaults.xLargeSquareShape|{}xLargeSquareShape[0]
-        final fun <get-xLargeSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xLargeSquareShape.<get-xLargeSquareShape>|<get-xLargeSquareShape>(){}[0]
-    final val xSmallIconSize // androidx.compose.material3/IconButtonDefaults.xSmallIconSize|{}xSmallIconSize[0]
-        final fun <get-xSmallIconSize>(): androidx.compose.ui.unit/Dp // androidx.compose.material3/IconButtonDefaults.xSmallIconSize.<get-xSmallIconSize>|<get-xSmallIconSize>(){}[0]
-    final val xSmallPressedShape // androidx.compose.material3/IconButtonDefaults.xSmallPressedShape|{}xSmallPressedShape[0]
-        final fun <get-xSmallPressedShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xSmallPressedShape.<get-xSmallPressedShape>|<get-xSmallPressedShape>(){}[0]
-    final val xSmallRoundShape // androidx.compose.material3/IconButtonDefaults.xSmallRoundShape|{}xSmallRoundShape[0]
-        final fun <get-xSmallRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xSmallRoundShape.<get-xSmallRoundShape>|<get-xSmallRoundShape>(){}[0]
-    final val xSmallSelectedRoundShape // androidx.compose.material3/IconButtonDefaults.xSmallSelectedRoundShape|{}xSmallSelectedRoundShape[0]
-        final fun <get-xSmallSelectedRoundShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xSmallSelectedRoundShape.<get-xSmallSelectedRoundShape>|<get-xSmallSelectedRoundShape>(){}[0]
-    final val xSmallSelectedSquareShape // androidx.compose.material3/IconButtonDefaults.xSmallSelectedSquareShape|{}xSmallSelectedSquareShape[0]
-        final fun <get-xSmallSelectedSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xSmallSelectedSquareShape.<get-xSmallSelectedSquareShape>|<get-xSmallSelectedSquareShape>(){}[0]
-    final val xSmallSquareShape // androidx.compose.material3/IconButtonDefaults.xSmallSquareShape|{}xSmallSquareShape[0]
-        final fun <get-xSmallSquareShape>(): androidx.compose.ui.graphics/Shape // androidx.compose.material3/IconButtonDefaults.xSmallSquareShape.<get-xSmallSquareShape>|<get-xSmallSquareShape>(){}[0]
 
+    final fun extraLargeContainerSize(androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption = ...): androidx.compose.ui.unit/DpSize // androidx.compose.material3/IconButtonDefaults.extraLargeContainerSize|extraLargeContainerSize(androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption){}[0]
+    final fun extraSmallContainerSize(androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption = ...): androidx.compose.ui.unit/DpSize // androidx.compose.material3/IconButtonDefaults.extraSmallContainerSize|extraSmallContainerSize(androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption){}[0]
     final fun filledIconButtonColors(): androidx.compose.material3/IconButtonColors // androidx.compose.material3/IconButtonDefaults.filledIconButtonColors|filledIconButtonColors(){}[0]
     final fun filledIconButtonColors(androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ...): androidx.compose.material3/IconButtonColors // androidx.compose.material3/IconButtonDefaults.filledIconButtonColors|filledIconButtonColors(androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color){}[0]
     final fun filledIconToggleButtonColors(): androidx.compose.material3/IconToggleButtonColors // androidx.compose.material3/IconButtonDefaults.filledIconToggleButtonColors|filledIconToggleButtonColors(){}[0]
@@ -2722,8 +2656,6 @@ final object androidx.compose.material3/IconButtonDefaults { // androidx.compose
     final fun smallContainerSize(androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption = ...): androidx.compose.ui.unit/DpSize // androidx.compose.material3/IconButtonDefaults.smallContainerSize|smallContainerSize(androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption){}[0]
     final fun toggleableShapes(): androidx.compose.material3/IconToggleButtonShapes // androidx.compose.material3/IconButtonDefaults.toggleableShapes|toggleableShapes(){}[0]
     final fun toggleableShapes(androidx.compose.ui.graphics/Shape? = ..., androidx.compose.ui.graphics/Shape? = ..., androidx.compose.ui.graphics/Shape? = ...): androidx.compose.material3/IconToggleButtonShapes // androidx.compose.material3/IconButtonDefaults.toggleableShapes|toggleableShapes(androidx.compose.ui.graphics.Shape?;androidx.compose.ui.graphics.Shape?;androidx.compose.ui.graphics.Shape?){}[0]
-    final fun xLargeContainerSize(androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption = ...): androidx.compose.ui.unit/DpSize // androidx.compose.material3/IconButtonDefaults.xLargeContainerSize|xLargeContainerSize(androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption){}[0]
-    final fun xSmallContainerSize(androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption = ...): androidx.compose.ui.unit/DpSize // androidx.compose.material3/IconButtonDefaults.xSmallContainerSize|xSmallContainerSize(androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption){}[0]
 
     final value class IconButtonWidthOption { // androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption|null[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // androidx.compose.material3/IconButtonDefaults.IconButtonWidthOption.equals|equals(kotlin.Any?){}[0]
@@ -3318,20 +3250,17 @@ final object androidx.compose.material3/TopAppBarDefaults { // androidx.compose.
     final fun mediumTopAppBarColors(): androidx.compose.material3/TopAppBarColors // androidx.compose.material3/TopAppBarDefaults.mediumTopAppBarColors|mediumTopAppBarColors(){}[0]
     final fun mediumTopAppBarColors(androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ...): androidx.compose.material3/TopAppBarColors // androidx.compose.material3/TopAppBarDefaults.mediumTopAppBarColors|mediumTopAppBarColors(androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color){}[0]
     final fun pinnedScrollBehavior(androidx.compose.material3/TopAppBarState = ..., kotlin/Function0<kotlin/Boolean> = ...): androidx.compose.material3/TopAppBarScrollBehavior // androidx.compose.material3/TopAppBarDefaults.pinnedScrollBehavior|pinnedScrollBehavior(androidx.compose.material3.TopAppBarState;kotlin.Function0<kotlin.Boolean>){}[0]
-    final fun pinnedScrollBehavior(androidx.compose.material3/TopAppBarState = ..., kotlin/Function0<kotlin/Boolean> = ..., kotlin/Boolean = ...): androidx.compose.material3/TopAppBarScrollBehavior // androidx.compose.material3/TopAppBarDefaults.pinnedScrollBehavior|pinnedScrollBehavior(androidx.compose.material3.TopAppBarState;kotlin.Function0<kotlin.Boolean>;kotlin.Boolean){}[0]
     final fun topAppBarColors(): androidx.compose.material3/TopAppBarColors // androidx.compose.material3/TopAppBarDefaults.topAppBarColors|topAppBarColors(){}[0]
     final fun topAppBarColors(androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ...): androidx.compose.material3/TopAppBarColors // androidx.compose.material3/TopAppBarDefaults.topAppBarColors|topAppBarColors(androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color){}[0]
     final fun topAppBarColors(androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ...): androidx.compose.material3/TopAppBarColors // androidx.compose.material3/TopAppBarDefaults.topAppBarColors|topAppBarColors(androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color){}[0]
 }
 
 final object androidx.compose.material3/VerticalDragHandleDefaults { // androidx.compose.material3/VerticalDragHandleDefaults|null[0]
-    final val Sizes // androidx.compose.material3/VerticalDragHandleDefaults.Sizes|{}Sizes[0]
-        final fun <get-Sizes>(): androidx.compose.material3/DragHandleSizes // androidx.compose.material3/VerticalDragHandleDefaults.Sizes.<get-Sizes>|<get-Sizes>(){}[0]
-
     final fun colors(): androidx.compose.material3/DragHandleColors // androidx.compose.material3/VerticalDragHandleDefaults.colors|colors(){}[0]
     final fun colors(androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ..., androidx.compose.ui.graphics/Color = ...): androidx.compose.material3/DragHandleColors // androidx.compose.material3/VerticalDragHandleDefaults.colors|colors(androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color;androidx.compose.ui.graphics.Color){}[0]
     final fun shapes(): androidx.compose.material3/DragHandleShapes // androidx.compose.material3/VerticalDragHandleDefaults.shapes|shapes(){}[0]
     final fun shapes(androidx.compose.ui.graphics/Shape? = ..., androidx.compose.ui.graphics/Shape? = ..., androidx.compose.ui.graphics/Shape? = ...): androidx.compose.material3/DragHandleShapes // androidx.compose.material3/VerticalDragHandleDefaults.shapes|shapes(androidx.compose.ui.graphics.Shape?;androidx.compose.ui.graphics.Shape?;androidx.compose.ui.graphics.Shape?){}[0]
+    final fun sizes(): androidx.compose.material3/DragHandleSizes // androidx.compose.material3/VerticalDragHandleDefaults.sizes|sizes(){}[0]
     final fun sizes(androidx.compose.ui.unit/DpSize = ..., androidx.compose.ui.unit/DpSize = ..., androidx.compose.ui.unit/DpSize = ...): androidx.compose.material3/DragHandleSizes // androidx.compose.material3/VerticalDragHandleDefaults.sizes|sizes(androidx.compose.ui.unit.DpSize;androidx.compose.ui.unit.DpSize;androidx.compose.ui.unit.DpSize){}[0]
 }
 

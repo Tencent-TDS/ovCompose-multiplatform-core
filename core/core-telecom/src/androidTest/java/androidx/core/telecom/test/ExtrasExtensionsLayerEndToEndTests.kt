@@ -20,7 +20,6 @@ import android.net.Uri
 import android.os.Build
 import android.telecom.DisconnectCause
 import android.telecom.PhoneAccount
-import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.extensions.CallExtensionScope
 import androidx.core.telecom.internal.utils.Utils
@@ -54,7 +53,6 @@ import org.junit.runner.RunWith
 
 /** End-to-end tests for the Extras Extensions Layer. */
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
-@RequiresApi(Build.VERSION_CODES.Q)
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExtrasExtensionsLayerEndToEndTests : BaseTelecomTest() {

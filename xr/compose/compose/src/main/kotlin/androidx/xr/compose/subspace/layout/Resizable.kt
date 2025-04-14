@@ -146,9 +146,13 @@ internal class ResizableNode(
         ResizableComponent.create(session).also { it.addResizeListener(MainExecutor, this) }
     }
 
-    /** Updates the resizable state of this CoreEntity. Only update resizable state if [enabled]. */
+    /** Updates the resizable state of this CoreEntity. */
     private fun updateState() {
-        if (enabled && coreEntity is ResizableCoreEntity) {
+        if (coreEntity !is ResizableCoreEntity) {
+            return
+        }
+        // Enabled is on the Node. It means "should be enabled" for the Component.
+        if (enabled) {
             enableAndUpdateComponent()
         } else {
             disableComponent()

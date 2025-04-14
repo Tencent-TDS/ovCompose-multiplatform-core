@@ -606,7 +606,7 @@ public object RadioButtonDefaults {
             disabledUnselectedControlColor = disabledUnselectedControlColor,
         )
 
-    internal val LabelSpacerSize = 2.dp
+    internal val LabelSpacerSize = 1.dp
     private val HorizontalPadding = 14.dp
     private val VerticalPadding = 8.dp
 

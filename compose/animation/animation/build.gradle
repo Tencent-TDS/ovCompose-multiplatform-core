@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -138,6 +137,13 @@ androidx {
     inceptionYear = "2019"
     description = "Compose animation library"
     samples(project(":compose:animation:animation:animation-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
+//TODO(b/407640608): Fix to work without this block for PaneMotionTest.test_allDefaultPaneMotionTransitions
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += [
+                "-Xlambdas=class"
+        ]
+    }
+}

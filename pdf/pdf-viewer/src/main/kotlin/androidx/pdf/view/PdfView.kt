@@ -255,11 +255,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             else if (value == false) fastScroller?.hide()
         }
 
-    /**
-     * The width of the PdfView before the last layout change (e.g., before rotation). Used to
-     * preserve the zoom level when the device is rotated.
-     */
-    private var oldWidth: Int? = width
+    // Stores width set from onSizeChanged or while restoring state
+    private var oldWidth: Int? = null
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) public var fastScroller: FastScroller? = null
     private var fastScrollGestureDetector: FastScrollGestureDetector? = null
@@ -607,21 +604,48 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             pendingZoomRecalculation = false
         }
 
-        if (changed || awaitingFirstLayout) {
-            val positionToRestore = scrollPositionToRestore
-            if (positionToRestore != null) {
-                var resolvedZoom =
-                    if (zoomToRestore != null && zoomToRestore != DEFAULT_INIT_ZOOM) zoomToRestore!!
-                    else zoom
-                resolvedZoom = resolvedZoom * (width.toFloat() / (oldWidth ?: contentWidth))
-                val clampedZoom = MathUtils.clamp(resolvedZoom, minZoom, maxZoom)
-                this.zoom = clampedZoom
-                scrollToRestoredPosition(positionToRestore, clampedZoom)
-                scrollPositionToRestore = null
-                zoomToRestore = DEFAULT_INIT_ZOOM
+        if (changed || awaitingFirstLayout) maybeAdjustZoomAndScroll()
+
+        awaitingFirstLayout = false
+    }
+
+    private fun maybeAdjustZoomAndScroll() {
+        val localScrollPosition = scrollPositionToRestore
+        val localOldWidth = oldWidth
+        /**
+         * We only want to adjust zoom if we're restoring from a saved state or PdfView's size has
+         * changed, i.e. we'll have a valid [oldWidth] to use.
+         *
+         * For view init scenario, zoom set from [getDefaultZoom] should be enough to fit to width.
+         */
+        if (localOldWidth != null) {
+            // Either we're restoring or view size has changed; adjust zoom by factor of w / oldW.
+            val factor = width.toFloat() / localOldWidth
+            val resolvedZoom = zoomToRestore ?: zoom
+
+            // Calculate new zoom, clamped between min and max zoom possible.
+            val newZoom = (resolvedZoom * factor).coerceIn(minZoom, maxZoom)
+            this.zoom = newZoom
+            zoomToRestore = null
+
+            /**
+             * If view isn't recreated, we won't have a scroll position from bundle. In this case,
+             * adjust view's current scrollX and scrollY according to change in zoom.
+             */
+            if (localScrollPosition == null) {
+                val newScrollX = (scrollX * (newZoom / resolvedZoom)).roundToInt()
+                val newScrollY = (scrollY * (newZoom / resolvedZoom)).roundToInt()
+                scrollTo(newScrollX, newScrollY)
             }
-            awaitingFirstLayout = false
         }
+
+        // The view is recreated, and we have a position to restore from bundle
+        if (localScrollPosition != null) {
+            scrollToRestoredPosition(localScrollPosition, this.zoom)
+            scrollPositionToRestore = null
+        }
+
+        oldWidth = null
     }
 
     override fun onAttachedToWindow() {
@@ -1558,12 +1582,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         ): Boolean {
             links.externalLinks.forEach { externalLink ->
                 if (externalLink.bounds.any { it.contains(pdfCoordinates.x, pdfCoordinates.y) }) {
-                    var uri = externalLink.uri
-                    linkClickListener?.onLinkClicked(uri)
-                        ?: run {
+                    val uri = externalLink.uri
+                    if (linkClickListener != null) {
+                        linkClickListener?.onLinkClicked(uri)
+                    } else {
+                        try {
                             val intent = Intent(Intent.ACTION_VIEW, uri)
                             context.startActivity(intent)
+                        } catch (_: Exception) {
+                            return false
                         }
+                    }
                     return true
                 }
             }

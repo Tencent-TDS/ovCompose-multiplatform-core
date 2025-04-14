@@ -22,9 +22,9 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -157,6 +157,14 @@ androidx {
     legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
     samples(project(":compose:foundation:foundation:foundation-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     addGoldenImageAssets()
+}
+
+// TODO(b/407640608): Task :compose:ui:ui-inspection:connectedCheck fails without this block
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += [
+                "-Xlambdas=class"
+        ]
+    }
 }

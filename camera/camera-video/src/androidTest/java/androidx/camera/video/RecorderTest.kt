@@ -1247,12 +1247,12 @@ class RecorderTest(
     @Suppress("SameParameterValue")
     private fun createVideoEncoderFactory(failCreationTimes: Int = 0): EncoderFactory {
         var createEncoderRequestCount = 0
-        return EncoderFactory { executor, config ->
+        return EncoderFactory { executor, config, sessionType ->
             if (createEncoderRequestCount < failCreationTimes) {
                 createEncoderRequestCount++
                 throw InvalidConfigException("Create video encoder fail on purpose.")
             } else {
-                Recorder.DEFAULT_ENCODER_FACTORY.createEncoder(executor, config)
+                Recorder.DEFAULT_ENCODER_FACTORY.createEncoder(executor, config, sessionType)
             }
         }
     }

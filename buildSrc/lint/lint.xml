@@ -27,8 +27,6 @@
     <!-- Enable certain lint checks on tests which don't run on test scope by default. -->
     <issue id="NewApi" severity="fatal" tests="true" />
     <issue id="WrongThread" severity="fatal" tests="true" />
-    <!-- TODO(b/399428893): enable SdkSuppress check when it doesn't have false positives. -->
-    <issue id="UseSdkSuppress" severity="ignore" />
     <!--
       NewApi and ObsoleteSdkInt are implemented with the same detector. NewApi is enabled for tests
       above, so ObsoleteSdkInt implicitly also is because the detector is running on tests. Set the

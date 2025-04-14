@@ -19,24 +19,27 @@ package androidx.appfunctions.compiler.processors
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializable
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy.ResolvedAnnotatedSerializableProxies
 import androidx.appfunctions.compiler.core.AppFunctionPropertyDeclaration
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.PRIMITIVE_ARRAY
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.PRIMITIVE_LIST
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.PRIMITIVE_SINGULAR
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.SERIALIZABLE_LIST
+import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.SERIALIZABLE_PROXY_LIST
+import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.SERIALIZABLE_PROXY_SINGULAR
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.SERIALIZABLE_SINGULAR
+import androidx.appfunctions.compiler.core.IntrospectionHelper
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod.APP_FUNCTION_DATA_PARAM_NAME
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.ToAppFunctionDataMethod.APP_FUNCTION_SERIALIZABLE_PARAM_NAME
 import androidx.appfunctions.compiler.core.ProcessingException
 import androidx.appfunctions.compiler.core.ensureQualifiedTypeName
-import androidx.appfunctions.compiler.core.isOfType
 import androidx.appfunctions.compiler.core.toTypeName
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.buildCodeBlock
 
 /**
@@ -45,7 +48,8 @@ import com.squareup.kotlinpoet.buildCodeBlock
  */
 // TODO(b/392587953): extract common format maps
 class AppFunctionSerializableFactoryCodeBuilder(
-    val annotatedClass: AnnotatedAppFunctionSerializable
+    val annotatedClass: AnnotatedAppFunctionSerializable,
+    val resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
 ) {
     /**
      * Generates the method body of fromAppFunctionData for a non proxy serializable.
@@ -130,8 +134,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
         if (annotatedClass !is AnnotatedAppFunctionSerializableProxy) {
             throw ProcessingException(
                 "Attempting to generate proxy getter for non proxy serializable.",
-                // TODO(b/403199251): provide KSNode to improve error message
-                null
+                annotatedClass.attributeNode
             )
         }
         return buildCodeBlock {
@@ -183,7 +186,12 @@ class AppFunctionSerializableFactoryCodeBuilder(
         return buildCodeBlock {
             add(factoryInitStatements)
             for ((paramName, paramType) in annotatedClass.getProperties()) {
-                appendGetterStatement(paramName, paramType)
+                val declaration = paramType.resolve().declaration
+                if (declaration is KSTypeParameter) {
+                    appendGenericGetterStatement(paramName, declaration)
+                } else {
+                    appendGetterStatement(paramName, paramType)
+                }
             }
             appendGetterResultConstructorCallStatement(
                 annotatedClass.originalClassName,
@@ -288,8 +296,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
         if (annotatedClass !is AnnotatedAppFunctionSerializableProxy) {
             throw ProcessingException(
                 "Attempting to generate proxy setter for non proxy serializable.",
-                // TODO(b/403199251): provide KSNode to improve error message
-                null
+                annotatedClass.attributeNode
             )
         }
         return buildCodeBlock {
@@ -345,7 +352,6 @@ class AppFunctionSerializableFactoryCodeBuilder(
             val qualifiedClassName = annotatedClass.qualifiedName
             addStatement("val builder = %T(%S)", AppFunctionData.Builder::class, qualifiedClassName)
             for (property in annotatedClass.getProperties()) {
-                val afType = AppFunctionTypeReference(property.type)
                 val formatStringMap =
                     mapOf<String, Any>(
                         "param_name" to property.name,
@@ -355,14 +361,71 @@ class AppFunctionSerializableFactoryCodeBuilder(
                     "val %param_name:L = %annotated_class_instance:L.%param_name:L\n",
                     formatStringMap
                 )
-                if (afType.isNullable) {
-                    appendNullableSetterStatement(property.name, afType)
+                val resolvedType = property.type.resolve()
+                val declaration = resolvedType.declaration
+                if (declaration is KSTypeParameter) {
+                    appendGenericSetterStatement(property.name, declaration)
                 } else {
-                    appendSetterStatement(property.name, afType)
+                    if (resolvedType.isMarkedNullable) {
+                        appendNullableSetterStatement(property.name, property.type)
+                    } else {
+                        appendSetterStatement(property.name, property.type)
+                    }
                 }
             }
             add("\nreturn builder.build()")
         }
+    }
+
+    private fun CodeBlock.Builder.appendGenericGetterStatement(
+        paramName: String,
+        paramTypeParameter: KSTypeParameter
+    ): CodeBlock.Builder {
+        val formatStringMap =
+            mapOf<String, Any>(
+                "param_name" to paramName,
+                "app_function_data_param_name" to APP_FUNCTION_DATA_PARAM_NAME,
+                "type_parameter_property_name" to getTypeParameterPropertyName(paramTypeParameter),
+                "property_item_clazz_name" to
+                    IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                        .ListTypeParameterClass
+                        .PROPERTY_ITEM_CLAZZ_NAME,
+                "property_clazz_name" to
+                    IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                        .PrimitiveTypeParameterClass
+                        .PROPERTY_CLAZZ_NAME,
+            )
+        addNamed("val %param_name:L = when (%type_parameter_property_name:L) {\n", formatStringMap)
+        indent()
+        add(
+            "is %T<*, *> -> {\n",
+            IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                .ListTypeParameterClass
+                .CLASS_NAME
+        )
+        indent()
+        addNamed(
+            "%app_function_data_param_name:L.getGenericListField(\"%param_name:L\", %type_parameter_property_name:L.%property_item_clazz_name:L)\n",
+            formatStringMap
+        )
+        unindent()
+        add("}\n")
+        add(
+            "is %T -> {\n",
+            IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                .PrimitiveTypeParameterClass
+                .CLASS_NAME
+        )
+        indent()
+        addNamed(
+            "%app_function_data_param_name:L.getGenericField(\"%param_name:L\", %type_parameter_property_name:L.%property_clazz_name:L)\n",
+            formatStringMap
+        )
+        unindent()
+        add("}\n")
+        unindent()
+        add("}\n")
+        return this
     }
 
     private fun CodeBlock.Builder.appendGetterStatement(
@@ -375,7 +438,33 @@ class AppFunctionSerializableFactoryCodeBuilder(
             PRIMITIVE_ARRAY,
             PRIMITIVE_LIST -> appendPrimitiveGetterStatement(paramName, afType)
             SERIALIZABLE_SINGULAR -> appendSerializableGetterStatement(paramName, afType)
-            SERIALIZABLE_LIST -> appendSerializableListGetterStatement(paramName, afType)
+            SERIALIZABLE_LIST ->
+                appendSerializableListGetterStatement(
+                    paramName,
+                    afType,
+                    afType.itemTypeReference.getTypeShortName()
+                )
+            SERIALIZABLE_PROXY_SINGULAR -> {
+                val targetSerializableProxy =
+                    resolvedAnnotatedSerializableProxies.getSerializableProxyForTypeReference(
+                        afType
+                    )
+                appendSerializableGetterStatement(
+                    paramName,
+                    AppFunctionTypeReference(targetSerializableProxy.serializableReferenceType)
+                )
+            }
+            SERIALIZABLE_PROXY_LIST -> {
+                val targetSerializableProxy =
+                    resolvedAnnotatedSerializableProxies.getSerializableProxyForTypeReference(
+                        afType
+                    )
+                appendSerializableListGetterStatement(
+                    paramName,
+                    afType,
+                    targetSerializableProxy.serializableReferenceType.getTypeShortName()
+                )
+            }
         }
     }
 
@@ -449,10 +538,10 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
     private fun CodeBlock.Builder.appendSerializableListGetterStatement(
         paramName: String,
-        afType: AppFunctionTypeReference
+        afType: AppFunctionTypeReference,
+        parametrizedItemTypeName: String
     ): CodeBlock.Builder {
-        val parametrizedTypeName = afType.itemTypeReference.getTypeShortName()
-        val factoryName = parametrizedTypeName + "Factory"
+        val factoryName = parametrizedItemTypeName + "Factory"
         val factoryInstanceName = factoryName.lowerFirstChar()
         val formatStringMap =
             mapOf<String, Any>(
@@ -499,9 +588,59 @@ class AppFunctionSerializableFactoryCodeBuilder(
         return this
     }
 
+    private fun CodeBlock.Builder.appendGenericSetterStatement(
+        paramName: String,
+        paramTypeParameter: KSTypeParameter
+    ): CodeBlock.Builder {
+        val formatStringMap =
+            mapOf<String, Any>(
+                "param_name" to paramName,
+                "type_parameter_property_name" to getTypeParameterPropertyName(paramTypeParameter),
+                "property_item_clazz_name" to
+                    IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                        .ListTypeParameterClass
+                        .PROPERTY_ITEM_CLAZZ_NAME,
+                "property_clazz_name" to
+                    IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                        .PrimitiveTypeParameterClass
+                        .PROPERTY_CLAZZ_NAME,
+            )
+        addNamed("when (%type_parameter_property_name:L) {\n", formatStringMap)
+        indent()
+        add(
+            "is %T<*, *> -> {\n",
+            IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                .ListTypeParameterClass
+                .CLASS_NAME
+        )
+        indent()
+        addNamed(
+            "builder.setGenericListField(\"%param_name:L\", %param_name:L as List<*>, %type_parameter_property_name:L.%property_item_clazz_name:L)\n",
+            formatStringMap
+        )
+        unindent()
+        add("}\n")
+        add(
+            "is %T -> {\n",
+            IntrospectionHelper.AppFunctionSerializableFactoryClass.TypeParameterClass
+                .PrimitiveTypeParameterClass
+                .CLASS_NAME
+        )
+        indent()
+        addNamed(
+            "builder.setGenericField(\"%param_name:L\", %param_name:L, %type_parameter_property_name:L.%property_clazz_name:L)\n",
+            formatStringMap
+        )
+        unindent()
+        add("}\n")
+        unindent()
+        add("}\n")
+        return this
+    }
+
     private fun CodeBlock.Builder.appendNullableSetterStatement(
         paramName: String,
-        afType: AppFunctionTypeReference
+        typeReference: KSTypeReference,
     ): CodeBlock.Builder {
         val formatStringMap =
             mapOf<String, Any>(
@@ -510,21 +649,48 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
         return addNamed("if (%param_name:L != null) {\n", formatStringMap)
             .indent()
-            .appendSetterStatement(paramName, afType)
+            .appendSetterStatement(paramName, typeReference)
             .unindent()
             .addStatement("}")
     }
 
     private fun CodeBlock.Builder.appendSetterStatement(
         paramName: String,
-        afType: AppFunctionTypeReference
+        typeReference: KSTypeReference,
     ): CodeBlock.Builder {
+        val afType = AppFunctionTypeReference(typeReference)
         return when (afType.typeCategory) {
             PRIMITIVE_SINGULAR,
             PRIMITIVE_ARRAY,
             PRIMITIVE_LIST -> appendPrimitiveSetterStatement(paramName, afType)
             SERIALIZABLE_SINGULAR -> appendSerializableSetterStatement(paramName, afType)
-            SERIALIZABLE_LIST -> appendSerializableListSetterStatement(paramName, afType)
+            SERIALIZABLE_LIST ->
+                appendSerializableListSetterStatement(
+                    paramName,
+                    afType,
+                    afType.itemTypeReference.getTypeShortName()
+                )
+            SERIALIZABLE_PROXY_SINGULAR -> {
+                val targetSerializableProxy =
+                    resolvedAnnotatedSerializableProxies.getSerializableProxyForTypeReference(
+                        afType
+                    )
+                appendSerializableSetterStatement(
+                    paramName,
+                    AppFunctionTypeReference(targetSerializableProxy.serializableReferenceType)
+                )
+            }
+            SERIALIZABLE_PROXY_LIST -> {
+                val targetSerializableProxy =
+                    resolvedAnnotatedSerializableProxies.getSerializableProxyForTypeReference(
+                        afType
+                    )
+                appendSerializableListSetterStatement(
+                    paramName,
+                    afType,
+                    targetSerializableProxy.serializableReferenceType.getTypeShortName()
+                )
+            }
         }
     }
 
@@ -562,16 +728,16 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
     private fun CodeBlock.Builder.appendSerializableListSetterStatement(
         paramName: String,
-        afType: AppFunctionTypeReference
+        afType: AppFunctionTypeReference,
+        parametrizedItemTypeName: String
     ): CodeBlock.Builder {
-        val parametrizedTypeName = afType.selfOrItemTypeReference.getTypeShortName()
 
         val formatStringMap =
             mapOf<String, Any>(
                 "param_name" to paramName,
-                "factory_name" to "${parametrizedTypeName}Factory".lowerFirstChar(),
+                "factory_name" to "${parametrizedItemTypeName}Factory".lowerFirstChar(),
                 "setter_name" to getAppFunctionDataSetterName(afType),
-                "lambda_param_name" to parametrizedTypeName.lowerFirstChar()
+                "lambda_param_name" to parametrizedItemTypeName.lowerFirstChar()
             )
 
         addNamed(
@@ -590,15 +756,11 @@ class AppFunctionSerializableFactoryCodeBuilder(
     private fun getAppFunctionDataGetterName(afType: AppFunctionTypeReference): String {
         val shortTypeName = afType.selfOrItemTypeReference.getTypeShortName()
         return when (afType.typeCategory) {
-            PRIMITIVE_SINGULAR -> {
-                if (afType.selfTypeReference.isOfType(STRING)) {
-                    "getString"
-                } else {
-                    "get${shortTypeName}OrNull"
-                }
-            }
+            PRIMITIVE_SINGULAR -> "get${shortTypeName}OrNull"
             PRIMITIVE_ARRAY -> "get$shortTypeName"
+            SERIALIZABLE_PROXY_SINGULAR,
             SERIALIZABLE_SINGULAR -> "getAppFunctionData"
+            SERIALIZABLE_PROXY_LIST,
             SERIALIZABLE_LIST -> "getAppFunctionDataList"
             PRIMITIVE_LIST -> "get${shortTypeName}List"
         }
@@ -609,6 +771,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
     private fun getGetterDefaultValuePostfix(afType: AppFunctionTypeReference): String {
         return when (afType.typeCategory) {
             PRIMITIVE_SINGULAR,
+            SERIALIZABLE_PROXY_SINGULAR,
             SERIALIZABLE_SINGULAR -> ""
             PRIMITIVE_ARRAY ->
                 if (afType.isNullable) {
@@ -617,6 +780,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
                     " ?: ${afType.selfOrItemTypeReference.getTypeShortName()}(0)"
                 }
             PRIMITIVE_LIST,
+            SERIALIZABLE_PROXY_LIST,
             SERIALIZABLE_LIST -> if (afType.isNullable) "" else " ?: emptyList()"
         }
     }
@@ -626,7 +790,9 @@ class AppFunctionSerializableFactoryCodeBuilder(
             PRIMITIVE_SINGULAR,
             PRIMITIVE_ARRAY -> "set${afType.selfOrItemTypeReference.getTypeShortName()}"
             PRIMITIVE_LIST -> "set${afType.selfOrItemTypeReference.getTypeShortName()}List"
-            SERIALIZABLE_SINGULAR -> "setAppFunctionData"
+            SERIALIZABLE_SINGULAR,
+            SERIALIZABLE_PROXY_SINGULAR -> "setAppFunctionData"
+            SERIALIZABLE_PROXY_LIST,
             SERIALIZABLE_LIST -> "setAppFunctionDataList"
         }
     }
@@ -641,6 +807,21 @@ class AppFunctionSerializableFactoryCodeBuilder(
                     ClassName(
                         qualifiedName.getQualifier(),
                         "`\$${qualifiedName.getShortName()}Factory`"
+                    )
+                )
+            }
+
+            for (proxyTypeReference in
+                annotatedClass.getSerializableProxyPropertyTypeReferences()) {
+                val targetSerializableProxy =
+                    resolvedAnnotatedSerializableProxies.getSerializableProxyForTypeReference(
+                        proxyTypeReference
+                    )
+                put(
+                    "${targetSerializableProxy.originalClassName.simpleName.lowerFirstChar()}Factory",
+                    ClassName(
+                        targetSerializableProxy.originalClassName.packageName,
+                        "`\$${targetSerializableProxy.targetClassDeclaration.simpleName.asString()}Factory`"
                     )
                 )
             }
@@ -666,5 +847,12 @@ class AppFunctionSerializableFactoryCodeBuilder(
     private fun getSerializableParamName(annotatedClass: AnnotatedAppFunctionSerializable): String {
         return "${annotatedClass.originalClassName.simpleName.replaceFirstChar {
                 it -> it.lowercase() }}_appFunctionSerializable"
+    }
+
+    companion object {
+        /** Gets the TypeParameter property name used by generic AppFunctionSerializableFactory */
+        fun getTypeParameterPropertyName(typeParameter: KSTypeParameter): String {
+            return "${typeParameter.name.asString().uppercase().replaceFirstChar { it.lowercase() }}TypeParameter"
+        }
     }
 }

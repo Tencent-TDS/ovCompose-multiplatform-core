@@ -172,11 +172,6 @@ public class BiometricViewModel extends ViewModel {
     private @Nullable Executor mClientExecutor;
 
     /**
-     * The callback object that will receive authentication events.
-     */
-    private BiometricPrompt.@Nullable AuthenticationCallback mClientCallback;
-
-    /**
      * Info about the appearance and behavior of the prompt provided by the client application.
      */
     private BiometricPrompt.@Nullable PromptInfo mPromptInfo;
@@ -330,24 +325,6 @@ public class BiometricViewModel extends ViewModel {
 
     void setClientExecutor(@NonNull Executor clientExecutor) {
         mClientExecutor = clientExecutor;
-    }
-
-    BiometricPrompt.@NonNull AuthenticationCallback getClientCallback() {
-        if (mClientCallback == null) {
-            mClientCallback = new BiometricPrompt.AuthenticationCallback() {};
-        }
-        return mClientCallback;
-    }
-
-    void setClientCallback(BiometricPrompt.@NonNull AuthenticationCallback clientCallback) {
-        mClientCallback = clientCallback;
-    }
-
-    /**
-     * Clears the client callback reference held by this view model.
-     */
-    void resetClientCallback() {
-        mClientCallback = null;
     }
 
     void setPromptInfo(BiometricPrompt.@Nullable PromptInfo promptInfo) {

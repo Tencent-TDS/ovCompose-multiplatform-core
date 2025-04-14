@@ -270,7 +270,6 @@ public interface CanvasStrokeRenderer {
          * @param textureStore The [TextureBitmapStore] that will be called to retrieve image data
          *   for drawing textured strokes.
          */
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // NonPublicApi
         @ExperimentalInkCustomBrushApi
         @JvmStatic
         public fun create(textureStore: TextureBitmapStore): CanvasStrokeRenderer {

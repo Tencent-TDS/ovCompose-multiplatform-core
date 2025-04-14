@@ -18,12 +18,12 @@ package androidx.window.layout
 
 import android.content.Context
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.util.Consumer
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.activityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.window.TestActivity
 import androidx.window.WindowSdkExtensions
 import androidx.window.WindowTestUtils
@@ -90,7 +90,7 @@ class WindowInfoTrackerImplTest {
         }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     fun testWindowLayoutInfo_contextAsListener() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
@@ -126,7 +126,7 @@ class WindowInfoTrackerImplTest {
         }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     fun testWindowLayoutInfo_multicastingWithContext() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
@@ -145,7 +145,7 @@ class WindowInfoTrackerImplTest {
         }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     fun testWindowLayoutInfo_nonUiContext_throwsError() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
@@ -218,7 +218,7 @@ class WindowInfoTrackerImplTest {
     }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     fun testGetCurrentWindowLayoutInfo_overlayWindowAsContext() {
         assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
         assumeAtLeastWindowExtensionVersion(9)

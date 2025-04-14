@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // b/407927787
 
 package androidx.compose.foundation.lazy.list
 
@@ -185,7 +185,7 @@ class LazyListPrefetchStrategyTest(val config: Config) :
     fun itemComposed_whenPrefetchedFromCallback_providesSizeInfo() {
         var prefetchCount = 0
         val strategy =
-            PrefetchNextLargestIndexStrategy(scheduler) { itemSize ->
+            PrefetchNextLargestIndexStrategy(scheduler) { _, itemSize ->
                 prefetchCount++
                 assertThat(itemSize).isEqualTo(itemsSizePx)
             }
@@ -271,7 +271,7 @@ class LazyListPrefetchStrategyTest(val config: Config) :
      */
     private class PrefetchNextLargestIndexStrategy(
         override val prefetchScheduler: PrefetchScheduler?,
-        val onItemPrefetched: (Int) -> Unit = {}
+        val onItemPrefetched: (Int, Int) -> Unit = { _, _ -> }
     ) : LazyListPrefetchStrategy {
 
         var handle: LazyLayoutPrefetchState.PrefetchHandle? = null
@@ -282,7 +282,7 @@ class LazyListPrefetchStrategyTest(val config: Config) :
             if (handle != null && index != prefetchIndex) {
                 cancelPrefetch()
             }
-            handle = schedulePrefetch(index, onItemPrefetched)
+            handle = schedulePrefetch(index) { onItemPrefetched(index, mainAxisSize) }
             prefetchIndex = index
         }
 

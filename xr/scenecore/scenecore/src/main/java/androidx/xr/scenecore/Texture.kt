@@ -19,7 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource as RtTextureResource
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.TextureResource as RtTextureResource
 import com.google.common.util.concurrent.ListenableFuture
 
 /** [Texture] represents a texture that can be used with materials. */

@@ -587,13 +587,17 @@ object Shell {
             getPidsForProcess(processName).map { pid ->
                 ProcessPid(pid = pid, processName = processName)
             }
-        killProcessesAndWait(
-            processes,
-            waitPollPeriodMs = waitPollPeriodMs,
-            waitPollMaxCount = waitPollMaxCount,
-            onFailure,
-            processKiller
-        )
+        if (!processes.isEmpty()) {
+            killProcessesAndWait(
+                processes,
+                waitPollPeriodMs = waitPollPeriodMs,
+                waitPollMaxCount = waitPollMaxCount,
+                onFailure,
+                processKiller
+            )
+        } else {
+            Log.d(BenchmarkState.TAG, "No processes for name $processName, skipping kill")
+        }
     }
 
     fun killProcessesAndWait(

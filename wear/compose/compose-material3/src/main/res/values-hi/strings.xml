@@ -44,8 +44,6 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"बढ़ाएं"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"पुष्टि करें"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"खारिज करें"</string>
-    <!-- no translation found for wear_m3c_open_on_phone (3200727397161392122) -->
-    <skip />
-    <!-- no translation found for wear_m3c_open_on_phone_icon_content_description (5953380527505012363) -->
-    <skip />
+    <string name="wear_m3c_open_on_phone" msgid="3200727397161392122">"फ़ोन देखें"</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="5953380527505012363">"अपने फ़ोन के आइकॉन की जांच करें"</string>
 </resources>

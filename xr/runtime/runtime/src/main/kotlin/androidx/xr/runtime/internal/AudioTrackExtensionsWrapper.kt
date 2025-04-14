@@ -23,12 +23,12 @@ import androidx.annotation.RestrictTo
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface AudioTrackExtensionsWrapper {
     /**
-     * Returns the PointSourceAttributes of the AudioTrack.
+     * Returns the [PointSourceParams] of the AudioTrack.
      *
-     * @param track The AudioTrack to get the PointSourceAttributes from.
-     * @return The PointSourceAttributes of the AudioTrack.
+     * @param track The AudioTrack to get the PointSourceParams from.
+     * @return The PointSourceParams of the AudioTrack.
      */
-    public fun getPointSourceAttributes(track: AudioTrack): PointSourceAttributes?
+    public fun getPointSourceParams(track: AudioTrack): PointSourceParams?
 
     /**
      * Returns the SoundFieldAttributes of the AudioTrack.
@@ -47,16 +47,29 @@ public interface AudioTrackExtensionsWrapper {
     @SpatializerConstants.SourceType public fun getSpatialSourceType(track: AudioTrack): Int
 
     /**
-     * Sets the PointSourceAttributes of the AudioTrack.
+     * Sets the PointSourceParams of the AudioTrack.
      *
-     * @param builder The AudioTrack.Builder to set the PointSourceAttributes on.
-     * @param attributes The PointSourceAttributes to set.
+     * <p>The new PointSourceParams will be applied if the [SpatializerConstants.SourceType] of the
+     * AudioTrack was either [SpatializerConstants.DEFAULT]0 or [SpatializerConstants.POINT_SOURCE].
+     * If the [SpatializerConstants.SourceType] was [SpatializerConstants.SOUND_FIELD], then this
+     * method will have no effect.
+     *
+     * @param track The AudioTrack to set the PointSourceParams on.
+     * @param params The PointSourceParams to set.
+     */
+    public fun setPointSourceParams(track: AudioTrack, params: PointSourceParams)
+
+    /**
+     * Sets the PointSourceParams of the AudioTrack.
+     *
+     * @param builder The AudioTrack.Builder to set the PointSourceParams on.
+     * @param params The PointSourceParams to set.
      * @return The AudioTrack.Builder with the PointSourceAttributes set.
      */
-    public fun setPointSourceAttributes(
+    public fun setPointSourceParams(
         builder: AudioTrack.Builder,
-        attributes: PointSourceAttributes,
-    )
+        params: PointSourceParams,
+    ): AudioTrack.Builder
 
     /**
      * Sets the SoundFieldAttributes of the AudioTrack.
@@ -67,6 +80,6 @@ public interface AudioTrackExtensionsWrapper {
      */
     public fun setSoundFieldAttributes(
         builder: AudioTrack.Builder,
-        attributes: SoundFieldAttributes
-    )
+        attributes: SoundFieldAttributes,
+    ): AudioTrack.Builder
 }

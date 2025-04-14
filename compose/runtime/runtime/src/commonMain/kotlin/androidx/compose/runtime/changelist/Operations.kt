@@ -562,6 +562,7 @@ internal class Operations : OperationsDebugStringFormattable() {
         }
     }
 
+    @Suppress("POTENTIALLY_NON_REPORTED_ANNOTATION")
     @Deprecated(
         "toString() will return the default implementation from Any. " +
             "Did you mean to use toDebugString()?",

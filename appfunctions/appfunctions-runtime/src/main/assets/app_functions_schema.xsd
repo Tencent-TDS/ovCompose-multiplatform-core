@@ -46,6 +46,7 @@
             type="appfn:AppFunctionDataTypeMetadataDocument" />
         <xs:element name="properties" cardinality="1"
             type="appfn:AppFunctionNamedDataTypeMetadataDocument" />
+        <xs:element name="allOf" cardinality="1" type="appfn:AppFunctionDataTypeMetadataDocument" />
         <xs:element name="required" cardinality="1" type="xs:string" />
         <xs:element name="dataTypeReference" cardinality="2" type="xs:string" />
         <xs:element name="isNullable" cardinality="2" type="xs:boolean" />

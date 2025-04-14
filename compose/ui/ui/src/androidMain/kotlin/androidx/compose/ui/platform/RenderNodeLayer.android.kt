@@ -347,6 +347,10 @@ internal class RenderNodeLayer(
     override val underlyingMatrix: Matrix
         get() = matrixCache.calculateMatrix(renderNode)
 
+    override var frameRate: Float = 0f
+
+    override var isFrameRateFromParent = false
+
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
         return if (inverse) {
             matrixCache.mapInverse(renderNode, point)

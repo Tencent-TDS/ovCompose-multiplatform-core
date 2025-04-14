@@ -313,6 +313,89 @@ class BrushBehaviorTest {
     }
 
     @Test
+    fun polarTargetConstants_areDistinct() {
+        val list =
+            listOf<BrushBehavior.PolarTarget>(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+            )
+        assertThat(list.toSet()).hasSize(list.size)
+    }
+
+    @Test
+    fun polarTargetHashCode_withIdenticalValues_match() {
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .hashCode()
+            )
+            .isEqualTo(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .hashCode()
+            )
+
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .hashCode()
+            )
+            .isEqualTo(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .hashCode()
+            )
+    }
+
+    @Test
+    fun polarTargetEquals_checksEqualityOfValues() {
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+            )
+            .isEqualTo(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+            )
+
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+            )
+            .isNotEqualTo(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+            )
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+            )
+            .isNotEqualTo(null)
+    }
+
+    @Test
+    fun polarTargetToString_returnsCorrectString() {
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .toString()
+            )
+            .isEqualTo(
+                "BrushBehavior.PolarTarget.POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE"
+            )
+        assertThat(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE
+                    .toString()
+            )
+            .isEqualTo(
+                "BrushBehavior.PolarTarget.POSITION_OFFSET_RELATIVE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE"
+            )
+    }
+
+    @Test
     fun outOfRangeConstants_areDistinct() {
         val list =
             listOf<BrushBehavior.OutOfRange>(
@@ -1160,6 +1243,203 @@ class BrushBehaviorTest {
     }
 
     @Test
+    fun polarTargetNodeConstructor_throwsForNonFiniteAngleRange() {
+        val input = BrushBehavior.ConstantNode(0f)
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                Float.NaN,
+                1f,
+                input,
+                0f,
+                1f,
+                input,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                Float.POSITIVE_INFINITY,
+                input,
+                0f,
+                1f,
+                input,
+            )
+        }
+    }
+
+    @Test
+    fun polarTargetNodeConstructor_throwsForNonFiniteMagnitudeRange() {
+        val input = BrushBehavior.ConstantNode(0f)
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                input,
+                Float.NaN,
+                1f,
+                input,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                input,
+                0f,
+                Float.POSITIVE_INFINITY,
+                input,
+            )
+        }
+    }
+
+    @Test
+    fun polarTargetNodeConstructor_throwsForEmptyAngleRange() {
+        val input = BrushBehavior.ConstantNode(0f)
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0.5f,
+                0.5f,
+                input,
+                0f,
+                1f,
+                input,
+            )
+        }
+    }
+
+    @Test
+    fun polarTargetNodeConstructor_throwsForEmptyMagnitudeRange() {
+        val input = BrushBehavior.ConstantNode(0f)
+        assertFailsWith<IllegalArgumentException> {
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                input,
+                0.5f,
+                0.5f,
+                input,
+            )
+        }
+    }
+
+    @Test
+    fun polarTargetNodeInputs_containsInputs() {
+        val angleInput = BrushBehavior.ConstantNode(0f)
+        val magnitudeInput = BrushBehavior.ConstantNode(1f)
+        val node =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                angleInput,
+                0f,
+                1f,
+                magnitudeInput,
+            )
+        assertThat(node.inputs).containsExactly(angleInput, magnitudeInput).inOrder()
+    }
+
+    @Test
+    fun polarTargetNodeToString() {
+        val angleInput = BrushBehavior.ConstantNode(2f)
+        val magnitudeInput = BrushBehavior.ConstantNode(5f)
+        val node =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                angleInput,
+                3f,
+                4f,
+                magnitudeInput,
+            )
+        assertThat(node.toString())
+            .isEqualTo(
+                "PolarTargetNode(POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE, 0.0, 1.0, ConstantNode(2.0), 3.0, 4.0, ConstantNode(5.0))"
+            )
+    }
+
+    @Test
+    fun polarTargetNodeEquals_checksEqualityOfValues() {
+        val node1 =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                BrushBehavior.ConstantNode(2f),
+                3f,
+                4f,
+                BrushBehavior.ConstantNode(5f),
+            )
+        val node2 =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                BrushBehavior.ConstantNode(2f),
+                3f,
+                4f,
+                BrushBehavior.ConstantNode(5f),
+            )
+        val node3 =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                BrushBehavior.ConstantNode(2f),
+                3f,
+                4f,
+                BrushBehavior.ConstantNode(67f),
+            )
+        assertThat(node1).isEqualTo(node2)
+        assertThat(node1).isNotEqualTo(node3)
+    }
+
+    @Test
+    fun polarTargetNodeHashCode_withIdenticalValues_match() {
+        val node1 =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                BrushBehavior.ConstantNode(2f),
+                3f,
+                4f,
+                BrushBehavior.ConstantNode(5f),
+            )
+        val node2 =
+            BrushBehavior.PolarTargetNode(
+                BrushBehavior.PolarTarget
+                    .POSITION_OFFSET_ABSOLUTE_IN_RADIANS_AND_MULTIPLES_OF_BRUSH_SIZE,
+                0f,
+                1f,
+                BrushBehavior.ConstantNode(2f),
+                3f,
+                4f,
+                BrushBehavior.ConstantNode(5f),
+            )
+        assertThat(node1.hashCode()).isEqualTo(node2.hashCode())
+    }
+
+    @Test
     fun brushBehaviorConstructor_withInvalidArguments_throws() {
         // sourceValueRangeStart not finite
         val sourceValueRangeStartError =
@@ -1272,7 +1552,7 @@ class BrushBehaviorTest {
                     enabledToolTypes = setOf(InputToolType.STYLUS),
                 )
             }
-        assertThat(responseTimeMillisError.message).contains("dampingGap")
+        assertThat(responseTimeMillisError.message).contains("damping_gap")
         assertThat(responseTimeMillisError.message).contains("non-negative")
 
         // enabledToolType contains empty set.
@@ -1291,8 +1571,8 @@ class BrushBehaviorTest {
                     enabledToolTypes = setOf(),
                 )
             }
-        assertThat(enabledToolTypeError.message).contains("enabledToolTypes")
-        assertThat(enabledToolTypeError.message).contains("non-empty")
+        assertThat(enabledToolTypeError.message).contains("enabled_tool_types")
+        assertThat(enabledToolTypeError.message).contains("must enable at least one")
 
         // source and outOfRangeBehavior combination is invalid (TIME_SINCE_INPUT must use CLAMP)
         val sourceOutOfRangeBehaviorError =

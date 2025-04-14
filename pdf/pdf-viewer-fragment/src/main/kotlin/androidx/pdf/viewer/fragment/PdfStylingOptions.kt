@@ -16,9 +16,11 @@
 
 package androidx.pdf.viewer.fragment
 
+import androidx.annotation.StyleRes
+
 /**
  * Represents styling configurations for views integrated by [PdfViewerFragment].
  *
  * @property containerStyleResId The style identifier to apply to the PDF view.
  */
-public class PdfStylingOptions(public val containerStyleResId: Int)
+public class PdfStylingOptions(@StyleRes public val containerStyleResId: Int)

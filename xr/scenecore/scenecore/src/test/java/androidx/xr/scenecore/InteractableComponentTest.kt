@@ -17,6 +17,11 @@
 package androidx.xr.scenecore
 
 import android.app.Activity
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.InputEvent as RtInputEvent
+import androidx.xr.runtime.internal.InputEventListener as RtInputEventListener
+import androidx.xr.runtime.internal.InteractableComponent as RtInteractableComponent
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.runtime.math.Matrix4
 import androidx.xr.runtime.math.Vector3
 import com.google.common.truth.Truth.assertThat
@@ -38,7 +43,7 @@ class InteractableComponentTest {
     private val activity = Robolectric.buildActivity(Activity::class.java).create().start().get()
     private val mockRuntime = mock<JxrPlatformAdapter>()
     private lateinit var session: Session
-    private val mockContentlessEntity = mock<JxrPlatformAdapter.Entity>()
+    private val mockContentlessEntity = mock<RtEntity>()
     private val entity by lazy { ContentlessEntity.create(session, "test") }
 
     @Before
@@ -48,7 +53,7 @@ class InteractableComponentTest {
         whenever(mockRuntime.activitySpaceRootImpl).thenReturn(mock())
         whenever(mockRuntime.headActivityPose).thenReturn(mock())
         whenever(mockRuntime.perceptionSpaceActivityPose).thenReturn(mock())
-        whenever(mockRuntime.getMainPanelEntity()).thenReturn(mock())
+        whenever(mockRuntime.mainPanelEntity).thenReturn(mock())
         whenever(mockRuntime.createEntity(any(), any(), any())).thenReturn(mockContentlessEntity)
         session = Session.create(activity, mockRuntime)
     }
@@ -116,7 +121,7 @@ class InteractableComponentTest {
 
     @Test
     fun interactableComponent_propagatesHitInfoInInputEvents() {
-        val mockRtInteractableComponent = mock<JxrPlatformAdapter.InteractableComponent>()
+        val mockRtInteractableComponent = mock<RtInteractableComponent>()
         whenever(mockRuntime.createInteractableComponent(any(), any()))
             .thenReturn(mockRtInteractableComponent)
         whenever(mockContentlessEntity.addComponent(any())).thenReturn(true)
@@ -124,18 +129,18 @@ class InteractableComponentTest {
         val interactableComponent =
             InteractableComponent.create(session, directExecutor(), mockListener)
         assertThat(entity.addComponent(interactableComponent)).isTrue()
-        val listenerCaptor = argumentCaptor<JxrPlatformAdapter.InputEventListener>()
+        val listenerCaptor = argumentCaptor<RtInputEventListener>()
         verify(mockRuntime).createInteractableComponent(any(), listenerCaptor.capture())
         val rtInputEventListener = listenerCaptor.lastValue
         val rtInputEvent =
-            JxrPlatformAdapter.InputEvent(
-                JxrPlatformAdapter.InputEvent.SOURCE_HANDS,
-                JxrPlatformAdapter.InputEvent.POINTER_TYPE_RIGHT,
+            RtInputEvent(
+                RtInputEvent.SOURCE_HANDS,
+                RtInputEvent.POINTER_TYPE_RIGHT,
                 123456789L,
                 Vector3.Zero,
                 Vector3.One,
-                JxrPlatformAdapter.InputEvent.ACTION_DOWN,
-                JxrPlatformAdapter.InputEvent.HitInfo(
+                RtInputEvent.ACTION_DOWN,
+                RtInputEvent.Companion.HitInfo(
                     mockContentlessEntity,
                     Vector3.One,
                     Matrix4.Identity

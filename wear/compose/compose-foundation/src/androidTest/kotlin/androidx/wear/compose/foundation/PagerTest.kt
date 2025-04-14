@@ -234,9 +234,17 @@ class PagerTest {
             rule.runOnIdle { Assert.assertEquals(0, pagerState.currentPage) }
             rule.onNodeWithText("Page 0").assertIsDisplayed()
 
-            rule.runOnIdle { scrollScope.launch { pagerState.animateScrollToPage(i) } }
+            rule.runOnIdle {
+                scrollScope.launch {
+                    pagerState.animateScrollToPage(i)
+                    Assert.assertEquals(i, pagerState.targetPage)
+                }
+            }
 
-            rule.runOnIdle { Assert.assertEquals(i, pagerState.currentPage) }
+            rule.runOnIdle {
+                Assert.assertEquals(i, pagerState.currentPage)
+                Assert.assertEquals(i, pagerState.settledPage)
+            }
             rule.onNodeWithText("Page $i").assertIsDisplayed()
 
             rule.runOnIdle { scrollScope.launch { pagerState.animateScrollToPage(0) } }

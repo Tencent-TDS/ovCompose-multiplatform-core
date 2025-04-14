@@ -320,7 +320,7 @@ internal open class AndroidViewHolder(
     // When there is no hardware acceleration invalidates are intercepted using this method,
     // otherwise using onDescendantInvalidated. Return null to avoid invalidating the
     // AndroidComposeView or the handler.
-    @Suppress("Deprecation")
+    @Suppress("OVERRIDE_DEPRECATION", "Deprecation")
     override fun invalidateChildInParent(location: IntArray?, dirty: Rect?): ViewParent? {
         super.invalidateChildInParent(location, dirty)
         invalidateOrDefer()

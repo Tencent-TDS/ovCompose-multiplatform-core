@@ -34,19 +34,6 @@ dependencies {
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.1.0")
     api("androidx.annotation:annotation-experimental:1.4.1")
-
-    androidTestImplementation(libs.okhttpMockwebserver)
-    androidTestImplementation(libs.testExtJunit)
-    androidTestImplementation(libs.testCore)
-    androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.testRules)
-    androidTestImplementation("androidx.appcompat:appcompat:1.1.0")
-    androidTestImplementation("androidx.concurrent:concurrent-futures:1.0.0")
-    androidTestImplementation(libs.mockitoCore)
-    androidTestImplementation(libs.dexmakerMockito)
-
-    // Hamcrest matchers:
-    androidTestImplementation(libs.bundles.espressoContrib)
 }
 
 ext {

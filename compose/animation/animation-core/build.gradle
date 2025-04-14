@@ -23,7 +23,6 @@
  */
 
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -129,7 +128,6 @@ androidx {
     description = "Animation engine and animation primitives that are the building blocks of the Compose animation library"
     metalavaK2UastEnabled = false
     samples(project(":compose:animation:animation-core:animation-core-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {

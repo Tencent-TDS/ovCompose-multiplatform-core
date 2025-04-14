@@ -84,6 +84,10 @@ internal class ViewLayer(
     override val underlyingMatrix: Matrix
         get() = matrixCache.calculateMatrix(this)
 
+    override var frameRate: Float = 0f
+
+    override var isFrameRateFromParent = false
+
     /**
      * Local copy of the transform origin as GraphicsLayerModifier can be implemented as a model
      * object. Update this field within [updateLayerProperties] and use it in [resize] or other

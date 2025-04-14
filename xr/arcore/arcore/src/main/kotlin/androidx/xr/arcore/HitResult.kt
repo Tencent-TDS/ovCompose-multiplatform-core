@@ -35,6 +35,12 @@ internal constructor(
     public val hitPose: Pose,
     public val trackable: Trackable<Trackable.State>,
 ) {
+    /**
+     * Creates an [Anchor] that is attached to this trackable, using the given initial [hitPose] in
+     * the world coordinate space.
+     *
+     * @throws [IllegalStateException] if [PlaneTrackingMode] is set to Disabled.
+     */
     public fun createAnchor(): AnchorCreateResult {
         return trackable.createAnchor(hitPose)
     }

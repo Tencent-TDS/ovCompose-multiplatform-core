@@ -75,7 +75,7 @@ class ViewfinderTransformationsTest {
     fun ratioMatch_surfaceIsScaledToFillPreviewView() {
         // Arrange.
 
-        viewfinderTransform.setTransformationInfo(
+        viewfinderTransform.transformationInfo =
             TransformationInfo(
                 sourceRotation = 90,
                 isSourceMirroredHorizontally = false,
@@ -84,9 +84,9 @@ class ViewfinderTransformationsTest {
                 cropRectTop = CROP_RECT.top.toFloat(),
                 cropRectRight = CROP_RECT.right.toFloat(),
                 cropRectBottom = CROP_RECT.bottom.toFloat()
-            ),
-            SURFACE_SIZE
-        )
+            )
+
+        viewfinderTransform.setResolution(SURFACE_SIZE)
 
         // Act.
         viewfinderTransform.transformView(
@@ -216,7 +216,7 @@ class ViewfinderTransformationsTest {
         isFrontCamera: Boolean
     ) {
         // Arrange.
-        viewfinderTransform.setTransformationInfo(
+        viewfinderTransform.transformationInfo =
             TransformationInfo(
                 sourceRotation = 90,
                 isSourceMirroredHorizontally = false,
@@ -226,9 +226,10 @@ class ViewfinderTransformationsTest {
                 cropRectTop = MISMATCHED_CROP_RECT.top.toFloat(),
                 cropRectRight = MISMATCHED_CROP_RECT.right.toFloat(),
                 cropRectBottom = MISMATCHED_CROP_RECT.bottom.toFloat()
-            ),
-            FIT_SURFACE_SIZE
-        )
+            )
+
+        viewfinderTransform.setResolution(FIT_SURFACE_SIZE)
+
         viewfinderTransform.scaleType = scaleType
 
         // Act.
@@ -307,7 +308,7 @@ class ViewfinderTransformationsTest {
         previewViewSize: Size,
         rotationDegrees: Int
     ) {
-        viewfinderTransform.setTransformationInfo(
+        viewfinderTransform.transformationInfo =
             TransformationInfo(
                 sourceRotation = rotationDegrees,
                 isSourceMirroredHorizontally = isFrontCamera && rotationDegrees in setOf(0, 180),
@@ -316,9 +317,8 @@ class ViewfinderTransformationsTest {
                 cropRectTop = cropRect.top.toFloat(),
                 cropRectRight = cropRect.right.toFloat(),
                 cropRectBottom = cropRect.bottom.toFloat()
-            ),
-            SURFACE_SIZE
-        )
+            )
+        viewfinderTransform.setResolution(SURFACE_SIZE)
         viewfinderTransform.transformView(
             previewViewSize,
             LayoutDirection.LTR,

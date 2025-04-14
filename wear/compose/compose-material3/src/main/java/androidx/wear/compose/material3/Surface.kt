@@ -67,7 +67,7 @@ internal fun Modifier.surface(
     shape: Shape = RectangleShape,
     border: BorderStroke? = null
 ): Modifier =
-    if (transformation != null && !LocalReduceMotion.current) {
+    if (transformation != null && transformation != NoOpSurfaceTransformation) {
         val backgroundPainter =
             remember(transformation, painter, shape, border) {
                 transformation.createContainerPainter(painter, shape, border)

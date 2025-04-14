@@ -31,6 +31,11 @@ class AppFunctionCompilerTest {
             CompilationTestHelper(
                 testFileSrcDir = File("src/test/test-data/input"),
                 goldenFileSrcDir = File("src/test/test-data/output"),
+                proxySourceFileNames =
+                    listOf(
+                        "androidx/appfunctions/internal/serializableproxies/AppFunctionLocalDateTime.KT",
+                        "androidx/appfunctions/internal/serializableproxies/AppFunctionUri.KT",
+                    ),
                 symbolProcessorProviders = listOf(AppFunctionCompiler.Provider()),
             )
     }
@@ -125,6 +130,28 @@ class AppFunctionCompilerTest {
             report = report,
             expectGeneratedResourceFileName = "app_functions_v2.xml",
             goldenFileName = "parcelablePrimitiveFunctions_app_function_dynamic_schema.xml",
+        )
+    }
+
+    @Test
+    fun testFunctionsWithSerializableProxyInput_genAppFunctionInventory_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames =
+                    listOf("FunctionWithSerializableProxyInput.KT", "SerializableWithProxyType.KT"),
+                processorOptions = mapOf("appfunctions:aggregateAppFunctions" to "true")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName =
+                "${'$'}FunctionWithSerializableProxyInput_AppFunctionInventory.kt",
+            goldenFileName = "${'$'}FunctionWithSerializableProxyInput_AppFunctionInventory.KT",
+        )
+        compilationTestHelper.assertSuccessWithResourceContent(
+            report = report,
+            expectGeneratedResourceFileName = "app_functions_v2.xml",
+            goldenFileName = "functionWithSerializableProxyInput_app_function_dynamic_schema.xml",
         )
     }
 
@@ -431,6 +458,50 @@ class AppFunctionCompilerTest {
             reportAnyTypedInputFunction,
             "App function parameters must be a supported type, or a type annotated as" +
                 " @AppFunctionSerializable. See list of supported types",
+        )
+    }
+
+    @Test
+    fun testFunctionWithInvalidGenericSerializable_fail() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("FunctionWithInvalidGenericSerializable.KT")
+            )
+
+        compilationTestHelper.assertErrorWithMessage(
+            report = report,
+            expectedErrorMessage =
+                "AppFunctionSerializable properties must be one of the following types:\n"
+        )
+    }
+
+    @Test
+    fun testFunctionWithGenericSerializable_genAppFunctionInventory_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("FunctionWithGenericSerializable.KT")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName =
+                "${'$'}FunctionWithGenericSerializable_AppFunctionInventory.kt",
+            goldenFileName = "${'$'}FunctionWithGenericSerializable_AppFunctionInventory.KT",
+        )
+    }
+
+    @Test
+    fun testFunctionWithGenericSerializable_genDynamicIndexXmlFile_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("FunctionWithGenericSerializable.KT"),
+                processorOptions = mapOf("appfunctions:aggregateAppFunctions" to "true"),
+            )
+
+        compilationTestHelper.assertSuccessWithResourceContent(
+            report = report,
+            expectGeneratedResourceFileName = "app_functions_v2.xml",
+            goldenFileName = "functionWithGenericSerializable_app_function_dynamic_schema.xml",
         )
     }
 

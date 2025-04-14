@@ -23,14 +23,16 @@ import static org.mockito.Mockito.when;
 
 import android.media.MediaPlayer;
 
-import androidx.xr.extensions.media.SpatializerExtensions;
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.MediaPlayerExtensionsWrapper;
+import androidx.xr.runtime.internal.MediaPlayerExtensionsWrapper;
+import androidx.xr.runtime.internal.PointSourceParams;
+import androidx.xr.runtime.internal.SoundFieldAttributes;
+import androidx.xr.runtime.internal.SpatializerConstants;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.media.MediaPlayerExtensions;
 import com.android.extensions.xr.media.ShadowMediaPlayerExtensions;
+import com.android.extensions.xr.media.SpatializerExtensions;
 import com.android.extensions.xr.media.XrSpatialAudioExtensions;
 import com.android.extensions.xr.node.Node;
 
@@ -53,23 +55,22 @@ public class MediaPlayerExtensionsWrapperImplTest {
     }
 
     @Test
-    public void setPointSourceAttr_callsExtensionsSetPointSourceAttr() {
+    public void setPointSourceParams_callsExtensionsSetPointSourceParams() {
         MediaPlayer mediaPlayer = new MediaPlayer();
 
         Node fakeNode = mXrExtensions.createNode();
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(fakeNode);
 
-        JxrPlatformAdapter.PointSourceAttributes expectedRtAttr =
-                new JxrPlatformAdapter.PointSourceAttributes(entity);
+        PointSourceParams expectedRtParams = new PointSourceParams(entity);
 
         MediaPlayerExtensionsWrapper wrapper =
                 new MediaPlayerExtensionsWrapperImpl(mMediaPlayerExtensions);
-        wrapper.setPointSourceAttributes(mediaPlayer, expectedRtAttr);
+        wrapper.setPointSourceParams(mediaPlayer, expectedRtParams);
 
         assertThat(
                         ShadowMediaPlayerExtensions.extract(mMediaPlayerExtensions)
-                                .getPointSourceAttributes()
+                                .getPointSourceParams()
                                 .getNode())
                 .isEqualTo(fakeNode);
     }
@@ -79,9 +80,8 @@ public class MediaPlayerExtensionsWrapperImplTest {
         MediaPlayer mediaPlayer = new MediaPlayer();
 
         int expectedAmbisonicOrder = SpatializerExtensions.AMBISONICS_ORDER_THIRD_ORDER;
-        JxrPlatformAdapter.SoundFieldAttributes expectedRtAttr =
-                new JxrPlatformAdapter.SoundFieldAttributes(
-                        JxrPlatformAdapter.SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
+        SoundFieldAttributes expectedRtAttr =
+                new SoundFieldAttributes(SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
 
         MediaPlayerExtensionsWrapper wrapper =
                 new MediaPlayerExtensionsWrapperImpl(mMediaPlayerExtensions);

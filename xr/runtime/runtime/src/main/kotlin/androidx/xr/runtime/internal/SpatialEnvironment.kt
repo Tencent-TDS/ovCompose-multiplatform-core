@@ -16,8 +16,10 @@
 
 package androidx.xr.runtime.internal
 
+import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import java.util.Objects
+import java.util.function.Consumer
 
 /**
  * Interface for updating the background image/geometry and passthrough settings.
@@ -29,35 +31,6 @@ import java.util.Objects
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface SpatialEnvironment {
     /**
-     * Sets the preference for passthrough state by requesting a change in passthrough opacity.
-     *
-     * <p>Passthrough visibility cannot be set directly to on/off modes. Instead, a desired
-     * passthrough opacity value between 0.0f and 1.0f can be requested which will dictate which
-     * mode is used. A passthrough opacity within 0.01f of 0.0f will disable passthrough, and will
-     * be returned as 0.0f by [getPassthroughOpacityPreference]. An opacity value within 0.01f of
-     * 1.0f will enable full passthrough and it will be returned as 1.0f by
-     * [getPassthroughOpacityPreference]. Any other value in the range will result in a
-     * semi-transparent passthrough.
-     *
-     * <p>Requesting to set passthrough opacity to a value that is not in the range of 0.0f to 1.0f
-     * will result in the value getting clamped to 0.0f or 1.0f depending on which one is closer.
-     *
-     * <p>If the value is set to null, the opacity will be managed by the system.
-     *
-     * <p>Requests to change opacity are only immediately attempted to be honored if the activity
-     * has the [SpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL] capability. When the
-     * request is honored, this returns [SetPassthroughOpacityPreferenceChangeApplied]. When the
-     * activity does not have the capability to control the passthrough state, this returns
-     * [SetPassthroughOpacityPreferenceChangePending] to indicate that the application passthrough
-     * opacity preference has been set and is pending to be automatically applied when the app
-     * regains capabilities to control passthrough state.
-     *
-     * <p>When passthrough state changes, whether due to this request succeeding or due to any other
-     * system or user initiated change, [OnPassthroughOpacityChangedListener] will be notified.
-     */
-    public var passthroughOpacityPreference: SetPassthroughOpacityPreferenceResult
-
-    /**
      * Gets the current passthrough opacity value between 0 and 1 where 0.0f means no passthrough,
      * and 1.0f means full passthrough.
      *
@@ -67,14 +40,38 @@ public interface SpatialEnvironment {
     public val currentPassthroughOpacity: Float
 
     /**
+     * Gets the preferred spatial environment for the application.
+     *
+     * <p>The returned value is always what was most recently supplied to
+     * [setSpatialEnvironmentPreference], or null if no preference has been set.
+     *
+     * <p>See [isSpatialEnvironmentPreferenceActive] or the [OnSpatialEnvironmentChangedListener]
+     * events to know when this preference becomes active.
+     */
+    public val spatialEnvironmentPreference: SpatialEnvironmentPreference?
+
+    /**
+     * Gets the last passthrough opacity requested through [setPassthroughOpacityPreference].
+     *
+     * <p>This may be different from the actual current state returned by
+     * [getCurrentPassthroughOpacity], but it should be applied as soon as the
+     * [SpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL] capability is gained. Defaults
+     * to null, if [setPassthroughOpacityPreference] was never called.
+     *
+     * <p>If set to null, the passthrough opacity will default to the user preference managed
+     * through the system.
+     */
+    public val passthroughOpacityPreference: Float?
+
+    /**
      * Notifies an application when the passthrough state changes, such as when the application
      * enters or exits passthrough or when the passthrough opacity changes. This [listener] will be
      * called on the Application's UI thread.
      */
-    public fun addOnPassthroughOpacityChangedListener(listener: (Float) -> Unit)
+    public fun addOnPassthroughOpacityChangedListener(listener: Consumer<Float>)
 
     /** Remove a listener previously added by [addOnPassthroughOpacityChangedListener]. */
-    public fun removeOnPassthroughOpacityChangedListener(listener: (Float) -> Unit)
+    public fun removeOnPassthroughOpacityChangedListener(listener: Consumer<Float>)
 
     /**
      * Returns true if the environment set by [setSpatialEnvironmentPreference] is active.
@@ -104,7 +101,40 @@ public interface SpatialEnvironment {
      * <p>Changes to the Environment state will be notified via the
      * [OnSpatialEnvironmentChangedListener].
      */
-    public var spatialEnvironmentPreference: SetSpatialEnvironmentPreferenceResult
+    public fun setSpatialEnvironmentPreference(
+        preference: SpatialEnvironmentPreference?
+    ): @SetSpatialEnvironmentPreferenceResult Int
+
+    /**
+     * Sets the preference for passthrough state by requesting a change in passthrough opacity.
+     *
+     * <p>Passthrough visibility cannot be set directly to on/off modes. Instead, a desired
+     * passthrough opacity value between 0.0f and 1.0f can be requested which will dictate which
+     * mode is used. A passthrough opacity within 0.01f of 0.0f will disable passthrough, and will
+     * be returned as 0.0f by [getPassthroughOpacityPreference]. An opacity value within 0.01f of
+     * 1.0f will enable full passthrough and it will be returned as 1.0f by
+     * [getPassthroughOpacityPreference]. Any other value in the range will result in a
+     * semi-transparent passthrough.
+     *
+     * <p>Requesting to set passthrough opacity to a value that is not in the range of 0.0f to 1.0f
+     * will result in the value getting clamped to 0.0f or 1.0f depending on which one is closer.
+     *
+     * <p>If the value is set to null, the opacity will be managed by the system.
+     *
+     * <p>Requests to change opacity are only immediately attempted to be honored if the activity
+     * has the [SpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL] capability. When the
+     * request is honored, this returns [SetPassthroughOpacityPreferenceChangeApplied]. When the
+     * activity does not have the capability to control the passthrough state, this returns
+     * [SetPassthroughOpacityPreferenceChangePending] to indicate that the application passthrough
+     * opacity preference has been set and is pending to be automatically applied when the app
+     * regains capabilities to control passthrough state.
+     *
+     * <p>When passthrough state changes, whether due to this request succeeding or due to any other
+     * system or user initiated change, [OnPassthroughOpacityChangedListener] will be notified.
+     */
+    public fun setPassthroughOpacityPreference(
+        passthroughOpacityPreference: Float?
+    ): @SetPassthroughOpacityPreferenceResult Int
 
     /**
      * Notifies an application whether or not the preferred spatial environment for the application
@@ -120,12 +150,19 @@ public interface SpatialEnvironment {
      *
      * <p>This listener will be invoked on the Application's UI thread.
      */
-    public fun addOnSpatialEnvironmentChangedListener(listener: (Boolean) -> Unit)
+    public fun addOnSpatialEnvironmentChangedListener(listener: Consumer<Boolean>)
 
     /** Remove a listener previously added by [addOnSpatialEnvironmentChangedListener]. */
-    public fun removeOnSpatialEnvironmentChangedListener(listener: (Boolean) -> Unit)
+    public fun removeOnSpatialEnvironmentChangedListener(listener: Consumer<Boolean>)
 
     /** Result values for calls to SpatialEnvironment.setPassthroughOpacityPreference */
+    @IntDef(
+        SetPassthroughOpacityPreferenceResult.CHANGE_APPLIED,
+        SetPassthroughOpacityPreferenceResult.CHANGE_PENDING,
+    )
+    @Target(AnnotationTarget.TYPE)
+    @Retention(AnnotationRetention.SOURCE)
+    @Suppress("PublicTypedef")
     public annotation class SetPassthroughOpacityPreferenceResult {
         public companion object {
             /**
@@ -141,6 +178,13 @@ public interface SpatialEnvironment {
     }
 
     /** Result values for calls to SpatialEnvironment.setSpatialEnvironmentPreference */
+    @IntDef(
+        SetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED,
+        SetSpatialEnvironmentPreferenceResult.CHANGE_PENDING,
+    )
+    @Target(AnnotationTarget.TYPE)
+    @Retention(AnnotationRetention.SOURCE)
+    @Suppress("PublicTypedef")
     public annotation class SetSpatialEnvironmentPreferenceResult {
         public companion object {
             /**
@@ -172,12 +216,14 @@ public interface SpatialEnvironment {
      * @param geometryAnimationName the name of the animation to play on the geometry. If null, the
      *   geometry will not play any animation. Note that the animation will be played in loop.
      */
-    public class SpatialEnvironmentPreference(
+    public class SpatialEnvironmentPreference
+    @JvmOverloads
+    constructor(
         public val skybox: ExrImageResource?,
         public val geometry: GltfModelResource?,
-        internal val geometryMaterial: MaterialResource?,
-        internal val geometryMeshName: String?,
-        internal val geometryAnimationName: String?,
+        public val geometryMaterial: MaterialResource? = null,
+        public val geometryMeshName: String? = null,
+        public val geometryAnimationName: String? = null,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true

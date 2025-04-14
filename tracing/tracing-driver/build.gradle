@@ -15,7 +15,6 @@
  */
 
 
-import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -93,7 +92,6 @@ androidx {
     inceptionYear = "2024"
     description = "AndroidX Tracing Driver"
     metalavaK2UastEnabled = false
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {

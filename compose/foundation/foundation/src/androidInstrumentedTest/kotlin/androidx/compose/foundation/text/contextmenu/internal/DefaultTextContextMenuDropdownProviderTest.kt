@@ -23,13 +23,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.test.R
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuData
-import androidx.compose.foundation.text.contextmenu.data.TextContextMenuItem
-import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSession
 import androidx.compose.foundation.text.contextmenu.provider.LocalTextContextMenuDropdownProvider
 import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuDataProvider
 import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuProvider
+import androidx.compose.foundation.text.contextmenu.test.numbersToData
+import androidx.compose.foundation.text.contextmenu.test.onItemWithNumber
+import androidx.compose.foundation.text.contextmenu.test.positionInScreen
+import androidx.compose.foundation.text.contextmenu.test.testDataProvider
+import androidx.compose.foundation.text.contextmenu.test.testItem
 import androidx.compose.foundation.text.test.assertThatJob
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -40,14 +42,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush.Companion.verticalGradient
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.assertCountEquals
@@ -58,15 +57,12 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
-import androidx.compose.ui.unit.toIntRect
-import androidx.compose.ui.unit.toOffset
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.google.common.truth.Truth.assertThat
@@ -451,42 +447,3 @@ class DefaultTextContextMenuDropdownProviderTest {
         }
     }
 }
-
-private fun SemanticsNodeInteractionsProvider.onItemWithNumber(i: Int): SemanticsNodeInteraction =
-    onNodeWithText(labelForNumber(i))
-
-private fun SemanticsNodeInteraction.positionInScreen(): IntOffset =
-    fetchSemanticsNode().positionOnScreen.round()
-
-private fun testDataProvider(vararg itemNumbers: Int): TextContextMenuDataProvider =
-    testDataProvider(positioner = { defaultPositioner(it) }, data = { numbersToData(*itemNumbers) })
-
-private fun numbersToData(vararg itemNumbers: Int): TextContextMenuData =
-    TextContextMenuData(itemNumbers.map { testItem(it) })
-
-private fun testDataProvider(
-    positioner: (LayoutCoordinates) -> Offset = { defaultPositioner(it) },
-    data: () -> TextContextMenuData
-): TextContextMenuDataProvider =
-    object : TextContextMenuDataProvider {
-        override fun position(destinationCoordinates: LayoutCoordinates): Offset =
-            positioner(destinationCoordinates)
-
-        override fun contentBounds(destinationCoordinates: LayoutCoordinates): Rect =
-            position(destinationCoordinates).let { Rect(it, it) }
-
-        override fun data(): TextContextMenuData = data()
-    }
-
-private fun defaultPositioner(destinationCoordinates: LayoutCoordinates): Offset =
-    destinationCoordinates.size.toIntRect().center.toOffset()
-
-private fun testItem(i: Int, onClick: TextContextMenuSession.() -> Unit = {}): TextContextMenuItem =
-    TextContextMenuItem(
-        key = i,
-        label = labelForNumber(i),
-        leadingIcon = R.drawable.ic_vector_asset_test,
-        onClick = onClick
-    )
-
-private fun labelForNumber(i: Int): String = "Item $i"

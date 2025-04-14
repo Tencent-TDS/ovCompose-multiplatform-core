@@ -42,8 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 
 /**
- * <a href="https://m3.material.io/foundations/layout/understanding-layout/" class="external"
- * target="_blank">Material Design layout</a>.
+ * [Material Design layout](https://m3.material.io/foundations/layout/understanding-layout/)
  *
  * Scaffold implements the basic Material Design visual layout structure.
  *

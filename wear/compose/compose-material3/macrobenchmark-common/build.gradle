@@ -1,4 +1,3 @@
-import androidx.build.KotlinTarget
 
 plugins {
     id("AndroidXPlugin")
@@ -39,5 +38,4 @@ dependencies {
 }
 
 androidx {
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

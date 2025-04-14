@@ -433,6 +433,7 @@ public class CallsManager(context: Context) : CallsManagerExtensions {
 
         val closableCallSession: AutoCloseable?
         // create a call session based off the build version
+        @Suppress("WRONG_ANNOTATION_TARGET") // b/407926117
         @RequiresApi(34)
         if (Utils.hasPlatformV2Apis()) {
             // CompletableDeferred pauses the execution of this method until the CallControl is

@@ -326,10 +326,16 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
                         meetingSummary.waitForActiveParticipant(null)
                         // Test VOIP -> ICS connection by updating state
                         val currentParticipants = TestUtils.generateParticipants(2)
+                        // add a duplicate element to verify duplicates are removed internally
+                        val participantsWithDuplicate =
+                            currentParticipants.toMutableList().apply {
+                                add(currentParticipants.first())
+                            }
                         voipAppControl.updateParticipants(
-                            currentParticipants.map { it.toParticipantParcelable() }
+                            participantsWithDuplicate.map { it.toParticipantParcelable() }
                         )
                         participants.waitForParticipants(currentParticipants.toSet())
+                        assertEquals(2, currentParticipants.size)
                         meetingSummary.waitForParticipantCount(currentParticipants.size)
                         voipAppControl.updateActiveParticipant(
                             currentParticipants[0].toParticipantParcelable()

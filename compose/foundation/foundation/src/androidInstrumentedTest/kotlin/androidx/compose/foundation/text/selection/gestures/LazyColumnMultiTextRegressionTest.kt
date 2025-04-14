@@ -37,6 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.testutils.TestViewConfiguration
 import androidx.compose.ui.Alignment
@@ -71,6 +72,9 @@ import androidx.compose.ui.unit.sp
 import com.google.common.truth.Subject
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -202,6 +206,7 @@ class LazyColumnMultiTextRegressionTest {
         private val clipboardManager: ClipboardManager,
         private val clipboard: Clipboard,
         private val textToolbar: TextToolbarWrapper,
+        private val coroutineScope: CoroutineScope,
     ) {
         val initialText = "Initial text"
         val selection: Selection?
@@ -284,7 +289,7 @@ class LazyColumnMultiTextRegressionTest {
             clipboardManager.setText(AnnotatedString(initialText))
         }
 
-        suspend fun assertClipboardTextEquals(text: String) {
+        fun assertClipboardTextEquals(text: String) {
             val actualClipboardText = clipboardManager.getText()?.text
             assertWithMessage("Clipboard contents was not changed.")
                 .that(actualClipboardText)
@@ -293,7 +298,14 @@ class LazyColumnMultiTextRegressionTest {
                 .that(actualClipboardText)
                 .isEqualTo(text)
 
-            val actualSuspendClipboardText = clipboard.getClipEntry()?.readText()
+            var actualSuspendClipboardText: String? = null
+            rule.waitUntil {
+                coroutineScope
+                    .launch(start = CoroutineStart.UNDISPATCHED) {
+                        actualSuspendClipboardText = clipboard.getClipEntry()?.readText()
+                    }
+                    .isCompleted
+            }
 
             assertWithMessage("Clipboard contents was not changed.")
                 .that(actualSuspendClipboardText)
@@ -368,55 +380,53 @@ class LazyColumnMultiTextRegressionTest {
     }
 
     @Suppress("DEPRECATION")
-    private fun runTest(block: suspend TestScope.() -> Unit) =
-        kotlinx.coroutines.test.runTest {
-            val tag = "tag"
-            val selection = mutableStateOf<Selection?>(null)
-            val testViewConfiguration = TestViewConfiguration(minimumTouchTargetSize = DpSize.Zero)
-            lateinit var clipboardManager: ClipboardManager
-            lateinit var clipboard: Clipboard
-            lateinit var textToolbar: TextToolbarWrapper
-            stateRestorationTester.setContent {
-                clipboardManager = LocalClipboardManager.current
-                clipboard = LocalClipboard.current
-                val originalTextToolbar = LocalTextToolbar.current
-                textToolbar =
-                    remember(originalTextToolbar) { TextToolbarWrapper(originalTextToolbar) }
-                CompositionLocalProvider(
-                    LocalTextToolbar provides textToolbar,
-                    LocalViewConfiguration provides testViewConfiguration,
+    private fun runTest(block: TestScope.() -> Unit) {
+        val tag = "tag"
+        val selection = mutableStateOf<Selection?>(null)
+        val testViewConfiguration = TestViewConfiguration(minimumTouchTargetSize = DpSize.Zero)
+        lateinit var clipboardManager: ClipboardManager
+        lateinit var clipboard: Clipboard
+        lateinit var textToolbar: TextToolbarWrapper
+        lateinit var coroutineScope: CoroutineScope
+        stateRestorationTester.setContent {
+            clipboardManager = LocalClipboardManager.current
+            clipboard = LocalClipboard.current
+            val originalTextToolbar = LocalTextToolbar.current
+            textToolbar = remember(originalTextToolbar) { TextToolbarWrapper(originalTextToolbar) }
+            coroutineScope = rememberCoroutineScope()
+            CompositionLocalProvider(
+                LocalTextToolbar provides textToolbar,
+                LocalViewConfiguration provides testViewConfiguration,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                    SelectionContainer(
+                        modifier = Modifier.height(100.dp),
+                        selection = selection.value,
+                        onSelectionChange = { selection.value = it },
                     ) {
-                        SelectionContainer(
-                            modifier = Modifier.height(100.dp),
-                            selection = selection.value,
-                            onSelectionChange = { selection.value = it },
-                        ) {
-                            LazyColumn(modifier = Modifier.testTag(tag)) {
-                                items(count = textCount) {
-                                    BasicText(
-                                        text = it.toString(),
-                                        style =
-                                            TextStyle(
-                                                fontSize = 15.sp,
-                                                textAlign = TextAlign.Center
-                                            ),
-                                        modifier = Modifier.fillMaxWidth().testTag(it.toString())
-                                    )
-                                }
+                        LazyColumn(modifier = Modifier.testTag(tag)) {
+                            items(count = textCount) {
+                                BasicText(
+                                    text = it.toString(),
+                                    style =
+                                        TextStyle(fontSize = 15.sp, textAlign = TextAlign.Center),
+                                    modifier = Modifier.fillMaxWidth().testTag(it.toString())
+                                )
                             }
                         }
                     }
                 }
             }
-
-            val scope = TestScope(tag, selection, clipboardManager, clipboard, textToolbar)
-            scope.resetClipboard()
-            scope.block()
         }
+
+        val scope =
+            TestScope(tag, selection, clipboardManager, clipboard, textToolbar, coroutineScope)
+        scope.resetClipboard()
+        scope.block()
+    }
 }
 
 private class TextToolbarWrapper(private val delegate: TextToolbar) : TextToolbar {

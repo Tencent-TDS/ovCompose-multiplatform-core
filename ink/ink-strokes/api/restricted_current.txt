@@ -67,6 +67,7 @@ package androidx.ink.strokes {
     method public androidx.ink.strokes.MutableStrokeInputBatch addOrThrow(androidx.ink.strokes.StrokeInputBatch inputBatch);
     method public androidx.ink.strokes.MutableStrokeInputBatch addOrThrow(java.util.Collection<androidx.ink.strokes.StrokeInput> inputs);
     method public void clear();
+    method @SuppressCompatibility @androidx.ink.brush.ExperimentalInkCustomBrushApi public void setNoiseSeed(int seed);
   }
 
   public final class Stroke {

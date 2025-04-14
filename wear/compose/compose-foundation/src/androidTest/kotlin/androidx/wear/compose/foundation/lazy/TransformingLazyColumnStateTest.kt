@@ -20,6 +20,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -73,6 +75,35 @@ class TransformingLazyColumnStateTest {
         }
         assertThat(state.anchorItemIndex).isEqualTo(10)
         assertThat(state.anchorItemScrollOffset).isEqualTo(20)
+    }
+
+    @Test
+    fun testAwaitFirstLayoutScrollPosition() {
+        lateinit var state: TransformingLazyColumnState
+        val shouldLayout = mutableStateOf(false)
+
+        rule.setContent {
+            state = rememberTransformingLazyColumnState()
+            LaunchedEffect(Unit) { state.animateScrollToItem(10) }
+
+            if (shouldLayout.value) {
+                TransformingLazyColumn(state = state) {
+                    items(itemsCount) { Spacer(modifier = Modifier.height(itemSizeDp)) }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+
+        // Scroll doesn't happen until the first layout.
+        assertThat(state.anchorItemIndex).isEqualTo(0)
+
+        // Force the positioning of the TLC.
+        shouldLayout.value = true
+        rule.waitForIdle()
+
+        // Scroll happens.
+        assertThat(state.anchorItemIndex).isEqualTo(10)
     }
 
     @Test

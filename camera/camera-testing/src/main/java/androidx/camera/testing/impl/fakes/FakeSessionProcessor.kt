@@ -111,10 +111,10 @@ public class FakeSessionProcessor(
     @OptIn(ExperimentalGetImage::class)
     override fun initSession(
         cameraInfo: CameraInfo,
-        outputSurfaceConfig: OutputSurfaceConfiguration
+        outputSurfaceConfig: OutputSurfaceConfiguration?
     ): SessionConfig {
         initSessionCalled.complete(SystemClock.elapsedRealtimeNanos())
-        initSessionOutputSurfaceConfiguration.complete(outputSurfaceConfig)
+        initSessionOutputSurfaceConfiguration.complete(outputSurfaceConfig!!)
         val sessionBuilder = SessionConfig.Builder()
 
         val previewSurfaceConfig = outputSurfaceConfig.previewOutputSurface

@@ -19,13 +19,22 @@ package androidx.xr.compose.unit
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.scenecore.Dimensions
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider
+import com.android.extensions.xr.ShadowConfig
 import com.google.common.truth.Truth.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class IntVolumeSizeTest {
     private val UNIT_DENSITY = Density(density = 1.0f, fontScale = 1.0f)
+
+    @Before
+    fun setUp() {
+        ShadowConfig.extract(XrExtensionsProvider.getXrExtensions()!!.config!!)
+            .setDefaultDpPerMeter(1f)
+    }
 
     @Test
     fun intVolumeSize_toString_returnsString() {
@@ -38,26 +47,26 @@ class IntVolumeSizeTest {
 
     @Test
     fun toDimensionsInMeters_returnsCorrectDimensions() {
-        val intVolumeSize = IntVolumeSize(10367, 10367, 10367)
+        val intVolumeSize = IntVolumeSize(9, 9, 9)
 
         val dimensions = intVolumeSize.toDimensionsInMeters(UNIT_DENSITY)
 
-        assertThat(dimensions.width).isWithin(0.0003f).of(10367.0f)
-        assertThat(dimensions.height).isWithin(0.0003f).of(10367.0f)
-        assertThat(dimensions.depth).isWithin(0.0003f).of(10367.0f)
+        assertThat(dimensions.width).isWithin(0.0003f).of(9.0f)
+        assertThat(dimensions.height).isWithin(0.0003f).of(9.0f)
+        assertThat(dimensions.depth).isWithin(0.0003f).of(9.0f)
     }
 
     @Test
     fun toDimensionsInMeters_returnsCorrectDimensions_doubleDensity() {
-        val intVolumeSize = IntVolumeSize(10367, 10367, 10367)
+        val intVolumeSize = IntVolumeSize(9, 9, 9)
         val DOUBLE_DENSITY = Density(density = 2.0f, fontScale = 2.0f)
 
         val dimensions = intVolumeSize.toDimensionsInMeters(DOUBLE_DENSITY)
 
         // When pixels are twice as dense, we expect the Meters equivalent to be half.
-        assertThat(dimensions.width).isWithin(0.0002f).of(5183.5f)
-        assertThat(dimensions.height).isWithin(0.0002f).of(5183.5f)
-        assertThat(dimensions.depth).isWithin(0.0002f).of(5183.5f)
+        assertThat(dimensions.width).isWithin(0.0002f).of(4.5f)
+        assertThat(dimensions.height).isWithin(0.0002f).of(4.5f)
+        assertThat(dimensions.depth).isWithin(0.0002f).of(4.5f)
     }
 
     @Test

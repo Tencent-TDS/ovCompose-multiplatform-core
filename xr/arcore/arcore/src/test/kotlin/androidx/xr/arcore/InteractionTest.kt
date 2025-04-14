@@ -20,7 +20,9 @@ import android.app.Activity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
+import androidx.xr.runtime.Config
 import androidx.xr.runtime.CoreState
+import androidx.xr.runtime.PlaneTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.internal.HitResult as RuntimeHitResult
@@ -32,6 +34,7 @@ import androidx.xr.runtime.testing.FakePerceptionManager
 import androidx.xr.runtime.testing.FakeRuntime
 import androidx.xr.runtime.testing.FakeRuntimePlane
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertFailsWith
 import kotlin.time.TestTimeSource
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -84,6 +87,15 @@ class InteractionTest {
             assertThat(hitResults[0].distance).isEqualTo(runtimeHitResult.distance)
             assertThat(hitResults[0].hitPose).isEqualTo(runtimeHitResult.hitPose)
             assertThat(hitResults[0].trackable).isEqualTo(expectedTrackable)
+        }
+    }
+
+    @Test
+    fun hitTest_planeTrackingDisabled_throwsIllegalStateException() = createTestSessionAndRunTest {
+        runTest {
+            session.configure(Config(planeTracking = PlaneTrackingMode.Disabled))
+
+            assertFailsWith<IllegalStateException> { hitTest(session, Ray()) }
         }
     }
 

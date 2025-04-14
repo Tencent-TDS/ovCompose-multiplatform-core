@@ -12,7 +12,7 @@ public class `$EntityWithValidNullablePropertiesFactory` : AppFunctionSerializab
     val longParam = appFunctionData.getLongOrNull("longParam")
     val doubleParam = appFunctionData.getDoubleOrNull("doubleParam")
     val boolParam = appFunctionData.getBooleanOrNull("boolParam")
-    val stringParam = appFunctionData.getString("stringParam")
+    val stringParam = appFunctionData.getStringOrNull("stringParam")
     val longArray = appFunctionData.getLongArray("longArray")
     val doubleArray = appFunctionData.getDoubleArray("doubleArray")
     val boolArray = appFunctionData.getBooleanArray("boolArray")

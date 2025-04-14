@@ -25,17 +25,17 @@ import static org.mockito.Mockito.when;
 
 import android.app.Activity;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.PixelDimensions;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.android.extensions.xr.ShadowXrExtensions;
 import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.NodeRepository;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
@@ -124,7 +124,7 @@ public class MainPanelEntityImplTest {
         // The (FakeXrExtensions) test default pixel density is 1 pixel per meter. Validate that the
         // corner radius is set to 32dp.
         assertThat(mMainPanelEntity.getCornerRadius()).isEqualTo(32.0f);
-        FakeNode fakeNode = new FakeNode(mMainPanelEntity.getNode());
-        assertThat(fakeNode.getCornerRadius()).isEqualTo(32.0f);
+        assertThat(NodeRepository.getInstance().getCornerRadius(mMainPanelEntity.getNode()))
+                .isEqualTo(32.0f);
     }
 }

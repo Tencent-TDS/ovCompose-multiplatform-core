@@ -236,10 +236,7 @@ private fun macrobenchmark(
     val startTime = System.nanoTime()
     // Ensure method tracing is explicitly enabled and that we are not running in dry run mode.
     val requestMethodTracing = Arguments.macrobenchMethodTracingEnabled()
-    val applicationInfo = getInstalledPackageInfo(packageName)
     val scope = MacrobenchmarkScope(packageName, launchWithClearTask = launchWithClearTask)
-    // Capture if the app being benchmarked is a system app.
-    scope.isSystemApp = applicationInfo.isSystemApp()
 
     // Ensure the device is awake
     scope.device.wakeUp()

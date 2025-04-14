@@ -16,7 +16,7 @@
 
 package androidx.xr.scenecore.impl;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource;
+import androidx.xr.runtime.internal.TextureResource;
 
 /**
  * Implementation of a SceneCore TextureResource.

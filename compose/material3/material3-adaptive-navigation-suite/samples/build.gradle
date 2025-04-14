@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -40,7 +39,7 @@ dependencies {
 
     implementation("androidx.compose.foundation:foundation:1.8.0-beta02")
     implementation("androidx.compose.foundation:foundation-layout:1.8.0-beta02")
-    implementation("androidx.compose.material:material-icons-core:1.6.8")
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
     implementation(project(":compose:material3:adaptive:adaptive"))
     implementation(project(":compose:material3:material3"))
     implementation(project(":compose:material3:material3-adaptive-navigation-suite"))
@@ -56,7 +55,6 @@ androidx {
     inceptionYear = "2023"
     description = "Contains the sample code for the AndroidX Compose Material Adaptive Navigation" +
                   " Suite."
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {

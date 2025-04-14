@@ -129,9 +129,9 @@ fun rememberLazyListState(
 ): LazyListState {
     return rememberSaveable(cacheWindow, saver = LazyListState.saver(cacheWindow)) {
         LazyListState(
+            cacheWindow,
             initialFirstVisibleItemIndex,
-            initialFirstVisibleItemScrollOffset,
-            prefetchStrategy = LazyListCacheWindowStrategy(cacheWindow)
+            initialFirstVisibleItemScrollOffset
         )
     }
 }
@@ -190,6 +190,9 @@ constructor(
 
     internal var approachLayoutInfo: LazyListMeasureResult? = null
         private set
+
+    // always execute requests in high priority
+    private var executeRequestsInHighPriorityMode = false
 
     /** The holder class for the current scroll position. */
     private val scrollPosition =
@@ -319,7 +322,7 @@ constructor(
         object : LazyListPrefetchScope {
             override fun schedulePrefetch(
                 index: Int,
-                onPrefetchFinished: ((Int) -> Unit)?
+                onPrefetchFinished: (LazyListPrefetchResultScope.() -> Unit)?
             ): LazyLayoutPrefetchState.PrefetchHandle {
                 // Without read observation since this can be triggered from scroll - this will then
                 // cause us to recompose when the measure result changes. We don't care since the
@@ -327,7 +330,8 @@ constructor(
                 val lastMeasureResult = Snapshot.withoutReadObservation { layoutInfoState.value }
                 return prefetchState.schedulePrecompositionAndPremeasure(
                     index,
-                    lastMeasureResult.childConstraints
+                    lastMeasureResult.childConstraints,
+                    executeRequestsInHighPriorityMode
                 ) {
                     if (onPrefetchFinished != null) {
                         var mainAxisItemSize = 0
@@ -339,7 +343,10 @@ constructor(
                                     getSize(it).width
                                 }
                         }
-                        onPrefetchFinished.invoke(mainAxisItemSize)
+
+                        onPrefetchFinished.invoke(
+                            LazyListPrefetchResultScopeImpl(index, mainAxisItemSize)
+                        )
                     }
                 }
             }
@@ -466,6 +473,7 @@ constructor(
         checkPrecondition(abs(scrollToBeConsumed) <= 0.5f) {
             "entered drag with non-zero pending scroll"
         }
+        executeRequestsInHighPriorityMode = true
         scrollToBeConsumed += distance
 
         // scrollToBeConsumed will be consumed synchronously during the forceRemeasure invocation
@@ -557,6 +565,10 @@ constructor(
         isLookingAhead: Boolean,
         visibleItemsStayedTheSame: Boolean = false
     ) {
+        // update the prefetch state with the number of nested prefetch items this layout
+        // should use.
+        prefetchState.idealNestedPrefetchCount = result.visibleItemsInfo.size
+
         if (!isLookingAhead && hasLookaheadOccurred) {
             // If there was already a lookahead pass, record this result as approach result
             approachLayoutInfo = result

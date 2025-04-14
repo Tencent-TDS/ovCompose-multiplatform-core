@@ -17,7 +17,6 @@
 package androidx.compose.ui.autofill
 
 import android.graphics.Rect
-import android.os.Build
 import android.text.InputType
 import android.util.SparseArray
 import android.view.View
@@ -25,7 +24,6 @@ import android.view.View.AUTOFILL_TYPE_TEXT
 import android.view.ViewStructure
 import android.view.autofill.AutofillValue
 import android.view.inputmethod.EditorInfo
-import androidx.annotation.RequiresApi
 import androidx.autofill.HintConstants
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -84,7 +82,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 26)
-@RequiresApi(Build.VERSION_CODES.O)
 // TODO(MNUZEN): split into filling / saving etc. when more of Autofill goes live and more
 // data types are supported.
 class PerformAndroidAutofillManagerTest {

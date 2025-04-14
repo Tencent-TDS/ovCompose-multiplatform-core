@@ -226,6 +226,7 @@ private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boo
     if (name.contains("TestCompile")) return false
     if (name.contains("commonTest", ignoreCase = true)) return false
     if (name.contains("nativeTest", ignoreCase = true)) return false
+    if (name.contains("TestCInterop", ignoreCase = true)) return false
     if (
         multiplatformExtension?.targets?.any {
             name.contains("${it.name}Test", ignoreCase = true)

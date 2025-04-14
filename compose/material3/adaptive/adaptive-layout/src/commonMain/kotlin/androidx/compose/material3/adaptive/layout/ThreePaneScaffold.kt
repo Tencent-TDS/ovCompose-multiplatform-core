@@ -671,6 +671,7 @@ private class ThreePaneContentMeasurePolicy(
             } else {
                 dragHandle.minTouchTargetSize
             }
+        dragHandle.isVisible = true
         dragHandle.minWidth = minDragHandleWidth
         dragHandle.maxHeight = contentBounds.height
         dragHandle.placedPositionCenter = IntOffset(clampedOffsetX, contentBounds.center.y)
@@ -741,6 +742,7 @@ private class PaneMeasurable(
 private class DragHandleMeasurable(val measurable: Measurable, density: Density) {
     val minTouchTargetSize = with(density) { measurable.minTouchTargetSize.roundToPx() }
 
+    var isVisible: Boolean = false
     var minWidth: Int = 0
     var maxHeight: Int = Int.MAX_VALUE
     var placedPositionCenter: IntOffset? = null
@@ -751,13 +753,17 @@ private class DragHandleMeasurable(val measurable: Measurable, density: Density)
     val placedPositionCenterY: Int
         get() = placedPositionCenter?.y ?: 0
 
-    fun Placeable.PlacementScope.doMeasureAndPlace() =
+    fun Placeable.PlacementScope.doMeasureAndPlace() {
+        if (!isVisible) {
+            return
+        }
         measurable.measure(Constraints(minWidth = minWidth, maxHeight = maxHeight)).also {
             it.place(
                 x = placedPositionCenterX - it.width / 2,
                 y = placedPositionCenterY - it.height / 2
             )
         }
+    }
 }
 
 /**

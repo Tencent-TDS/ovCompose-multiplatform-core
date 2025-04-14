@@ -439,7 +439,7 @@ class SandboxedSdkUiTest {
     fun signalsNotSentWhenViewUnchangedTest() {
         addNodeToLayout()
         val session = testSandboxedUiAdapter.testSession
-        session?.runAndRetrieveNextUiChange {}
+        session?.assertFirstUiChangeReceived()
         session?.assertNoSubsequentUiChanges()
     }
 
@@ -474,6 +474,9 @@ class SandboxedSdkUiTest {
             session?.runAndRetrieveNextUiChange {
                 xOffset = 100.dp
                 yOffset = 200.dp
+                Espresso.onView(instanceOf(SandboxedSdkView::class.java)).check { view, _ ->
+                    view.requestLayout()
+                }
                 composeTestRule.waitForIdle()
             }
         Espresso.onView(instanceOf(SandboxedSdkView::class.java)).check { view, _ ->
@@ -538,7 +541,7 @@ class SandboxedSdkUiTest {
     fun signalsSentWhenHostActivityStateChangesTest() {
         addNodeToLayout()
         val session = testSandboxedUiAdapter.testSession
-        session?.runAndRetrieveNextUiChange {}
+        session?.assertFirstUiChangeReceived()
         // Replace the first activity with a new activity. The onScreenGeometry should now be empty.
         var sandboxedSdkViewUiInfo =
             session?.runAndRetrieveNextUiChange {
@@ -547,9 +550,11 @@ class SandboxedSdkUiTest {
                     it.startActivity(intent)
                 }
             }
+        composeTestRule.waitForIdle()
         assertThat(sandboxedSdkViewUiInfo?.onScreenGeometry?.isEmpty).isTrue()
         // Return to the first activity. The onScreenGeometry should now be non-empty.
         sandboxedSdkViewUiInfo = session?.runAndRetrieveNextUiChange { uiDevice.pressBack() }
+        composeTestRule.waitForIdle()
         assertThat(sandboxedSdkViewUiInfo?.onScreenGeometry?.isEmpty).isFalse()
     }
 

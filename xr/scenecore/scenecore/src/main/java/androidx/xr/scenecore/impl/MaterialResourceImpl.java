@@ -16,7 +16,7 @@
 
 package androidx.xr.scenecore.impl;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
+import androidx.xr.runtime.internal.MaterialResource;
 
 /** Implementation of a SceneCore MaterialResource. */
 final class MaterialResourceImpl implements MaterialResource {

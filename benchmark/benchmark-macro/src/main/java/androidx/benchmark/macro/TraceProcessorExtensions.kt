@@ -37,7 +37,6 @@ import androidx.benchmark.traceprocessor.PerfettoTrace
 import androidx.benchmark.traceprocessor.ServerLifecycleManager
 import androidx.benchmark.traceprocessor.TraceProcessor
 import java.io.IOException
-import kotlin.time.Duration
 
 @RequiresApi(24)
 private object Api24Impl {
@@ -152,29 +151,29 @@ fun <T> TraceProcessor.Companion.runSingleSessionServer(
  * The server is stopped after the block is complete.
  *
  * @sample androidx.benchmark.samples.traceProcessorRunServerSimple
- * @param timeout maximum duration for waiting for operations like loading the server, or querying a
- *   trace.
+ * @param timeoutMs maximum duration in milliseconds for waiting for operations like loading the
+ *   server, or querying a trace.
  * @param block Command to execute using trace processor
  */
 @JvmOverloads
 @ExperimentalTraceProcessorApi
 fun <T> TraceProcessor.Companion.runServer(
-    timeout: Duration = DEFAULT_TIMEOUT,
+    timeoutMs: Long = DEFAULT_TIMEOUT_MS,
     block: TraceProcessor.() -> T
-): T = startServer(timeout).use { block(it.traceProcessor) }
+): T = startServer(timeoutMs).use { block(it.traceProcessor) }
 
 /**
  * Starts a Perfetto TraceProcessor shell server in http mode.
  *
  * @sample androidx.benchmark.samples.traceProcessorStartServerSimple
- * @param timeout maximum duration for waiting for operations like loading the server, or querying a
- *   trace.
+ * @param timeoutMs maximum duration in milliseconds for waiting for operations like loading the
+ *   server, or querying a trace.
  */
 @JvmOverloads
 @ExperimentalTraceProcessorApi
 @CheckResult
 fun TraceProcessor.Companion.startServer(
-    timeout: Duration = DEFAULT_TIMEOUT
+    timeoutMs: Long = DEFAULT_TIMEOUT_MS
 ): TraceProcessor.Handle =
     startServer(
         ShellServerLifecycleManager(),
@@ -214,5 +213,5 @@ fun TraceProcessor.Companion.startServer(
                     InMemoryTracing.endSection()
                 }
             },
-        timeout = timeout
+        timeoutMs = timeoutMs
     )

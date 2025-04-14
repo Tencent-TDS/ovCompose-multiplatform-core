@@ -97,7 +97,7 @@ class PartitionedMeshTest {
         assertThat(string).contains("PartitionedMesh")
         assertThat(string).contains("bounds")
         assertThat(string).contains("meshes")
-        assertThat(string).contains("nativeAddress")
+        assertThat(string).contains("nativePointer")
     }
 
     @Test

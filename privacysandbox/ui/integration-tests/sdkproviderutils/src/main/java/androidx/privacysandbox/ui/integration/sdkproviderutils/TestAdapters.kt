@@ -77,7 +77,6 @@ class TestAdapters(private val sdkContext: Context) {
                     Log.d(TAG, "Session requested")
                     var adView: View =
                         buildAdView(context, initialWidth, initialHeight) ?: return@lambda
-                    adView.layoutParams = ViewGroup.LayoutParams(initialWidth, initialHeight)
                     adViewWithConsumeScrollOverlay =
                         AdViewWithConsumeScrollOverlay(context, initialWidth, initialHeight, adView)
                     if (isZOrderOnTop) {
@@ -129,6 +128,8 @@ class TestAdapters(private val sdkContext: Context) {
 
             init {
                 layoutParams = ViewGroup.LayoutParams(initialWidth, initialHeight)
+                adView.layoutParams =
+                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
                 addView(adView)
 
                 consumeScrollOverlay = createConsumeScrollOverlay()

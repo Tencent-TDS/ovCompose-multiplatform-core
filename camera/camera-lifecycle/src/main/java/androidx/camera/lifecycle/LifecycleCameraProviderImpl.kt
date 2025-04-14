@@ -81,6 +81,7 @@ internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
     private val cameraInfoMap: MutableMap<CameraUseCaseAdapter.CameraId, AdapterCameraInfo> =
         HashMap()
     private val lifecycleCameraKeys = HashSet<LifecycleCameraRepository.Key>()
+    override var configImplType = CameraXConfig.CAMERAX_CONFIG_IMPL_TYPE_UNKNOWN
 
     internal fun initAsync(
         context: Context,
@@ -92,6 +93,7 @@ internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
             }
             cameraXConfig?.let { configure(it) }
             val cameraX = CameraX(context, cameraXConfigProvider)
+            configImplType = cameraX.configImplType
 
             val initFuture =
                 FutureChain.from(cameraXShutdownFuture)

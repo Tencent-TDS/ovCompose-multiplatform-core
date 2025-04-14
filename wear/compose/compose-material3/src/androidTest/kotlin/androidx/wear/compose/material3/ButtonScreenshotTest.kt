@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -59,6 +60,7 @@ import androidx.wear.compose.material3.ChildButton
 import androidx.wear.compose.material3.CompactButton
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.ImageButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.OutlinedButton
 import androidx.wear.compose.material3.SCREENSHOT_GOLDEN_PATH
@@ -115,17 +117,38 @@ class ButtonScreenshotTest {
 
     @Test
     fun button_image_background_enabled() = verifyScreenshot {
-        ImageBackgroundButton(size = Size.Unspecified)
+        ImageBackgroundButton(
+            enabled = true,
+            containerImage = painterResource(R.drawable.backgroundimage1),
+            sizeToIntrinsics = false,
+        )
     }
 
     @Test
     fun button_image_background_disabled() = verifyScreenshot {
-        ImageBackgroundButton(enabled = false, size = Size.Unspecified)
+        ImageBackgroundButton(
+            enabled = false,
+            containerImage = painterResource(R.drawable.backgroundimage1),
+            sizeToIntrinsics = false
+        )
     }
 
     @Test
-    fun button_image_background_with_intrinsic_size() = verifyScreenshot {
-        ImageBackgroundButton(size = null)
+    fun button_image_background_with_alignment_center_end() = verifyScreenshot {
+        ImageBackgroundButton(
+            sizeToIntrinsics = true,
+            alignment = Alignment.CenterEnd,
+            contentScale = ContentScale.None
+        )
+    }
+
+    @Test
+    fun button_image_background_with_alignment_center() = verifyScreenshot {
+        ImageBackgroundButton(
+            sizeToIntrinsics = true,
+            alignment = Alignment.Center,
+            contentScale = ContentScale.None
+        )
     }
 
     @Test
@@ -310,16 +333,25 @@ class ButtonScreenshotTest {
     }
 
     @Composable
-    private fun ImageBackgroundButton(enabled: Boolean = true, size: Size?) {
-        Button(
+    private fun ImageBackgroundButton(
+        sizeToIntrinsics: Boolean,
+        containerImage: Painter =
+            painterResource(androidx.wear.compose.material3.samples.R.drawable.backgroundimage),
+        enabled: Boolean = true,
+        alignment: Alignment = Alignment.Center,
+        contentScale: ContentScale = ContentScale.Fit
+    ) {
+        ImageButton(
             enabled = enabled,
             onClick = {},
             label = { Text("Image Button") },
             secondaryLabel = { Text("Secondary Label") },
-            colors =
-                ButtonDefaults.imageBackgroundButtonColors(
-                    backgroundImagePainter = painterResource(R.drawable.backgroundimage1),
-                    forcedSize = size
+            containerPainter =
+                ButtonDefaults.containerPainter(
+                    image = containerImage,
+                    sizeToIntrinsics = sizeToIntrinsics,
+                    alignment = alignment,
+                    contentScale = contentScale,
                 ),
             icon = { ButtonIcon(size = ButtonDefaults.IconSize) },
             modifier = Modifier.testTag(TEST_TAG)

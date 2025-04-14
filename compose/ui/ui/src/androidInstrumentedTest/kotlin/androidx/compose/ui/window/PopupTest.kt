@@ -97,12 +97,12 @@ class PopupTest {
 
     @Before
     fun setup() {
-        if (ComposeUiFlags.isHitPathTrackerLoggingEnabled) {
-            val activeDeviceIds = InputDevice.getDeviceIds()
+        // Checks if an active injected motion event exists before test (injected = -1).
+        val devicesPluggedIn = InputDevice.getDeviceIds()
 
+        if (ComposeUiFlags.isHitPathTrackerLoggingEnabled) {
             println(
-                "POINTER_INPUT_DEBUG_LOG_TAG PopupTest.setup(), " +
-                    "activeDeviceIds = $activeDeviceIds"
+                "POINTER_INPUT_DEBUG_LOG_TAG PopupTest.setup(), devicesPluggedIn? $devicesPluggedIn"
             )
         }
     }
@@ -110,11 +110,11 @@ class PopupTest {
     @After
     fun tearDown() {
         if (ComposeUiFlags.isHitPathTrackerLoggingEnabled) {
-            val activeDeviceIds = InputDevice.getDeviceIds()
+            val devicesPluggedIn = InputDevice.getDeviceIds()
 
             println(
                 "POINTER_INPUT_DEBUG_LOG_TAG PopupTest.tearDown(), " +
-                    "activeDeviceIds = $activeDeviceIds"
+                    "devicesPluggedIn = $devicesPluggedIn"
             )
         }
     }

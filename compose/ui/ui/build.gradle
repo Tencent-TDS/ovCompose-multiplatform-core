@@ -22,9 +22,9 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 import static androidx.inspection.gradle.InspectionPluginKt.packageInspector
 
@@ -217,7 +217,6 @@ androidx {
     legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
     samples(project(":compose:ui:ui:ui-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     addGoldenImageAssets()
 }
 
@@ -233,4 +232,13 @@ android {
     // namespace has to be unique, but default androidx.compose.ui.test package is taken by
     // the androidx.compose.ui:ui-test library
     testNamespace = "androidx.compose.ui.tests"
+}
+
+// TODO(b/407725586): Remove this block when AndroidAssistTest passes on API Level 21
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += [
+                "-Xlambdas=class"
+        ]
+    }
 }

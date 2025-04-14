@@ -44,7 +44,7 @@ import androidx.wear.protolayout.material3.Typography.TypographyToken
 /**
  * Helper object for determining additional font specifics that should be used for each Typography.
  */
-// TODO: b/372068167 - Address the diff here.
+// Don't override this file automatically.
 internal object TypographyFontSelection {
     /**
      * Returns the [FontVariantProp] for the given typography which is used to select font when
@@ -114,6 +114,7 @@ internal object TypographyFontSelection {
         when (typographyToken) {
             TITLE_MEDIUM,
             TITLE_SMALL,
+            LABEL_LARGE,
             LABEL_MEDIUM,
             LABEL_SMALL,
             BODY_EXTRA_SMALL,
@@ -124,7 +125,6 @@ internal object TypographyFontSelection {
             DISPLAY_MEDIUM,
             DISPLAY_SMALL,
             TITLE_LARGE,
-            LABEL_LARGE,
             NUMERAL_EXTRA_LARGE,
             NUMERAL_EXTRA_SMALL,
             NUMERAL_LARGE,

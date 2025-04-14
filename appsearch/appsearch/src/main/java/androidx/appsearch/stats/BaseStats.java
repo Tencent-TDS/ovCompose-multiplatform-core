@@ -32,7 +32,7 @@ import org.jspecify.annotations.NonNull;
  * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public abstract class BaseStats {
+public class BaseStats {
     private static final int LAUNCH_VM = 0;
 
     private final long mEnabledFeatures;
@@ -55,7 +55,7 @@ public abstract class BaseStats {
     // This builder is specifically designed to be extended by stats classes.
     @SuppressLint("StaticFinalBuilder")
     @SuppressWarnings("rawtypes")
-    public abstract static class Builder<BuilderType extends Builder> {
+    public static class Builder<BuilderType extends Builder> {
         private final BuilderType mBuilderTypeInstance;
         long mEnabledFeatures;
 
@@ -72,7 +72,10 @@ public abstract class BaseStats {
             return mBuilderTypeInstance;
         }
 
-        protected @NonNull abstract BaseStats build();
+        /** Builds the {@link BaseStats} instance. */
+        public @NonNull BaseStats build() {
+            return new BaseStats(this);
+        }
 
         private void modifyEnabledFeature(int feature, boolean enabled) {
             if (enabled) {

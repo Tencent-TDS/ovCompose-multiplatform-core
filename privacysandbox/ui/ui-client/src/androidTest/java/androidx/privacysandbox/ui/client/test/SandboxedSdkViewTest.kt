@@ -26,9 +26,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams
 import android.view.ViewTreeObserver
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.BackwardCompatUtil
@@ -40,6 +40,7 @@ import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
@@ -71,7 +72,11 @@ class SandboxedSdkViewTest {
     private lateinit var linearLayout: LinearLayout
     private var mainLayoutWidth = -1
     private var mainLayoutHeight = -1
-    private var signalOptions = setOf(SandboxedUiAdapterSignalOptions.GEOMETRY)
+    private var signalOptions =
+        setOf(
+            SandboxedUiAdapterSignalOptions.GEOMETRY,
+            SandboxedUiAdapterSignalOptions.OBSTRUCTIONS
+        )
     @get:Rule var activityScenarioRule = ActivityScenarioRule(UiLibActivity::class.java)
 
     @Before
@@ -479,7 +484,7 @@ class SandboxedSdkViewTest {
         assertThat(testSandboxedUiAdapter.sessionData?.windowInputToken).isEqualTo(token)
     }
 
-    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     @Test
     fun inputTransferTokenIsCorrect() {
         // InputTransferToken is only sent on V+
@@ -539,7 +544,7 @@ class SandboxedSdkViewTest {
         val adapter = TestSandboxedUiAdapter(setOf())
         val view2 = SandboxedSdkView(context)
         activityScenarioRule.withActivity { view2.setAdapter(adapter) }
-        addViewToLayoutAndWaitToBeActive(view2)
+        addViewToLayoutAndWaitToBeActive(viewToAdd = view2)
         assertThat(view2.signalMeasurer).isNull()
     }
 
@@ -547,7 +552,6 @@ class SandboxedSdkViewTest {
     fun signalsNotSentWhenViewUnchanged() {
         addViewToLayoutAndWaitToBeActive()
         val session = testSandboxedUiAdapter.testSession!!
-        session.runAndRetrieveNextUiChange {}
         session.assertNoSubsequentUiChanges()
     }
 
@@ -590,6 +594,7 @@ class SandboxedSdkViewTest {
                 activityScenarioRule.withActivity {
                     view.y -= yShiftDistance
                     view.x -= xShiftDistance
+                    view.requestLayout()
                 }
             }
         assertThat(sandboxedSdkViewUiInfo.uiContainerWidth).isEqualTo(clippedWidth)
@@ -607,7 +612,10 @@ class SandboxedSdkViewTest {
         val newXPosition = 100f
         val sandboxedSdkViewUiInfo =
             session.runAndRetrieveNextUiChange {
-                activityScenarioRule.withActivity { view.x = newXPosition }
+                activityScenarioRule.withActivity {
+                    view.x = newXPosition
+                    view.requestLayout()
+                }
             }
         val containerWidth = sandboxedSdkViewUiInfo.uiContainerWidth
         val onScreenWidth = sandboxedSdkViewUiInfo.onScreenGeometry.width().toFloat()
@@ -618,9 +626,6 @@ class SandboxedSdkViewTest {
     fun signalsSentWhenAlphaChanges() {
         addViewToLayoutAndWaitToBeActive()
         val session = testSandboxedUiAdapter.testSession!!
-        // Catch initial UI change so that the subsequent alpha change will be reflected in the
-        // next SandboxedSdkViewUiInfo
-        session.runAndRetrieveNextUiChange {}
         val newAlpha = 0.5f
         val sandboxedSdkViewUiInfo =
             session.runAndRetrieveNextUiChange {
@@ -676,7 +681,6 @@ class SandboxedSdkViewTest {
     fun signalsSentWhenHostActivityStateChanges() {
         addViewToLayoutAndWaitToBeActive()
         val session = testSandboxedUiAdapter.testSession!!
-        session.runAndRetrieveNextUiChange {}
         // Replace the first activity with a new activity. The onScreenGeometry should now be empty.
         var sandboxedSdkViewUiInfo =
             session.runAndRetrieveNextUiChange {
@@ -697,8 +701,6 @@ class SandboxedSdkViewTest {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
         addViewToLayoutAndWaitToBeActive()
         val session = testSandboxedUiAdapter.testSession!!
-        // Catch initial UI change so that we can ensure the subsequent event is caught.
-        session.runAndRetrieveNextUiChange {}
         // If no viewability event occurs, this will throw an exception.
         session.runAndRetrieveNextUiChange {
             activityScenarioRule.withActivity { view.visibility = View.INVISIBLE }
@@ -712,6 +714,129 @@ class SandboxedSdkViewTest {
         assertThat(session.sessionOpenedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(session.supportedSignalOptions)
             .containsExactly(SandboxedUiAdapterSignalOptions.GEOMETRY)
+    }
+
+    @Test
+    fun obstructionsReportedWhenSignalOptionSet() {
+        addViewToLayoutAndWaitToBeActive(placeInsideFrameLayout = true)
+        val session = testSandboxedUiAdapter.testSession!!
+        var obstructionWidth = 100
+        var obstructionHeight = 150
+        var sandboxedSdkViewUiInfo =
+            session.runAndRetrieveNextUiChange {
+                activityScenarioRule.withActivity {
+                    val frameLayout = view.parent as FrameLayout
+                    val obstruction =
+                        TextView(context).also {
+                            it.layoutParams = LayoutParams(obstructionWidth, obstructionHeight)
+                        }
+                    frameLayout.addView(obstruction)
+                    view.requestLayout()
+                }
+            }
+        assertThat(sandboxedSdkViewUiInfo.obstructedGeometry).isNotEmpty()
+        var obstruction = sandboxedSdkViewUiInfo.obstructedGeometry[0]
+        assertThat(obstruction.width()).isEqualTo(obstructionWidth)
+        assertThat(obstruction.height()).isEqualTo(obstructionHeight)
+    }
+
+    @Test
+    // TODO(b/345688233): Remove when no longer necessary.
+    fun obstructionsNotReportedIfZAbove() {
+        addViewToLayoutAndWaitToBeActive(placeInsideFrameLayout = true)
+        view.orderProviderUiAboveClientUi(true)
+        val session = testSandboxedUiAdapter.testSession!!
+        var obstructionWidth = 100
+        var obstructionHeight = 150
+        var sandboxedSdkViewUiInfo =
+            session.runAndRetrieveNextUiChange {
+                activityScenarioRule.withActivity {
+                    val frameLayout = view.parent as FrameLayout
+                    val obstruction =
+                        TextView(context).also {
+                            it.layoutParams = LayoutParams(obstructionWidth, obstructionHeight)
+                        }
+                    frameLayout.addView(obstruction)
+                    view.requestLayout()
+                }
+            }
+        assertThat(sandboxedSdkViewUiInfo.obstructedGeometry).isEmpty()
+    }
+
+    // TODO(b/406433094): Test Z-above transparent obstructions.
+    @Test
+    fun obstructionsNotReportedIfObstructionIsTransparent() {
+        addViewToLayoutAndWaitToBeActive(placeInsideFrameLayout = true)
+        view.orderProviderUiAboveClientUi(false)
+        val session = testSandboxedUiAdapter.testSession!!
+        var obstructionWidth = 100
+        var obstructionHeight = 150
+        var sandboxedSdkViewUiInfo =
+            session.runAndRetrieveNextUiChange {
+                activityScenarioRule.withActivity {
+                    val frameLayout = view.parent as FrameLayout
+                    val obstruction =
+                        TextView(context).also {
+                            it.layoutParams = LayoutParams(obstructionWidth, obstructionHeight)
+                            it.alpha = 0.0f
+                        }
+                    frameLayout.addView(obstruction)
+                    view.requestLayout()
+                }
+            }
+        assertThat(sandboxedSdkViewUiInfo.obstructedGeometry).isEmpty()
+    }
+
+    @Test
+    fun obstructionNotReportedIfElevationIsLowerThanTarget() {
+        addViewToLayoutAndWaitToBeActive(placeInsideFrameLayout = true)
+        view.orderProviderUiAboveClientUi(false)
+        val session = testSandboxedUiAdapter.testSession!!
+        var obstructionWidth = 100
+        var obstructionHeight = 150
+        var sandboxedSdkViewUiInfo =
+            session.runAndRetrieveNextUiChange {
+                activityScenarioRule.withActivity {
+                    view.elevation = 10.0f
+                    val frameLayout = view.parent as FrameLayout
+                    val obstruction =
+                        TextView(context).also {
+                            it.layoutParams = LayoutParams(obstructionWidth, obstructionHeight)
+                        }
+                    frameLayout.addView(obstruction)
+                    view.requestLayout()
+                }
+            }
+        assertThat(sandboxedSdkViewUiInfo.obstructedGeometry).isEmpty()
+    }
+
+    @Test
+    fun obstructionsNotReportedIfSignalOptionNotSet() {
+        val sandboxedSdkView = SandboxedSdkView(context)
+        val adapter =
+            TestSandboxedUiAdapter(signalOptions = setOf(SandboxedUiAdapterSignalOptions.GEOMETRY))
+        sandboxedSdkView.setAdapter(adapter)
+        addViewToLayoutAndWaitToBeActive(
+            placeInsideFrameLayout = true,
+            viewToAdd = sandboxedSdkView
+        )
+        sandboxedSdkView.orderProviderUiAboveClientUi(false)
+        val session = adapter.testSession!!
+        var obstructionWidth = 100
+        var obstructionHeight = 150
+        var sandboxedSdkViewUiInfo =
+            session.runAndRetrieveNextUiChange {
+                activityScenarioRule.withActivity {
+                    val frameLayout = sandboxedSdkView.parent as FrameLayout
+                    val obstruction =
+                        TextView(context).also {
+                            it.layoutParams = LayoutParams(obstructionWidth, obstructionHeight)
+                        }
+                    frameLayout.addView(obstruction)
+                    sandboxedSdkView.requestLayout()
+                }
+            }
+        assertThat(sandboxedSdkViewUiInfo.obstructedGeometry).isEmpty()
     }
 
     @Test
@@ -746,6 +871,7 @@ class SandboxedSdkViewTest {
 
     private fun addViewToLayout(
         waitToBeActive: Boolean = false,
+        placeInsideFrameLayout: Boolean = false,
         viewToAdd: SandboxedSdkView = view
     ) {
         activityScenarioRule.withActivity {
@@ -755,13 +881,20 @@ class SandboxedSdkViewTest {
             }
             mainLayoutWidth = linearLayout.width
             mainLayoutHeight = linearLayout.height
-            linearLayout.addView(viewToAdd)
+            if (placeInsideFrameLayout) {
+                val frameLayout = FrameLayout(context)
+                frameLayout.addView(viewToAdd)
+                linearLayout.addView(frameLayout)
+            } else {
+                linearLayout.addView(viewToAdd)
+            }
         }
         if (waitToBeActive) {
             val eventListener = TestEventListener()
             viewToAdd.setEventListener(eventListener)
             assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
                 .isTrue()
+            testSandboxedUiAdapter.testSession?.assertFirstUiChangeReceived()
         }
     }
 
@@ -772,8 +905,11 @@ class SandboxedSdkViewTest {
         }
     }
 
-    private fun addViewToLayoutAndWaitToBeActive(viewToAdd: SandboxedSdkView = view) {
-        addViewToLayout(true, viewToAdd)
+    private fun addViewToLayoutAndWaitToBeActive(
+        placeInsideFrameLayout: Boolean = false,
+        viewToAdd: SandboxedSdkView = view
+    ) {
+        addViewToLayout(waitToBeActive = true, placeInsideFrameLayout, viewToAdd)
     }
 
     private fun requestResizeAndVerifyLayout(

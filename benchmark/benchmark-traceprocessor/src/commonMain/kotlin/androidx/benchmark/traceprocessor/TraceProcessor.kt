@@ -22,8 +22,6 @@ import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import perfetto.protos.ComputeMetricArgs
 import perfetto.protos.ComputeMetricResult
 import perfetto.protos.QueryResult
@@ -56,11 +54,11 @@ public class TraceProcessor
 @Suppress("ExecutorRegistration") // purely synchronous
 @JvmOverloads
 @ExperimentalTraceProcessorApi
-constructor(
+internal constructor(
     private val serverLifecycleManager: ServerLifecycleManager,
     private val tracer: Tracer = Tracer(),
     private val eventCallback: EventCallback = EventCallback.Noop,
-    @Suppress("ListenerLast") private val timeout: Duration = DEFAULT_TIMEOUT,
+    @Suppress("ListenerLast") private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
 ) {
 
     public open class Tracer {
@@ -96,7 +94,7 @@ constructor(
         @get:RestrictTo(LIBRARY_GROUP)
         @RestrictTo(LIBRARY_GROUP)
         @get:JvmStatic
-        public val DEFAULT_TIMEOUT: Duration = 120.seconds
+        public val DEFAULT_TIMEOUT_MS: Long = 120_000
 
         /**
          * Starts a Perfetto trace processor shell server in http mode, and returns a [Handle] which
@@ -106,8 +104,8 @@ constructor(
          * @param serverLifecycleManager controls starting and stopping the TraceProcessor process.
          * @param eventCallback callback for events such as trace load failure.
          * @param tracer used to trace begin and end of significant events within this managed run.
-         * @param timeout maximum duration for waiting for operations like loading the server, or
-         *   querying a trace.
+         * @param timeoutMs maximum duration in milliseconds for waiting for operations like loading
+         *   the server, or querying a trace.
          */
         @Suppress(
             "ExecutorRegistration", // purely synchronous
@@ -120,14 +118,14 @@ constructor(
             serverLifecycleManager: ServerLifecycleManager,
             eventCallback: EventCallback,
             @Suppress("ListenerLast") tracer: Tracer,
-            @Suppress("ListenerLast") timeout: Duration = DEFAULT_TIMEOUT,
+            @Suppress("ListenerLast") timeoutMs: Long = DEFAULT_TIMEOUT_MS,
         ): Handle {
             tracer.trace("TraceProcessor#startServer") {
                 return Handle(
                     TraceProcessor(
                             eventCallback = eventCallback,
                             serverLifecycleManager = serverLifecycleManager,
-                            timeout = timeout,
+                            timeoutMs = timeoutMs,
                         )
                         .startServerImpl()
                 )
@@ -142,8 +140,8 @@ constructor(
          * @param serverLifecycleManager controls starting and stopping the TraceProcessor process.
          * @param eventCallback callback for events such as trace load failure.
          * @param tracer used to trace begin and end of significant events within this managed run.
-         * @param timeout maximum duration for waiting for operations like loading the server, or
-         *   querying a trace.
+         * @param timeoutMs maximum duration in milliseconds for waiting for operations like loading
+         *   the server, or querying a trace.
          * @param block Command to execute using trace processor
          */
         @Suppress(
@@ -156,11 +154,11 @@ constructor(
             serverLifecycleManager: ServerLifecycleManager,
             eventCallback: EventCallback,
             @Suppress("ListenerLast") tracer: Tracer,
-            @Suppress("ListenerLast") timeout: Duration = DEFAULT_TIMEOUT,
+            @Suppress("ListenerLast") timeoutMs: Long = DEFAULT_TIMEOUT_MS,
             @Suppress("ListenerLast") block: TraceProcessor.() -> T
         ): T =
             tracer.trace("TraceProcessor#runServer") {
-                startServer(serverLifecycleManager, eventCallback, tracer, timeout).use {
+                startServer(serverLifecycleManager, eventCallback, tracer, timeoutMs).use {
                     block(it.traceProcessor)
                 }
             }
@@ -437,7 +435,7 @@ constructor(
 
     @OptIn(ExperimentalTraceProcessorApi::class)
     private val traceProcessorHttpServer: TraceProcessorHttpServer =
-        TraceProcessorHttpServer(serverLifecycleManager, timeout)
+        TraceProcessorHttpServer(serverLifecycleManager, timeoutMs)
     private var traceLoaded = false
 
     private fun startServerImpl(): TraceProcessor =

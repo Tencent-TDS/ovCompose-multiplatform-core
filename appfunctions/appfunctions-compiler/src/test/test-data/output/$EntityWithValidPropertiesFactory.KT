@@ -12,7 +12,7 @@ public class `$EntityWithValidPropertiesFactory` : AppFunctionSerializableFactor
     val longParam = checkNotNull(appFunctionData.getLongOrNull("longParam"))
     val doubleParam = checkNotNull(appFunctionData.getDoubleOrNull("doubleParam"))
     val boolParam = checkNotNull(appFunctionData.getBooleanOrNull("boolParam"))
-    val stringParam = checkNotNull(appFunctionData.getString("stringParam"))
+    val stringParam = checkNotNull(appFunctionData.getStringOrNull("stringParam"))
     val longArray = checkNotNull(appFunctionData.getLongArray("longArray") ?: LongArray(0))
     val doubleArray = checkNotNull(appFunctionData.getDoubleArray("doubleArray") ?: DoubleArray(0))
     val boolArray = checkNotNull(appFunctionData.getBooleanArray("boolArray") ?: BooleanArray(0))

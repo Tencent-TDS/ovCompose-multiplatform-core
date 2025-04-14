@@ -169,6 +169,8 @@ fun Project.configureSourceJarForMultiplatform() {
                 .filterNot { it.name in setOfStubTargets }
                 .flatMap { it.mainCompilation().allKotlinSourceSets }
                 .toSet()
+                // Sort sourceSets to ensure child sourceSets come after their parents, b/404784813
+                .sortedWith(compareBy({ it.dependsOn.size }, { it.name }))
                 .forEach { sourceSet ->
                     task.from(sourceSet.kotlin.srcDirs) { copySpec ->
                         copySpec.into(sourceSet.name)

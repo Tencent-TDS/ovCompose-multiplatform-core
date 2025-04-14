@@ -34,10 +34,10 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.os.Build;
 
-import androidx.annotation.RequiresApi;
 import androidx.biometric.BiometricManager.AuthenticatorTypes;
 import androidx.biometric.BiometricManager.Authenticators;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.filters.SdkSuppress;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -69,7 +69,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsSuccess_WhenManagerReturnsSuccess_OnApi29AndAbove() {
         final int authenticators = Authenticators.BIOMETRIC_WEAK;
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
@@ -96,7 +96,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenManagerReturnsNoneEnrolled_OnApi29AndAbove() {
         final int authenticators = Authenticators.BIOMETRIC_WEAK;
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
@@ -124,7 +124,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenManagerReturnsNoHardware_OnApi29AndAbove() {
         final int authenticators = Authenticators.BIOMETRIC_WEAK;
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
@@ -152,7 +152,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenCombinationNotSupported_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -195,7 +195,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenNoAuthenticatorsAllowed_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -234,7 +234,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenDeviceNotSecurable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -273,7 +273,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenUnsecured_BiometricOnly_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -313,7 +313,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsError_WhenUnsecured_CredentialAllowed_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -353,7 +353,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsSuccess_WhenDeviceCredentialAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -389,7 +389,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticateStrong_ReturnsSuccess_WhenStrongBiometricGuaranteed_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -413,7 +413,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticateStrong_ReturnsError_WhenWeakUnavailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -437,7 +437,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticateStrong_ReturnsSuccess_WhenFingerprintAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -478,7 +478,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testCanAuthenticate_ReturnsUnknown_WhenFingerprintUnavailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -577,7 +577,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void testCanAuthenticate_ReturnsError_WhenIdentityCheckIsNotAvailable_OnApi35AndAbove() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -601,7 +601,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void testCanAuthenticate_ReturnsError_WhenIdentityCheckIsNotAvailableWithSecurityException_OnApi35AndAbove() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -654,7 +654,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void testCanAuthenticate_ReturnsHardwareError_ForNotEnabledForApps_OnApi35AndAbove() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -679,7 +679,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.S)
-    @RequiresApi(Build.VERSION_CODES.S)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
     public void testGetStrings_ReturnsFrameworkStrings_OnApi31AndAbove() {
         @AuthenticatorTypes final int authenticators =
                 Authenticators.BIOMETRIC_STRONG | Authenticators.DEVICE_CREDENTIAL;
@@ -710,7 +710,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenFingerprintAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -769,7 +769,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenFaceAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -828,7 +828,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenIrisAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -887,7 +887,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenFingerprintAndFaceAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -946,7 +946,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenBiometricsPresentButNotAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -995,7 +995,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     public void testGetStrings_WhenOnlyScreenLockAvailable_OnApi30() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1044,7 +1044,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenFingerprintAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1085,7 +1085,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenFaceAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1128,7 +1128,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenIrisAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1171,7 +1171,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenFingerprintAndFaceAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1214,7 +1214,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenBiometricsPresentButNotAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);
@@ -1247,7 +1247,7 @@ public class BiometricManagerTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.Q)
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
     public void testGetStrings_WhenOnlyScreenLockAvailable_OnApi29() {
         final android.hardware.biometrics.BiometricManager frameworkBiometricManager =
                 mock(android.hardware.biometrics.BiometricManager.class);

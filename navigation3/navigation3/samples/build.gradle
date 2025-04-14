@@ -61,7 +61,7 @@ androidx {
     type = SoftwareType.SAMPLES
     inceptionYear = "2024"
     description = "Contains the sample code for Navigation"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
+    kotlinTarget = KotlinTarget.KOTLIN_2_1
 }
 
 android {

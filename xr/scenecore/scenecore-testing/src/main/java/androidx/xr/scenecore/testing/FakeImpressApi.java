@@ -81,6 +81,8 @@ public class FakeImpressApi implements ImpressApi {
         float mHeight;
         float mRadius;
         CanvasShape mCanvasShape;
+        float mFeatherRadiusX;
+        float mFeatherRadiusY;
 
         @Nullable
         public Surface getSurface() {
@@ -102,6 +104,14 @@ public class FakeImpressApi implements ImpressApi {
 
         public float getRadius() {
             return mRadius;
+        }
+
+        public float getFeatherRadiusX() {
+            return mFeatherRadiusX;
+        }
+
+        public float getFeatherRadiusY() {
+            return mFeatherRadiusY;
         }
 
         @Nullable
@@ -128,7 +138,7 @@ public class FakeImpressApi implements ImpressApi {
         }
     }
 
-    /** Test bookkeeping data for a Gltf model */
+    /** Test bookkeeping data for a Gltf gltfToken */
     public static class GltfNodeData {
         public int entityId;
         @Nullable public MaterialData materialOverride;
@@ -225,12 +235,12 @@ public class FakeImpressApi implements ImpressApi {
     @Override
     @NonNull
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
-    public ListenableFuture<Long> loadGltfModel(@NonNull String path) {
-        long modelToken = mNextModelId++;
-        mGltfModels.put(modelToken, new ArrayList<>());
+    public ListenableFuture<Long> loadGltfAsset(@NonNull String path) {
+        long gltfToken = mNextModelId++;
+        mGltfModels.put(gltfToken, new ArrayList<>());
         // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
         ResolvableFuture<Long> ret = ResolvableFuture.create();
-        ret.set(modelToken);
+        ret.set(gltfToken);
 
         return ret;
     }
@@ -238,36 +248,36 @@ public class FakeImpressApi implements ImpressApi {
     @Override
     @NonNull
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
-    public ListenableFuture<Long> loadGltfModel(@NonNull byte[] data, @NonNull String key) {
-        long modelToken = mNextModelId++;
-        mGltfModels.put(modelToken, new ArrayList<>());
+    public ListenableFuture<Long> loadGltfAsset(@NonNull byte[] data, @NonNull String key) {
+        long gltfToken = mNextModelId++;
+        mGltfModels.put(gltfToken, new ArrayList<>());
         // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
         ResolvableFuture<Long> ret = ResolvableFuture.create();
-        ret.set(modelToken);
+        ret.set(gltfToken);
 
         return ret;
     }
 
     @Override
-    public void releaseGltfModel(long modelToken) {
-        if (!mGltfModels.containsKey(modelToken)) {
+    public void releaseGltfAsset(long gltfToken) {
+        if (!mGltfModels.containsKey(gltfToken)) {
             throw new NotFoundException("Model token not found");
         }
-        mGltfModels.remove(modelToken);
+        mGltfModels.remove(gltfToken);
     }
 
     @Override
-    public int instanceGltfModel(long modelToken) {
-        return instanceGltfModel(modelToken, true);
+    public int instanceGltfModel(long gltfToken) {
+        return instanceGltfModel(gltfToken, true);
     }
 
     @Override
-    public int instanceGltfModel(long modelToken, boolean enableCollider) {
-        if (!mGltfModels.containsKey(modelToken)) {
+    public int instanceGltfModel(long gltfToken, boolean enableCollider) {
+        if (!mGltfModels.containsKey(gltfToken)) {
             throw new IllegalArgumentException("Model token not found");
         }
         int entityId = mNextNodeId++;
-        mGltfModels.get(modelToken).add(entityId);
+        mGltfModels.get(gltfToken).add(entityId);
         GltfNodeData gltfNodeData = new GltfNodeData();
         gltfNodeData.setEntityId(entityId);
         mImpressNodes.put(gltfNodeData, null);
@@ -359,8 +369,8 @@ public class FakeImpressApi implements ImpressApi {
 
     /** Gets the impress nodes for glTF models that match the given token. */
     @NonNull
-    public List<Integer> getImpressNodesForToken(long modelToken) {
-        return mGltfModels.get(modelToken);
+    public List<Integer> getImpressNodesForToken(long gltfToken) {
+        return mGltfModels.get(gltfToken);
     }
 
     /** Returns true if the given impress node has a parent. */
@@ -457,6 +467,17 @@ public class FakeImpressApi implements ImpressApi {
             throw new IllegalArgumentException("Couldn't find stereo surface entity!");
         }
         return mStereoSurfaceEntities.get(panelImpressNode).mSurface;
+    }
+
+    @Override
+    public void setFeatherRadiusForStereoSurface(
+            int panelImpressNode, float radiusX, float radiusY) {
+        if (!mStereoSurfaceEntities.containsKey(panelImpressNode)) {
+            // TODO: b/387323937 - the Native code currently CHECK fails in this case
+            throw new IllegalArgumentException("Couldn't find stereo surface entity!");
+        }
+        mStereoSurfaceEntities.get(panelImpressNode).mFeatherRadiusX = radiusX;
+        mStereoSurfaceEntities.get(panelImpressNode).mFeatherRadiusY = radiusY;
     }
 
     @Override
@@ -607,6 +628,25 @@ public class FakeImpressApi implements ImpressApi {
         mCurrentEnvironmentLightId = -1;
     }
 
+    @Override
+    public void setPrimaryAlphaMaskForStereoSurface(int impressNode, long alphaMask) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
+    public void setAuxiliaryAlphaMaskForStereoSurface(int impressNode, long alphaMask) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
+    public void disposeAllResources() {
+        mImageBasedLightingAssets.clear();
+        mImpressNodes.clear();
+        mGltfModels.clear();
+        mTextureImages.clear();
+        mMaterials.clear();
+    }
+
     /** Returns the map of texture image tokens to their associated Texture object. */
     @NonNull
     public Map<Long, Texture> getTextureImages() {
@@ -623,6 +663,18 @@ public class FakeImpressApi implements ImpressApi {
     @NonNull
     public Map<GltfNodeData, GltfNodeData> getImpressNodes() {
         return mImpressNodes;
+    }
+
+    // Returns the list of image based lighting assets that have been loaded.
+    @NonNull
+    public List<Long> getImageBasedLightingAssets() {
+        return mImageBasedLightingAssets;
+    }
+
+    // Returns the map of glTF model tokens to their associated impress nodes.
+    @NonNull
+    public Map<Long, List<Integer>> getGltfModels() {
+        return mGltfModels;
     }
 
     /** Returns the current environment light token. */

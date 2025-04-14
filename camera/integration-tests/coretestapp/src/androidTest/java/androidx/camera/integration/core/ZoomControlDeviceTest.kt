@@ -40,7 +40,7 @@ import androidx.camera.core.ZoomState
 import androidx.camera.core.impl.AdapterCameraInfo
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.internal.ImmutableZoomState
-import androidx.camera.integration.core.util.CameraPipeUtil
+import androidx.camera.integration.core.util.Camera2InteropUtil
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
@@ -130,7 +130,7 @@ class ZoomControlDeviceTest(
                     cameraSelector,
                     ImageCapture.Builder()
                         .also { builder ->
-                            CameraPipeUtil.setCameraCaptureSessionCallback(
+                            Camera2InteropUtil.setCameraCaptureSessionCallback(
                                 implName,
                                 builder,
                                 captureCallback
@@ -388,7 +388,7 @@ class ZoomControlDeviceTest(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     @Test
     fun setLinearZoom_androidRZoomRatio_cropWidthChangedLinearly() = runBlocking {
         checkTestPreconditions(isAndroidRZoom = true)

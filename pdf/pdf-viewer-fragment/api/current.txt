@@ -2,9 +2,9 @@
 package androidx.pdf.viewer.fragment {
 
   public final class PdfStylingOptions {
-    ctor public PdfStylingOptions(int containerStyleResId);
+    ctor public PdfStylingOptions(@StyleRes int containerStyleResId);
     method public int getContainerStyleResId();
-    property public int containerStyleResId;
+    property @StyleRes public int containerStyleResId;
   }
 
   @RequiresExtension(extension=android.os.Build.VERSION_CODES.S, version=13) public class PdfViewerFragment extends androidx.fragment.app.Fragment {

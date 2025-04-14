@@ -66,7 +66,7 @@ class NotificationCompatBuilder implements NotificationBuilderWithBuilderAccesso
     // @RequiresApi(21) - uncomment when lint bug is fixed.
     private RemoteViews mHeadsUpContentView;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "MissingPermission"})
     NotificationCompatBuilder(NotificationCompat.Builder b) {
         mBuilderCompat = b;
         mContext = b.mContext;

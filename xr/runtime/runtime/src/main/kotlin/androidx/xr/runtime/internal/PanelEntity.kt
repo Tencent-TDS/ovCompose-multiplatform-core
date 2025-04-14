@@ -54,5 +54,5 @@ public interface PanelEntity : Entity {
      *
      * @return [Dimensions] size of this panel in meters. (Z will be 0)
      */
-    public var panelSize: Dimensions
+    public var size: Dimensions
 }

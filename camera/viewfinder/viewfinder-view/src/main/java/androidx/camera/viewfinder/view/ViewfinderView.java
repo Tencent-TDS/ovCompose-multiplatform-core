@@ -198,7 +198,7 @@ public final class ViewfinderView extends FrameLayout {
      *
      * <p> This method should be called after {@link ViewfinderView} is inflated and can be
      * called before or after
-     * {@link ViewfinderView#requestSurfaceSessionAsync(ViewfinderSurfaceRequest, TransformationInfo)}.
+     * {@link ViewfinderView#requestSurfaceSessionAsync(ViewfinderSurfaceRequest)}.
      * The {@link ScaleType} to set will be effective immediately after the method is called.
      *
      * @param scaleType The {@link ScaleType} to apply to the viewfinder.
@@ -253,15 +253,8 @@ public final class ViewfinderView extends FrameLayout {
      * }, ContextCompat.getMainExecutor(getContext()));
      * }</pre>
      *
-     * <p> Calling this method will replace any {@link TransformationInfo} previously set by
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest, TransformationInfo)} or
-     * {@link #setTransformationInfo(TransformationInfo)} with default transformation info that
-     * uses the default values which are part of the {@link TransformationInfo#DEFAULT} instance.
-     * This assumes no rotation, mirroring, or crop region relative to the display.
-     *
      * <p> If the source will produce frames that are rotated, mirrored, or require a crop, relative
-     * to the display orientation, use
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest, TransformationInfo)}.
+     * to the display orientation, use {@link #setTransformationInfo(TransformationInfo)}.
      *
      * @param surfaceRequest The {@link ViewfinderSurfaceRequest} to get a surface session.
      * @return A {@link ListenableFuture} to retrieve the eventual surface session.
@@ -272,36 +265,6 @@ public final class ViewfinderView extends FrameLayout {
     @UiThread
     public @NonNull ListenableFuture<ViewfinderSurfaceSession> requestSurfaceSessionAsync(
             @NonNull ViewfinderSurfaceRequest surfaceRequest) {
-        return requestSurfaceSessionAsync(surfaceRequest, TransformationInfo.DEFAULT);
-    }
-
-    /**
-     * Requests surface by sending a {@link ViewfinderSurfaceRequest} for a source that produces
-     * frames with characteristics described by {@link TransformationInfo}.
-     *
-     * <p> This is equivalent to calling
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest)}, but allows specifying a
-     * {@link TransformationInfo} that will immediately be applied. This is useful when the
-     * source produces frames that are rotated or mirrored from the {@link Display}'s current
-     * orientation, such as if the source is a camera.
-     *
-     * <p> The {@link TransformationInfo} passed in will replace any transformation info that was
-     * previously set by other calls to this method or
-     * {@link #setTransformationInfo(TransformationInfo)}.
-     *
-     * @param surfaceRequest     The {@link ViewfinderSurfaceRequest} to get a surface session.
-     * @param transformationInfo The {@link TransformationInfo} that specifies characteristics of
-     *                          the frames produced by the source, such as rotation, mirroring,
-     *                           and the desired crop rectangle.
-     * @return A {@link ListenableFuture} to retrieve the eventual surface session.
-     * @see ViewfinderSurfaceRequest
-     * @see ViewfinderSurfaceSession
-     * @see TransformationInfo
-     */
-    @UiThread
-    public @NonNull ListenableFuture<ViewfinderSurfaceSession> requestSurfaceSessionAsync(
-            @NonNull ViewfinderSurfaceRequest surfaceRequest,
-            @NonNull TransformationInfo transformationInfo) {
         checkUiThread();
 
         if (surfaceRequest.getImplementationMode() != null) {
@@ -335,7 +298,7 @@ public final class ViewfinderView extends FrameLayout {
         Display display = getDisplay();
         if (display != null) {
             Size resolution = new Size(surfaceRequest.getWidth(), surfaceRequest.getHeight());
-            mViewfinderTransformation.setTransformationInfo(transformationInfo, resolution);
+            mViewfinderTransformation.setResolution(resolution);
             redrawViewfinder();
         }
 
@@ -356,32 +319,32 @@ public final class ViewfinderView extends FrameLayout {
     /**
      * Updates the {@link TransformationInfo} used by the current surface session.
      *
-     * <p>This is commonly used to update the crop rect of the displayed frames.
+     * <p>This can be used to specify information related to how the source buffers are transformed
+     * relative to the coordinate system of the source, such as rotation, mirroring, and crop
+     * (region of interest).
      *
-     * <p>Setting this value will replace any {@link TransformationInfo} previously set by
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest, TransformationInfo)} or
-     * previous invocations of this method.
+     * <p> If not set, the default value is {@link TransformationInfo#DEFAULT}.
      *
-     * <p>This should only be called after
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest)} or any of its overloads has
-     * been called, as calling those methods will overwrite the transformation info set here.
+     * <p> This method should be called after {@link ViewfinderView} is inflated and can be called
+     * before or after {@link ViewfinderView#requestSurfaceSessionAsync(ViewfinderSurfaceRequest)}.
+     * The {@link TransformationInfo} will be effective immediately after the method is called.
      *
      * @param transformationInfo the updated transformation info.
      */
     @UiThread
     public void setTransformationInfo(@NonNull TransformationInfo transformationInfo) {
-        mViewfinderTransformation.updateTransformInfo(transformationInfo);
+        mViewfinderTransformation.setTransformationInfo(transformationInfo);
         redrawViewfinder();
     }
 
     /**
      * Returns the {@link TransformationInfo} currently applied to the viewfinder.
      *
-     * @return the previously set transformation info, or {@code null} if none has been set by
-     * {@link #requestSurfaceSessionAsync(ViewfinderSurfaceRequest)} or its overloads.
+     * @return the previously set transformation info, or {@link TransformationInfo#DEFAULT} if none
+     * has been set by {@link #setTransformationInfo(TransformationInfo)}.
      */
     @UiThread
-    @Nullable
+    @NonNull
     public TransformationInfo getTransformationInfo() {
         return mViewfinderTransformation.getTransformationInfo();
     }

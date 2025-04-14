@@ -84,8 +84,8 @@ import kotlinx.coroutines.launch
 
 // TODO Update the docs images to point to the expressive (wavy) versions of the progress indicators
 /**
- * <a href="https://m3.material.io/components/progress-indicators/overview" class="external"
- * target="_blank">Determinate Material Design wavy linear progress indicator</a>.
+ * [Material Design determinate wavy linear progress
+ * indicator](https://m3.material.io/components/progress-indicators/overview)
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
@@ -269,8 +269,8 @@ fun LinearWavyProgressIndicator(
 
 // TODO Update the docs images to point to the expressive (wavy) versions of the progress indicators
 /**
- * <a href="https://m3.material.io/components/progress-indicators/overview" class="external"
- * target="_blank">Indeterminate Material Design linear wavy progress indicator</a>.
+ * [Material Design indeterminate linear wavy progress
+ * indicator](https://m3.material.io/components/progress-indicators/overview)
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
@@ -415,8 +415,8 @@ fun LinearWavyProgressIndicator(
 
 // TODO Update the docs images to point to the expressive (wavy) versions of the progress indicators
 /**
- * <a href="https://m3.material.io/components/progress-indicators/overview" class="external"
- * target="_blank">Determinate Material Design circular progress indicator</a>.
+ * [Material Design determinate circular progress
+ * indicator](https://m3.material.io/components/progress-indicators/overview)
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
@@ -549,8 +549,8 @@ fun CircularWavyProgressIndicator(
 
 // TODO Update the docs images to point to the expressive (wavy) versions of the progress indicators
 /**
- * <a href="https://m3.material.io/components/progress-indicators/overview" class="external"
- * target="_blank">Indeterminate Material Design circular progress indicator</a>.
+ * [Material Design indeterminate circular progress
+ * indicator](https://m3.material.io/components/progress-indicators/overview)
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *

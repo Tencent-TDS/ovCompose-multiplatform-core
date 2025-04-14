@@ -17,7 +17,6 @@
 package androidx.test.uiautomator.internal
 
 import android.view.accessibility.AccessibilityNodeInfo
-import androidx.test.uiautomator.NodeFilterScope
 import androidx.test.uiautomator.children
 
 /**
@@ -28,38 +27,24 @@ internal fun findViews(
     timeoutMs: Long,
     pollIntervalMs: Long,
     shouldStop: (MutableList<AccessibilityNodeInfo>) -> (Boolean),
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
     rootNodeBlock: () -> (List<AccessibilityNodeInfo>)
 ): List<AccessibilityNodeInfo> {
 
     // DFS to find a view matching the given filter
     fun dfs(
         node: AccessibilityNodeInfo,
-        depth: Int,
         collected: MutableList<AccessibilityNodeInfo>,
-        indexPtr: IntArray,
     ) {
 
-        val n =
-            NodeFilterScope(
-                view = node,
-                depth = depth,
-                lazyChildren = { node.children() },
-                index = indexPtr[0]
-            )
-
         // Check if this is the node we're looking for
-        if (block(n)) {
+        if (block(node)) {
             collected.add(node)
             if (shouldStop(collected)) return
         }
 
         // If not, explore the children.
-        n.children.forEach { child ->
-            indexPtr[0]++
-            dfs(child, depth + 1, collected, indexPtr)
-            indexPtr[0]--
-        }
+        node.children().forEach { child -> dfs(child, collected) }
     }
 
     // Run DFS starting from root produced by the given factory.
@@ -70,7 +55,7 @@ internal fun findViews(
                 rootNodeBlock()
                     .map {
                         val list = mutableListOf<AccessibilityNodeInfo>()
-                        dfs(node = it, depth = 0, collected = list, indexPtr = intArrayOf(0))
+                        dfs(node = it, collected = list)
                         list
                     }
                     .flatten()

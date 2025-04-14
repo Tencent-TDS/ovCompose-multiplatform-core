@@ -107,10 +107,6 @@ open annotation class androidx.compose.runtime/ExplicitGroupsComposable : kotlin
     constructor <init>() // androidx.compose.runtime/ExplicitGroupsComposable.<init>|<init>(){}[0]
 }
 
-open annotation class androidx.compose.runtime/Immutable : kotlin/Annotation { // androidx.compose.runtime/Immutable|null[0]
-    constructor <init>() // androidx.compose.runtime/Immutable.<init>|<init>(){}[0]
-}
-
 open annotation class androidx.compose.runtime/InternalComposeApi : kotlin/Annotation { // androidx.compose.runtime/InternalComposeApi|null[0]
     constructor <init>() // androidx.compose.runtime/InternalComposeApi.<init>|<init>(){}[0]
 }
@@ -133,14 +129,6 @@ open annotation class androidx.compose.runtime/NonSkippableComposable : kotlin/A
 
 open annotation class androidx.compose.runtime/ReadOnlyComposable : kotlin/Annotation { // androidx.compose.runtime/ReadOnlyComposable|null[0]
     constructor <init>() // androidx.compose.runtime/ReadOnlyComposable.<init>|<init>(){}[0]
-}
-
-open annotation class androidx.compose.runtime/Stable : kotlin/Annotation { // androidx.compose.runtime/Stable|null[0]
-    constructor <init>() // androidx.compose.runtime/Stable.<init>|<init>(){}[0]
-}
-
-open annotation class androidx.compose.runtime/StableMarker : kotlin/Annotation { // androidx.compose.runtime/StableMarker|null[0]
-    constructor <init>() // androidx.compose.runtime/StableMarker.<init>|<init>(){}[0]
 }
 
 open annotation class androidx.compose.runtime/TestOnly : kotlin/Annotation { // androidx.compose.runtime/TestOnly|null[0]

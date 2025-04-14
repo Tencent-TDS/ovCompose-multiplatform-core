@@ -39,9 +39,12 @@ public class FakePerceptionManager : PerceptionManager, AnchorHolder {
     private val hitResults = mutableListOf<HitResult>()
     private val anchorUuids = mutableListOf<UUID>()
 
+    /** Flag to represent available tracking state of the camera. */
+    public var isTrackingAvailable: Boolean = true
+
     override fun createAnchor(pose: Pose): Anchor {
         // TODO: b/349862231 - Modify it once detach is implemented.
-        val anchor = FakeRuntimeAnchor(pose, this)
+        val anchor = FakeRuntimeAnchor(pose, this, isTrackingAvailable)
         anchors.add(anchor)
         return anchor
     }

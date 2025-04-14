@@ -20,7 +20,6 @@ import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.telecom.DisconnectCause
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallControlResult
 import androidx.core.telecom.test.utils.BaseTelecomTest
@@ -44,7 +43,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @SdkSuppress(minSdkVersion = VERSION_CODES.O)
-@RequiresApi(VERSION_CODES.O)
 @RunWith(AndroidJUnit4::class)
 class ConcurrentCallingTest : BaseTelecomTest() {
     companion object {

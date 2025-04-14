@@ -113,6 +113,7 @@ class WideNavigationRailTest {
             .onNodeWithTag("item")
             .onParent()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.IsTraversalGroup))
     }
 
     @Test

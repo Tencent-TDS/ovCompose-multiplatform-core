@@ -22,7 +22,7 @@ import androidx.annotation.RestrictTo
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface PointerCaptureComponent : Component {
     /** The possible states of pointer capture. */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public annotation class PointerCaptureState {
         public companion object {
             public const val POINTER_CAPTURE_STATE_PAUSED: Int = 0

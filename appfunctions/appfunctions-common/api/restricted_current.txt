@@ -23,6 +23,7 @@ package androidx.appfunctions {
 
   @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) public final class AppFunctionData {
     method public boolean containsKey(String key);
+    method public <T> T deserialize(Class<T> serializableClass);
     method public androidx.appfunctions.AppFunctionData? getAppFunctionData(String key);
     method public java.util.List<androidx.appfunctions.AppFunctionData>? getAppFunctionDataList(String key);
     method public boolean getBoolean(String key);
@@ -46,6 +47,7 @@ package androidx.appfunctions {
     method public String getQualifiedName();
     method public String? getString(String key);
     method public java.util.List<java.lang.String>? getStringList(String key);
+    method public static <T> androidx.appfunctions.AppFunctionData serialize(T serializable, Class<T> serializableClass);
     property public String qualifiedName;
     field public static final androidx.appfunctions.AppFunctionData.Companion Companion;
     field public static final androidx.appfunctions.AppFunctionData EMPTY;
@@ -75,6 +77,7 @@ package androidx.appfunctions {
   }
 
   public static final class AppFunctionData.Companion {
+    method public <T> androidx.appfunctions.AppFunctionData serialize(T serializable, Class<T> serializableClass);
     property public androidx.appfunctions.AppFunctionData EMPTY;
   }
 

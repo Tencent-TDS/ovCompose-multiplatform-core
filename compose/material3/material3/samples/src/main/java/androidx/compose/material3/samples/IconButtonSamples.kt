@@ -66,23 +66,23 @@ fun IconButtonWithAnimatedShapeSample() {
 @Preview
 @Sampled
 @Composable
-fun XSmallNarrowSquareIconButtonsSample() {
+fun ExtraSmallNarrowSquareIconButtonsSample() {
     // Small narrow round icon button
     FilledIconButton(
         onClick = { /* doSomething() */ },
         modifier =
             Modifier.minimumInteractiveComponentSize()
                 .size(
-                    IconButtonDefaults.xSmallContainerSize(
+                    IconButtonDefaults.extraSmallContainerSize(
                         IconButtonDefaults.IconButtonWidthOption.Narrow
                     )
                 ),
-        shape = IconButtonDefaults.xSmallSquareShape
+        shape = IconButtonDefaults.extraSmallSquareShape
     ) {
         Icon(
             Icons.Filled.Lock,
             contentDescription = "Localized description",
-            modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+            modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
         )
     }
 }

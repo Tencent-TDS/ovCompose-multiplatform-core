@@ -320,6 +320,25 @@ class ThreePaneScaffoldScreenshotTest {
     }
 
     @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_disabledOnSinglePane() {
+        rule.setContent {
+            val mockPaneExpansionState = PaneExpansionState()
+            mockPaneExpansionState.setFirstPaneWidth(
+                with(LocalDensity.current) { 412.dp.roundToPx() }
+            )
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule
+            .onNodeWithTag(ThreePaneScaffoldTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "threePaneScaffold_paneExpansionWithDragHandle_disabledOnSinglePane"
+            )
+    }
+
+    @Test
     fun threePaneScaffold_paneExpansionWithDragHandle_fixedFirstPaneWidth() {
         rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
             val mockPaneExpansionState = PaneExpansionState()

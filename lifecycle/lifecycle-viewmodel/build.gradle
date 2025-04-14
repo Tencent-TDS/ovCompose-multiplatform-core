@@ -98,11 +98,11 @@ androidXMultiplatform {
             }
         }
 
-        desktopMain.dependsOn(jvmCommonMain)
-        nonJvmCommonMain.dependsOn(commonMain)
-        nativeMain.dependsOn(nonJvmCommonMain)
-        darwinMain.dependsOn(nativeMain)
-        linuxMain.dependsOn(nativeMain)
+        desktopMain { dependsOn(jvmCommonMain) }
+        nonJvmCommonMain { dependsOn(commonMain) }
+        nativeMain { dependsOn(nonJvmCommonMain) }
+        darwinMain { dependsOn(nativeMain) }
+        linuxMain { dependsOn(nativeMain) }
 
         targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {

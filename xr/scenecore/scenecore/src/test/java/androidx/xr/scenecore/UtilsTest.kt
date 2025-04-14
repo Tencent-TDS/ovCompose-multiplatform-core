@@ -16,19 +16,26 @@
 
 package androidx.xr.scenecore
 
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.AnchorPlacement as RtAnchorPlacement
+import androidx.xr.runtime.internal.Dimensions as RuntimeDimensions
+import androidx.xr.runtime.internal.Entity as RuntimeEntity
+import androidx.xr.runtime.internal.InputEvent as RuntimeInputEvent
+import androidx.xr.runtime.internal.InputEvent.Companion.HitInfo as RuntimeHitInfo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MoveEvent as RuntimeMoveEvent
+import androidx.xr.runtime.internal.PixelDimensions as RuntimePixelDimensions
+import androidx.xr.runtime.internal.PlaneSemantic as RtPlaneSemantic
+import androidx.xr.runtime.internal.PlaneType as RtPlaneType
+import androidx.xr.runtime.internal.ResizeEvent as RuntimeResizeEvent
+import androidx.xr.runtime.internal.SpatialCapabilities as RuntimeSpatialCapabilities
+import androidx.xr.runtime.internal.SpatialVisibility as RuntimeSpatialVisibility
+import androidx.xr.runtime.internal.TextureSampler as RuntimeTextureSampler
 import androidx.xr.runtime.math.Matrix4
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
+import androidx.xr.runtime.math.Ray
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions as RuntimeDimensions
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity as RuntimeEntity
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent as RuntimeInputEvent
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent.HitInfo as RuntimeHitInfo
-import androidx.xr.scenecore.JxrPlatformAdapter.MoveEvent as RuntimeMoveEvent
-import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions as RuntimePixelDimensions
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent as RuntimeResizeEvent
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities as RuntimeSpatialCapabilities
-import androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler as RuntimeTextureSampler
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertFailsWith
 import org.junit.Test
@@ -103,10 +110,10 @@ class UtilsTest {
         val vector1 = Vector3(1f, 1f, 1f)
         val vector2 = Vector3(2f, 2f, 2f)
 
-        val initialInputRay = JxrPlatformAdapter.Ray(vector0, vector1)
-        val currentInputRay = JxrPlatformAdapter.Ray(vector1, vector2)
+        val initialInputRay = Ray(vector0, vector1)
+        val currentInputRay = Ray(vector1, vector2)
         val entityManager = EntityManager()
-        val activitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
+        val activitySpace = mock<RtActivitySpace>()
         entityManager.setEntityForRtEntity(activitySpace, mock<Entity>())
         val moveEvent =
             RuntimeMoveEvent(
@@ -163,7 +170,7 @@ class UtilsTest {
     @Test
     fun verifyRtInputEventToInputEventConversion() {
         val entityManager = EntityManager()
-        val activitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
+        val activitySpace = mock<RtActivitySpace>()
         entityManager.setEntityForRtEntity(activitySpace, mock<Entity>())
         val inputEvent =
             RuntimeInputEvent(
@@ -361,12 +368,57 @@ class UtilsTest {
     }
 
     @Test
+    fun RtSpatialVisibilityToSpatialVisibility_convertsCorrectly() {
+        assertThat(
+                listOf(
+                        RuntimeSpatialVisibility(RuntimeSpatialVisibility.UNKNOWN),
+                        RuntimeSpatialVisibility(RuntimeSpatialVisibility.OUTSIDE_FOV),
+                        RuntimeSpatialVisibility(RuntimeSpatialVisibility.PARTIALLY_WITHIN_FOV),
+                        RuntimeSpatialVisibility(RuntimeSpatialVisibility.WITHIN_FOV),
+                    )
+                    .map { it.toSpatialVisibility() }
+            )
+            .containsExactly(
+                SpatialVisibility(SpatialVisibility.UNKNOWN),
+                SpatialVisibility(SpatialVisibility.OUTSIDE_FOV),
+                SpatialVisibility(SpatialVisibility.PARTIALLY_WITHIN_FOV),
+                SpatialVisibility(SpatialVisibility.WITHIN_FOV),
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun intToSpatialVisibility_convertsCorrectly() {
+        assertThat(
+                listOf(
+                        RuntimeSpatialVisibility.UNKNOWN,
+                        RuntimeSpatialVisibility.OUTSIDE_FOV,
+                        RuntimeSpatialVisibility.PARTIALLY_WITHIN_FOV,
+                        RuntimeSpatialVisibility.WITHIN_FOV,
+                    )
+                    .map { it.toSpatialVisibilityValue() }
+            )
+            .containsExactly(
+                SpatialVisibility.UNKNOWN,
+                SpatialVisibility.OUTSIDE_FOV,
+                SpatialVisibility.PARTIALLY_WITHIN_FOV,
+                SpatialVisibility.WITHIN_FOV,
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun intToSpatialVisibility_invalidValue_throwsError() {
+        assertFailsWith<IllegalStateException> { 100.toSpatialVisibilityValue() }
+    }
+
+    @Test
     fun intToMoveState_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.MoveEvent.MOVE_STATE_START,
-                        JxrPlatformAdapter.MoveEvent.MOVE_STATE_ONGOING,
-                        JxrPlatformAdapter.MoveEvent.MOVE_STATE_END,
+                        RuntimeMoveEvent.MOVE_STATE_START,
+                        RuntimeMoveEvent.MOVE_STATE_ONGOING,
+                        RuntimeMoveEvent.MOVE_STATE_END,
                     )
                     .map { it.toMoveState() }
             )
@@ -387,10 +439,10 @@ class UtilsTest {
     fun intToResizeState_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.ResizeEvent.RESIZE_STATE_UNKNOWN,
-                        JxrPlatformAdapter.ResizeEvent.RESIZE_STATE_START,
-                        JxrPlatformAdapter.ResizeEvent.RESIZE_STATE_ONGOING,
-                        JxrPlatformAdapter.ResizeEvent.RESIZE_STATE_END,
+                        RuntimeResizeEvent.RESIZE_STATE_UNKNOWN,
+                        RuntimeResizeEvent.RESIZE_STATE_START,
+                        RuntimeResizeEvent.RESIZE_STATE_ONGOING,
+                        RuntimeResizeEvent.RESIZE_STATE_END,
                     )
                     .map { it.toResizeState() }
             )
@@ -412,12 +464,12 @@ class UtilsTest {
     fun intToInputEventSource_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.InputEvent.SOURCE_UNKNOWN,
-                        JxrPlatformAdapter.InputEvent.SOURCE_HEAD,
-                        JxrPlatformAdapter.InputEvent.SOURCE_CONTROLLER,
-                        JxrPlatformAdapter.InputEvent.SOURCE_HANDS,
-                        JxrPlatformAdapter.InputEvent.SOURCE_MOUSE,
-                        JxrPlatformAdapter.InputEvent.SOURCE_GAZE_AND_GESTURE,
+                        RuntimeInputEvent.SOURCE_UNKNOWN,
+                        RuntimeInputEvent.SOURCE_HEAD,
+                        RuntimeInputEvent.SOURCE_CONTROLLER,
+                        RuntimeInputEvent.SOURCE_HANDS,
+                        RuntimeInputEvent.SOURCE_MOUSE,
+                        RuntimeInputEvent.SOURCE_GAZE_AND_GESTURE,
                     )
                     .map { it.toInputEventSource() }
             )
@@ -441,9 +493,9 @@ class UtilsTest {
     fun intToInputEventPointerType_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.InputEvent.POINTER_TYPE_DEFAULT,
-                        JxrPlatformAdapter.InputEvent.POINTER_TYPE_LEFT,
-                        JxrPlatformAdapter.InputEvent.POINTER_TYPE_RIGHT,
+                        RuntimeInputEvent.POINTER_TYPE_DEFAULT,
+                        RuntimeInputEvent.POINTER_TYPE_LEFT,
+                        RuntimeInputEvent.POINTER_TYPE_RIGHT,
                     )
                     .map { it.toInputEventPointerType() }
             )
@@ -464,13 +516,12 @@ class UtilsTest {
     fun intToSpatialCapability_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.SpatialCapabilities.SPATIAL_CAPABILITY_UI,
-                        JxrPlatformAdapter.SpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT,
-                        JxrPlatformAdapter.SpatialCapabilities
-                            .SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL,
-                        JxrPlatformAdapter.SpatialCapabilities.SPATIAL_CAPABILITY_APP_ENVIRONMENT,
-                        JxrPlatformAdapter.SpatialCapabilities.SPATIAL_CAPABILITY_SPATIAL_AUDIO,
-                        JxrPlatformAdapter.SpatialCapabilities.SPATIAL_CAPABILITY_EMBED_ACTIVITY,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_UI,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_APP_ENVIRONMENT,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_SPATIAL_AUDIO,
+                        RuntimeSpatialCapabilities.SPATIAL_CAPABILITY_EMBED_ACTIVITY,
                     )
                     .map { it.toSpatialCapability() }
             )
@@ -489,13 +540,13 @@ class UtilsTest {
     fun intToInputEventAction_convertsCorrectly() {
         assertThat(
                 listOf(
-                        JxrPlatformAdapter.InputEvent.ACTION_DOWN,
-                        JxrPlatformAdapter.InputEvent.ACTION_UP,
-                        JxrPlatformAdapter.InputEvent.ACTION_MOVE,
-                        JxrPlatformAdapter.InputEvent.ACTION_CANCEL,
-                        JxrPlatformAdapter.InputEvent.ACTION_HOVER_MOVE,
-                        JxrPlatformAdapter.InputEvent.ACTION_HOVER_ENTER,
-                        JxrPlatformAdapter.InputEvent.ACTION_HOVER_EXIT,
+                        RuntimeInputEvent.ACTION_DOWN,
+                        RuntimeInputEvent.ACTION_UP,
+                        RuntimeInputEvent.ACTION_MOVE,
+                        RuntimeInputEvent.ACTION_CANCEL,
+                        RuntimeInputEvent.ACTION_HOVER_MOVE,
+                        RuntimeInputEvent.ACTION_HOVER_ENTER,
+                        RuntimeInputEvent.ACTION_HOVER_EXIT,
                     )
                     .map { it.toInputEventAction() }
             )
@@ -519,22 +570,19 @@ class UtilsTest {
     @Test
     fun anchorPlacementToRuntimeAnchorPlacement_setsCorrectly() {
         val mockRuntime = mock<JxrPlatformAdapter>()
-        val mockAnchorPlacement1 = mock<JxrPlatformAdapter.AnchorPlacement>()
-        val mockAnchorPlacement2 = mock<JxrPlatformAdapter.AnchorPlacement>()
+        val mockAnchorPlacement1 = mock<RtAnchorPlacement>()
+        val mockAnchorPlacement2 = mock<RtAnchorPlacement>()
         whenever(
                 mockRuntime.createAnchorPlacementForPlanes(
-                    setOf(JxrPlatformAdapter.PlaneType.HORIZONTAL),
-                    setOf(JxrPlatformAdapter.PlaneSemantic.ANY),
+                    setOf(RtPlaneType.HORIZONTAL),
+                    setOf(RtPlaneSemantic.ANY),
                 )
             )
             .thenReturn(mockAnchorPlacement1)
         whenever(
                 mockRuntime.createAnchorPlacementForPlanes(
-                    setOf(JxrPlatformAdapter.PlaneType.ANY),
-                    setOf(
-                        JxrPlatformAdapter.PlaneSemantic.WALL,
-                        JxrPlatformAdapter.PlaneSemantic.FLOOR
-                    ),
+                    setOf(RtPlaneType.ANY),
+                    setOf(RtPlaneSemantic.WALL, RtPlaneSemantic.FLOOR),
                 )
             )
             .thenReturn(mockAnchorPlacement2)
@@ -578,13 +626,13 @@ class UtilsTest {
 
         val rtSampler: RuntimeTextureSampler = sampler.toRtTextureSampler()
 
-        assertThat(rtSampler.wrapModeS).isEqualTo(JxrPlatformAdapter.TextureSampler.CLAMP_TO_EDGE)
-        assertThat(rtSampler.wrapModeT).isEqualTo(JxrPlatformAdapter.TextureSampler.REPEAT)
-        assertThat(rtSampler.wrapModeR).isEqualTo(JxrPlatformAdapter.TextureSampler.MIRRORED_REPEAT)
-        assertThat(rtSampler.minFilter).isEqualTo(JxrPlatformAdapter.TextureSampler.NEAREST)
-        assertThat(rtSampler.magFilter).isEqualTo(JxrPlatformAdapter.TextureSampler.MAG_LINEAR)
-        assertThat(rtSampler.compareMode).isEqualTo(JxrPlatformAdapter.TextureSampler.NONE)
-        assertThat(rtSampler.compareFunc).isEqualTo(JxrPlatformAdapter.TextureSampler.LE)
+        assertThat(rtSampler.wrapModeS).isEqualTo(RuntimeTextureSampler.CLAMP_TO_EDGE)
+        assertThat(rtSampler.wrapModeT).isEqualTo(RuntimeTextureSampler.REPEAT)
+        assertThat(rtSampler.wrapModeR).isEqualTo(RuntimeTextureSampler.MIRRORED_REPEAT)
+        assertThat(rtSampler.minFilter).isEqualTo(RuntimeTextureSampler.NEAREST)
+        assertThat(rtSampler.magFilter).isEqualTo(RuntimeTextureSampler.MAG_LINEAR)
+        assertThat(rtSampler.compareMode).isEqualTo(RuntimeTextureSampler.NONE)
+        assertThat(rtSampler.compareFunc).isEqualTo(RuntimeTextureSampler.LE)
         assertThat(rtSampler.anisotropyLog2).isEqualTo(2)
     }
 }

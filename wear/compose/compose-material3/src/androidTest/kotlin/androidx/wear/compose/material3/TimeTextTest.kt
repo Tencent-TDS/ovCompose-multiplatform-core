@@ -18,7 +18,6 @@ package androidx.wear.compose.material3
 
 import android.os.Build
 import android.text.format.DateFormat
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.assertContainsColor
@@ -105,7 +104,7 @@ class TimeTextTest {
         rule.onNodeWithContentDescription(statusText).assertIsDisplayed()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun checks_separator_displayed() {
         val separatorColor = Color.Red

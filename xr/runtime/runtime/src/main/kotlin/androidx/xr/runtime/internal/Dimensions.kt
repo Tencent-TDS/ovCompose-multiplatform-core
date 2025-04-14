@@ -22,10 +22,23 @@ import androidx.annotation.RestrictTo
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Dimensions(
     // TODO: b/332588978 - Add a TypeAlias for Meters here.
-    public val width: Float,
-    public val height: Float,
-    public val depth: Float,
+    @JvmField public val width: Float,
+    @JvmField public val height: Float,
+    @JvmField public val depth: Float,
 ) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Dimensions) return false
+
+        return width == other.width && height == other.height && depth == other.depth
+    }
+
+    override fun hashCode(): Int {
+        var result = width.hashCode()
+        result = 31 * result + height.hashCode()
+        result = 31 * result + depth.hashCode()
+        return result
+    }
 
     override fun toString(): String {
         return super.toString() + ": w $width x h $height x d $depth"

@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.Executor
+import java.util.function.Consumer
 
 /**
  * Describes the scenegraph functionality that is required from a [Runtime] implementation. It is
@@ -45,12 +46,6 @@ public interface JxrPlatformAdapter {
 
     /** Returns the HeadActivityPose for the session or null if it not ready. */
     public val headActivityPose: HeadActivityPose?
-
-    /**
-     * Returns the CameraViewActivityPose for the specified camera type or null if it is not
-     * ready/available.
-     */
-    public val cameraViewActivityPose: CameraViewActivityPose?
 
     /**
      * Returns the entity that represents the ActivitySpace root.
@@ -76,18 +71,20 @@ public interface JxrPlatformAdapter {
     /** Returns a [MediaPlayerExtensionsWrapper] instance. */
     public val mediaPlayerExtensionsWrapper: MediaPlayerExtensionsWrapper
 
-    /** Loads glTF Asset for the given asset name from the assets folder. */
-    // Suppressed to allow CompletableFuture.
-    public fun loadGltfByAssetName(assetName: String): ListenableFuture<GltfModelResource>
+    /**
+     * Returns the CameraViewActivityPose for the specified camera type or null if it is not
+     * ready/available.
+     */
+    public fun getCameraViewActivityPose(
+        @CameraViewActivityPose.CameraType cameraType: Int
+    ): CameraViewActivityPose?
 
     /**
      * Loads glTF Asset for the given asset name from the assets folder using the Split Engine
      * route. The future returned by this method will fire listeners on the UI thread if
      * Runnable::run is supplied.
      */
-    public fun loadGltfByAssetNameSplitEngine(
-        assetName: String
-    ): ListenableFuture<GltfModelResource>
+    public fun loadGltfByAssetName(assetName: String): ListenableFuture<GltfModelResource>
 
     /**
      * Loads glTF Asset from a provided byte array. The future returned by this method will fire
@@ -96,13 +93,23 @@ public interface JxrPlatformAdapter {
     // TODO(b/397746548): Add InputStream support for loading glTFs.
     // Suppressed to allow CompletableFuture.
     public fun loadGltfByByteArray(
-        assetData: List<Byte>,
+        assetData: ByteArray,
         assetKey: String,
     ): ListenableFuture<GltfModelResource>
 
-    /** Loads an ExrImage for the given asset name from the assets folder. */
-    // Suppressed to allow CompletableFuture.
+    /**
+     * Loads an ExrImage for the given asset name from the assets folder using the Split Engine
+     * route.
+     */
+    @SuppressWarnings("AsyncSuffixFuture")
     public fun loadExrImageByAssetName(assetName: String): ListenableFuture<ExrImageResource>
+
+    /** Loads an ExrImage from a provided byte array using the Split Engine route. */
+    // Suppressed to allow CompletableFuture.
+    public fun loadExrImageByByteArray(
+        assetData: ByteArray,
+        assetKey: String,
+    ): ListenableFuture<ExrImageResource>
 
     /**
      * Loads a texture resource for the given asset name or URL. The future returned by this method
@@ -119,11 +126,14 @@ public interface JxrPlatformAdapter {
     /** Destroys the given texture resource. */
     public fun destroyTexture(texture: TextureResource)
 
+    /** Returns the reflection texture from the given IBL. */
+    public fun getReflectionTextureFromIbl(iblToken: ExrImageResource): TextureResource?
+
     /**
      * Creates a water material by querying it from the system's built-in materials. The future
      * returned by this method will fire listeners on the UI thread if Runnable::run is supplied.
      */
-    public fun createWaterMaterial(isAlphaMapVersion: Boolean): ListenableFuture<MaterialResource>
+    public fun createWaterMaterial(isAlphaMapVersion: Boolean): ListenableFuture<MaterialResource>?
 
     /** Destroys the given water material resource. */
     public fun destroyWaterMaterial(material: MaterialResource)
@@ -176,16 +186,50 @@ public interface JxrPlatformAdapter {
      * the given Executor.
      */
     @Suppress("ExecutorRegistration")
-    public fun addSpatialCapabilitiesListener(
+    public fun addSpatialCapabilitiesChangedListener(
         callbackExecutor: Executor,
-        listener: (SpatialCapabilities) -> Unit,
+        listener: Consumer<SpatialCapabilities>,
     )
 
     /**
      * Releases the given {@link Consumer} from receiving updates when the Session's {@link
      * SpatialCapabilities} change.
      */
-    public fun removeSpatialCapabilitiesListener(listener: (SpatialCapabilities) -> Unit)
+    public fun removeSpatialCapabilitiesChangedListener(listener: Consumer<SpatialCapabilities>)
+
+    /**
+     * Sets the listener to be invoked when the spatial visibility of the rendered content of the
+     * entire scene (all entities, including children of anchors and activitySpace) changes within
+     * the user's field of view.
+     *
+     * <p> This API only checks if the bounds of the renderable content are within the user's field
+     * of view. It does not check if the rendered content is visible to the user. For example, if
+     * the user is looking straight ahead, and there's only a single invisible child entity (alpha
+     * = 0) in front of the user, this API will return SpatialVisibility.WITHIN_FOV even though the
+     * user cannot see anything.
+     *
+     * <p>The listener is invoked on the provided executor. If the app intends to modify the UI
+     * elements/views during the callback, the app should provide the thread executor that is
+     * appropriate for the UI operations. For example, if the app is using the main thread to render
+     * the UI, the app should provide the main thread (Looper.getMainLooper()) executor. If the app
+     * is using a separate thread to render the UI, the app should provide the executor for that
+     * thread.
+     *
+     * <p> There can only be one listener set at a time. If a new listener is set, the previous
+     * listener will be released.
+     *
+     * @param callbackExecutor The executor to run the listener on.
+     * @param listener The [Consumer] to be invoked asynchronously on the given callbackExecutor
+     *   whenever the spatial visibility of the renderable content changes. The parameter passed to
+     *   the Consumer’s accept method is the new value for [SpatialVisibility].
+     */
+    public fun setSpatialVisibilityChangedListener(
+        callbackExecutor: Executor,
+        listener: Consumer<SpatialVisibility>,
+    )
+
+    /** Releases the listener previously added by [setSpatialVisibilityChangedListener]. */
+    public fun clearSpatialVisibilityChangedListener()
 
     /** A function to create a XR Runtime Entity. */
     public fun createLoggingEntity(pose: Pose): LoggingEntity
@@ -274,9 +318,11 @@ public interface JxrPlatformAdapter {
     ): AnchorEntity
 
     /**
-     * A factory function to create an Anchor entity from a {@link androidx.xr.arcore.Anchor}.
+     * A factory function to create an Anchor entity from a {@link
+     * androidx.xr.runtime.internal.Anchor}.
      *
-     * @param anchor The {@link androidx.xr.arcore.Anchor} to create the Anchor entity from.
+     * @param anchor The {@link androidx.xr.runtime.internal.Anchor} to create the Anchor entity
+     *   from.
      */
     public fun createAnchorEntity(anchor: Anchor): AnchorEntity
 
@@ -288,7 +334,7 @@ public interface JxrPlatformAdapter {
      * @param name Name of the entity.
      * @param parent Parent entity.
      */
-    public fun createEntity(pose: Pose, name: String, parent: Entity)
+    public fun createEntity(pose: Pose, name: String, parent: Entity): Entity
 
     /**
      * Create an Interactable component.
@@ -319,7 +365,7 @@ public interface JxrPlatformAdapter {
     public fun createMovableComponent(
         systemMovable: Boolean,
         scaleInZ: Boolean,
-        anchorPlacement: Set<AnchorPlacement>,
+        anchorPlacement: Set<@JvmSuppressWildcards AnchorPlacement>,
         shouldDisposeParentAnchor: Boolean,
     ): MovableComponent
 
@@ -333,9 +379,9 @@ public interface JxrPlatformAdapter {
      * @return [AnchorPlacement] instance.
      */
     public fun createAnchorPlacementForPlanes(
-        planeTypeFilter: Set<PlaneType>,
-        planeSemanticFilter: Set<PlaneSemantic>,
-    )
+        planeTypeFilter: Set<@JvmSuppressWildcards PlaneType>,
+        planeSemanticFilter: Set<@JvmSuppressWildcards PlaneSemantic>,
+    ): AnchorPlacement
 
     /**
      * Create an instance of [ResizableComponent]. This component allows the user to resize the
@@ -345,7 +391,10 @@ public interface JxrPlatformAdapter {
      * @param maximumSize Maximum size constraint.
      * @return [ResizableComponent] instance.
      */
-    public fun createResizableComponent(minimumSize: Dimensions, maximumSize: Dimensions)
+    public fun createResizableComponent(
+        minimumSize: Dimensions,
+        maximumSize: Dimensions,
+    ): ResizableComponent
 
     /**
      * Create an instance of {@link PointerCaptureComponent}. This component allows the user to
@@ -368,7 +417,7 @@ public interface JxrPlatformAdapter {
         executor: Executor,
         stateListener: PointerCaptureComponent.StateListener,
         inputListener: InputEventListener,
-    )
+    ): PointerCaptureComponent
 
     /**
      * A factory function to recreate an Anchor entity which was persisted in a previous session.

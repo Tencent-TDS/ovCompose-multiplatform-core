@@ -18,19 +18,14 @@
 
 package androidx.xr.runtime
 
-import androidx.annotation.RestrictTo
-
 /**
  * Used for permissions that are associated with accessing XR tracked information about the person
  * using the device and the environment around them.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@JvmField
-public val XR_TRACKING: String = "android.permission-group.XR_TRACKING"
+@JvmField public val XR_TRACKING: String = "android.permission-group.XR_TRACKING"
 
 /**
  * Used for permissions that are associated with accessing particularly sensitive XR tracking data.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @JvmField
 public val XR_TRACKING_SENSITIVE: String = "android.permission-group.XR_TRACKING_SENSITIVE"

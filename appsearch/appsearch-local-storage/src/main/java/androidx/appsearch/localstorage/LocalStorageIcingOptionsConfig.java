@@ -110,4 +110,9 @@ public class LocalStorageIcingOptionsConfig implements IcingOptionsConfig {
     public @NonNull String getIcuDataFileAbsolutePath() {
         return DEFAULT_ICU_DATA_FILE_ABSOLUTE_PATH;
     }
+
+    @Override
+    public int getCompressionThresholdBytes() {
+        return DEFAULT_COMPRESSION_THRESHOLD_BYTES;
+    }
 }

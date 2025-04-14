@@ -186,13 +186,13 @@ public fun <T : Any> SinglePaneNavDisplay(
         // Incoming entry defines transitions, otherwise it uses default transitions from
         // NavDisplay
         val finalEnterTransition =
-            if (isPop) {
+            if (isPop || inPredictiveBack) {
                 entry.metadata[POP_ENTER_TRANSITION_KEY] as? EnterTransition ?: popEnterTransition
             } else {
                 entry.metadata[ENTER_TRANSITION_KEY] as? EnterTransition ?: enterTransition
             }
         val finalExitTransition =
-            if (isPop) {
+            if (isPop || inPredictiveBack) {
                 entry.metadata[POP_EXIT_TRANSITION_KEY] as? ExitTransition ?: popExitTransition
             } else {
                 entry.metadata[EXIT_TRANSITION_KEY] as? ExitTransition ?: exitTransition
@@ -273,7 +273,7 @@ private fun <T : Any> isPop(oldBackStack: List<T>, newBackStack: List<T>): Boole
         newBackStack.indices.firstOrNull { index -> newBackStack[index] != oldBackStack[index] }
     // if newBackStack never diverged from oldBackStack, then it is a clean subset of the oldStack
     // and is a pop
-    return divergingIndex == null
+    return divergingIndex == null && newBackStack.size != oldBackStack.size
 }
 
 private class TransitionAwareLifecycleNavLocalProvider : NavLocalProvider {

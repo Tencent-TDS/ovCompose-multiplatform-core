@@ -17,30 +17,30 @@
 package androidx.xr.compose.spatial
 
 import androidx.annotation.RestrictTo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.xr.compose.unit.toMeter
 
 /**
  * Represents the resting elevation level for spatial elements.
  *
- * Elevation levels range from `Level0` (no elevation) to `Level5` (highest allowed elevation).
+ * Elevation levels range from `Level0` (no elevation) to `Level5` (highest recommended elevation).
  *
  * NOTE: Level0 is not visually distinguishable from base-level content but is present to support
  * smooth transitioning between elevation levels.
  *
- * Values are expressed in meters for consistency with spatial positioning.
+ * @property level The elevation level in Dp.
  */
 @JvmInline
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public value class SpatialElevationLevel internal constructor(public val level: Float) {
+public value class SpatialElevationLevel(public val level: Dp) {
     public companion object {
-        internal val ActivityDefault = SpatialElevationLevel(0f)
-        public val Level0: SpatialElevationLevel = SpatialElevationLevel(0.1.dp.toMeter().value)
-        public val Level1: SpatialElevationLevel = SpatialElevationLevel(16.dp.toMeter().value)
-        public val Level2: SpatialElevationLevel = SpatialElevationLevel(24.dp.toMeter().value)
-        public val Level3: SpatialElevationLevel = SpatialElevationLevel(32.dp.toMeter().value)
-        public val Level4: SpatialElevationLevel = SpatialElevationLevel(40.dp.toMeter().value)
-        public val Level5: SpatialElevationLevel = SpatialElevationLevel(56.dp.toMeter().value)
-        internal val DialogDefault = SpatialElevationLevel(56.dp.toMeter().value)
+        internal val ActivityDefault = SpatialElevationLevel(0.dp)
+        public val Level0: SpatialElevationLevel = SpatialElevationLevel(0.1.dp)
+        public val Level1: SpatialElevationLevel = SpatialElevationLevel(16.dp)
+        public val Level2: SpatialElevationLevel = SpatialElevationLevel(24.dp)
+        public val Level3: SpatialElevationLevel = SpatialElevationLevel(32.dp)
+        public val Level4: SpatialElevationLevel = SpatialElevationLevel(40.dp)
+        public val Level5: SpatialElevationLevel = SpatialElevationLevel(56.dp)
+        internal val DialogDefault = SpatialElevationLevel(56.dp)
     }
 }

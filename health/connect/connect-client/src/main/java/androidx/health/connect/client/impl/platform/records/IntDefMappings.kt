@@ -21,6 +21,7 @@ package androidx.health.connect.client.impl.platform.records
 
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
 import androidx.health.connect.client.records.BloodGlucoseRecord
 import androidx.health.connect.client.records.BloodPressureRecord
@@ -56,6 +57,7 @@ import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_
 import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_RESOURCE_TYPE_VISITS
 import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_RESOURCE_TYPE_VITAL_SIGNS
 import androidx.health.connect.client.records.MenstruationFlowRecord
+import androidx.health.connect.client.records.MindfulnessSessionRecord
 import androidx.health.connect.client.records.OvulationTestRecord
 import androidx.health.connect.client.records.PlannedExerciseStep
 import androidx.health.connect.client.records.SexualActivityRecord
@@ -558,6 +560,30 @@ internal val SDK_TO_PLATFORM_EXERCISE_SEGMENT_TYPE: Map<Int, Int> =
 internal val PLATFORM_TO_SDK_EXERCISE_SEGMENT_TYPE =
     SDK_TO_PLATFORM_EXERCISE_SEGMENT_TYPE.reversed()
 
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+internal val SDK_TO_PLATFORM_MINDFULNESS_SESSION_TYPE: Map<Int, Int> =
+    mapOf(
+        MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_BREATHING to
+            PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_BREATHING,
+        MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MEDITATION to
+            PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MEDITATION,
+        MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MOVEMENT to
+            PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MOVEMENT,
+        MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MUSIC to
+            PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_MUSIC,
+        MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_UNGUIDED to
+            PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_UNGUIDED,
+    )
+
+internal fun Int.toPlatformMindfulnessSessionType(): Int {
+    return SDK_TO_PLATFORM_MINDFULNESS_SESSION_TYPE[this]
+        ?: PlatformMindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_UNKNOWN
+}
+
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+internal val PLATFORM_TO_SDK_MINDFULNESS_SESSION_TYPE: Map<Int, Int> =
+    SDK_TO_PLATFORM_MINDFULNESS_SESSION_TYPE.reversed()
+
 internal val SDK_TO_PLATFORM_RECORDING_METHOD: Map<Int, Int> =
     mapOf(
         Metadata.RECORDING_METHOD_ACTIVELY_RECORDED to
@@ -753,6 +779,12 @@ internal fun Int.toSdkVo2MaxMeasurementMethod(): Int {
 
 internal fun Int.toSdkMenstruationFlow(): Int {
     return PLATFORM_TO_SDK_MENSTRUATION_FLOW_TYPE[this] ?: MenstruationFlowRecord.FLOW_UNKNOWN
+}
+
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+internal fun Int.toSdkMindfulnessSessionType(): Int {
+    return PLATFORM_TO_SDK_MINDFULNESS_SESSION_TYPE[this]
+        ?: MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_UNKNOWN
 }
 
 internal fun Int.toSdkProtectionUsed(): Int {

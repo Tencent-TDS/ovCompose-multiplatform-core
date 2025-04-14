@@ -118,7 +118,6 @@ class VideoPlayerActivity : ComponentActivity() {
 
                 // The quad has a radius of 1.0 meters
                 movableComponent!!.size = Dimensions(1.0f, 1.0f, 1.0f)
-
                 @Suppress("UNUSED_VARIABLE")
                 val unused = surfaceEntity!!.addComponent(movableComponent!!)
 

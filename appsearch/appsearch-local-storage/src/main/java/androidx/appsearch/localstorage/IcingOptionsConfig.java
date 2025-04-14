@@ -80,6 +80,8 @@ public interface IcingOptionsConfig {
 
     String DEFAULT_ICU_DATA_FILE_ABSOLUTE_PATH = "";
 
+    int DEFAULT_COMPRESSION_THRESHOLD_BYTES = 600;
+
     /**
      * The maximum allowable token length. All tokens in excess of this size will be truncated to
      * max_token_length before being indexed.
@@ -250,11 +252,19 @@ public interface IcingOptionsConfig {
     @NonNull String getIcuDataFileAbsolutePath();
 
     /**
+     * The threshold in bytes for compressing documents. If a document is larger than or equal to
+     * this threshold, it will be compressed based on getCompressionLevel(). 0 means always
+     * compress.
+     */
+    int getCompressionThresholdBytes();
+
+    /**
      * Converts to an {@link IcingSearchEngineOptions} instance.
      *
      * @param baseDir base directory of the icing instance.
      */
-    default @NonNull IcingSearchEngineOptions toIcingSearchEngineOptions(@NonNull String baseDir) {
+    default @NonNull IcingSearchEngineOptions toIcingSearchEngineOptions(
+            @NonNull String baseDir, boolean isVMEnabled) {
         return IcingSearchEngineOptions.newBuilder()
                 .setBaseDir(baseDir)
                 .setMaxTokenLength(getMaxTokenLength())
@@ -295,6 +305,14 @@ public interface IcingOptionsConfig {
                 .setEnableMarkerFileForOptimize(Flags.enableMarkerFileForOptimize())
                 .setReleaseBackupSchemaFileIfOverlayPresent(
                         Flags.enableReleaseBackupSchemaFileIfOverlayPresent())
+                // This is a necessary bug fix for the VMEnabled case. VMEnabled is guarded by its
+                // own trunk-stable flag, therefore this can be included there. Otherwise, we should
+                // use this trank-stable flag.
+                .setEnableStrictPageByteSizeLimit(
+                        Flags.enableStrictPageByteSizeLimit() || isVMEnabled)
+                .setCompressionThresholdBytes(
+                        (Flags.enableCompressionThreshold() || isVMEnabled)
+                                ? Math.max(0, getCompressionThresholdBytes()) : 0)
                 .build();
     }
 }

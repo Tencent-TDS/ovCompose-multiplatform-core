@@ -74,7 +74,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     }
 
     private val scrollChangedListener =
-        ViewTreeObserver.OnScrollChangedListener { signalMeasurer?.maybeSendSignals() }
+        ViewTreeObserver.OnScrollChangedListener { signalMeasurer?.requestUpdatedSignals() }
 
     private var adapter: SandboxedUiAdapter? = null
     private var client: Client? = null
@@ -132,6 +132,10 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         client?.notifyZOrderChanged(providerUiOnTop)
         isZOrderOnTop = providerUiOnTop
         checkClientOpenSession()
+    }
+
+    internal fun isProviderUiAboveClientUi(): Boolean {
+        return isZOrderOnTop
     }
 
     private fun checkClientOpenSession(
@@ -215,7 +219,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
 
     internal fun onClientClosedSession(error: Throwable? = null) {
         removeContentView()
-        signalMeasurer?.dropPendingUpdates()
+        signalMeasurer?.stopMeasuring()
         signalMeasurer = null
         if (error != null) {
             eventListener?.onUiError(error)
@@ -296,7 +300,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             previousChildWidth = childWidth
         }
         checkClientOpenSession()
-        signalMeasurer?.maybeSendSignals()
+        signalMeasurer?.requestUpdatedSignals(onLayoutEventOccurred = true)
     }
 
     override fun onWindowVisibilityChanged(visibility: Int) {
@@ -304,17 +308,17 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         if (visibility == VISIBLE) {
             checkClientOpenSession()
         }
-        signalMeasurer?.maybeSendSignals()
+        signalMeasurer?.requestUpdatedSignals()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
-        signalMeasurer?.maybeSendSignals()
+        signalMeasurer?.requestUpdatedSignals()
     }
 
     override fun setAlpha(alpha: Float) {
         super.setAlpha(alpha)
-        signalMeasurer?.maybeSendSignals()
+        signalMeasurer?.requestUpdatedSignals()
     }
 
     internal fun closeClient() {
@@ -361,12 +365,14 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         if (client == null) {
             CompatImpl.deriveInputTokenAndOpenSession(context, this)
         }
+        signalMeasurer?.resumeMeasuringIfNecessary()
     }
 
     override fun onDetachedFromWindow() {
         if (!this.isInComposeNode && !this.isWithinPoolingContainer) {
             closeClient()
         }
+        signalMeasurer?.stopMeasuring()
         removeCallbacksOnWindowDetachment()
         super.onDetachedFromWindow()
     }

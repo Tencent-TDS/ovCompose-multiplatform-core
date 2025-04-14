@@ -23,6 +23,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.xr.runtime.Session.Companion.create
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.JxrPlatformAdapterFactory
+import androidx.xr.runtime.internal.PermissionNotGrantedException
 import androidx.xr.runtime.internal.Runtime
 import androidx.xr.runtime.internal.RuntimeFactory
 import java.util.ServiceLoader
@@ -49,7 +53,6 @@ import kotlinx.coroutines.launch
  * See [create], [resume], [pause], and [destroy] for more details.
  */
 @Suppress("NotCloseable")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Session
 internal constructor(
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public val runtime: Runtime,
@@ -58,6 +61,8 @@ internal constructor(
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public val coroutineScope: CoroutineScope,
     private val activity: Activity,
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    public val platformAdapter: JxrPlatformAdapter?,
 ) : LifecycleOwner {
     public companion object {
         /**
@@ -79,31 +84,32 @@ internal constructor(
             activity: Activity,
             coroutineDispatcher: CoroutineDispatcher = CoroutineDispatchers.Lightweight,
         ): SessionCreateResult {
-            val missingPermissions = activity.selectMissing(SESSION_PERMISSIONS)
-            if (missingPermissions.isNotEmpty()) {
-                return SessionCreatePermissionsNotGranted(missingPermissions)
-            }
-
             val runtimeFactory: RuntimeFactory =
                 ServiceLoader.load(RuntimeFactory::class.java).single()
             val runtime = runtimeFactory.createRuntime(activity)
             runtime.lifecycleManager.create()
+
+            val jxrPlatformAdapterFactory: JxrPlatformAdapterFactory? =
+                ServiceLoader.load(JxrPlatformAdapterFactory::class.java).singleOrNull()
+            val jxrPlatformAdapter = jxrPlatformAdapterFactory?.createPlatformAdapter(activity)
 
             val stateExtenders = ServiceLoader.load(StateExtender::class.java).toList()
             for (stateExtender in stateExtenders) {
                 stateExtender.initialize(runtime)
             }
             val session =
-                Session(runtime, stateExtenders, CoroutineScope(coroutineDispatcher), activity)
+                Session(
+                    runtime,
+                    stateExtenders,
+                    CoroutineScope(coroutineDispatcher),
+                    activity,
+                    jxrPlatformAdapter,
+                )
 
             session.lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
             return SessionCreateSuccess(session)
         }
-
-        // TODO(b/392919087): Move the Hand Tracking permission to another place.
-        internal val SESSION_PERMISSIONS: List<String> =
-            listOf(SCENE_UNDERSTANDING_COARSE, HAND_TRACKING)
     }
 
     private val lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
@@ -117,19 +123,29 @@ internal constructor(
 
     private var updateJob: Job? = null
 
+    /** The current state of the runtime configuration. */
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    public val config: Config
+        get() = runtime.lifecycleManager.config
+
     /**
      * Sets or changes the configuration to use.
      *
      * @return the result of the operation. This will be a [SessionConfigureSuccess] if the
-     *   configuration was successful, or a [SessionConfigureConfigurationNotSupported] if the
-     *   [SessionConfiguration] is not supported.
+     *   configuration was successful, or another [SessionConfigureResult] if a certain
+     *   configuration criteria was not met.
      * @throws IllegalStateException if the session has been destroyed.
      */
-    public fun configure(): SessionConfigureResult {
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    public fun configure(config: Config): SessionConfigureResult {
         check(lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
             "Session has been destroyed."
         }
-        runtime.lifecycleManager.configure()
+        try {
+            runtime.lifecycleManager.configure(config)
+        } catch (e: PermissionNotGrantedException) {
+            return SessionConfigurePermissionNotGranted()
+        }
         return SessionConfigureSuccess()
     }
 
@@ -149,11 +165,6 @@ internal constructor(
             "Session has been destroyed."
         }
         if (lifecycleRegistry.currentState != Lifecycle.State.RESUMED) {
-            val missingPermissions = activity.selectMissing(SESSION_PERMISSIONS)
-            if (missingPermissions.isNotEmpty()) {
-                return SessionResumePermissionsNotGranted(missingPermissions)
-            }
-
             runtime.lifecycleManager.resume()
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             updateJob = coroutineScope.launch { updateLoop() }

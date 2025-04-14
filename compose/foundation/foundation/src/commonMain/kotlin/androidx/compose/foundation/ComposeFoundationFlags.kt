@@ -86,5 +86,29 @@ object ComposeFoundationFlags {
      * can only perform the composition for parts of the LazyColumn's next item during one ui frame,
      * and then continue composing the rest of it in the next frames.
      */
-    @Suppress("MutableBareField") @JvmField var isPausableCompositionInPrefetchEnabled = true
+    @Suppress("MutableBareField") @JvmField var isPausableCompositionInPrefetchEnabled = false
+
+    /**
+     * Selecting flag to enable the use of automatic nested prefetch. When this is enabled, nested
+     * prefetching using the default Prefetch Strategies
+     * [androidx.compose.foundation.lazy.LazyListPrefetchStrategy] and
+     * [androidx.compose.foundation.lazy.grid.LazyGridPrefetchStrategy] or Cache Window will be
+     * automatically defined by the number of visible items in the nested LazyLayout.
+     */
+    @Suppress("MutableBareField") @JvmField var isAutomaticNestedPrefetchEnabled = true
+
+    /**
+     * Flag that enables an optimized implementation for the [clickable] overload without an
+     * [Indication] parameter. This also applies to [combinedClickable],
+     * [androidx.compose.foundation.selection.selectable], and
+     * [androidx.compose.foundation.selection.toggleable], which also use [clickable]. When this
+     * flag is true, [clickable] will no longer use [androidx.compose.ui.composed], which leads to
+     * improved performance and allows for composables with a [clickable] modifier to skip. However,
+     * this means that only [IndicationNodeFactory] instances can be supported - if a
+     * non-[IndicationNodeFactory] instance is provided to [LocalIndication], [clickable] will crash
+     * at runtime. To resolve this either migrate the [Indication] implementation used to a
+     * [IndicationNodeFactory], or use the other [clickable] overload with an explicit [Indication]
+     * parameter - this flag can be disabled as a temporary migration aid.
+     */
+    @Suppress("MutableBareField") @JvmField var isNonComposedClickableEnabled = true
 }

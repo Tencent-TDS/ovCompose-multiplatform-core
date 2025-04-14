@@ -84,6 +84,7 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -106,6 +107,12 @@ import kotlinx.coroutines.launch
  *
  * Wide navigation rails provide access to primary destinations in apps when using tablet and
  * desktop screens.
+ *
+ * ![Wide navigation rail collapsed
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/wide-navigation-rail-collapsed.png)
+ *
+ * ![Wide navigation rail expanded
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/wide-navigation-rail-expanded.png)
  *
  * The wide navigation rail should be used to display multiple [WideNavigationRailItem]s, each
  * representing a singular app destination, and, optionally, a header containing a menu button, a
@@ -230,7 +237,8 @@ private fun WideNavigationRailLayout(
                     .windowInsetsPadding(windowInsets)
                     .widthIn(max = ExpandedRailMaxWidth)
                     .padding(top = WNRVerticalPadding)
-                    .selectableGroup(),
+                    .selectableGroup()
+                    .semantics { isTraversalGroup = true },
             content = {
                 if (header != null) {
                     Box(Modifier.layoutId(HeaderLayoutIdTag)) { header() }

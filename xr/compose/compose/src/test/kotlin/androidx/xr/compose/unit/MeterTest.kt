@@ -23,13 +23,22 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.compose.unit.Meter.Companion.centimeters
 import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.compose.unit.Meter.Companion.millimeters
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider
+import com.android.extensions.xr.ShadowConfig
 import com.google.common.truth.Truth.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MeterTest {
     private val UNIT_DENSITY = Density(density = 1.0f, fontScale = 1.0f)
+
+    @Before
+    fun setUp() {
+        ShadowConfig.extract(XrExtensionsProvider.getXrExtensions()!!.config!!)
+            .setDefaultDpPerMeter(1f)
+    }
 
     @Test
     fun meter_toDp() {

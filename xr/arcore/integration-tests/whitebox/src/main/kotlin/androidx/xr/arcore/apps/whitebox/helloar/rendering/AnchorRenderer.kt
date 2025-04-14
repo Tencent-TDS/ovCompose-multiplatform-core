@@ -22,6 +22,7 @@ import android.widget.Toast
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.xr.arcore.Anchor
+import androidx.xr.arcore.AnchorCreateNotTracking
 import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
 import androidx.xr.arcore.Plane
@@ -126,6 +127,18 @@ internal class AnchorRenderer(
                                                 Toast.makeText(
                                                         activity,
                                                         "Anchor limit has been reached.",
+                                                        Toast.LENGTH_LONG,
+                                                    )
+                                                    .show()
+                                            }
+                                            is AnchorCreateNotTracking -> {
+                                                Log.e(
+                                                    activity::class.simpleName,
+                                                    "Failed to create anchor: camera not tracking.",
+                                                )
+                                                Toast.makeText(
+                                                        activity,
+                                                        "Anchor failed to start tracking.",
                                                         Toast.LENGTH_LONG,
                                                     )
                                                     .show()

@@ -370,6 +370,12 @@ internal interface Owner : PositionCalculator {
      */
     fun decrementSensitiveComponentCount() {}
 
+    val outOfFrameExecutor: OutOfFrameExecutor?
+        get() = null
+
+    /** This can be used to Vote for a preferred frame rate. */
+    fun voteFrameRate(frameRate: Float) {}
+
     companion object {
         /**
          * Enables additional (and expensive to do in production) assertions. Useful to be set to

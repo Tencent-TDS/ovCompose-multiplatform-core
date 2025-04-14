@@ -30,10 +30,7 @@ tasks.withType(Test).configureEach {
     }
 }
 
-apply from: "../../../buildSrc/kotlin-dsl-dependency.gradle"
-
 dependencies {
-    implementation(findGradleKotlinDsl())
     implementation("com.android.tools.build:gradle-api:8.1.1")
     implementation(libs.kotlinStdlib)
     compileOnly(libs.androidGradlePlugin)

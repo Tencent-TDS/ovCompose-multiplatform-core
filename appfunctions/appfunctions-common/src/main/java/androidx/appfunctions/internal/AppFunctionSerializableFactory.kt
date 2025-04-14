@@ -39,4 +39,24 @@ public interface AppFunctionSerializableFactory<T : Any> {
 
     /** Serializes the given class into an [AppFunctionData]. */
     public fun toAppFunctionData(appFunctionSerializable: T): AppFunctionData
+
+    /**
+     * Contains the information about the type parameter.
+     *
+     * The class is used by [AppFunctionSerializableFactory] for generic serializable to resolve the
+     * type information in runtime.
+     */
+    public sealed class TypeParameter<T> {
+        /** The [TypeParameter] for Kotlin primitive types. */
+        public data class PrimitiveTypeParameter<T>(
+            /** The type class. */
+            val clazz: Class<T>,
+        ) : TypeParameter<T>()
+
+        /** The [TypeParameter] for [List] type. */
+        public data class ListTypeParameter<I, T : List<*>?>(
+            /** The item type class. */
+            val itemClazz: Class<I>,
+        ) : TypeParameter<T>()
+    }
 }

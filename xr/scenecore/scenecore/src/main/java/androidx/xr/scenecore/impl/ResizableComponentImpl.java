@@ -19,12 +19,12 @@ package androidx.xr.scenecore.impl;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizableComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent;
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.Space;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.ResizableComponent;
+import androidx.xr.runtime.internal.ResizeEvent;
+import androidx.xr.runtime.internal.ResizeEventListener;
+import androidx.xr.runtime.internal.Space;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.function.Consumer;
@@ -119,6 +119,11 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
+    public Dimensions getSize() {
+        return mCurrentSize;
+    }
+
+    @Override
     public void setSize(@NonNull Dimensions size) {
         // TODO: b/350821054 - Implement synchronization policy around Entity/Component updates.
         mCurrentSize = size;
@@ -130,6 +135,11 @@ class ResizableComponentImpl implements ResizableComponent {
         ReformOptions unused =
                 reformOptions.setCurrentSize(new Vec3(size.width, size.height, size.depth));
         ((AndroidXrEntity) mEntity).updateReformOptions();
+    }
+
+    @Override
+    public Dimensions getMinimumSize() {
+        return mMinSize;
     }
 
     @Override
@@ -147,6 +157,11 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
+    public Dimensions getMaximumSize() {
+        return mMaxSize;
+    }
+
+    @Override
     public void setMaximumSize(@NonNull Dimensions maxSize) {
         mMaxSize = maxSize;
         if (mEntity == null) {
@@ -158,6 +173,11 @@ class ResizableComponentImpl implements ResizableComponent {
                 reformOptions.setMaximumSize(
                         new Vec3(maxSize.width, maxSize.height, maxSize.depth));
         ((AndroidXrEntity) mEntity).updateReformOptions();
+    }
+
+    @Override
+    public float getFixedAspectRatio() {
+        return mFixedAspectRatio;
     }
 
     @Override
@@ -173,13 +193,28 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
+    public boolean getAutoHideContent() {
+        return mAutoHideContent;
+    }
+
+    @Override
     public void setAutoHideContent(boolean autoHideContent) {
         mAutoHideContent = autoHideContent;
     }
 
     @Override
+    public boolean getAutoUpdateSize() {
+        return mAutoUpdateSize;
+    }
+
+    @Override
     public void setAutoUpdateSize(boolean autoUpdateSize) {
         mAutoUpdateSize = autoUpdateSize;
+    }
+
+    @Override
+    public boolean getForceShowResizeOverlay() {
+        return mForceShowResizeOverlay;
     }
 
     @Override

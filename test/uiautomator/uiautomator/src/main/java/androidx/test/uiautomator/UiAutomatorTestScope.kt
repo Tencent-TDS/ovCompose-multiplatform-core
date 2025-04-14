@@ -37,13 +37,13 @@ import androidx.test.uiautomator.watcher.WatcherRegistration
  *
  *     startActivity(MyActivity::class.java)
  *
- *     onView { view.id == "button" }.click()
+ *     onView { id == "button" }.click()
  *
- *     onView { view.id == "nested_elements" }
+ *     onView { id == "nested_elements" }
  *         .apply {
- *             onView { view.text == "First Level" }
- *             onView { view.text == "Second Level" }
- *             onView { view.text == "Third Level" }
+ *             onView { text == "First Level" }
+ *             onView { text == "Second Level" }
+ *             onView { text == "Third Level" }
  *         }
  * }
  * ```
@@ -134,7 +134,7 @@ internal constructor(
      *
      * Example:
      * ```kotlin
-     * onView { view.textAsString == "Search" }.click()
+     * onView { textAsString == "Search" }.click()
      * ```
      *
      * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -147,7 +147,7 @@ internal constructor(
     public fun onView(
         timeoutMs: Long = 10000,
         pollIntervalMs: Long = 100,
-        block: NodeFilterScope.() -> (Boolean),
+        block: AccessibilityNodeInfo.() -> (Boolean),
     ): UiObject2 = uiDevice.onView(timeoutMs, pollIntervalMs, block)
 
     /**
@@ -158,7 +158,7 @@ internal constructor(
      *
      * Example:
      * ```kotlin
-     * onView { view.textAsString == "Search" }.click()
+     * onView { textAsString == "Search" }.click()
      * ```
      *
      * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -171,7 +171,7 @@ internal constructor(
     public fun onViewOrNull(
         timeoutMs: Long = 10000,
         pollIntervalMs: Long = 100,
-        block: NodeFilterScope.() -> (Boolean),
+        block: AccessibilityNodeInfo.() -> (Boolean),
     ): UiObject2? = uiDevice.onViewOrNull(timeoutMs, pollIntervalMs, block)
 
     /**
@@ -182,7 +182,7 @@ internal constructor(
      *
      * Example:
      * ```kotlin
-     * node.onViews { view.className == Button::class.java.name }
+     * node.onViews { isClass(Button::class.java) }
      * ```
      *
      * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -195,7 +195,7 @@ internal constructor(
     public fun onViews(
         timeoutMs: Long = 10000,
         pollIntervalMs: Long = 100,
-        block: NodeFilterScope.() -> (Boolean),
+        block: AccessibilityNodeInfo.() -> (Boolean),
     ): List<UiObject2> = uiDevice.onViews(timeoutMs, pollIntervalMs, block)
 
     /**

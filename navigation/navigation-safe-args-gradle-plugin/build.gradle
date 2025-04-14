@@ -21,7 +21,6 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.SdkResourceGenerator
 
@@ -87,5 +86,4 @@ androidx {
     type = SoftwareType.GRADLE_PLUGIN
     inceptionYear = "2017"
     description = "Android Navigation TypeSafe Arguments Gradle Plugin"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

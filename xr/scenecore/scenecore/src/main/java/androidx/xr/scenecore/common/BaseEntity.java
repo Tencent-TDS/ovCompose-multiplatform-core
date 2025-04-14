@@ -21,12 +21,12 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.xr.runtime.internal.Component;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.Space;
+import androidx.xr.runtime.internal.SpaceValue;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.Component;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.Space;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +63,7 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
     }
 
     @Override
-    public void addChildren(@NonNull List<Entity> mChildren) {
+    public void addChildren(@NonNull List<? extends Entity> mChildren) {
         for (Entity child : mChildren) {
             child.setParent(this);
         }
@@ -94,6 +94,12 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
     @NonNull
     public List<Entity> getChildren() {
         return mChildren;
+    }
+
+    @Override
+    @NonNull
+    public String getContentDescription() {
+        return "content description";
     }
 
     @Override

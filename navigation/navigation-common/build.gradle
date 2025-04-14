@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
@@ -51,10 +50,10 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api("androidx.annotation:annotation:1.8.1")
-                api("androidx.lifecycle:lifecycle-common:2.9.0-alpha07")
-                api("androidx.lifecycle:lifecycle-runtime:2.9.0-alpha07")
-                api("androidx.lifecycle:lifecycle-viewmodel:2.9.0-alpha07")
-                api("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.9.0-alpha07")
+                api(project(":lifecycle:lifecycle-common"))
+                api(project(":lifecycle:lifecycle-runtime"))
+                api(project(":lifecycle:lifecycle-viewmodel"))
+                api(project(":lifecycle:lifecycle-viewmodel-savedstate"))
                 api(project(":savedstate:savedstate"))
                 api(libs.kotlinStdlib)
                 implementation("androidx.collection:collection:1.4.2")
@@ -64,6 +63,7 @@ androidXMultiplatform {
         commonTest {
             dependencies {
                 implementation(libs.kotlinTest)
+                implementation(project(":kruth:kruth"))
             }
         }
 
@@ -123,25 +123,17 @@ androidXMultiplatform {
             }
         }
 
-        nonJvmCommonMain {
-            dependsOn(nonAndroidMain)
-        }
+        nonJvmCommonMain { dependsOn(nonAndroidMain) }
 
-        nonJvmCommonTest {
-            dependsOn(nonAndroidTest)
-        }
+        nonJvmCommonTest { dependsOn(nonAndroidTest) }
 
-        nativeMain {
-            dependsOn(nonJvmCommonMain)
-        }
-        linuxMain.dependsOn(nativeMain)
-        darwinMain.dependsOn(nativeMain)
+        nativeMain { dependsOn(nonJvmCommonMain) }
+        linuxMain { dependsOn(nativeMain) }
+        darwinMain { dependsOn(nativeMain) }
 
-        nativeTest {
-            dependsOn(nonJvmCommonTest)
-        }
-        linuxTest.dependsOn(nativeTest)
-        darwinTest.dependsOn(nativeTest)
+        nativeTest { dependsOn(nonJvmCommonTest) }
+        linuxTest { dependsOn(nativeTest) }
+        darwinTest { dependsOn(nativeTest) }
 
         targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
@@ -177,5 +169,4 @@ androidx {
     inceptionYear = "2017"
     description = "Android Navigation-Common"
     metalavaK2UastEnabled = false
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

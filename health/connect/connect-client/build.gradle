@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.BundleInsideHelper
+
 import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -90,4 +90,13 @@ androidx {
     description = "read or write user's health and fitness records."
     legacyDisableKotlinStrictApiMode = true
     samples(project(":health:connect:connect-client-samples"))
+}
+
+//TODO(b/407717306): Remove this block when RecordConvertersTest passes on API Level 21 and 34 devices
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += [
+                "-Xlambdas=class"
+        ]
+    }
 }

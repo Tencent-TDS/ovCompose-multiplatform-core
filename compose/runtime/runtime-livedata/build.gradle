@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -55,7 +54,6 @@ androidx {
     description = "Compose integration with LiveData"
     legacyDisableKotlinStrictApiMode = true
     samples(project(":compose:runtime:runtime-livedata:runtime-livedata-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {

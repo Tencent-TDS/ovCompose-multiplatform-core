@@ -73,8 +73,8 @@ package @RequiresApi(34) androidx.xr.compose.testing {
   }
 
   public final class SubspaceTestingActivityKt {
-    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.scenecore.JxrPlatformAdapter createFakeRuntime(androidx.xr.compose.testing.SubspaceTestingActivity activity);
-    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.scenecore.Session createFakeSession(androidx.xr.compose.testing.SubspaceTestingActivity activity, optional androidx.xr.scenecore.JxrPlatformAdapter runtime);
+    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.runtime.internal.JxrPlatformAdapter createFakeRuntime(androidx.xr.compose.testing.SubspaceTestingActivity activity);
+    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.scenecore.Session createFakeSession(androidx.xr.compose.testing.SubspaceTestingActivity activity, optional androidx.xr.runtime.internal.JxrPlatformAdapter runtime);
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.compose.testing.SubspaceSemanticsNodeInteractionCollection onAllSubspaceNodes(androidx.compose.ui.test.junit4.AndroidComposeTestRule<? extends java.lang.Object?,androidx.xr.compose.testing.SubspaceTestingActivity>, androidx.xr.compose.testing.SubspaceSemanticsMatcher matcher);
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.compose.testing.SubspaceSemanticsNodeInteractionCollection onAllSubspaceNodesWithTag(androidx.compose.ui.test.junit4.AndroidComposeTestRule<? extends java.lang.Object?,androidx.xr.compose.testing.SubspaceTestingActivity>, String testTag);
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.xr.compose.testing.SubspaceSemanticsNodeInteraction onSubspaceNode(androidx.compose.ui.test.junit4.AndroidComposeTestRule<? extends java.lang.Object?,androidx.xr.compose.testing.SubspaceTestingActivity>, androidx.xr.compose.testing.SubspaceSemanticsMatcher matcher);
@@ -84,7 +84,7 @@ package @RequiresApi(34) androidx.xr.compose.testing {
   }
 
   public final class TestSetupKt {
-    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) @androidx.compose.runtime.Composable public static void TestSetup(optional boolean isXrEnabled, optional boolean isFullSpace, optional androidx.xr.scenecore.JxrPlatformAdapter runtime, kotlin.jvm.functions.Function1<? super androidx.xr.scenecore.Session,kotlin.Unit> content);
+    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) @androidx.compose.runtime.Composable public static void TestSetup(optional boolean isXrEnabled, optional boolean isFullSpace, optional androidx.xr.runtime.internal.JxrPlatformAdapter runtime, kotlin.jvm.functions.Function1<? super androidx.xr.scenecore.Session,kotlin.Unit> content);
   }
 
 }

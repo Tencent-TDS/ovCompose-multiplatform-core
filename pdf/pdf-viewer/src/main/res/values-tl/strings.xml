@@ -63,8 +63,4 @@
     <string name="cannot_edit_pdf" msgid="7677598370087228978">"Hindi puwedeng i-edit ang PDF na ito"</string>
     <string name="clipboard_label" msgid="8943155331324944981">"Nakopya ang content mula sa PDF"</string>
     <string name="fast_scroller_thumb" msgid="6712048991132846541">"Scroll Bar"</string>
-    <!-- no translation found for service_disconnect_error_message (7077247973576767455) -->
-    <skip />
-    <!-- no translation found for pdf_view_error_message (1228656072516996088) -->
-    <skip />
 </resources>

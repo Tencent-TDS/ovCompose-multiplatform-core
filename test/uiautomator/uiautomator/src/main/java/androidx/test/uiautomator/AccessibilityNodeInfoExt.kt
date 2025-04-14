@@ -140,7 +140,7 @@ public fun AccessibilityNodeInfo.waitForStable(
  *
  * Example:
  * ```kotlin
- * node.onView { view.textAsString == "Search" }.click()
+ * node.onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -152,7 +152,7 @@ public fun AccessibilityNodeInfo.waitForStable(
 public fun AccessibilityNodeInfo.onView(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 =
     onViewOrNull(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, block = block)
         .notNull(ViewNotFoundException())
@@ -165,7 +165,7 @@ public fun AccessibilityNodeInfo.onView(
  *
  * Example:
  * ```kotlin
- * node.onView { view.textAsString == "Search" }.click()
+ * node.onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -177,7 +177,7 @@ public fun AccessibilityNodeInfo.onView(
 public fun AccessibilityNodeInfo.onViewOrNull(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2? =
     findViews(
             shouldStop = { it.size == 1 },
@@ -197,7 +197,7 @@ public fun AccessibilityNodeInfo.onViewOrNull(
  *
  * Example:
  * ```kotlin
- * node.onViews { view.className == Button::class.java.name }
+ * node.onViews { className == Button::class.java.name }
  * ```
  *
  * If multiple nodes are expected but they appear at different times, it's recommended to call
@@ -212,7 +212,7 @@ public fun AccessibilityNodeInfo.onViewOrNull(
 public fun AccessibilityNodeInfo.onViews(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): List<UiObject2> =
     findViews(
             timeoutMs = timeoutMs,
@@ -225,3 +225,33 @@ public fun AccessibilityNodeInfo.onViews(
 
 internal fun AccessibilityNodeInfo.toUiObject2(): UiObject2? =
     UiObject2.create(uiDevice, BySelector(), this)
+
+/**
+ * Returns this node's id without the full resource namespace, i.e. only the portion after the "/"
+ * character. If the view id is not specified, then it returns `null`.
+ */
+public val AccessibilityNodeInfo.id: String?
+    get() = viewIdResourceName?.substringAfter("/")
+
+/**
+ * Returns this node's text as a string. This should always be preferred to
+ * [AccessibilityNodeInfo.text] that instead returns a [CharSequence], that might be either a
+ * [String] or a [android.text.SpannableString]. If a text is not specified, then it returns `null`.
+ *
+ * Usage:
+ * ```kotlin
+ * onView { textAsString == "Some text" }.click()
+ * ```
+ */
+public val AccessibilityNodeInfo.textAsString: String?
+    get() = text?.toString()
+
+/**
+ * Returns whether this node class name is the same of the given class.
+ *
+ * Usage:
+ * ```kotlin
+ * onView { isClass(Button::class.java) }.click()
+ * ```
+ */
+public fun AccessibilityNodeInfo.isClass(cls: Class<*>): Boolean = cls.name == this.className

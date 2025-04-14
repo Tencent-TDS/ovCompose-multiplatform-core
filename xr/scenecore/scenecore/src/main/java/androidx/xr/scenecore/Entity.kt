@@ -20,9 +20,10 @@ package androidx.xr.scenecore
 
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.ActivityPose as RtActivityPose
+import androidx.xr.runtime.internal.Entity as RtEntity
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity as RtEntity
 
 /**
  * Interface for a spatial Entity. An Entity's [Pose]s are represented as being relative to their
@@ -121,14 +122,6 @@ public interface Entity : ActivityPose {
      * @return Current uniform scale applied to self and children.
      */
     public fun getScale(): Float = getScale(Space.PARENT)
-
-    /**
-     * Returns the accumulated scale of this Entity. This value includes the parent's world space
-     * scale.
-     *
-     * @return Total uniform scale applied to self and children.
-     */
-    @Deprecated("Use getScale(Space.REAL_WORLD) instead.") public fun getWorldSpaceScale(): Float
 
     /**
      * Sets the alpha transparency of the Entity relative to given space. Values are in the range
@@ -238,7 +231,7 @@ public abstract class BaseEntity<out RtEntityType : RtEntity>
 internal constructor(
     internal val rtEntity: RtEntityType,
     private val entityManager: EntityManager,
-) : Entity, BaseActivityPose<JxrPlatformAdapter.ActivityPose>(rtEntity) {
+) : Entity, BaseActivityPose<RtActivityPose>(rtEntity) {
 
     init {
         entityManager.setEntityForRtEntity(rtEntity, this)
@@ -289,11 +282,6 @@ internal constructor(
 
     override fun getScale(@SpaceValue relativeTo: Int): Float {
         return rtEntity.getScale(relativeTo.toRtSpace()).x
-    }
-
-    @Deprecated("Use getScale(relativeTo) instead.", ReplaceWith("getScale(Space.REAL_WORLD)"))
-    override fun getWorldSpaceScale(): Float {
-        return rtEntity.worldSpaceScale.x
     }
 
     override fun setAlpha(alpha: Float, @SpaceValue relativeTo: Int) {

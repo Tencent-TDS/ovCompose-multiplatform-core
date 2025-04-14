@@ -2519,7 +2519,7 @@ class XTypeTest {
             fooTypeElement.getMethodByJvmName("barQualified").parameters.single().let { param ->
                 assertThat(param.type.asTypeName()).isEqualTo(XClassName.get("bar", "MissingType"))
             }
-            it.assertCompilationResult { hasErrorContaining("Unresolved reference: MissingType") }
+            it.assertCompilationResult { hasErrorContaining("Unresolved reference 'MissingType'") }
         }
     }
 

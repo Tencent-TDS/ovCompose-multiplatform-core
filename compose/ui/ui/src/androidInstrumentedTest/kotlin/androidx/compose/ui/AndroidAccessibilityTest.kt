@@ -319,7 +319,8 @@ class AndroidAccessibilityTest {
                 assertThat(isClickable).isTrue()
                 assertThat(isVisibleToUser).isTrue()
                 assertThat(isCheckable).isTrue()
-                assertThat(isChecked).isTrue()
+                // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+                @Suppress("DEPRECATION") assertThat(isChecked).isTrue()
                 assertThat(actionList)
                     .containsExactly(
                         AccessibilityActionCompat(ACTION_ACCESSIBILITY_FOCUS, "toggle"),
@@ -528,7 +529,8 @@ class AndroidAccessibilityTest {
                 assertThat(className).isEqualTo("android.view.View")
                 assertThat(isClickable).isFalse()
                 assertThat(isVisibleToUser).isTrue()
-                assertThat(isChecked).isTrue()
+                // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+                @Suppress("DEPRECATION") assertThat(isChecked).isTrue()
                 assertThat(actionList)
                     .containsExactly(
                         AccessibilityActionCompat(ACTION_ACCESSIBILITY_FOCUS, null),
@@ -558,7 +560,8 @@ class AndroidAccessibilityTest {
                 assertThat(stateDescription).isEqualTo("Selected")
                 assertThat(isClickable).isTrue()
                 assertThat(isCheckable).isTrue()
-                assertThat(isChecked).isTrue()
+                // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+                @Suppress("DEPRECATION") assertThat(isChecked).isTrue()
                 assertThat(isVisibleToUser).isTrue()
                 assertThat(actionList)
                     .contains(

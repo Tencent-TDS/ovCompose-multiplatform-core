@@ -992,10 +992,10 @@ class SnapshotTests {
     fun testNestedWithinTransparentSnapshotDisposedCorrectly() {
         val outerSnapshot =
             TransparentObserverSnapshot(
-                previousSnapshot = currentSnapshot(),
+                parentSnapshot = currentSnapshot(),
                 specifiedReadObserver = null,
                 mergeParentObservers = false,
-                ownsPreviousSnapshot = false
+                ownsParentSnapshot = false
             )
 
         try {
@@ -1047,10 +1047,10 @@ class SnapshotTests {
 
         val outerSnapshot =
             TransparentObserverSnapshot(
-                previousSnapshot = currentSnapshot(),
+                parentSnapshot = currentSnapshot(),
                 specifiedReadObserver = { outerChanges++ },
                 mergeParentObservers = false,
-                ownsPreviousSnapshot = false
+                ownsParentSnapshot = false
             )
 
         try {

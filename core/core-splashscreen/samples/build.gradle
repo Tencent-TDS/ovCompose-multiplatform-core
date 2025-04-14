@@ -26,7 +26,7 @@ import androidx.build.SoftwareType
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -41,6 +41,6 @@ dependencies {
     implementation(project(":core:core-splashscreen"))
     implementation("androidx.core:core-ktx:1.15.0")
     implementation(project(":appcompat:appcompat"))
-    implementation("androidx.annotation:annotation:1.8.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.2")
     implementation(project(":interpolator:interpolator"))
 }

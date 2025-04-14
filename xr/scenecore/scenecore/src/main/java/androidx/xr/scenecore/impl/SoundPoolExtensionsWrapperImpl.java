@@ -18,9 +18,9 @@ package androidx.xr.scenecore.impl;
 
 import android.media.SoundPool;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.PointSourceAttributes;
-import androidx.xr.scenecore.JxrPlatformAdapter.SoundFieldAttributes;
-import androidx.xr.scenecore.JxrPlatformAdapter.SoundPoolExtensionsWrapper;
+import androidx.xr.runtime.internal.PointSourceParams;
+import androidx.xr.runtime.internal.SoundFieldAttributes;
+import androidx.xr.runtime.internal.SoundPoolExtensionsWrapper;
 
 import com.android.extensions.xr.media.SoundPoolExtensions;
 
@@ -37,28 +37,28 @@ final class SoundPoolExtensionsWrapperImpl implements SoundPoolExtensionsWrapper
     public int play(
             SoundPool soundPool,
             int soundId,
-            PointSourceAttributes attributes,
+            PointSourceParams params,
             float volume,
             int priority,
             int loop,
             float rate) {
-        com.android.extensions.xr.media.PointSourceAttributes extAttributes =
-                MediaUtils.convertPointSourceAttributesToExtensions(attributes);
+        com.android.extensions.xr.media.PointSourceParams extParams =
+                MediaUtils.convertPointSourceParamsToExtensions(params);
         return mExtensions.playAsPointSource(
-                soundPool, soundId, extAttributes, volume, priority, loop, rate);
+                soundPool, soundId, extParams, volume, priority, loop, rate);
     }
 
     @Override
     public int play(
             SoundPool soundPool,
             int soundId,
-            SoundFieldAttributes attributes,
+            SoundFieldAttributes params,
             float volume,
             int priority,
             int loop,
             float rate) {
         com.android.extensions.xr.media.SoundFieldAttributes extAttributes =
-                MediaUtils.convertSoundFieldAttributesToExtensions(attributes);
+                MediaUtils.convertSoundFieldAttributesToExtensions(params);
 
         return mExtensions.playAsSoundField(
                 soundPool, soundId, extAttributes, volume, priority, loop, rate);

@@ -27,7 +27,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateListOf
@@ -801,24 +800,18 @@ class AnimatedTest {
         lateinit var backstack: MutableList<Any>
         val LocalHasProvidedToEntry = compositionLocalOf { false }
         val provider =
-            object : NavLocalProvider {
-                @Composable
-                override fun ProvideToBackStack(
-                    backStack: List<Any>,
-                    content: @Composable () -> Unit
-                ) {
+            createTestNavLocalProvider<String>(
+                provideToBackStack = { _, content ->
                     CompositionLocalProvider(LocalHasProvidedToEntry provides false) {
                         content.invoke()
                     }
-                }
-
-                @Composable
-                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                },
+                provideToEntry = { entry ->
                     CompositionLocalProvider(LocalHasProvidedToEntry provides true) {
                         entry.content.invoke(entry.key)
                     }
                 }
-            }
+            )
         var secondEntryIsWrapped = false
         composeTestRule.setContent {
             backstack = remember { mutableStateListOf(first, second) }

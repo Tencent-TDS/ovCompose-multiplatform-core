@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -119,7 +118,6 @@ androidx {
     inceptionYear = "2021"
     description = "Compose Animation Graphics Library for using animated-vector resources in Compose"
     samples(project(":compose:animation:animation-graphics:animation-graphics-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {

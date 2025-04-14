@@ -79,13 +79,11 @@ internal fun ProvideBasicTextContextMenu(
         ) -> Unit,
     content: @Composable () -> Unit
 ) {
-    val provider = remember(contextMenu) { BasicTextContextMenuProvider(contextMenu) }
-    DisposableEffect(provider) { onDispose { provider.cancel() } }
-
     var layoutCoordinates: LayoutCoordinates? by remember {
         mutableStateOf(null, neverEqualPolicy())
     }
 
+    val provider = basicTextContextMenuProvider(contextMenu)
     CompositionLocalProvider(providableCompositionLocal provides provider) {
         Box(
             propagateMinConstraints = true,
@@ -97,7 +95,22 @@ internal fun ProvideBasicTextContextMenu(
     }
 }
 
-private class BasicTextContextMenuProvider(
+@Composable
+internal fun basicTextContextMenuProvider(
+    contextMenu:
+        @Composable
+        (
+            session: TextContextMenuSession,
+            dataProvider: TextContextMenuDataProvider,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
+        ) -> Unit,
+): BasicTextContextMenuProvider {
+    val provider = remember(contextMenu) { BasicTextContextMenuProvider(contextMenu) }
+    DisposableEffect(provider) { onDispose { provider.cancel() } }
+    return provider
+}
+
+internal class BasicTextContextMenuProvider(
     private val contextMenuBlock:
         @Composable
         (

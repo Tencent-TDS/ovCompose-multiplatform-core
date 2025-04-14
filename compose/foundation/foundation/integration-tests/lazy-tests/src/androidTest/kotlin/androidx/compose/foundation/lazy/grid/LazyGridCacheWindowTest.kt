@@ -26,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Remeasurement
+import androidx.compose.ui.layout.RemeasurementModifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -54,13 +56,16 @@ class LazyGridCacheWindowTest(orientation: Orientation) :
     val itemsSizeDp = with(rule.density) { itemsSizePx.toDp() }
 
     lateinit var state: LazyGridState
+    lateinit var remeasure: Remeasurement
 
-    private val viewportWindow = LazyLayoutCacheWindow(aheadFraction = 1f)
+    private val viewportWindow = LazyLayoutCacheWindow(aheadFraction = 1f, behindFraction = 1f)
 
     @Test
-    fun notPrefetchingForwardInitially() {
+    fun prefetchingForwardInitially() {
         composeGrid(cacheWindow = viewportWindow)
-        rule.onNodeWithTag("4").assertDoesNotExist()
+        rule.onNodeWithTag("4").assertExists()
+        rule.onNodeWithTag("5").assertExists()
+        rule.onNodeWithTag("6").assertDoesNotExist()
     }
 
     @Test
@@ -129,27 +134,38 @@ class LazyGridCacheWindowTest(orientation: Orientation) :
     @Test
     fun scrollBackward_shouldNotDisposeItemsInWindow() {
         composeGrid(firstItem = 12, itemOffset = -itemsSizePx / 2, cacheWindow = viewportWindow)
+        // We start at item 12 offset by half a line, we have 2 visible lines and first measure
+        // prefetch will create  1 additional line of items
+        rule.onNodeWithTag("10").assertIsDisplayed()
+        rule.onNodeWithTag("11").assertIsDisplayed()
+        rule.onNodeWithTag("12").assertIsDisplayed()
+        rule.onNodeWithTag("13").assertIsDisplayed()
+        rule.onNodeWithTag("14").assertExists()
+        rule.onNodeWithTag("15").assertExists()
+
         rule.runOnIdle { runBlocking { state.scrollBy(-itemsSizePx * 2.5f) } }
-        // Starting on item 12 and moving back 2.5 lines, we will end up on item 6.
-        // This means item 6-9 will be visible, item 10-13 will be in the window.
-        // On the other side, items 2-5 will be in the window.
-        rule.runOnIdle { assertThat(state.firstVisibleItemIndex).isEqualTo(6) }
-        rule.onNodeWithTag("0").assertDoesNotExist()
+        // We will scroll 2.5 line sizes back. This means that we will line up item 10 and then move
+        // two lines to item 6 (4 items). Now item 6-9 will be visible. We will prefetch 2 lines
+        // forward, items 2-5. We will keep around 1 line of items, 10 an 12.
+        rule.runOnIdle {
+            assertThat(state.firstVisibleItemIndex).isEqualTo(6)
+            remeasure.forceRemeasure()
+        }
+
+        rule.onNodeWithTag("0").assertDoesNotExist() // line 0
         rule.onNodeWithTag("1").assertDoesNotExist()
-        rule.onNodeWithTag("2").assertExists()
+        rule.onNodeWithTag("2").assertExists() // line 1
         rule.onNodeWithTag("3").assertExists()
-        rule.onNodeWithTag("4").assertExists()
+        rule.onNodeWithTag("4").assertExists() // line 2
         rule.onNodeWithTag("5").assertExists()
-        rule.onNodeWithTag("6").assertIsDisplayed()
+        rule.onNodeWithTag("6").assertIsDisplayed() // line 3
         rule.onNodeWithTag("7").assertIsDisplayed()
-        rule.onNodeWithTag("8").assertIsDisplayed()
+        rule.onNodeWithTag("8").assertIsDisplayed() // line 4
         rule.onNodeWithTag("9").assertIsDisplayed()
-        rule.onNodeWithTag("10").assertExists()
+        rule.onNodeWithTag("10").assertExists() // line 5
         rule.onNodeWithTag("11").assertExists()
-        rule.onNodeWithTag("12").assertExists()
-        rule.onNodeWithTag("13").assertExists()
-        rule.onNodeWithTag("14").assertDoesNotExist()
-        rule.onNodeWithTag("15").assertDoesNotExist()
+        rule.onNodeWithTag("12").assertDoesNotExist() // line 6
+        rule.onNodeWithTag("13").assertDoesNotExist()
     }
 
     private val activeNodes = mutableSetOf<Int>()
@@ -184,7 +200,14 @@ class LazyGridCacheWindowTest(orientation: Orientation) :
                 )
             LazyGrid(
                 2,
-                Modifier.mainAxisSize(itemsSizeDp * 1.5f),
+                Modifier.mainAxisSize(itemsSizeDp * 1.5f)
+                    .then(
+                        object : RemeasurementModifier {
+                            override fun onRemeasurementAvailable(remeasurement: Remeasurement) {
+                                remeasure = remeasurement
+                            }
+                        }
+                    ),
                 state,
                 reverseLayout = reverseLayout,
                 contentPadding = contentPadding

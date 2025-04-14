@@ -152,6 +152,38 @@ class SwipeToRevealTest {
     }
 
     @Test
+    fun stateToRevealing_onAboveVelocityThresholdSmallDistanceSwipe() {
+        verifyGesture(
+            revealValue = RevealValue.RightRevealing,
+            gesture = { swipeLeft(endX = right - 50, durationMillis = 150L) }
+        )
+    }
+
+    @Test
+    fun noSwipe_onBelowVelocityThresholdSmallDistanceSwipe() {
+        verifyGesture(
+            revealValue = RevealValue.Covered,
+            gesture = { swipeLeft(endX = right - 50, durationMillis = 900L) }
+        )
+    }
+
+    @Test
+    fun stateToRevealing_onAboveVelocityThresholdLongDistanceSwipe() {
+        verifyGesture(
+            revealValue = RevealValue.RightRevealing,
+            gesture = { swipeLeft(endX = right - 300, durationMillis = 150L) }
+        )
+    }
+
+    @Test
+    fun stateToRevealing_onBelowVelocityThresholdLongDistanceSwipe() {
+        verifyGesture(
+            revealValue = RevealValue.RightRevealing,
+            gesture = { swipeLeft(endX = right - 300, durationMillis = 1000L) }
+        )
+    }
+
+    @Test
     fun noSwipe_singleDirectionSwipeOnTheEdgeDisabled_onFullSwipeRight() {
         var onFullSwipeTriggered = false
         verifyGesture(

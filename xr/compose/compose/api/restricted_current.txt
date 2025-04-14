@@ -191,6 +191,7 @@ package @RequiresApi(34) androidx.xr.compose.spatial {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) @kotlin.jvm.JvmInline public final value class SpatialElevationLevel {
+    ctor public SpatialElevationLevel(float level);
     method public float getLevel();
     property public float level;
     field public static final androidx.xr.compose.spatial.SpatialElevationLevel.Companion Companion;
@@ -869,7 +870,9 @@ package @RequiresApi(34) androidx.xr.compose.unit {
   }
 
   public static final class VolumeConstraints.Companion {
+    method public androidx.xr.compose.unit.VolumeConstraints getUnbounded();
     property public static int INFINITY;
+    property public androidx.xr.compose.unit.VolumeConstraints Unbounded;
   }
 
   public final class VolumeConstraintsKt {

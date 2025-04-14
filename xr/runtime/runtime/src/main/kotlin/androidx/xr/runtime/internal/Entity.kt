@@ -26,7 +26,7 @@ import java.util.concurrent.Executor
 public interface Entity : ActivityPose {
 
     /** Sets the provided Entities to be children of the Entity. */
-    public var children: List<Entity>
+    public val children: List<Entity>
 
     /**
      * Sets the parent Entity for this Entity. The child Entity's pose will be relative to the pose
@@ -40,23 +40,13 @@ public interface Entity : ActivityPose {
     public var contentDescription: String
 
     /**
-     * Sets the size for the given Entity.
-     *
-     * @param dimensions Dimensions for the Entity in meters.
-     */
-    public var size: Dimensions
-
-    /** Returns the total alpha transparency level for this Entity. */
-    public val activitySpaceAlpha: Float
-
-    /**
      * Sets the local hidden state of this Entity. When true, this Entity and all descendants will
      * not be rendered in the scene. When the hidden state is false, an entity will be rendered if
      * its ancestors are not hidden.
      *
      * @param hidden The new local hidden state of this Entity.
      */
-    public var isHidden: Boolean
+    public fun setHidden(hidden: Boolean): Unit
 
     /**
      * Add given Entity as child. The child Entity's pose will be relative to the pose of its parent
@@ -132,6 +122,9 @@ public interface Entity : ActivityPose {
      */
     public fun setAlpha(alpha: Float): Unit = setAlpha(alpha, Space.PARENT)
 
+    /** Sets the provided Entities to be children of the Entity. */
+    public fun addChildren(children: List<Entity>): Unit
+
     /**
      * Returns the hidden status of this Entity.
      *
@@ -168,7 +161,7 @@ public interface Entity : ActivityPose {
      * @param component Component to add to the Entity.
      * @return True if the given component is added to the Entity.
      */
-    public fun addComponent(component: Component)
+    public fun addComponent(component: Component): Boolean
 
     /**
      * Remove the given component from the entity.

@@ -27,20 +27,11 @@ import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
+    id("com.android.library")
 }
 
 androidXMultiplatform {
-    androidLibrary {
-        namespace = "androidx.lifecycle.testing"
-        withAndroidTestOnDeviceBuilder {
-            it.compilationName = "instrumentedTest"
-            it.defaultSourceSetName = "androidInstrumentedTest"
-            it.sourceSetTreeName = "test"
-        }
-        withAndroidTestOnJvmBuilder {
-            it.defaultSourceSetName = "androidUnitTest"
-        }
-    }
+    androidTarget()
     desktop()
     mac()
     linux()
@@ -87,3 +78,6 @@ androidx {
     description = "Testing utilities for 'lifecycle' artifact"
 }
 
+android {
+    namespace "androidx.lifecycle.testing"
+}

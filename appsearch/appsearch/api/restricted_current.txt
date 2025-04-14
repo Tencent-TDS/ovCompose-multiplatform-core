@@ -716,7 +716,7 @@ package androidx.appsearch.app {
   }
 
   @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public static final class SearchResult.TextMatchInfo {
-    ctor @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public SearchResult.TextMatchInfo(int, int, int, int, int, int);
+    ctor @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public SearchResult.TextMatchInfo(androidx.appsearch.app.SearchResult.MatchRange, androidx.appsearch.app.SearchResult.MatchRange, androidx.appsearch.app.SearchResult.MatchRange);
     method @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public CharSequence getExactMatch();
     method @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public androidx.appsearch.app.SearchResult.MatchRange getExactMatchRange();
     method @SuppressCompatibility @androidx.appsearch.app.ExperimentalAppSearchApi public String getFullText();

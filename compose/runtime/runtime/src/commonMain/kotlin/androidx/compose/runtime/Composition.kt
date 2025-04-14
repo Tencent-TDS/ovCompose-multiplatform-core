@@ -565,6 +565,8 @@ internal class CompositionImpl(
 
     internal val observerHolder = CompositionObserverHolder()
 
+    private val rememberManager = RememberEventDispatcher()
+
     /** The [Composer] to use to create and update the tree managed by this composition. */
     internal val composer: ComposerImpl =
         ComposerImpl(
@@ -835,15 +837,16 @@ internal class CompositionImpl(
                 // will be moved to a new location.
                 val nonEmptySlotTable = slotTable.groupsSize > 0
                 if (nonEmptySlotTable || abandonSet.isNotEmpty()) {
-                    val manager = RememberEventDispatcher(abandonSet, composer.errorContext)
-                    if (nonEmptySlotTable) {
-                        applier.onBeginChanges()
-                        slotTable.write { writer -> writer.removeCurrentGroup(manager) }
-                        applier.clear()
-                        applier.onEndChanges()
-                        manager.dispatchRememberObservers()
+                    rememberManager.use(abandonSet, composer.errorContext) {
+                        if (nonEmptySlotTable) {
+                            applier.onBeginChanges()
+                            slotTable.write { writer -> writer.removeCurrentGroup(rememberManager) }
+                            applier.clear()
+                            applier.onEndChanges()
+                            dispatchRememberObservers()
+                        }
+                        dispatchAbandons()
                     }
-                    manager.dispatchAbandons()
                 }
                 composer.dispose()
             }
@@ -1017,19 +1020,20 @@ internal class CompositionImpl(
     }
 
     override fun disposeUnusedMovableContent(state: MovableContentState) {
-        val manager = RememberEventDispatcher(abandonSet, composer.errorContext)
-        val slotTable = state.slotTable
-        slotTable.write { writer -> writer.removeCurrentGroup(manager) }
-        manager.dispatchRememberObservers()
+        rememberManager.use(abandonSet, composer.errorContext) {
+            val slotTable = state.slotTable
+            slotTable.write { writer -> writer.removeCurrentGroup(rememberManager) }
+            dispatchRememberObservers()
+        }
     }
 
     private fun applyChangesInLocked(changes: ChangeList) {
-        val manager = RememberEventDispatcher(abandonSet, composer.errorContext)
+        rememberManager.prepare(abandonSet, composer.errorContext)
         try {
             if (changes.isEmpty()) return
             trace("Compose:applyChanges") {
                 val applier = pendingPausedComposition?.pausableApplier ?: applier
-                val rememberManager = pendingPausedComposition?.rememberManager ?: manager
+                val rememberManager = pendingPausedComposition?.rememberManager ?: rememberManager
                 applier.onBeginChanges()
 
                 // Apply all changes
@@ -1047,8 +1051,8 @@ internal class CompositionImpl(
             // Side effects run after lifecycle observers so that any remembered objects
             // that implement RememberObserver receive onRemembered before a side effect
             // that captured it and operates on it can run.
-            manager.dispatchRememberObservers()
-            manager.dispatchSideEffects()
+            rememberManager.dispatchRememberObservers()
+            rememberManager.dispatchSideEffects()
 
             if (pendingInvalidScopes) {
                 trace("Compose:unobserve") {
@@ -1061,8 +1065,12 @@ internal class CompositionImpl(
             // Only dispatch abandons if we do not have any late changes or pending paused
             // compositions. The instances in the abandon set can be remembered in the late changes
             // or when the paused composition is applied.
-            if (this.lateChanges.isEmpty() && pendingPausedComposition == null) {
-                manager.dispatchAbandons()
+            try {
+                if (this.lateChanges.isEmpty() && pendingPausedComposition == null) {
+                    rememberManager.dispatchAbandons()
+                }
+            } finally {
+                rememberManager.clear()
             }
         }
     }
@@ -1094,8 +1102,9 @@ internal class CompositionImpl(
                 // By this time all abandon objects should be notified that they have been
                 // abandoned.
                 if (this.abandonSet.isNotEmpty()) {
-                    RememberEventDispatcher(abandonSet, traceContext = composer.errorContext)
-                        .dispatchAbandons()
+                    rememberManager.use(abandonSet, traceContext = composer.errorContext) {
+                        dispatchAbandons()
+                    }
                 }
             }
         }
@@ -1127,7 +1136,7 @@ internal class CompositionImpl(
         lateChanges.clear()
 
         if (abandonSet.isNotEmpty()) {
-            RememberEventDispatcher(abandonSet, composer.errorContext).dispatchAbandons()
+            rememberManager.use(abandonSet, composer.errorContext) { dispatchAbandons() }
         }
     }
 
@@ -1303,7 +1312,7 @@ internal class CompositionImpl(
             block().also { success = true }
         } finally {
             if (!success && abandonSet.isNotEmpty()) {
-                RememberEventDispatcher(abandonSet, composer.errorContext).dispatchAbandons()
+                rememberManager.use(abandonSet, composer.errorContext) { dispatchAbandons() }
             }
         }
     }
@@ -1328,14 +1337,17 @@ internal class CompositionImpl(
             val nonEmptySlotTable = slotTable.groupsSize > 0
             if (nonEmptySlotTable || abandonSet.isNotEmpty()) {
                 trace("Compose:deactivate") {
-                    val manager = RememberEventDispatcher(abandonSet, composer.errorContext)
-                    if (nonEmptySlotTable) {
-                        applier.onBeginChanges()
-                        slotTable.write { writer -> writer.deactivateCurrentGroup(manager) }
-                        applier.onEndChanges()
-                        manager.dispatchRememberObservers()
+                    rememberManager.use(abandonSet, composer.errorContext) {
+                        if (nonEmptySlotTable) {
+                            applier.onBeginChanges()
+                            slotTable.write { writer ->
+                                writer.deactivateCurrentGroup(rememberManager)
+                            }
+                            applier.onEndChanges()
+                            dispatchRememberObservers()
+                        }
+                        dispatchAbandons()
                     }
-                    manager.dispatchAbandons()
                 }
             }
             observations.clear()

@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -93,7 +92,6 @@ androidx {
             "implement Wear Material 3 Design UX guidelines and specifications. It builds upon " +
             "the Jetpack Compose libraries."
     samples(project(":wear:compose:compose-material3-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
     addGoldenImageAssets()
 }
 

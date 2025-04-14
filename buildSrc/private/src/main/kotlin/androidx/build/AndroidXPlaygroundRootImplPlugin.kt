@@ -139,7 +139,13 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
                 }
             }
         }
-        google()
+        google { repository ->
+            repository.content {
+                it.includeGroupByRegex("androidx.*")
+                it.includeGroupByRegex("com\\.android.*")
+                it.includeGroupByRegex("com\\.google.*")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -167,7 +173,12 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
                 "https://maven.pkg.jetbrains.space/kotlin/p/dokka/dev",
                 includeGroupRegex = """org\.jetbrains\.dokka"""
             )
-        val all = listOf(snapshots, metalava, dokka, prebuilts)
+        val kotlinDev =
+            PlaygroundRepository(
+                "https://packages.jetbrains.team/maven/p/kt/dev/",
+                includeGroupRegex = """org\.jetbrains\.kotlin.*"""
+            )
+        val all = listOf(snapshots, metalava, dokka, prebuilts, kotlinDev)
     }
 
     private data class PlaygroundRepository(

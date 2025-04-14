@@ -78,7 +78,7 @@ abstract class ConstraintLayoutBaseScope internal constructor(extendFrom: CLObje
      * @param reference The [LayoutReference] that this anchor belongs to.
      */
     @Stable
-    @Suppress("DataClassDefinition")
+    @Suppress("DataClassDefinition", "DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED_WARNING")
     data class VerticalAnchor
     internal constructor(
         internal val id: Any,
@@ -93,7 +93,7 @@ abstract class ConstraintLayoutBaseScope internal constructor(extendFrom: CLObje
      * @param reference The [LayoutReference] that this anchor belongs to.
      */
     @Stable
-    @Suppress("DataClassDefinition")
+    @Suppress("DataClassDefinition", "DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED_WARNING")
     data class HorizontalAnchor
     internal constructor(
         internal val id: Any,
@@ -109,7 +109,7 @@ abstract class ConstraintLayoutBaseScope internal constructor(extendFrom: CLObje
      */
     // TODO(popam): investigate if this can be just a HorizontalAnchor
     @Stable
-    @Suppress("DataClassDefinition")
+    @Suppress("DataClassDefinition", "DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED_WARNING")
     data class BaselineAnchor
     internal constructor(internal val id: Any, val reference: LayoutReference)
 

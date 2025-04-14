@@ -17,6 +17,7 @@
 package androidx.appfunctions.compiler.processors
 
 import androidx.appfunctions.compiler.AppFunctionCompiler
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy.ResolvedAnnotatedSerializableProxies
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctions
 import androidx.appfunctions.compiler.core.AppFunctionComponentRegistryGenerator
 import androidx.appfunctions.compiler.core.AppFunctionComponentRegistryGenerator.AppFunctionComponent
@@ -73,10 +74,18 @@ class AppFunctionInventoryProcessor(
 
         val appFunctionSymbolResolver = AppFunctionSymbolResolver(resolver)
         val appFunctionClasses = appFunctionSymbolResolver.resolveAnnotatedAppFunctions()
+        val resolvedAnnotatedSerializableProxies =
+            ResolvedAnnotatedSerializableProxies(
+                appFunctionSymbolResolver.resolveAllAnnotatedSerializableProxiesFromModule()
+            )
         val generatedInventoryComponents =
             buildList<AppFunctionComponent> {
                 for (appFunctionClass in appFunctionClasses) {
-                    val inventoryQualifiedName = generateAppFunctionInventoryClass(appFunctionClass)
+                    val inventoryQualifiedName =
+                        generateAppFunctionInventoryClass(
+                            appFunctionClass,
+                            resolvedAnnotatedSerializableProxies
+                        )
                     add(
                         AppFunctionComponent(
                             qualifiedName = inventoryQualifiedName,
@@ -92,7 +101,9 @@ class AppFunctionInventoryProcessor(
                 AppFunctionComponentRegistryAnnotation.Category.INVENTORY,
                 generatedInventoryComponents,
             )
-        return emptyList()
+        return resolvedAnnotatedSerializableProxies.resolvedAnnotatedSerializableProxies.map {
+            it.appFunctionSerializableProxyClass
+        }
     }
 
     /**
@@ -100,7 +111,10 @@ class AppFunctionInventoryProcessor(
      *
      * @return fully qualified name of the generated inventory implementation class.
      */
-    private fun generateAppFunctionInventoryClass(appFunctionClass: AnnotatedAppFunctions): String {
+    private fun generateAppFunctionInventoryClass(
+        appFunctionClass: AnnotatedAppFunctions,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
+    ): String {
         val originalPackageName = appFunctionClass.classDeclaration.packageName.asString()
         val originalClassName = appFunctionClass.classDeclaration.simpleName.asString()
 
@@ -109,7 +123,11 @@ class AppFunctionInventoryProcessor(
         inventoryClassBuilder.addSuperinterface(IntrospectionHelper.APP_FUNCTION_INVENTORY_CLASS)
         inventoryClassBuilder.addAnnotation(AppFunctionCompiler.GENERATED_ANNOTATION)
         inventoryClassBuilder.addKdoc(buildSourceFilesKdoc(appFunctionClass))
-        addFunctionMetadataProperties(inventoryClassBuilder, appFunctionClass)
+        addFunctionMetadataProperties(
+            inventoryClassBuilder,
+            appFunctionClass,
+            resolvedAnnotatedSerializableProxies
+        )
 
         val fileSpec =
             FileSpec.builder(originalPackageName, inventoryClassName)
@@ -132,12 +150,15 @@ class AppFunctionInventoryProcessor(
      *
      * @param inventoryClassBuilder The builder for the `AppFunctionInventory` class.
      * @param appFunctionClass The class annotated with `@AppFunction`.
+     * @param resolvedAnnotatedSerializableProxies The resolved annotated serializable proxies.
      */
     private fun addFunctionMetadataProperties(
         inventoryClassBuilder: TypeSpec.Builder,
-        appFunctionClass: AnnotatedAppFunctions
+        appFunctionClass: AnnotatedAppFunctions,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ) {
-        val appFunctionMetadataList = appFunctionClass.createAppFunctionMetadataList()
+        val appFunctionMetadataList =
+            appFunctionClass.createAppFunctionMetadataList(resolvedAnnotatedSerializableProxies)
 
         for (functionMetadata in appFunctionMetadataList) {
             val functionMetadataObjectClassBuilder =
@@ -944,7 +965,6 @@ class AppFunctionInventoryProcessor(
         )
     }
 
-    // TODO: Remove doc once done with impl
     private fun buildSourceFilesKdoc(appFunctionClass: AnnotatedAppFunctions): CodeBlock {
         return buildCodeBlock {
             addStatement("Source Files:")
@@ -1025,7 +1045,7 @@ class AppFunctionInventoryProcessor(
      * @return The name of the property.
      */
     private fun getObjectTypeMetadataPropertyNameForComponent(componentName: String): String {
-        return "${componentName.uppercase().replace(".", "_")}_OBJECT_DATA_TYPE"
+        return "${componentName.uppercase().replace(Regex("[.<>]"), "_")}_OBJECT_DATA_TYPE"
     }
 
     /**

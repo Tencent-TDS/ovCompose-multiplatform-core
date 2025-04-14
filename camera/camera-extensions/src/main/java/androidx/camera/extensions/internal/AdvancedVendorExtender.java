@@ -175,17 +175,20 @@ public class AdvancedVendorExtender implements VendorExtender {
         return new Size[0];
     }
 
-    private @NonNull List<CaptureRequest.Key> getSupportedParameterKeys() {
+    private @NonNull List<CaptureRequest.Key<?>> getSupportedParameterKeys() {
+        List<CaptureRequest.Key<?>> keys = new ArrayList<>();
         if (ExtensionVersion.getRuntimeVersion().compareTo(Version.VERSION_1_3) >= 0) {
             try {
-                return Collections.unmodifiableList(
-                        mAdvancedExtenderImpl.getAvailableCaptureRequestKeys());
+                for (CaptureRequest.Key<?> key :
+                        mAdvancedExtenderImpl.getAvailableCaptureRequestKeys()) {
+                    keys.add(key);
+                }
             } catch (Throwable throwable) {
-                Logger.e(TAG, "AdvancedExtenderImpl.getAvailableCaptureRequestKeys "
-                        + "throws exceptions", throwable);
+                Logger.e(TAG, "Failed to retrieve available characteristics key-values!",
+                        throwable);
             }
         }
-        return Collections.emptyList();
+        return Collections.unmodifiableList(keys);
     }
 
     @Override

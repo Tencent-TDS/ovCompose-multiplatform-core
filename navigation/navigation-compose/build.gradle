@@ -15,7 +15,6 @@
  */
 
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -47,10 +46,13 @@ androidXMultiplatform {
                 implementation("androidx.compose.animation:animation-core:1.7.2")
                 implementation("androidx.compose.foundation:foundation-layout:1.7.2")
                 implementation("androidx.collection:collection:1.4.5")
-                implementation("androidx.lifecycle:lifecycle-common:2.8.2")
-                implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
-                implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.2")
-                implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.2")
+                implementation(project(":lifecycle:lifecycle-common"))
+                implementation(project(":lifecycle:lifecycle-runtime-compose"))
+                implementation(project(":lifecycle:lifecycle-viewmodel-savedstate"))
+                implementation(project(":lifecycle:lifecycle-viewmodel"))
+                implementation(project(":lifecycle:lifecycle-viewmodel-compose"))
+                implementation(project(":savedstate:savedstate"))
+                implementation(project(":savedstate:savedstate-compose"))
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.kotlinSerializationCore)
             }
@@ -157,7 +159,6 @@ androidx {
     inceptionYear = "2020"
     description = "Compose integration with Navigation"
     samples(project(":navigation:navigation-compose:navigation-compose-samples"))
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     metalavaK2UastEnabled = false
     addGoldenImageAssets()
 }

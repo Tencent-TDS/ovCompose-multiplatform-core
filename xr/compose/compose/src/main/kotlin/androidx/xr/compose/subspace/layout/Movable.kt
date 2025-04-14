@@ -212,12 +212,13 @@ internal class MovableNode(
         component?.size = coordinates.size.toDimensionsInMeters(density)
     }
 
-    /**
-     * Updates the movable state of the CoreEntity associated with this node. Only update movable
-     * state if [MovableNode] is [enabled] and the [CoreEntity] is a [MovableCoreEntity].
-     */
+    /** Updates the movable state of this CoreEntity. */
     private fun updateState() {
-        if (enabled && component == null && coreEntity is MovableCoreEntity) {
+        if (coreEntity !is MovableCoreEntity) {
+            return
+        }
+        // Enabled is on the Node. It means "should be enabled" for the Component.
+        if (enabled && component == null) {
             enableComponent()
         } else if (!enabled && component != null) {
             disableComponent()
@@ -240,6 +241,7 @@ internal class MovableNode(
      */
     private fun disableComponent() {
         check(component != null) { "MovableComponent already disabled." }
+        component?.removeMoveListener(this)
         component?.let { coreEntity.removeComponent(it) }
         component = null
         if (!stickyPose) {

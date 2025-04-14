@@ -1863,9 +1863,6 @@ internal open class Measurer(
                 outConstraints[1] = rootMaxConstraint
                 false
             }
-            else -> {
-                error("$dimensionBehaviour is not supported")
-            }
         }
 
     private fun Array<Int>.copyFrom(measure: BasicMeasure.Measure) {
