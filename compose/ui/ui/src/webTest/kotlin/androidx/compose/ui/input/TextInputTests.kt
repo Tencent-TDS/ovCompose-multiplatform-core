@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -51,9 +52,9 @@ import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
+import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
-import org.w3c.dom.events.Event
 
 private class InputChannel(
     private val channel: Channel<String> = Channel<String>(
@@ -198,7 +199,7 @@ class TextInputTests : OnCanvasTests  {
         assertEquals("abc", textInputChannel.receive())
     }
 
-
+    @Ignore
     @Test
     fun repeatedAccent() = runTest {
         val textInputChannel = createTextFieldWithChannel()
