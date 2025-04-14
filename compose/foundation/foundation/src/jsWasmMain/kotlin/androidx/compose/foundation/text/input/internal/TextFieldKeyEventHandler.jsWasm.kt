@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,5 @@
 
 package androidx.compose.foundation.text.input.internal
 
-import androidx.compose.ui.input.key.KeyEvent
-
-/**
- * Factory function to create a platform specific [TextFieldKeyEventHandler].
- */
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-741/Implement-createTextFieldKeyEventHandler
-internal fun createSkikoTextFieldKeyEventHandler() = object : TextFieldKeyEventHandler() {}
-
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1361/Implement-isFromSoftKeyboard
-/**
- * Returns whether this key event is created by the software keyboard.
- */
-internal actual val KeyEvent.isFromSoftKeyboard: Boolean
-    get() = false
+/** Factory function to create a platform specific [TextFieldKeyEventHandler]. */
+internal actual fun createTextFieldKeyEventHandler() = createSkikoTextFieldKeyEventHandler()
