@@ -17,4 +17,4 @@
 package androidx.compose.foundation.text.input.internal
 
 /** Factory function to create a platform specific [TextFieldKeyEventHandler]. */
-internal actual fun createTextFieldKeyEventHandler() = object : TextFieldKeyEventHandler() {}
+internal actual fun createTextFieldKeyEventHandler() = createSkikoTextFieldKeyEventHandler()
