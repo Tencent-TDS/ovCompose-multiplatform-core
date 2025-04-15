@@ -194,6 +194,7 @@ public abstract interface class androidx/compose/runtime/Composer {
 
 public final class androidx/compose/runtime/Composer$Companion {
 	public final fun getEmpty ()Ljava/lang/Object;
+	public final fun setDiagnosticStackTraceEnabled (Z)V
 	public final fun setTracer (Landroidx/compose/runtime/CompositionTracer;)V
 }
 
@@ -383,12 +384,10 @@ public final class androidx/compose/runtime/FloatState$DefaultImpls {
 public final class androidx/compose/runtime/HotReloaderKt {
 	public static final fun clearCompositionErrors ()V
 	public static final fun currentCompositionErrors ()Ljava/util/List;
+	public static final fun disableHotReloadMode ()V
 	public static final fun getCurrentCompositionErrors ()Ljava/util/List;
 	public static final fun invalidateGroupsWithKey (I)V
 	public static final fun simulateHotReload (Ljava/lang/Object;)V
-}
-
-public abstract interface annotation class androidx/compose/runtime/Immutable : java/lang/annotation/Annotation {
 }
 
 public abstract interface class androidx/compose/runtime/IntState : androidx/compose/runtime/State {
@@ -745,12 +744,6 @@ public final class androidx/compose/runtime/SnapshotStateKt {
 	public static final fun toMutableStateMap (Ljava/lang/Iterable;)Landroidx/compose/runtime/snapshots/SnapshotStateMap;
 }
 
-public abstract interface annotation class androidx/compose/runtime/Stable : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class androidx/compose/runtime/StableMarker : java/lang/annotation/Annotation {
-}
-
 public abstract interface class androidx/compose/runtime/State {
 	public abstract fun getValue ()Ljava/lang/Object;
 }
@@ -945,7 +938,6 @@ public class androidx/compose/runtime/snapshots/MutableSnapshot : androidx/compo
 	public fun getReadOnly ()Z
 	public fun getRoot ()Landroidx/compose/runtime/snapshots/Snapshot;
 	public fun hasPendingChanges ()Z
-	public fun setModified (Landroidx/collection/MutableScatterSet;)V
 	public fun takeNestedMutableSnapshot (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Landroidx/compose/runtime/snapshots/MutableSnapshot;
 	public static synthetic fun takeNestedMutableSnapshot$default (Landroidx/compose/runtime/snapshots/MutableSnapshot;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/runtime/snapshots/MutableSnapshot;
 	public fun takeNestedSnapshot (Lkotlin/jvm/functions/Function1;)Landroidx/compose/runtime/snapshots/Snapshot;
@@ -1208,8 +1200,6 @@ public final class androidx/compose/runtime/snapshots/tooling/SnapshotInstanceOb
 public abstract interface class androidx/compose/runtime/snapshots/tooling/SnapshotObserver {
 	public fun onApplied (Landroidx/compose/runtime/snapshots/Snapshot;Ljava/util/Set;)V
 	public fun onCreated (Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;)V
-	public fun onCreating (Landroidx/compose/runtime/snapshots/Snapshot;Z)Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;
-	public fun onDisposing (Landroidx/compose/runtime/snapshots/Snapshot;)V
 	public fun onPreCreate (Landroidx/compose/runtime/snapshots/Snapshot;Z)Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;
 	public fun onPreDispose (Landroidx/compose/runtime/snapshots/Snapshot;)V
 }
@@ -1226,6 +1216,14 @@ public abstract interface class androidx/compose/runtime/tooling/CompositionData
 
 public final class androidx/compose/runtime/tooling/CompositionDataKt {
 	public static final fun findCompositionInstance (Landroidx/compose/runtime/tooling/CompositionData;)Landroidx/compose/runtime/tooling/CompositionInstance;
+}
+
+public abstract interface class androidx/compose/runtime/tooling/CompositionErrorContext {
+	public abstract fun attachComposeStackTrace (Ljava/lang/Throwable;Ljava/lang/Object;)Z
+}
+
+public final class androidx/compose/runtime/tooling/CompositionErrorContextKt {
+	public static final fun getLocalCompositionErrorContext ()Landroidx/compose/runtime/CompositionLocal;
 }
 
 public abstract interface class androidx/compose/runtime/tooling/CompositionGroup : androidx/compose/runtime/tooling/CompositionData {

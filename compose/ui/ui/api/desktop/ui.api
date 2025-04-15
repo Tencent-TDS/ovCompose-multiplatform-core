@@ -138,7 +138,11 @@ public final class androidx/compose/ui/ComposableSingletons$ImageComposeScene_sk
 public final class androidx/compose/ui/ComposeUiFlags {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/ui/ComposeUiFlags;
-	public static field NewNestedScrollFlingDispatchingEnabled Z
+	public static field isAdaptiveRefreshRateEnabled Z
+	public static field isClearFocusOnResetEnabled Z
+	public static field isFocusActionExitsTouchModeEnabled Z
+	public static field isHitPathTrackerLoggingEnabled Z
+	public static field isOutOfFrameDeactivationEnabled Z
 	public static field isRectTrackingEnabled Z
 	public static field isRemoveFocusedViewFixEnabled Z
 	public static field isSemanticAutofillEnabled Z
@@ -312,6 +316,10 @@ public abstract class androidx/compose/ui/autofill/AutofillManager {
 	public static final field $stable I
 	public abstract fun cancel ()V
 	public abstract fun commit ()V
+}
+
+public final class androidx/compose/ui/autofill/AutofillModifierKt {
+	public static final fun contentType (Landroidx/compose/ui/Modifier;Landroidx/compose/ui/autofill/ContentType;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/ui/autofill/AutofillNode {
@@ -1060,8 +1068,10 @@ public final class androidx/compose/ui/graphics/GraphicsLayerModifierKt {
 	public static final fun graphicsLayer (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 	public static final synthetic fun graphicsLayer-2Xn7asI (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun graphicsLayer-2Xn7asI$default (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun graphicsLayer-Ap8cVGQ (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJI)Landroidx/compose/ui/Modifier;
+	public static final synthetic fun graphicsLayer-Ap8cVGQ (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJI)Landroidx/compose/ui/Modifier;
 	public static synthetic fun graphicsLayer-Ap8cVGQ$default (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJIILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final fun graphicsLayer-_6ThJ44 (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJIILandroidx/compose/ui/graphics/ColorFilter;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun graphicsLayer-_6ThJ44$default (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJIILandroidx/compose/ui/graphics/ColorFilter;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static final synthetic fun graphicsLayer-pANQ8Wg (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJ)Landroidx/compose/ui/Modifier;
 	public static synthetic fun graphicsLayer-pANQ8Wg$default (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;ZLandroidx/compose/ui/graphics/RenderEffect;JJILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static final synthetic fun graphicsLayer-sKFY_QE (Landroidx/compose/ui/Modifier;FFFFFFFFFFJLandroidx/compose/ui/graphics/Shape;Z)Landroidx/compose/ui/Modifier;
@@ -1072,8 +1082,10 @@ public final class androidx/compose/ui/graphics/GraphicsLayerModifierKt {
 public abstract interface class androidx/compose/ui/graphics/GraphicsLayerScope : androidx/compose/ui/unit/Density {
 	public abstract fun getAlpha ()F
 	public fun getAmbientShadowColor-0d7_KjU ()J
+	public fun getBlendMode-0nO6VwU ()I
 	public abstract fun getCameraDistance ()F
 	public abstract fun getClip ()Z
+	public fun getColorFilter ()Landroidx/compose/ui/graphics/ColorFilter;
 	public fun getCompositingStrategy--NrFUSI ()I
 	public fun getRenderEffect ()Landroidx/compose/ui/graphics/RenderEffect;
 	public abstract fun getRotationX ()F
@@ -1090,8 +1102,10 @@ public abstract interface class androidx/compose/ui/graphics/GraphicsLayerScope 
 	public abstract fun getTranslationY ()F
 	public abstract fun setAlpha (F)V
 	public fun setAmbientShadowColor-8_81llA (J)V
+	public fun setBlendMode-s9anfk8 (I)V
 	public abstract fun setCameraDistance (F)V
 	public abstract fun setClip (Z)V
+	public fun setColorFilter (Landroidx/compose/ui/graphics/ColorFilter;)V
 	public fun setCompositingStrategy-aDBOjCE (I)V
 	public fun setRenderEffect (Landroidx/compose/ui/graphics/RenderEffect;)V
 	public abstract fun setRotationX (F)V
@@ -1109,6 +1123,8 @@ public abstract interface class androidx/compose/ui/graphics/GraphicsLayerScope 
 
 public final class androidx/compose/ui/graphics/GraphicsLayerScope$DefaultImpls {
 	public static fun getAmbientShadowColor-0d7_KjU (Landroidx/compose/ui/graphics/GraphicsLayerScope;)J
+	public static fun getBlendMode-0nO6VwU (Landroidx/compose/ui/graphics/GraphicsLayerScope;)I
+	public static fun getColorFilter (Landroidx/compose/ui/graphics/GraphicsLayerScope;)Landroidx/compose/ui/graphics/ColorFilter;
 	public static fun getCompositingStrategy--NrFUSI (Landroidx/compose/ui/graphics/GraphicsLayerScope;)I
 	public static fun getRenderEffect (Landroidx/compose/ui/graphics/GraphicsLayerScope;)Landroidx/compose/ui/graphics/RenderEffect;
 	public static fun getSize-NH-jbRc (Landroidx/compose/ui/graphics/GraphicsLayerScope;)J
@@ -1116,6 +1132,8 @@ public final class androidx/compose/ui/graphics/GraphicsLayerScope$DefaultImpls 
 	public static fun roundToPx--R2X_6o (Landroidx/compose/ui/graphics/GraphicsLayerScope;J)I
 	public static fun roundToPx-0680j_4 (Landroidx/compose/ui/graphics/GraphicsLayerScope;F)I
 	public static fun setAmbientShadowColor-8_81llA (Landroidx/compose/ui/graphics/GraphicsLayerScope;J)V
+	public static fun setBlendMode-s9anfk8 (Landroidx/compose/ui/graphics/GraphicsLayerScope;I)V
+	public static fun setColorFilter (Landroidx/compose/ui/graphics/GraphicsLayerScope;Landroidx/compose/ui/graphics/ColorFilter;)V
 	public static fun setCompositingStrategy-aDBOjCE (Landroidx/compose/ui/graphics/GraphicsLayerScope;I)V
 	public static fun setRenderEffect (Landroidx/compose/ui/graphics/GraphicsLayerScope;Landroidx/compose/ui/graphics/RenderEffect;)V
 	public static fun setSpotShadowColor-8_81llA (Landroidx/compose/ui/graphics/GraphicsLayerScope;J)V
@@ -1430,6 +1448,7 @@ public final class androidx/compose/ui/hapticfeedback/HapticFeedbackType$Compani
 	public final fun getContextClick-5zf0vsI ()I
 	public final fun getGestureEnd-5zf0vsI ()I
 	public final fun getGestureThresholdActivate-5zf0vsI ()I
+	public final fun getKeyboardTap-5zf0vsI ()I
 	public final fun getLongPress-5zf0vsI ()I
 	public final fun getReject-5zf0vsI ()I
 	public final fun getSegmentFrequentTick-5zf0vsI ()I
@@ -1462,6 +1481,44 @@ public final class androidx/compose/ui/input/InputMode$Companion {
 public abstract interface class androidx/compose/ui/input/InputModeManager {
 	public abstract fun getInputMode-aOaMEAU ()I
 	public abstract fun requestInputMode-iuPiT84 (I)Z
+}
+
+public final class androidx/compose/ui/input/indirect/IndirectTouchEvent {
+	public static final field $stable I
+	public synthetic fun <init> (JJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getEventTimeMillis ()J
+	public final fun getPosition-F1C5BW0 ()J
+	public final fun getType-LxEHWp8 ()I
+}
+
+public final class androidx/compose/ui/input/indirect/IndirectTouchEventType {
+	public static final field Companion Landroidx/compose/ui/input/indirect/IndirectTouchEventType$Companion;
+	public static final synthetic fun box-impl (I)Landroidx/compose/ui/input/indirect/IndirectTouchEventType;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class androidx/compose/ui/input/indirect/IndirectTouchEventType$Companion {
+	public final fun getMove-LxEHWp8 ()I
+	public final fun getPress-LxEHWp8 ()I
+	public final fun getRelease-LxEHWp8 ()I
+	public final fun getUnknown-LxEHWp8 ()I
+}
+
+public final class androidx/compose/ui/input/indirect/IndirectTouchInputModifierKt {
+	public static final fun onIndirectTouchEvent (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+	public static final fun onPreIndirectTouchEvent (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+}
+
+public abstract interface class androidx/compose/ui/input/indirect/IndirectTouchInputModifierNode : androidx/compose/ui/node/DelegatableNode {
+	public abstract fun onIndirectTouchEvent (Landroidx/compose/ui/input/indirect/IndirectTouchEvent;)Z
+	public abstract fun onPreIndirectTouchEvent (Landroidx/compose/ui/input/indirect/IndirectTouchEvent;)Z
 }
 
 public final class androidx/compose/ui/input/key/Key {
@@ -2940,12 +2997,21 @@ public final class androidx/compose/ui/layout/SubcomposeLayoutState {
 	public fun <init> ()V
 	public fun <init> (I)V
 	public fun <init> (Landroidx/compose/ui/layout/SubcomposeSlotReusePolicy;)V
+	public final fun createPausedPrecomposition (Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Landroidx/compose/ui/layout/SubcomposeLayoutState$PausedPrecomposition;
 	public final fun precompose (Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Landroidx/compose/ui/layout/SubcomposeLayoutState$PrecomposedSlotHandle;
+}
+
+public abstract interface class androidx/compose/ui/layout/SubcomposeLayoutState$PausedPrecomposition {
+	public abstract fun apply ()Landroidx/compose/ui/layout/SubcomposeLayoutState$PrecomposedSlotHandle;
+	public abstract fun cancel ()V
+	public abstract fun isComplete ()Z
+	public abstract fun resume (Landroidx/compose/runtime/ShouldPauseCallback;)Z
 }
 
 public abstract interface class androidx/compose/ui/layout/SubcomposeLayoutState$PrecomposedSlotHandle {
 	public abstract fun dispose ()V
 	public fun getPlaceablesCount ()I
+	public fun getSize-YEO4UFw (I)J
 	public fun premeasure-0kLqBqw (IJ)V
 	public fun traverseDescendants (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
 }
@@ -2967,7 +3033,9 @@ public final class androidx/compose/ui/layout/SubcomposeSlotReusePolicy$SlotIdsS
 	public final fun clear ()V
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
+	public final fun fastForEach (Lkotlin/jvm/functions/Function1;)V
 	public final fun forEach (Lkotlin/jvm/functions/Function1;)V
+	public final fun getSet ()Landroidx/collection/MutableOrderedScatterSet;
 	public fun getSize ()I
 	public fun isEmpty ()Z
 	public fun iterator ()Ljava/util/Iterator;
@@ -3255,8 +3323,14 @@ public abstract interface class androidx/compose/ui/node/RootForTest {
 	public abstract fun getSemanticsOwner ()Landroidx/compose/ui/semantics/SemanticsOwner;
 	public abstract fun getTextInputService ()Landroidx/compose/ui/text/input/TextInputService;
 	public fun measureAndLayoutForTest ()V
+	public fun sendIndirectTouchEvent (Landroidx/compose/ui/input/indirect/IndirectTouchEvent;)Z
 	public abstract fun sendKeyEvent-ZmokQxo (Ljava/lang/Object;)Z
 	public fun setAccessibilityEventBatchIntervalMillis (J)V
+	public fun setUncaughtExceptionHandler (Landroidx/compose/ui/node/RootForTest$UncaughtExceptionHandler;)V
+}
+
+public abstract interface class androidx/compose/ui/node/RootForTest$UncaughtExceptionHandler {
+	public abstract fun onUncaughtException (Ljava/lang/Throwable;)V
 }
 
 public abstract interface class androidx/compose/ui/node/SemanticsModifierNode : androidx/compose/ui/node/DelegatableNode {
@@ -3585,7 +3659,6 @@ public abstract interface class androidx/compose/ui/platform/PlatformTextInputIn
 }
 
 public abstract interface class androidx/compose/ui/platform/PlatformTextInputMethodRequest {
-	public abstract fun getEditProcessor ()Landroidx/compose/ui/text/input/EditProcessor;
 	public abstract fun getEditText ()Lkotlin/jvm/functions/Function1;
 	public abstract fun getFocusedRectInRoot ()Lkotlinx/coroutines/flow/Flow;
 	public abstract fun getImeOptions ()Landroidx/compose/ui/text/input/ImeOptions;
@@ -4276,6 +4349,32 @@ public final class androidx/compose/ui/state/ToggleableStateKt {
 
 public final class androidx/compose/ui/text/TextMeasurerHelperKt {
 	public static final fun rememberTextMeasurer (ILandroidx/compose/runtime/Composer;II)Landroidx/compose/ui/text/TextMeasurer;
+}
+
+public final class androidx/compose/ui/ui/FrameRateCategory {
+	public static final field Companion Landroidx/compose/ui/ui/FrameRateCategory$Companion;
+	public static final synthetic fun box-impl (F)Landroidx/compose/ui/ui/FrameRateCategory;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (FLjava/lang/Object;)Z
+	public static final fun equals-impl0 (FF)Z
+	public final fun getValue ()F
+	public fun hashCode ()I
+	public static fun hashCode-impl (F)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (F)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()F
+}
+
+public final class androidx/compose/ui/ui/FrameRateCategory$Companion {
+	public final fun getDefault-EPUNCpU ()F
+	public final fun getHigh-EPUNCpU ()F
+	public final fun getNoPreference-EPUNCpU ()F
+	public final fun getNormal-EPUNCpU ()F
+}
+
+public final class androidx/compose/ui/ui/FrameRateKt {
+	public static final fun requestedFrameRate (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
+	public static final fun requestedFrameRate-HuZ4eWk (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
 }
 
 public abstract interface class androidx/compose/ui/window/ApplicationScope {

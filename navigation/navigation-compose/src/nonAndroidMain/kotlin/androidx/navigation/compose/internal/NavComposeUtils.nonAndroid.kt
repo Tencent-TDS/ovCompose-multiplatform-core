@@ -14,31 +14,63 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalComposeUiApi::class)
+
 package androidx.navigation.compose.internal
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-internal actual class BackEventCompat {
-    actual val touchX: Float = 0f
-    actual val touchY: Float = 0f
-    actual val progress: Float = 0f
-    actual val swipeEdge: Int = -1
-
-    init {
-        implementedInJetBrainsFork()
-    }
+internal actual object LocalViewModelStoreOwner {
+    actual val current: ViewModelStoreOwner?
+        @Composable get() = LocalViewModelStoreOwner.current ?: rememberViewModelStoreOwner()
 }
 
+private class ComposeViewModelStoreOwner: ViewModelStoreOwner {
+    override val viewModelStore: ViewModelStore = ViewModelStore()
+    fun dispose() { viewModelStore.clear() }
+}
+
+/**
+ * Return remembered [ViewModelStoreOwner] with the scope of current composable.
+ *
+ * TODO: Consider to move it to `lifecycle-viewmodel-compose` and upstream this to AOSP.
+ */
+@Composable
+private fun rememberViewModelStoreOwner(): ViewModelStoreOwner {
+    val viewModelStoreOwner = remember { ComposeViewModelStoreOwner() }
+    DisposableEffect(viewModelStoreOwner) {
+        onDispose { viewModelStoreOwner.dispose() }
+    }
+    return viewModelStoreOwner
+}
+
+internal actual class BackEventCompat(
+    actual val touchX: Float,
+    actual val touchY: Float,
+    actual val progress: Float,
+    actual val swipeEdge: Int
+)
+
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal actual fun PredictiveBackHandler(
     enabled: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 ) {
-    implementedInJetBrainsFork()
+    androidx.compose.ui.backhandler.PredictiveBackHandler(enabled) { progress ->
+        onBack(progress.map { BackEventCompat(it.touchX, it.touchY, it.progress, it.swipeEdge) })
+    }
 }
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -61,10 +93,4 @@ internal actual fun randomUUID(): String {
         append('-')
         append(bytes.toHexString(10))
     }
-}
-
-internal actual class WeakReference<T : Any> actual constructor(reference: T) {
-    actual fun get(): T? = implementedInJetBrainsFork()
-
-    actual fun clear(): Unit = implementedInJetBrainsFork()
 }

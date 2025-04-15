@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-package androidx.navigation.internal
+package androidx.navigation.compose.internal
 
-import java.util.concurrent.atomic.AtomicInteger
-
-internal actual class AtomicInt actual constructor(initial: Int) {
-    private val atomicInt: AtomicInteger = AtomicInteger(initial)
-
-    internal actual fun incrementAndGet(): Int {
-        return atomicInt.incrementAndGet()
-    }
-
-    internal actual fun decrementAndGet(): Int {
-        return atomicInt.decrementAndGet()
-    }
-
-    internal actual fun get(): Int {
-        return atomicInt.get()
-    }
+// TODO: https://youtrack.jetbrains.com/issue/CMP-1286
+internal actual class WeakReference<T : Any> actual constructor(reference: T) {
+    private var reference: T? = reference
+    actual fun get(): T? = reference
+    actual fun clear() { reference = null }
 }

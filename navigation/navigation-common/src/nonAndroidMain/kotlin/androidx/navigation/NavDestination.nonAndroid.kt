@@ -36,11 +36,11 @@ actual constructor(public actual val navigatorName: String) {
 
     private val impl = NavDestinationImpl(this)
 
-    public actual constructor(navigator: Navigator<out NavDestination>) : this("")
+    public actual constructor(navigator: Navigator<out NavDestination>) : this(navigator.name)
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual class DeepLinkMatch
-    actual constructor(
+    public actual constructor(
         public actual val destination: NavDestination,
         @get:Suppress("NullableCollection") // Needed for nullable savedState
         public actual val matchingArgs: SavedState?,
@@ -49,26 +49,7 @@ actual constructor(public actual val navigatorName: String) {
         private val hasMatchingAction: Boolean,
         private val mimeTypeMatchLevel: Int
     ) : Comparable<DeepLinkMatch> {
-        public actual fun hasMatchingArgs(arguments: SavedState?): Boolean {
-            if (arguments == null || matchingArgs == null) return false
-
-            matchingArgs
-                .read { toMap().keys }
-                .forEach { key ->
-                    // the arguments must at least contain every argument stored in this deep link
-                    if (!arguments.read { contains(key) }) return false
-
-                    val type = destination.arguments[key]?.type
-                    val matchingArgValue = type?.get(matchingArgs, key)
-                    val entryArgValue = type?.get(arguments, key)
-                    if (type?.valueEquals(matchingArgValue, entryArgValue) == false) {
-                        return false
-                    }
-                }
-            return true
-        }
-
-        override fun compareTo(other: DeepLinkMatch): Int {
+        public actual override fun compareTo(other: DeepLinkMatch): Int {
             // Prefer exact deep links
             if (isExactDeepLink && !other.isExactDeepLink) {
                 return 1
@@ -91,6 +72,25 @@ actual constructor(public actual val navigatorName: String) {
             }
             return 0
         }
+
+        public actual fun hasMatchingArgs(arguments: SavedState?): Boolean {
+            if (arguments == null || matchingArgs == null) return false
+
+            matchingArgs
+                .read { toMap().keys }
+                .forEach { key ->
+                    // the arguments must at least contain every argument stored in this deep link
+                    if (!arguments.read { contains(key) }) return false
+
+                    val type = destination.arguments[key]?.type
+                    val matchingArgValue = type?.get(matchingArgs, key)
+                    val entryArgValue = type?.get(arguments, key)
+                    if (type?.valueEquals(matchingArgValue, entryArgValue) == false) {
+                        return false
+                    }
+                }
+            return true
+        }
     }
 
     public actual var parent: NavGraph? = null
@@ -108,6 +108,8 @@ actual constructor(public actual val navigatorName: String) {
     public actual var route: String? by impl::route
 
     private var idName: String? by impl::idName
+
+    private val deepLinks by impl::deepLinks
 
     public actual open val displayName: String
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get() = idName ?: id.toString()
@@ -184,7 +186,55 @@ actual constructor(public actual val navigatorName: String) {
         return impl.addInDefaultArgs(args)
     }
 
+    public override fun toString(): String {
+        val sb = StringBuilder()
+        sb.append(this::class.simpleName)
+        if (!route.isNullOrBlank()) {
+            sb.append(" route=")
+            sb.append(route)
+        }
+        if (label != null) {
+            sb.append(" label=")
+            sb.append(label)
+        }
+        return sb.toString()
+    }
+
+    public override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is NavDestination) return false
+
+        val equalDeepLinks = deepLinks == other.deepLinks
+
+        val equalArguments =
+            impl.arguments.size == other.impl.arguments.size &&
+                impl.arguments.asSequence().all {
+                    other.impl.arguments.containsKey(it.key) && other.impl.arguments[it.key] == it.value
+                }
+
+        return id == other.id &&
+            route == other.route &&
+            equalDeepLinks &&
+            equalArguments
+    }
+
+    public override fun hashCode(): Int {
+        var result = id
+        result = 31 * result + route.hashCode()
+        deepLinks.forEach {
+            result = 31 * result + it.uriPattern.hashCode()
+            result = 31 * result + it.action.hashCode()
+            result = 31 * result + it.mimeType.hashCode()
+        }
+        impl.arguments.keys.forEach {
+            result = 31 * result + it.hashCode()
+            result = 31 * result + impl.arguments[it].hashCode()
+        }
+        return result
+    }
+
     public actual companion object {
+        @JvmStatic
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         public actual fun getDisplayName(context: NavContext, id: Int): String {
             return context.getResourceName(id)

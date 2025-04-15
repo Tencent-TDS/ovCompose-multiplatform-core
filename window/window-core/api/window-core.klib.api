@@ -38,11 +38,11 @@ final class androidx.window.core.layout/WindowSizeClass { // androidx.window.cor
     final val windowWidthSizeClass // androidx.window.core.layout/WindowSizeClass.windowWidthSizeClass|{}windowWidthSizeClass[0]
         final fun <get-windowWidthSizeClass>(): androidx.window.core.layout/WindowWidthSizeClass // androidx.window.core.layout/WindowSizeClass.windowWidthSizeClass.<get-windowWidthSizeClass>|<get-windowWidthSizeClass>(){}[0]
 
-    final fun containsHeightDp(kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.containsHeightDp|containsHeightDp(kotlin.Int){}[0]
-    final fun containsWidthDp(kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.containsWidthDp|containsWidthDp(kotlin.Int){}[0]
-    final fun containsWindowSizeDp(kotlin/Int, kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.containsWindowSizeDp|containsWindowSizeDp(kotlin.Int;kotlin.Int){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.hashCode|hashCode(){}[0]
+    final fun isAtLeastBreakpoint(kotlin/Int, kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.isAtLeastBreakpoint|isAtLeastBreakpoint(kotlin.Int;kotlin.Int){}[0]
+    final fun isHeightAtLeastBreakpoint(kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.isHeightAtLeastBreakpoint|isHeightAtLeastBreakpoint(kotlin.Int){}[0]
+    final fun isWidthAtLeastBreakpoint(kotlin/Int): kotlin/Boolean // androidx.window.core.layout/WindowSizeClass.isWidthAtLeastBreakpoint|isWidthAtLeastBreakpoint(kotlin.Int){}[0]
     final fun toString(): kotlin/String // androidx.window.core.layout/WindowSizeClass.toString|toString(){}[0]
 
     final object Companion { // androidx.window.core.layout/WindowSizeClass.Companion|null[0]
@@ -52,11 +52,17 @@ final class androidx.window.core.layout/WindowSizeClass { // androidx.window.cor
             final fun <get-HEIGHT_DP_MEDIUM_LOWER_BOUND>(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LOWER_BOUND.<get-HEIGHT_DP_MEDIUM_LOWER_BOUND>|<get-HEIGHT_DP_MEDIUM_LOWER_BOUND>(){}[0]
         final const val WIDTH_DP_EXPANDED_LOWER_BOUND // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_EXPANDED_LOWER_BOUND|{}WIDTH_DP_EXPANDED_LOWER_BOUND[0]
             final fun <get-WIDTH_DP_EXPANDED_LOWER_BOUND>(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_EXPANDED_LOWER_BOUND.<get-WIDTH_DP_EXPANDED_LOWER_BOUND>|<get-WIDTH_DP_EXPANDED_LOWER_BOUND>(){}[0]
+        final const val WIDTH_DP_EXTRA_LARGE_LOWER_BOUND // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_EXTRA_LARGE_LOWER_BOUND|{}WIDTH_DP_EXTRA_LARGE_LOWER_BOUND[0]
+            final fun <get-WIDTH_DP_EXTRA_LARGE_LOWER_BOUND>(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_EXTRA_LARGE_LOWER_BOUND.<get-WIDTH_DP_EXTRA_LARGE_LOWER_BOUND>|<get-WIDTH_DP_EXTRA_LARGE_LOWER_BOUND>(){}[0]
+        final const val WIDTH_DP_LARGE_LOWER_BOUND // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_LARGE_LOWER_BOUND|{}WIDTH_DP_LARGE_LOWER_BOUND[0]
+            final fun <get-WIDTH_DP_LARGE_LOWER_BOUND>(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_LARGE_LOWER_BOUND.<get-WIDTH_DP_LARGE_LOWER_BOUND>|<get-WIDTH_DP_LARGE_LOWER_BOUND>(){}[0]
         final const val WIDTH_DP_MEDIUM_LOWER_BOUND // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_MEDIUM_LOWER_BOUND|{}WIDTH_DP_MEDIUM_LOWER_BOUND[0]
             final fun <get-WIDTH_DP_MEDIUM_LOWER_BOUND>(): kotlin/Int // androidx.window.core.layout/WindowSizeClass.Companion.WIDTH_DP_MEDIUM_LOWER_BOUND.<get-WIDTH_DP_MEDIUM_LOWER_BOUND>|<get-WIDTH_DP_MEDIUM_LOWER_BOUND>(){}[0]
 
         final val BREAKPOINTS_V1 // androidx.window.core.layout/WindowSizeClass.Companion.BREAKPOINTS_V1|{}BREAKPOINTS_V1[0]
             final fun <get-BREAKPOINTS_V1>(): kotlin.collections/Set<androidx.window.core.layout/WindowSizeClass> // androidx.window.core.layout/WindowSizeClass.Companion.BREAKPOINTS_V1.<get-BREAKPOINTS_V1>|<get-BREAKPOINTS_V1>(){}[0]
+        final val BREAKPOINTS_V2 // androidx.window.core.layout/WindowSizeClass.Companion.BREAKPOINTS_V2|{}BREAKPOINTS_V2[0]
+            final fun <get-BREAKPOINTS_V2>(): kotlin.collections/Set<androidx.window.core.layout/WindowSizeClass> // androidx.window.core.layout/WindowSizeClass.Companion.BREAKPOINTS_V2.<get-BREAKPOINTS_V2>|<get-BREAKPOINTS_V2>(){}[0]
 
         final fun compute(kotlin/Float, kotlin/Float): androidx.window.core.layout/WindowSizeClass // androidx.window.core.layout/WindowSizeClass.Companion.compute|compute(kotlin.Float;kotlin.Float){}[0]
     }

@@ -121,6 +121,11 @@ abstract interface androidx.compose.foundation.layout/PaddingValues { // android
         final fun hashCode(): kotlin/Int // androidx.compose.foundation.layout/PaddingValues.Absolute.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // androidx.compose.foundation.layout/PaddingValues.Absolute.toString|toString(){}[0]
     }
+
+    final object Companion { // androidx.compose.foundation.layout/PaddingValues.Companion|null[0]
+        final val Zero // androidx.compose.foundation.layout/PaddingValues.Companion.Zero|{}Zero[0]
+            final fun <get-Zero>(): androidx.compose.foundation.layout/PaddingValues // androidx.compose.foundation.layout/PaddingValues.Companion.Zero.<get-Zero>|<get-Zero>(){}[0]
+    }
 }
 
 abstract interface androidx.compose.foundation.layout/RowScope { // androidx.compose.foundation.layout/RowScope|null[0]
@@ -463,6 +468,7 @@ final fun androidx.compose.foundation.layout/PaddingValues(androidx.compose.ui.u
 final fun androidx.compose.foundation.layout/PaddingValues(androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ...): androidx.compose.foundation.layout/PaddingValues // androidx.compose.foundation.layout/PaddingValues|PaddingValues(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
 final fun androidx.compose.foundation.layout/PaddingValues(androidx.compose.ui.unit/Dp): androidx.compose.foundation.layout/PaddingValues // androidx.compose.foundation.layout/PaddingValues|PaddingValues(androidx.compose.ui.unit.Dp){}[0]
 final fun androidx.compose.foundation.layout/Spacer(androidx.compose.ui/Modifier, androidx.compose.runtime/Composer?, kotlin/Int) // androidx.compose.foundation.layout/Spacer|Spacer(androidx.compose.ui.Modifier;androidx.compose.runtime.Composer?;kotlin.Int){}[0]
+final fun androidx.compose.foundation.layout/WindowInsets(): androidx.compose.foundation.layout/WindowInsets // androidx.compose.foundation.layout/WindowInsets|WindowInsets(){}[0]
 final fun androidx.compose.foundation.layout/WindowInsets(androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ..., androidx.compose.ui.unit/Dp = ...): androidx.compose.foundation.layout/WindowInsets // androidx.compose.foundation.layout/WindowInsets|WindowInsets(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp){}[0]
 final fun androidx.compose.foundation.layout/WindowInsets(kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ...): androidx.compose.foundation.layout/WindowInsets // androidx.compose.foundation.layout/WindowInsets|WindowInsets(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
 final fun androidx.compose.foundation.layout/androidx_compose_foundation_layout_AlignmentLineProvider$stableprop_getter(): kotlin/Int // androidx.compose.foundation.layout/androidx_compose_foundation_layout_AlignmentLineProvider$stableprop_getter|androidx_compose_foundation_layout_AlignmentLineProvider$stableprop_getter(){}[0]

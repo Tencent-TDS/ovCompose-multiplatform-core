@@ -16,4 +16,7 @@
 
 package androidx.compose.foundation.text
 
-internal actual fun timeNowMillis(): Long = kotlin.system.getTimeMillis()
+import kotlin.time.TimeSource
+
+internal actual fun timeNowMillis(): Long =
+    TimeSource.Monotonic.markNow().elapsedNow().inWholeMilliseconds

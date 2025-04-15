@@ -81,6 +81,10 @@ internal class GraphicsLayerOwnerLayer(
     private var isInverseMatrixDirty = false
     private var isIdentity = true
 
+    // TODO: https://youtrack.jetbrains.com/issue/CMP-7802
+    override var frameRate: Float = 0f
+    override var isFrameRateFromParent = false
+
     override fun updateLayerProperties(scope: ReusableGraphicsLayerScope) {
         val maybeChangedFields = scope.mutatedFields or mutatedFields
         this.layoutDirection = scope.layoutDirection
@@ -233,6 +237,8 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun destroy() {
+        frameRate = 0f
+        isFrameRateFromParent = false
         drawBlock = null
         invalidateParentLayer = null
         isDestroyed = true

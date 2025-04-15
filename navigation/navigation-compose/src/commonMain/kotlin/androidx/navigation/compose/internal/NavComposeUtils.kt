@@ -16,8 +16,21 @@
 
 package androidx.navigation.compose.internal
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.navigation.NavBackStackEntry
 import kotlinx.coroutines.flow.Flow
+
+internal expect object LocalViewModelStoreOwner {
+    @get:Composable val current: ViewModelStoreOwner?
+}
 
 internal expect class BackEventCompat {
     val touchX: Float
@@ -34,13 +47,21 @@ internal expect fun PredictiveBackHandler(
 
 internal expect fun randomUUID(): String
 
-/**
- * Class WeakReference encapsulates weak reference to an object, which could be used to either
- * retrieve a strong reference to an object, or return null, if object was already destroyed by the
- * memory manager.
- */
-internal expect class WeakReference<T : Any>(reference: T) {
-    fun get(): T?
+internal expect object DefaultNavTransitions {
+    val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
+    val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+    val sizeTransform: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?
+}
 
-    fun clear()
+internal object StandardDefaultNavTransitions {
+    val enterTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        fadeIn(animationSpec = tween(700))
+    }
+    val exitTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        fadeOut(animationSpec = tween(700))
+    }
+    val sizeTransform:
+        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? = null
 }

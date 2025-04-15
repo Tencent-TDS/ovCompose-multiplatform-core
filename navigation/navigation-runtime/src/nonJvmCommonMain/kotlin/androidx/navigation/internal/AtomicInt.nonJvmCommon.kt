@@ -16,7 +16,11 @@
 
 package androidx.navigation.internal
 
-import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.atomicfu.atomic
 
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
-internal actual typealias AtomicInt = AtomicInteger
+internal actual class AtomicInt actual constructor(initial: Int) {
+    private val delegate = atomic(initial)
+    actual fun incrementAndGet(): Int = delegate.incrementAndGet()
+    actual fun decrementAndGet(): Int = delegate.decrementAndGet()
+    actual fun get(): Int = delegate.value
+}

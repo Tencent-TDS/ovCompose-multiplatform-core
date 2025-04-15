@@ -65,7 +65,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         )
         val newValue = editProcessor.apply(commands)
 
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             // Update text
             replace(0, length, newValue.text)
 
@@ -84,7 +84,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     }
 
     fun editText(block: TextEditingScope.() -> Unit) {
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             with(TextEditingScope(this)) {
                 block()
             }
@@ -105,13 +105,13 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
             focusedRectInRoot(
                 layoutResult = layoutResult,
-                layoutCoordinates = layoutCoords,
                 focusOffset = state.visualText.selection.max,
                 sizeForDefaultText = {
                     layoutResult.layoutInput.let {
                         computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
                     }
-                }
+                },
+                convertLocalToRoot = layoutCoords::localToRoot,
             )
         }.filterNotNull()
 
@@ -126,11 +126,10 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
                 value = { state.untransformedText.toTextFieldValue() },
-                state = state.untransformedText.asTextEditorState(),
+                state = state::untransformedText.asTextEditorState(),
                 imeOptions = imeOptions,
                 onEditCommand = ::onEditCommand,
                 onImeAction = onImeAction,
-                editProcessor = editProcessor,
                 outputValue = outputValueFlow,
                 textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
                 focusedRectInRoot = focusedRectInRootFlow,
@@ -146,22 +145,24 @@ private fun TextFieldCharSequence.toTextFieldValue() =
     TextFieldValue(toString(), selection, composition)
 
 @OptIn(ExperimentalComposeUiApi::class)
-private fun TextFieldCharSequence.asTextEditorState() = object : TextEditorState {
+private inline fun (() -> TextFieldCharSequence).asTextEditorState() = object : TextEditorState {
 
     override val length: Int
-        get() = this@asTextEditorState.length
+        get() = this@asTextEditorState().length
 
-    override fun get(index: Int): Char = this@asTextEditorState[index]
+    override fun get(index: Int): Char = this@asTextEditorState()[index]
 
     override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
-        return this@asTextEditorState.subSequence(startIndex, endIndex)
+        return this@asTextEditorState().subSequence(startIndex, endIndex)
     }
 
     override val selection: TextRange
-        get() = this@asTextEditorState.selection
+        get() = this@asTextEditorState().selection
 
     override val composition: TextRange?
-        get() = this@asTextEditorState.composition
+        get() = this@asTextEditorState().composition
+
+    override fun toString(): String = this@asTextEditorState().toString()
 
 }
 
@@ -244,13 +245,12 @@ private fun TextEditingScope(buffer: TextFieldBuffer) = object : TextEditingScop
 
 
 @OptIn(ExperimentalComposeUiApi::class)
-private data class SkikoPlatformTextInputMethodRequest(
+internal data class SkikoPlatformTextInputMethodRequest(
     override val value: () -> TextFieldValue,
     override val state: TextEditorState,
     override val imeOptions: ImeOptions,
     override val onEditCommand: (List<EditCommand>) -> Unit,
     override val onImeAction: ((ImeAction) -> Unit)?,
-    override val editProcessor: EditProcessor?,
     override val outputValue: Flow<TextFieldValue>,
     override val textLayoutResult: Flow<TextLayoutResult>,
     override val focusedRectInRoot: Flow<Rect>,

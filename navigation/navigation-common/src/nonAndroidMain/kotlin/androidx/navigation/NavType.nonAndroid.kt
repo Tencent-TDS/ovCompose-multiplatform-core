@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.savedstate.SavedState
-import androidx.savedstate.read
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 public actual abstract class NavType<T>
 actual constructor(public actual open val isNullableAllowed: Boolean) {
-
     public actual abstract fun put(bundle: SavedState, key: String, value: T)
 
     public actual abstract operator fun get(bundle: SavedState, key: String): T?
@@ -50,6 +48,10 @@ actual constructor(public actual open val isNullableAllowed: Boolean) {
 
     public actual open fun valueEquals(value: T, other: T): Boolean = value == other
 
+    public override fun toString(): String {
+        return name
+    }
+
     public actual companion object {
         @JvmStatic
         @Suppress("NON_FINAL_MEMBER_IN_OBJECT")
@@ -63,7 +65,7 @@ actual constructor(public actual open val isNullableAllowed: Boolean) {
                     StringType
                 }
 
-        @Suppress("UNCHECKED_CAST") // needed for cast to NavType<Any>
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @JvmStatic
         public actual fun inferFromValue(value: String): NavType<Any> = navTypeInferFromValue(value)
 

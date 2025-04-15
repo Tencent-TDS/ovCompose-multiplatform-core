@@ -88,6 +88,23 @@ class NavigatorProviderTest {
         assertThat(provider.getNavigator<EmptyNavigator>(EmptyNavigator.NAME)).isEqualTo(navigatorB)
     }
 
+    @Test
+    fun replaceNavigatorOfCommonTypeWhenGetByType() {
+        val provider = NavigatorProvider()
+        val navigatorA = EmptyNavigator()
+
+        class EmptyNavigator2 : EmptyNavigator()
+        val navigatorB = EmptyNavigator2()
+
+        assertThat(navigatorA).isNotEqualTo(navigatorB)
+
+        provider.addNavigator(navigatorA)
+        assertThat(provider[EmptyNavigator::class]).isEqualTo(navigatorA)
+
+        provider.addNavigator(navigatorB)
+        assertThat(provider[EmptyNavigator::class]).isEqualTo(navigatorB)
+    }
+
     private val provider = NavigatorProvider()
 
     @Test

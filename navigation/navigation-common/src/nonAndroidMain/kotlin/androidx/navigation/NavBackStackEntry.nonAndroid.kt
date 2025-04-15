@@ -31,6 +31,7 @@ import androidx.navigation.internal.NavContext
 import androidx.savedstate.SavedState
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.read
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.random.Random
@@ -119,7 +120,7 @@ private constructor(
     @get:MainThread
     public actual val savedStateHandle: SavedStateHandle by lazy { impl.savedStateHandle }
 
-    actual override val lifecycle: Lifecycle by impl::lifecycle
+    public actual override val lifecycle: Lifecycle by impl::lifecycle
 
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @set:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -141,16 +142,35 @@ private constructor(
 
     public actual override val viewModelStore: ViewModelStore by impl::viewModelStore
 
-    actual override val defaultViewModelProviderFactory: ViewModelProvider.Factory by
+    public actual override val defaultViewModelProviderFactory: ViewModelProvider.Factory by
         impl::defaultViewModelProviderFactory
 
-    actual override val defaultViewModelCreationExtras: CreationExtras by
+    public actual override val defaultViewModelCreationExtras: CreationExtras by
         impl::defaultViewModelCreationExtras
 
-    actual override val savedStateRegistry: SavedStateRegistry by impl::savedStateRegistry
+    public actual override val savedStateRegistry: SavedStateRegistry by impl::savedStateRegistry
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun saveState(outBundle: SavedState) {
         impl.saveState(outBundle)
+    }
+
+    @Suppress("DEPRECATION")
+    public override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + destination.hashCode()
+        immutableArgs?.read { result = 31 * result + contentDeepHashCode() }
+        result = 31 * result + lifecycle.hashCode()
+        result = 31 * result + savedStateRegistry.hashCode()
+        return result
+    }
+
+    public override fun toString(): String {
+        val sb = StringBuilder()
+        sb.append(this::class.simpleName)
+        sb.append("($id)")
+        sb.append(" destination=")
+        sb.append(destination)
+        return sb.toString()
     }
 }

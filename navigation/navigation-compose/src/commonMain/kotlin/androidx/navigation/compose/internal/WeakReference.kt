@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package androidx.navigation.internal
+package androidx.navigation.compose.internal
 
-internal expect class AtomicInt(initialValue: Int) {
-    fun incrementAndGet(): Int
-    fun decrementAndGet(): Int
-    fun get(): Int
+/**
+ * Class WeakReference encapsulates weak reference to an object, which could be used to either
+ * retrieve a strong reference to an object, or return null, if object was already destroyed by the
+ * memory manager.
+ */
+internal expect class WeakReference<T : Any>(reference: T) {
+    fun get(): T?
+
+    fun clear()
 }

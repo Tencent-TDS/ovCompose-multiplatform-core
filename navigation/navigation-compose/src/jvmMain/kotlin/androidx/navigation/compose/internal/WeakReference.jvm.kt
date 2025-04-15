@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.navigation.internal
+package androidx.navigation.compose.internal
 
-import androidx.navigation.implementedInJetBrainsFork
-
-internal actual class AtomicInt actual constructor(initial: Int) {
-    actual fun incrementAndGet(): Int = implementedInJetBrainsFork()
-
-    actual fun decrementAndGet(): Int = implementedInJetBrainsFork()
-
-    actual fun get(): Int = implementedInJetBrainsFork()
+internal actual class WeakReference<T : Any> actual constructor(reference: T) {
+    private val javaReference = java.lang.ref.WeakReference(reference)
+    actual fun get(): T? = javaReference.get()
+    actual fun clear() { javaReference.clear() }
 }
