@@ -28,6 +28,10 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import kotlinx.coroutines.flow.Flow
 
+internal expect object LocalViewModelStoreOwner {
+    @get:Composable val current: ViewModelStoreOwner?
+}
+
 internal expect class BackEventCompat {
     val touchX: Float
     val touchY: Float

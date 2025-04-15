@@ -18,8 +18,12 @@ package androidx.navigation.compose.internal
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModelStoreOwner
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+
+internal actual typealias LocalViewModelStoreOwner =
+    androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 
 internal actual typealias BackEventCompat = androidx.activity.BackEventCompat
 
