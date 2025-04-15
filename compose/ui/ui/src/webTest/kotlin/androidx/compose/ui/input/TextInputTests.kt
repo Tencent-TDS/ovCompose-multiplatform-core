@@ -46,6 +46,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.css.ElementCSSInlineStyle
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
 import org.w3c.dom.events.Event
@@ -97,6 +98,28 @@ class TextInputTests : OnCanvasTests {
 
         return inputInteractor
     }
+
+    @Test
+    fun positionInput() = runTest {
+        val textInputChannel = createTextFieldWithChannel()
+        yield()
+
+        textInputChannel.sendToHtmlInput(keyEvent("L"),)
+
+        val documentRoot = document.documentElement as ElementCSSInlineStyle
+
+        var boundingRect = textInputChannel.htmlInput.getBoundingClientRect()
+        assertEquals(0.0, boundingRect.left)
+        assertEquals(0.0, boundingRect.top)
+
+        documentRoot.style.setProperty("--compose-internal-web-backing-input-left", "100")
+        documentRoot.style.setProperty("--compose-internal-web-backing-input-top", "220")
+
+        boundingRect = textInputChannel.htmlInput.getBoundingClientRect()
+        assertEquals(100.0, boundingRect.left)
+        assertEquals(220.0, boundingRect.top)
+    }
+
 
     @Test
     fun regularInput() = runTest {
