@@ -155,7 +155,6 @@ class TextInputTests : OnCanvasTests {
         assertEquals("啊x", textInputChannel.receive())
     }
 
-    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7978
     @Test
     fun compositeInputWebkit() = runTest {
         val textInputChannel = createTextFieldWithChannel()
