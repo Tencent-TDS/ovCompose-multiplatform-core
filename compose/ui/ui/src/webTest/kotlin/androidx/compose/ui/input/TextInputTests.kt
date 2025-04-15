@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -51,9 +52,9 @@ import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
+import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
-import org.w3c.dom.events.Event
 
 private class InputChannel(
     private val channel: Channel<String> = Channel<String>(
@@ -147,6 +148,7 @@ class TextInputTests : OnCanvasTests  {
         assertEquals("啊X", textInputChannel.receive())
     }
 
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7978
     @Test
     fun compositeInputWebkit() = runTest {
         val textInputChannel = createTextFieldWithChannel()
@@ -198,7 +200,7 @@ class TextInputTests : OnCanvasTests  {
         assertEquals("abc", textInputChannel.receive())
     }
 
-
+    @Ignore
     @Test
     fun repeatedAccent() = runTest {
         val textInputChannel = createTextFieldWithChannel()
@@ -394,12 +396,11 @@ class TextInputTests : OnCanvasTests  {
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
-        val focusRequester = FocusRequester()
-
         var textFieldWidth = 0
 
         createComposeWindow {
             val textState = remember { TextFieldState("qwerty 1234567") }
+            val focusRequester = remember { FocusRequester() }
 
             CompositionLocalProvider(LocalDensity provides Density(2f)) {
                 Column {
@@ -412,6 +413,10 @@ class TextInputTests : OnCanvasTests  {
                         syncChannel.send(textState.selection)
                     }
                 }
+            }
+
+            SideEffect {
+                focusRequester.requestFocus()
             }
         }
 

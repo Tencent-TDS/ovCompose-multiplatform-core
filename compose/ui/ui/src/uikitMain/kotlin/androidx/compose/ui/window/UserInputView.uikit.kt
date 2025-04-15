@@ -454,7 +454,8 @@ private class ScrollGestureRecognizer(
     }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent) {
-        // Do nothing. No need to handle touches for scroll gesture
+        // Gesture recognizer only works with the trackpad. All touches should be cancelled.
+        setState(UIGestureRecognizerStateFailed)
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent) {
