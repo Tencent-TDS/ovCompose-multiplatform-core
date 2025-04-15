@@ -23,6 +23,7 @@ final fun androidx.compose.ui.util/lerp(kotlin/Int, kotlin/Int, kotlin/Float): k
 final fun androidx.compose.ui.util/lerp(kotlin/Long, kotlin/Long, kotlin/Float): kotlin/Long // androidx.compose.ui.util/lerp|lerp(kotlin.Long;kotlin.Long;kotlin.Float){}[0]
 final fun androidx.compose.ui.util/throwNoSuchElementException(kotlin/String): kotlin/Nothing // androidx.compose.ui.util/throwNoSuchElementException|throwNoSuchElementException(kotlin.String){}[0]
 final fun androidx.compose.ui.util/throwUnsupportedOperationException(kotlin/String) // androidx.compose.ui.util/throwUnsupportedOperationException|throwUnsupportedOperationException(kotlin.String){}[0]
+final fun androidx.compose.ui.util/traceValue(kotlin/String, kotlin/Long) // androidx.compose.ui.util/traceValue|traceValue(kotlin.String;kotlin.Long){}[0]
 final inline fun (kotlin/Double).androidx.compose.ui.util/fastCoerceAtLeast(kotlin/Double): kotlin/Double // androidx.compose.ui.util/fastCoerceAtLeast|fastCoerceAtLeast@kotlin.Double(kotlin.Double){}[0]
 final inline fun (kotlin/Double).androidx.compose.ui.util/fastCoerceAtMost(kotlin/Double): kotlin/Double // androidx.compose.ui.util/fastCoerceAtMost|fastCoerceAtMost@kotlin.Double(kotlin.Double){}[0]
 final inline fun (kotlin/Double).androidx.compose.ui.util/fastCoerceIn(kotlin/Double, kotlin/Double): kotlin/Double // androidx.compose.ui.util/fastCoerceIn|fastCoerceIn@kotlin.Double(kotlin.Double;kotlin.Double){}[0]

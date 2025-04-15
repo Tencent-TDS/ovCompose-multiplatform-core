@@ -83,5 +83,6 @@ public final class androidx/compose/ui/util/MathHelpersKt {
 
 public final class androidx/compose/ui/util/Trace_jbKt {
 	public static final fun trace (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final fun traceValue (Ljava/lang/String;J)V
 }
 
