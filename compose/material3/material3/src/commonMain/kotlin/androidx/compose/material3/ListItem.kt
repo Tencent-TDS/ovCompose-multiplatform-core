@@ -412,7 +412,6 @@ private class ListItemMeasurePolicy : MultiContentMeasurePolicy {
                 height
             } ?: 0
         val overlineHeight = overlineMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
-        val headlineHeight = headlineMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
         val supportingHeight =
             supportingMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
         val isSupportingMultiline = isSupportingMultilineHeuristic(supportingHeight)
@@ -426,7 +425,7 @@ private class ListItemMeasurePolicy : MultiContentMeasurePolicy {
         return calculateHeight(
             leadingHeight = leadingHeight,
             trailingHeight = trailingHeight,
-            headlineHeight = headlineHeight,
+            headlineHeight = headlineMeasurable.firstOrNull()?.intrinsicMeasure(width) ?: 0,
             overlineHeight = overlineHeight,
             supportingHeight = supportingHeight,
             listItemType = listItemType,

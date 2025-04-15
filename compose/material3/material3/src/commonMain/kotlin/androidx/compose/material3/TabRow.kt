@@ -68,7 +68,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFold
 import androidx.compose.ui.util.fastForEach
@@ -920,12 +919,7 @@ internal class TabIndicatorOffsetNode(
             initialOffset = indicatorOffset
         }
 
-        val offset =
-            if (layoutDirection == LayoutDirection.Ltr) {
-                offsetAnimatable?.value ?: indicatorOffset
-            } else {
-                -(offsetAnimatable?.value ?: indicatorOffset)
-            }
+        val offset = offsetAnimatable?.value ?: indicatorOffset
 
         val width = widthAnimatable?.value ?: currentTabWidth
 
