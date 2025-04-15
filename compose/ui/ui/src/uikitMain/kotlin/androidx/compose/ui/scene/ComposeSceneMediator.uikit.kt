@@ -284,7 +284,8 @@ internal class ComposeSceneMediator(
         ::onScrollEvent,
         ::onCancelScroll,
         ::onHoverEvent,
-        ::onKeyboardPresses
+        ::onKeyboardPresses,
+        backGestureDispatcher::isBackGestureActive
     )
 
     /**
