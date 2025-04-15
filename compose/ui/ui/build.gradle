@@ -347,6 +347,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             configureEach {
                 languageSettings.optIn("androidx.compose.ui.ExperimentalComposeUiApi")
                 languageSettings.optIn("androidx.compose.ui.InternalComposeUiApi")
+                languageSettings.optIn("kotlinx.cinterop.BetaInteropApi") // TODO: apply to iOS only
             }
         }
     }

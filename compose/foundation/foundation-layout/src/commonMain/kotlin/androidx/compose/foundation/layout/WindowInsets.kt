@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlin.js.JsName
 
 /**
  * A representation of window insets that tracks access to enable recomposition, relayout, and
@@ -236,6 +237,7 @@ fun WindowInsets.asPaddingValues(density: Density): PaddingValues =
 internal fun PaddingValues.asInsets(): WindowInsets = PaddingValuesInsets(this)
 
 /** Create a [WindowInsets] with fixed dimensions of 0 on all sides. */
+@JsName("makeEmptyWindowInsets")
 fun WindowInsets(): WindowInsets = EmptyWindowInsets
 
 /**
