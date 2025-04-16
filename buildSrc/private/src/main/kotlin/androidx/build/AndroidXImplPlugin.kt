@@ -470,15 +470,8 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
         val defaultJvmTarget = defaultJavaTargetVersion.map { JvmTarget.fromTarget(it) }
         if (plugin is KotlinMultiplatformPluginWrapper) {
             project.extensions.getByType<KotlinMultiplatformExtension>().apply {
-                targets.withType<KotlinMultiplatformAndroidLibraryTarget>().configureEach { t ->
-                    t.compilations.configureEach {
-                        @Suppress("Deprecation") // Deprecated-replacement-not-yet-ready b/379315244
-                        it.compilerOptions.options.jvmTarget.set(defaultJvmTarget)
-                        // it.compileTaskProvider.configure { it.compilerOptions.jvmTarget.set(JT) }
-                    }
-                }
-                targets.withType<KotlinAndroidTarget>().configureEach { target ->
-                    target.compilations.configureEach {
+                targets.withType<KotlinAndroidTarget> {
+                    compilations.configureEach {
                         it.compileTaskProvider.configure { task ->
                             task.compilerOptions.jvmTarget.set(defaultJvmTarget)
                         }
