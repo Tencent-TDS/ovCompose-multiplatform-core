@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxOfOrNull
-import androidx.wear.compose.foundation.HierarchicalFocusCoordinator
-import androidx.wear.compose.foundation.rememberActiveFocusRequester
+import androidx.wear.compose.foundation.hierarchicalFocus
+import androidx.wear.compose.foundation.hierarchicalFocusRequester
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 
@@ -102,10 +102,6 @@ public fun PickerGroup(
             ),
         propagateMinConstraints = propagateMinConstraints
     ) {
-        // When no Picker is selected, provide an empty composable as a placeholder
-        // and tell the HierarchicalFocusCoordinator to clear the focus.
-        HierarchicalFocusCoordinator(requiresFocus = { selectedPickerState == null }) {}
-
         with(scope) {
             autoCenteringEnabled = autoCenter
             content()
@@ -129,6 +125,7 @@ public class PickerGroupScope {
      *   by remember { derivedStateOf { /* expression using state.selectedOption */ } }.
      * @param focusRequester Optional [FocusRequester] for the [Picker]. If not provided, a local
      *   instance of [FocusRequester] will be created to handle the focus between different pickers.
+     *   If it is provided, the caller is responsible for handling the focus.
      * @param verticalSpacing The amount of vertical spacing in [Dp] between items. Can be negative,
      *   which can be useful for Text if it has plenty of whitespace.
      * @param readOnlyLabel A slot for providing a label, displayed above the selected option when
@@ -151,50 +148,53 @@ public class PickerGroupScope {
     ) {
         val touchExplorationServicesEnabled by
             LocalTouchExplorationStateProvider.current.touchExplorationState()
-        val pickerFocusRequester = focusRequester ?: rememberActiveFocusRequester()
 
-        HierarchicalFocusCoordinator(requiresFocus = { selected }) {
-            Picker(
-                state = pickerState,
-                contentDescription = contentDescription,
-                readOnly = !selected,
-                modifier =
-                    modifier
-                        .then(
-                            // If auto center is enabled, apply auto centering modifier on
-                            // selected picker to center it.
-                            if (selected && autoCenteringEnabled) Modifier.autoCenteringTarget()
-                            else Modifier
-                        )
-                        // Do not need focusable as it's already set in ScalingLazyColumn
-                        .focusRequester(pickerFocusRequester),
-                readOnlyLabel = readOnlyLabel,
-                onSelected = onSelected,
-                verticalSpacing = verticalSpacing,
-                userScrollEnabled = !touchExplorationServicesEnabled || selected,
-                option = { optionIndex ->
-                    Box(
-                        if (touchExplorationServicesEnabled || selected) {
-                            Modifier
-                        } else
-                            Modifier.pointerInput(Unit) {
-                                coroutineScope {
-                                    // Keep looking for touch events on the picker if it is
-                                    // not selected
-                                    while (true) {
-                                        awaitEachGesture {
-                                            awaitFirstDown(requireUnconsumed = false)
-                                            onSelected()
-                                        }
+        Picker(
+            state = pickerState,
+            contentDescription = contentDescription,
+            readOnly = !selected,
+            modifier =
+                modifier
+                    .then(
+                        // If auto center is enabled, apply auto centering modifier on
+                        // selected picker to center it.
+                        if (selected && autoCenteringEnabled) Modifier.autoCenteringTarget()
+                        else Modifier
+                    )
+                    .hierarchicalFocus(focusEnabled = selected)
+                    .then(
+                        // If the user provided a focus requester, we add it here, otherwise,
+                        // we take care of focus using the HFC.
+                        focusRequester?.let { Modifier.focusRequester(it) }
+                            ?: Modifier.hierarchicalFocusRequester()
+                    ),
+            // Do not need focusable as it's already set in ScalingLazyColumn
+            readOnlyLabel = readOnlyLabel,
+            onSelected = onSelected,
+            verticalSpacing = verticalSpacing,
+            userScrollEnabled = !touchExplorationServicesEnabled || selected,
+            option = { optionIndex ->
+                Box(
+                    if (touchExplorationServicesEnabled || selected) {
+                        Modifier
+                    } else
+                        Modifier.pointerInput(Unit) {
+                            coroutineScope {
+                                // Keep looking for touch events on the picker if it is
+                                // not selected
+                                while (true) {
+                                    awaitEachGesture {
+                                        awaitFirstDown(requireUnconsumed = false)
+                                        onSelected()
                                     }
                                 }
                             }
-                    ) {
-                        option(optionIndex, selected)
-                    }
+                        }
+                ) {
+                    option(optionIndex, selected)
                 }
-            )
-        }
+            }
+        )
     }
 
     internal var autoCenteringEnabled by mutableStateOf(false)

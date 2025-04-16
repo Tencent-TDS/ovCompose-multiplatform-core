@@ -71,7 +71,12 @@ fun calculatePaneScaffoldDirective(
     val verticalPartitionSpacerSize: Dp
 
     // TODO(conradchen): Confirm the table top mode settings
-    if (windowAdaptiveInfo.windowPosture.isTabletop) {
+    if (
+        windowAdaptiveInfo.windowPosture.isTabletop ||
+            (maxHorizontalPartitions == 1 &&
+                windowAdaptiveInfo.windowSizeClass.windowHeightSizeClass ==
+                    androidx.window.core.layout.WindowHeightSizeClass.EXPANDED)
+    ) {
         maxVerticalPartitions = 2
         verticalPartitionSpacerSize = 24.dp
     } else {
@@ -123,6 +128,7 @@ fun calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
     val isMediumWidth =
         windowAdaptiveInfo.windowSizeClass.windowWidthSizeClass ==
             androidx.window.core.layout.WindowWidthSizeClass.MEDIUM
+    val isTableTop = windowAdaptiveInfo.windowPosture.isTabletop
     return with(calculatePaneScaffoldDirective(windowAdaptiveInfo, verticalHingePolicy)) {
         copy(
             maxHorizontalPartitions = if (isMediumWidth) 2 else maxHorizontalPartitions,
@@ -131,7 +137,10 @@ fun calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
                     24.dp
                 } else {
                     horizontalPartitionSpacerSize
-                }
+                },
+            maxVerticalPartitions = if (isMediumWidth && !isTableTop) 1 else maxVerticalPartitions,
+            verticalPartitionSpacerSize =
+                if (isMediumWidth && !isTableTop) 0.dp else verticalPartitionSpacerSize
         )
     }
 }

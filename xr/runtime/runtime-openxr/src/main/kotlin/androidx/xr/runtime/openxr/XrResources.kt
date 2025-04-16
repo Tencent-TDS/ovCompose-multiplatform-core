@@ -38,8 +38,6 @@ internal class XrResources {
     init {
         this.leftHand = OpenXrHand(isLeftHand = true)
         this.rightHand = OpenXrHand(isLeftHand = false)
-        _updatables.add(this.leftHand)
-        _updatables.add(this.rightHand)
     }
 
     internal fun addTrackable(trackableId: Long, trackable: Trackable) {

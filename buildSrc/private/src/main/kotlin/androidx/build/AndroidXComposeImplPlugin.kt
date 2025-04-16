@@ -92,6 +92,12 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                     if (path.startsWith(":wear:")) {
                         disable.add("ConfigurationScreenWidthHeight")
                     }
+
+                    // These checks are not required for samples projects.
+                    if (androidXExtension.type == SoftwareType.SAMPLES) {
+                        disable.add("ListIterator")
+                        disable.add("PrimitiveInCollection")
+                    }
                 }
             }
 

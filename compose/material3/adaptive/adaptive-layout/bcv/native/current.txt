@@ -179,6 +179,9 @@ sealed interface androidx.compose.material3.adaptive.layout/PaneScaffoldParentDa
 }
 
 sealed interface androidx.compose.material3.adaptive.layout/PaneScaffoldScope { // androidx.compose.material3.adaptive.layout/PaneScaffoldScope|null[0]
+    abstract val saveableStateHolder // androidx.compose.material3.adaptive.layout/PaneScaffoldScope.saveableStateHolder|{}saveableStateHolder[0]
+        abstract fun <get-saveableStateHolder>(): androidx.compose.runtime.saveable/SaveableStateHolder // androidx.compose.material3.adaptive.layout/PaneScaffoldScope.saveableStateHolder.<get-saveableStateHolder>|<get-saveableStateHolder>(){}[0]
+
     abstract fun (androidx.compose.ui/Modifier).paneExpansionDraggable(androidx.compose.material3.adaptive.layout/PaneExpansionState, androidx.compose.ui.unit/Dp, androidx.compose.foundation.interaction/MutableInteractionSource, kotlin/Function1<androidx.compose.ui.semantics/SemanticsPropertyReceiver, kotlin/Unit>): androidx.compose.ui/Modifier // androidx.compose.material3.adaptive.layout/PaneScaffoldScope.paneExpansionDraggable|paneExpansionDraggable@androidx.compose.ui.Modifier(androidx.compose.material3.adaptive.layout.PaneExpansionState;androidx.compose.ui.unit.Dp;androidx.compose.foundation.interaction.MutableInteractionSource;kotlin.Function1<androidx.compose.ui.semantics.SemanticsPropertyReceiver,kotlin.Unit>){}[0]
     abstract fun (androidx.compose.ui/Modifier).preferredHeight(androidx.compose.ui.unit/Dp): androidx.compose.ui/Modifier // androidx.compose.material3.adaptive.layout/PaneScaffoldScope.preferredHeight|preferredHeight@androidx.compose.ui.Modifier(androidx.compose.ui.unit.Dp){}[0]
     abstract fun (androidx.compose.ui/Modifier).preferredWidth(androidx.compose.ui.unit/Dp): androidx.compose.ui/Modifier // androidx.compose.material3.adaptive.layout/PaneScaffoldScope.preferredWidth|preferredWidth@androidx.compose.ui.Modifier(androidx.compose.ui.unit.Dp){}[0]

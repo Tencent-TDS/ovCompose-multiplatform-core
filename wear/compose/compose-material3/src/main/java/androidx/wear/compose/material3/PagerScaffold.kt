@@ -28,8 +28,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,11 +38,12 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.lerp
-import androidx.wear.compose.foundation.ActiveFocusListener
 import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.ScrollInfoProvider
+import androidx.wear.compose.foundation.hierarchicalFocus
 import androidx.wear.compose.foundation.pager.PagerDefaults
 import androidx.wear.compose.foundation.pager.PagerState
+import androidx.wear.compose.material3.PagerScaffoldDefaults.snapWithSpringFlingBehavior
 import kotlin.math.absoluteValue
 
 /**
@@ -158,7 +157,6 @@ public fun AnimatedPage(
 ) {
     val isReduceMotionEnabled = LocalReduceMotion.current
     val isRtlEnabled = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val isCurrentPage: Boolean = pageIndex == pagerState.currentPage
     val graphicsLayerModifier =
         if (isReduceMotionEnabled) Modifier
         else
@@ -167,6 +165,7 @@ public fun AnimatedPage(
                 val currentPageOffsetFraction = pagerState.currentPageOffsetFraction
                 val isSwipingRightToLeft = direction * currentPageOffsetFraction > 0
                 val isSwipingLeftToRight = direction * currentPageOffsetFraction < 0
+                val isCurrentPage: Boolean = pageIndex == pagerState.currentPage
                 val shouldAnchorRight =
                     (isSwipingRightToLeft && isCurrentPage) ||
                         (isSwipingLeftToRight && !isCurrentPage)
@@ -189,6 +188,7 @@ public fun AnimatedPage(
 
         if (contentScrimColor.isSpecified) {
             Canvas(Modifier.fillMaxSize()) {
+                val isCurrentPage: Boolean = pageIndex == pagerState.currentPage
                 val pageTransitionFraction =
                     getPageTransitionFraction(isCurrentPage, pagerState.currentPageOffsetFraction)
                 val color =
@@ -252,21 +252,24 @@ private fun PagerScaffoldImpl(
     val scaffoldState = LocalScaffoldState.current
     val key = remember { Any() }
 
-    key(scrollInfoProvider) {
-        DisposableEffect(key) { onDispose { scaffoldState.screenContent.removeScreen(key) } }
+    // Update the timeText & scrollInfoProvider if there is a change and the screen is already
+    // present
+    scaffoldState.screenContent.updateIfNeeded(key, timeText = null, scrollInfoProvider)
 
-        ActiveFocusListener { focused ->
-            if (focused) {
-                scaffoldState.screenContent.addScreen(key, null, scrollInfoProvider)
-            } else {
-                scaffoldState.screenContent.removeScreen(key)
-            }
-        }
-    }
+    DisposableEffect(key) { onDispose { scaffoldState.screenContent.removeScreen(key) } }
 
     scaffoldState.screenContent.UpdateIdlingDetectorIfNeeded()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            modifier.fillMaxSize().hierarchicalFocus(true) { focused ->
+                if (focused) {
+                    scaffoldState.screenContent.addScreen(key, timeText = null, scrollInfoProvider)
+                } else {
+                    scaffoldState.screenContent.removeScreen(key)
+                }
+            }
+    ) {
         pager()
 
         AnimatedIndicator(

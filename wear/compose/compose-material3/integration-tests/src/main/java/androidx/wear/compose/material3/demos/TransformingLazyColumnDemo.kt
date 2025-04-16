@@ -46,7 +46,6 @@ import androidx.wear.compose.material3.AppCard
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ButtonGroup
-import androidx.wear.compose.material3.ImageButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.SurfaceTransformation
@@ -245,7 +244,7 @@ private fun CardWithButtons() {
 
 @Composable
 private fun ButtonBackgroundImage(painter: Painter, enabled: Boolean) =
-    ImageButton(
+    Button(
         modifier = Modifier.sizeIn(maxHeight = ButtonDefaults.Height).fillMaxWidth(),
         containerPainter = ButtonDefaults.containerPainter(painter),
         onClick = { /* Do something */ },

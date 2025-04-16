@@ -17,7 +17,6 @@
 package androidx.appfunctions.internal
 
 import android.content.Context
-import android.content.pm.SigningInfo
 import android.os.Build
 import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionFunctionNotFoundException
@@ -146,9 +145,6 @@ class AggregatedAppFunctionInvokerTest {
             get() = throw RuntimeException("Stub!")
 
         override val callingPackageName: String
-            get() = throw RuntimeException("Stub!")
-
-        override val callingPackageSigningInfo: SigningInfo
             get() = throw RuntimeException("Stub!")
     }
 }

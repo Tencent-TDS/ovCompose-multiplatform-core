@@ -242,6 +242,15 @@ class KlibParsingCursorExtensionsTest {
     }
 
     @Test
+    fun parseQualifiedNameWithQualifiedReceiver() {
+        val input = "androidx.compose.ui.text/AnnotatedString.Builder.BulletScope"
+        val cursor = Cursor(input)
+        val qName = cursor.parseAbiQualifiedName()
+        assertThat(qName.toString())
+            .isEqualTo("androidx.compose.ui.text/AnnotatedString.Builder.BulletScope")
+    }
+
+    @Test
     fun parseAbiType() {
         val input = "androidx.collection/ScatterMap<#A, #B> something"
         val cursor = Cursor(input)

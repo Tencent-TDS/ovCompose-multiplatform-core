@@ -24,8 +24,9 @@ import androidx.xr.runtime.AnchorPersistenceMode
 import androidx.xr.runtime.Config
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.SessionCreateSuccess
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Anchor as RuntimeAnchor
-import androidx.xr.runtime.internal.TrackingState
+import androidx.xr.runtime.internal.AnchorInvalidUuidException
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
@@ -230,6 +231,16 @@ class AnchorTest {
     }
 
     @Test
+    fun load_invalidUuid_returnsAnchorLoadInvalidUuid() = createTestSessionAndRunTest {
+        runTest {
+            assertThat(Anchor.load(session, UUID.randomUUID()))
+                .isInstanceOf(AnchorLoadInvalidUuid::class.java)
+            assertThat(Anchor.load(session, UUID(0L, 0L)))
+                .isInstanceOf(AnchorLoadInvalidUuid::class.java)
+        }
+    }
+
+    @Test
     fun load_anchorLimitReached_returnsAnchorResourcesExhausted() = createTestSessionAndRunTest {
         runTest {
             val anchor = (Anchor.create(session, Pose()) as AnchorCreateSuccess).anchor
@@ -291,6 +302,16 @@ class AnchorTest {
                 }
             }
         }
+
+    @Test
+    fun unpersist_invalidUuid_throwsAnchorInvalidUuidException() = createTestSessionAndRunTest {
+        runTest {
+            assertFailsWith<AnchorInvalidUuidException> {
+                Anchor.unpersist(session, UUID.randomUUID())
+            }
+            assertFailsWith<AnchorInvalidUuidException> { Anchor.unpersist(session, UUID(0L, 0L)) }
+        }
+    }
 
     @Test
     fun equals_sameObject_returnsTrue() {

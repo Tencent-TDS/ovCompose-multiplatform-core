@@ -81,6 +81,20 @@ class OpenXrManagerTest {
         assertThat(underTest.nativePointer).isGreaterThan(0L)
     }
 
+    @Test
+    fun configure_handTrackingEnabled_addsHandToUpdatables() = initOpenXrManagerAndRunTest {
+        check(underTest.config.handTracking == HandTrackingMode.Disabled)
+        check(perceptionManager.xrResources.updatables.isEmpty())
+
+        underTest.configure(Config(handTracking = Config.HandTrackingMode.Enabled))
+
+        assertThat(perceptionManager.xrResources.updatables)
+            .containsExactly(
+                perceptionManager.xrResources.leftHand,
+                perceptionManager.xrResources.rightHand,
+            )
+    }
+
     // TODO(b/392660855): Add a test for all APIs gated by a feature that needs to be configured.
     @Test
     fun configure_withSufficientPermissions_doesNotThrowException() = initOpenXrManagerAndRunTest {
@@ -134,11 +148,28 @@ class OpenXrManagerTest {
         }
 
     @Test
-    fun update_updatesPerceptionManager() = initOpenXrManagerAndRunTest {
+    fun update_planeTrackingDisabled_doesNotUpdateTrackables() = initOpenXrManagerAndRunTest {
         runTest {
             underTest.create()
             underTest.resume()
             check(perceptionManager.trackables.isEmpty())
+            check(underTest.config.planeTracking == PlaneTrackingMode.Disabled)
+
+            underTest.update()
+
+            assertThat(perceptionManager.trackables).isEmpty()
+        }
+    }
+
+    @Test
+    fun update_planeTrackingEnabled_addsPlaneToUpdatables() = initOpenXrManagerAndRunTest {
+        runTest {
+            underTest.create()
+            underTest.resume()
+            check(perceptionManager.xrResources.updatables.isEmpty())
+            underTest.configure(
+                Config(planeTracking = Config.PlaneTrackingMode.HorizontalAndVertical)
+            )
 
             underTest.update()
 

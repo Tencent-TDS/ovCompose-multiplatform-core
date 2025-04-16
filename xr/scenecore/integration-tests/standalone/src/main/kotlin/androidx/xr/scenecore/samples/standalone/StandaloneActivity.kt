@@ -20,6 +20,8 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.xr.runtime.Session
+import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
@@ -27,7 +29,7 @@ import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PixelDimensions
-import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.scene
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.time.TimeSource
@@ -36,7 +38,7 @@ import kotlinx.coroutines.launch
 
 class StandaloneActivity : AppCompatActivity() {
 
-    private val session by lazy { Session.create(this) }
+    private val session by lazy { (Session.create(this) as SessionCreateSuccess).session }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +55,7 @@ class StandaloneActivity : AppCompatActivity() {
                 "panel",
                 Pose(Vector3(0f, -0.5f, 0.5f)),
             )
-        panelEntity.setParent(session.activitySpace)
+        panelEntity.setParent(session.scene.activitySpace)
 
         // Create multiple orbiting shark models
         val sharkModelFuture = GltfModel.create(session, "models/GreatWhiteShark.glb")
@@ -68,7 +70,7 @@ class StandaloneActivity : AppCompatActivity() {
 
     private fun createModelSolarSystem(session: Session, model: GltfModel) {
         val sunShark = GltfModelEntity.create(session, model, Pose(Vector3(-0.5f, -3f, -9f)))
-        sunShark.setParent(session.activitySpace)
+        sunShark.setParent(session.scene.activitySpace)
         val planetShark = GltfModelEntity.create(session, model, Pose(Vector3(-1f, -3f, -9f)))
         planetShark.setParent(sunShark)
         val moonShark = GltfModelEntity.create(session, model, Pose(Vector3(-1.5f, -3f, -9f)))

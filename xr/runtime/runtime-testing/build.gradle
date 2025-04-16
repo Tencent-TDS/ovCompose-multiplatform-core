@@ -37,6 +37,7 @@ dependencies {
 
     implementation("androidx.annotation:annotation:1.8.1")
     implementation(libs.truth)
+    implementation("com.google.ar:impress:0.0.3")
 
     testImplementation(libs.kotlinCoroutinesTest)
     testImplementation(libs.junit)
@@ -47,6 +48,9 @@ dependencies {
 }
 
 android {
+    defaultConfig {
+        minSdkVersion 23
+    }
     namespace = "androidx.xr.runtime.testing"
     sourceSets.main.resources.srcDirs += "src/main/resources"
 }

@@ -38,10 +38,8 @@ import android.support.customtabs.ICustomTabsService;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.OptIn;
 import androidx.browser.auth.AuthTabCallback;
 import androidx.browser.auth.AuthTabSession;
-import androidx.browser.auth.ExperimentalAuthTab;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -54,7 +52,6 @@ import java.util.concurrent.Executor;
  * Class to communicate with a {@link CustomTabsService} and create
  * {@link CustomTabsSession} from it.
  */
-@OptIn(markerClass = ExperimentalAuthTab.class)
 public class CustomTabsClient {
     private static final String TAG = "CustomTabsClient";
 
@@ -305,7 +302,6 @@ public class CustomTabsClient {
      *                 session.
      * @return The newly created {@link AuthTabSession.PendingSession}.
      */
-    @ExperimentalAuthTab
     @ExperimentalPendingSession
     public static AuthTabSession.@NonNull PendingSession createPendingAuthTabSession(
             @NonNull Context context, int id, @NonNull Executor executor,
@@ -323,7 +319,6 @@ public class CustomTabsClient {
      * @param id      The session id.
      * @return The newly created {@link AuthTabSession.PendingSession}.
      */
-    @ExperimentalAuthTab
     @ExperimentalPendingSession
     public static AuthTabSession.@NonNull PendingSession createPendingAuthTabSession(
             @NonNull Context context, int id) {
@@ -346,7 +341,6 @@ public class CustomTabsClient {
      * use this to relay session specific calls. Null if the service failed to respond
      * (threw a RemoteException).
      */
-    @ExperimentalAuthTab
     @Nullable
     public AuthTabSession newAuthTabSession(@Nullable AuthTabCallback callback,
             @Nullable Executor executor) {
@@ -373,7 +367,6 @@ public class CustomTabsClient {
      * use this to relay session specific calls. Null if the service failed to respond
      * (threw a RemoteException).
      */
-    @ExperimentalAuthTab
     @Nullable
     public AuthTabSession newAuthTabSession(@Nullable AuthTabCallback callback,
             @Nullable Executor executor, int id) {
@@ -462,7 +455,6 @@ public class CustomTabsClient {
      * @return The {@link AuthTabSession} that was created, or null if the browser doesn't support
      * this feature.
      */
-    @ExperimentalAuthTab
     @ExperimentalPendingSession
     @Nullable
     public AuthTabSession attachAuthTabSession(AuthTabSession.@NonNull PendingSession session) {

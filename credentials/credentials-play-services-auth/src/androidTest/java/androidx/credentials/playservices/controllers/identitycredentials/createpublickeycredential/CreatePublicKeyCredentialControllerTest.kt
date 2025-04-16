@@ -41,7 +41,7 @@ class CreatePublicKeyCredentialControllerTest {
                 requestJson =
                     CreatePublicKeyCredentialControllerTestUtils
                         .MAIN_CREATE_JSON_ALL_REQUIRED_AND_OPTIONAL_FIELDS_PRESENT,
-                isConditionalCreateRequest = true
+                isConditional = true
             )
         val activityScenario = ActivityScenario.launch(TestCredentialsActivity::class.java)
 

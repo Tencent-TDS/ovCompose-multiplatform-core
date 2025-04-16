@@ -16,13 +16,13 @@
 
 package androidx.xr.compose.subspace.layout
 
-import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.Density
 import androidx.xr.compose.subspace.SpatialPanelDefaults
 import androidx.xr.compose.subspace.node.SubspaceLayoutNode
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.Meter
+import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.scenecore.BasePanelEntity
 import androidx.xr.scenecore.Component
@@ -30,7 +30,8 @@ import androidx.xr.scenecore.ContentlessEntity
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PixelDimensions
-import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.SurfaceEntity
+import androidx.xr.scenecore.scene
 
 /**
  * Wrapper class for Entities from SceneCore to provide convenience methods for working with
@@ -204,21 +205,12 @@ internal class CorePanelEntity(entity: PanelEntity, density: Density) :
     CoreBasePanelEntity(entity, density)
 
 /**
- * Wrapper class for [Session.mainPanelEntity] to provide convenience methods for working with the
- * main panel from SceneCore.
+ * Wrapper class for SceneCore's PanelEntity associated with the "main window" for the Activity.
+ * This wrapper provides convenience methods for working with the main panel from SceneCore.
  */
 internal class CoreMainPanelEntity(session: Session, density: Density) :
-    CoreBasePanelEntity(session.mainPanelEntity, density) {
+    CoreBasePanelEntity(session.scene.mainPanelEntity, density) {
     private val mainView = session.activity.window.decorView
-    private val listener =
-        View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            mutableSize.value =
-                session.mainPanelEntity.getSizeInPixels().run { IntVolumeSize(width, height, 0) }
-        }
-
-    init {
-        mainView.addOnLayoutChangeListener(listener)
-    }
 
     /**
      * Whether this entity or any of its ancestors is marked as hidden.
@@ -233,7 +225,52 @@ internal class CoreMainPanelEntity(session: Session, density: Density) :
 
     override fun dispose() {
         // Do not call super.dispose() because we don't want to dispose the main panel entity.
-        mainView.removeOnLayoutChangeListener(listener)
+    }
+}
+
+/** Wrapper class for surface entities from SceneCore. */
+internal class CoreSurfaceEntity(
+    internal val surfaceEntity: SurfaceEntity,
+    private val density: Density,
+) : CoreEntity(surfaceEntity), ResizableCoreEntity, MovableCoreEntity {
+    internal var stereoMode: Int
+        get() = surfaceEntity.stereoMode
+        set(value) {
+            if (value != surfaceEntity.stereoMode) {
+                surfaceEntity.stereoMode = value
+            }
+        }
+
+    private var currentFeatheringEffect: SpatialFeatheringEffect =
+        SpatialSmoothFeatheringEffect(ZeroFeatheringSize)
+
+    override var size: IntVolumeSize
+        get() = super.size
+        set(value) {
+            val nextSize = overrideSize ?: value
+            if (super.size != nextSize) {
+                super.size = nextSize
+                surfaceEntity.canvasShape =
+                    SurfaceEntity.CanvasShape.Quad(
+                        Meter.fromPixel(size.width.toFloat(), density).value,
+                        Meter.fromPixel(size.height.toFloat(), density).value,
+                    )
+                updateFeathering()
+            }
+        }
+
+    override var overrideSize: IntVolumeSize? = null
+
+    internal fun setFeatheringEffect(featheringEffect: SpatialFeatheringEffect) {
+        currentFeatheringEffect = featheringEffect
+        updateFeathering()
+    }
+
+    private fun updateFeathering() {
+        (currentFeatheringEffect as? SpatialSmoothFeatheringEffect)?.let {
+            surfaceEntity.featherRadiusY = it.size.toWidthPercent(size.width.toFloat(), density)
+            surfaceEntity.featherRadiusX = it.size.toHeightPercent(size.height.toFloat(), density)
+        }
     }
 }
 

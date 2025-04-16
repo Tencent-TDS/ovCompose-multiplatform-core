@@ -26,6 +26,7 @@
     <activity
         android:name=".SpatialComposeAppActivity"
         android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout"
+        android:enableOnBackInvokedCallback="true"
         android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
@@ -34,6 +35,12 @@
     </activity>
     <activity
         android:name="androidx.xr.compose.integration.common.AnotherActivity"
+        android:enableOnBackInvokedCallback="true"
+        android:exported="true">
+    </activity>
+    <activity
+        android:name=".VideoPlayerActivity"
+        android:enableOnBackInvokedCallback="true"
         android:exported="true">
     </activity>
   </application>

@@ -141,6 +141,10 @@ class NestedScrollInteropViewHolderTest {
     @Test
     fun nestedScrollInteropIsOn_consumedUpChain_checkDeltasCorrectlyPropagatePostScroll() {
         // arrange
+        // Hierarchy is:
+        // Vertical Compose Scrollable
+        // >>> AndroidView
+        // >>>>>> Vertical Recycler View.
         rule.setContent {
             val controller = rememberScrollableState { it }
 
@@ -158,8 +162,9 @@ class NestedScrollInteropViewHolderTest {
 
         // assert
         rule.runOnIdle {
-            assertThat(recyclerViewConsumptionTracker.deltaConsumed).isEqualTo(Offset.Zero)
-            assertThat(connection.notConsumedByChild).isEqualTo(Offset.Zero)
+            // Recycler View Consumed
+            assertThat(recyclerViewConsumptionTracker.deltaConsumed)
+                .isEqualTo(connection.consumedDownChain)
         }
     }
 

@@ -318,15 +318,6 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
             throw new IllegalStateException("This method must be called on the main thread.");
         }
 
-        int prevGeometrySubspaceImpressNode = -1;
-        SubspaceNode prevGeometrySubspaceSplitEngine = null;
-        if (mGeometrySubspaceSplitEngine != null) {
-            prevGeometrySubspaceSplitEngine = mGeometrySubspaceSplitEngine;
-            mGeometrySubspaceSplitEngine = null;
-            prevGeometrySubspaceImpressNode = mGeometrySubspaceImpressNode;
-            mGeometrySubspaceImpressNode = -1;
-        }
-
         mGeometrySubspaceImpressNode = mImpressApi.createImpressNode();
         String subspaceName = "geometry_subspace_" + mGeometrySubspaceImpressNode;
 
@@ -366,22 +357,6 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
                         mImpressApi.animateGltfModel(modelImpressNode, animationName, true);
             }
             mImpressApi.setImpressNodeParent(modelImpressNode, mGeometrySubspaceImpressNode);
-        }
-
-        if (prevGeometrySubspaceSplitEngine != null && prevGeometrySubspaceImpressNode != -1) {
-            // Detach the previous geometry subspace from the root environment node.
-            try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-                transaction
-                        .setParent(prevGeometrySubspaceSplitEngine.getSubspaceNodeActual(), null)
-                        .apply();
-            }
-            // Destroying the subspace will also destroy the underlying Impress node for the
-            // Environment
-            // geometry.
-            mSplitEngineSubspaceManager.deleteSubspace(prevGeometrySubspaceSplitEngine.subspaceId);
-
-            prevGeometrySubspaceSplitEngine = null;
-            prevGeometrySubspaceImpressNode = -1;
         }
     }
 
@@ -464,41 +439,48 @@ final class SpatialEnvironmentImpl implements SpatialEnvironment {
             }
         }
 
-        try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
-            if (newPreference == null) {
-                mXrExtensions.detachSpatialEnvironment(
-                        mActivity,
-                        (result) -> logXrExtensionResult("detachSpatialEnvironment", result),
-                        Runnable::run);
-            } else {
-                // Create a new root node for the environment and attach the children of the old
-                // root node
-                // to the new root node if they exist. This is necessary because the system will
-                // only
-                // trigger an environment transition if the root environment node changes.
-                Node newRootEnvironmentNode = mXrExtensions.createNode();
-                if (mGeometrySubspaceSplitEngine != null) {
-                    NodeTransaction unused =
-                            transaction.setParent(
-                                    mGeometrySubspaceSplitEngine.getSubspaceNodeActual(),
-                                    newRootEnvironmentNode);
-                }
-                transaction.apply();
-                int skyboxMode = XrExtensions.ENVIRONMENT_SKYBOX_APP;
-                if (newSkybox == null) {
-                    skyboxMode = XrExtensions.NO_SKYBOX;
-                }
-                mXrExtensions.attachSpatialEnvironment(
-                        mActivity,
-                        newRootEnvironmentNode,
-                        skyboxMode,
-                        (result) -> {
-                            // Update the root environment node to the new root node.
-                            mRootEnvironmentNode = newRootEnvironmentNode;
-                            logXrExtensionResult("attachSpatialEnvironment", result);
-                        },
-                        Runnable::run);
+        if (newPreference == null) {
+            // Detaching the app environment to go back to the system environment.
+            mXrExtensions.detachSpatialEnvironment(
+                    mActivity,
+                    (result) -> logXrExtensionResult("detachSpatialEnvironment", result),
+                    Runnable::run);
+        } else {
+            // TODO(b/408276187): Add unit test that verifies that the skybox mode is correctly set.
+            int skyboxMode = XrExtensions.ENVIRONMENT_SKYBOX_APP;
+            if (newSkybox == null) {
+                skyboxMode = XrExtensions.NO_SKYBOX;
             }
+            // Transitioning to a new app environment.
+            Node currentRootEnvironmentNode;
+            if (!Objects.equals(newGeometry, prevGeometry)) {
+                // Environment geometry has changed, create a new environment node and attach the
+                // geometry
+                // subspace to it.
+                currentRootEnvironmentNode = mXrExtensions.createNode();
+                if (mGeometrySubspaceSplitEngine != null) {
+                    try (NodeTransaction transaction = mXrExtensions.createNodeTransaction()) {
+                        NodeTransaction unused =
+                                transaction.setParent(
+                                        mGeometrySubspaceSplitEngine.getSubspaceNodeActual(),
+                                        currentRootEnvironmentNode);
+                        transaction.apply();
+                    }
+                }
+            } else {
+                // Environment geometry has not changed, use the existing environment node.
+                currentRootEnvironmentNode = mRootEnvironmentNode;
+            }
+            mXrExtensions.attachSpatialEnvironment(
+                    mActivity,
+                    currentRootEnvironmentNode,
+                    skyboxMode,
+                    (result) -> {
+                        // Update the root environment node to the current root node.
+                        mRootEnvironmentNode = currentRootEnvironmentNode;
+                        logXrExtensionResult("attachSpatialEnvironment", result);
+                    },
+                    Runnable::run);
         }
 
         mSpatialEnvironmentPreference = newPreference;

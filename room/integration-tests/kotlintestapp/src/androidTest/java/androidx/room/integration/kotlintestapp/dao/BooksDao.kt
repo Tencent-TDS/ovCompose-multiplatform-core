@@ -487,4 +487,9 @@ interface BooksDao {
         @Relation(parentColumn = "publisherId", entityColumn = "publisherId")
         val relationEntity: Publisher
     )
+
+    @Transaction
+    fun executeTransaction(block: () -> Unit) {
+        block.invoke()
+    }
 }

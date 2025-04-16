@@ -25,6 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.LocalReduceMotion
@@ -55,7 +58,15 @@ class ScrollTransformTest {
                     items(count = 20) {
                         // Should fit exactly 10 of these (16.dp item size + 4.dp of spacing) if the
                         // scrollTransform is turned off.
-                        Box(modifier = Modifier.size(16.dp).scrollTransform(this))
+                        Box(
+                            modifier =
+                                Modifier.size(16.dp)
+                                    .scrollTransform(
+                                        this,
+                                        shape = RectangleShape,
+                                        painter = ColorPainter(Color.Black)
+                                    )
+                        )
                     }
                 }
             }

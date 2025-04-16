@@ -22,6 +22,7 @@ import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
+import androidx.test.uiautomator.By
 import androidx.wear.compose.material3.TimePicker
 import androidx.wear.compose.material3.TimePickerType
 import java.time.LocalTime
@@ -39,24 +40,23 @@ object TimePickerBenchmark : MacrobenchmarkScreen {
 
     override val exercise: MacrobenchmarkScope.() -> Unit
         get() = {
+            val startY = device.displayHeight / 2
+            val endY = device.displayHeight * 9 / 10 // scroll down
+
+            // Find hour/minute/AmPm by searching for clickable items with content description
+            val testObjects =
+                device.findObjects(By.clickable(true)).filter { it ->
+                    it.contentDescription != null
+                }
+            assert(testObjects.size == 3)
+
             repeat(20) {
-                val startY = device.displayHeight / 2
-                val endY = device.displayHeight * 9 / 10 // scroll down
-
-                val hourX = device.displayWidth / 4
-                device.swipe(hourX, startY, hourX, endY, 10)
-                device.waitForIdle()
-                SystemClock.sleep(500)
-
-                val minutesX = device.displayWidth / 2
-                device.swipe(minutesX, startY, minutesX, endY, 10)
-                device.waitForIdle()
-                SystemClock.sleep(500)
-
-                val amPmX = device.displayWidth * 3 / 4
-                device.swipe(amPmX, startY, amPmX, endY, 10)
-                device.waitForIdle()
-                SystemClock.sleep(500)
+                for (obj in testObjects) {
+                    val x = obj.visibleBounds.centerX()
+                    device.swipe(x, startY, x, endY, 10)
+                    device.waitForIdle()
+                    SystemClock.sleep(500)
+                }
             }
         }
 }

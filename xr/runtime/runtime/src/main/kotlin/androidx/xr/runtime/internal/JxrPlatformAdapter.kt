@@ -22,6 +22,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.math.Pose
+import com.google.androidxr.splitengine.SubspaceNode
 import com.google.common.util.concurrent.ListenableFuture
 import java.time.Duration
 import java.util.UUID
@@ -335,6 +336,17 @@ public interface JxrPlatformAdapter {
      * @param parent Parent entity.
      */
     public fun createEntity(pose: Pose, name: String, parent: Entity): Entity
+
+    /**
+     * A factory function to create a SubspaceNodeEntity.
+     *
+     * @param subspaceNode The SubspaceNode to create the SubspaceNodeEntity from.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    public fun createSubspaceNodeEntity(
+        subspaceNode: SubspaceNode,
+        size: Dimensions,
+    ): SubspaceNodeEntity
 
     /**
      * Create an Interactable component.

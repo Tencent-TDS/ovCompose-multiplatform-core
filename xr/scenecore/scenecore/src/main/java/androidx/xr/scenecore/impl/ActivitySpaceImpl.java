@@ -21,7 +21,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.concurrent.futures.ResolvableFuture;
-import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue;
+import androidx.xr.runtime.internal.ActivityPose;
+import androidx.xr.runtime.internal.ActivityPose.HitTestFilterValue;
 import androidx.xr.runtime.internal.ActivitySpace;
 import androidx.xr.runtime.internal.Dimensions;
 import androidx.xr.runtime.internal.Entity;
@@ -41,6 +42,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -181,16 +183,89 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
     public ListenableFuture<HitTestResult> hitTest(
             @NonNull Vector3 origin,
             @NonNull Vector3 direction,
-            @HitTestRangeValue int hitTestRange) {
+            @HitTestFilterValue int hitTestFilter) {
         ResolvableFuture<HitTestResult> hitTestFuture = ResolvableFuture.create();
         HitTestResultConsumer hitTestConsumer = new HitTestResultConsumer(hitTestFuture);
 
         mExtensions.hitTest(
-                mActivity, // mSession.getActivity(),
+                mActivity,
                 new Vec3(origin.getX(), origin.getY(), origin.getZ()),
                 new Vec3(direction.getX(), direction.getY(), direction.getZ()),
-                hitTestConsumer,
-                mExecutor);
+                RuntimeUtils.getHitTestFilter(hitTestFilter),
+                mExecutor,
+                hitTestConsumer);
         return hitTestFuture;
+    }
+
+    @Override
+    @SuppressWarnings("RestrictTo")
+    public ListenableFuture<HitTestResult> hitTestRelativeToActivityPose(
+            @NonNull Vector3 origin,
+            @NonNull Vector3 direction,
+            @HitTestFilterValue int hitTestFilter,
+            ActivityPose activityPose) {
+
+        // Get the Translation of the origin relative to the ActivitySpace.
+        Vector3 originInActivitySpace =
+                activityPose.transformPoseTo(new Pose(origin), this).getTranslation();
+
+        // Get the Translation of the direction pose relative to the ActivitySpace.
+        Pose directionPoseInActivitySpace = activityPose.transformPoseTo(new Pose(direction), this);
+
+        // Convert the direction pose to a direction vector relative to the ActivitySpace.
+        Vector3 directionInActivitySpace =
+                directionPoseInActivitySpace
+                        .compose(activityPose.getActivitySpacePose().getInverse())
+                        .getTranslation();
+
+        ResolvableFuture<HitTestResult> updatedHitTestFuture = ResolvableFuture.create();
+
+        // Perform the hit test then convert the result to be relative to the provided ActivityPose.
+        ListenableFuture<HitTestResult> hitTestFuture =
+                hitTest(originInActivitySpace, directionInActivitySpace, hitTestFilter);
+        hitTestFuture.addListener(
+                () -> {
+                    try {
+                        // Convert the hit test result to be relative to the provided ActivityPose.
+                        HitTestResult result = hitTestFuture.get();
+                        // No need to do a conversion if the hit test result is not a hit.
+                        if (result.getDistance() == Float.POSITIVE_INFINITY) {
+                            updatedHitTestFuture.set(result);
+                        }
+                        // Update the hit position and surface normal to be relative to the
+                        // ActivityPose.
+                        Vector3 updatedHitPosition =
+                                result.getHitPosition() == null
+                                        ? null
+                                        : transformPoseTo(
+                                                        new Pose(result.getHitPosition()),
+                                                        activityPose)
+                                                .getTranslation();
+                        Vector3 updatedSurfaceNormal =
+                                result.getSurfaceNormal() == null
+                                        ? null
+                                        : transformPoseTo(
+                                                        new Pose(
+                                                                new Vector3(
+                                                                        result.getSurfaceNormal())),
+                                                        activityPose)
+                                                .compose(
+                                                        this.transformPoseTo(
+                                                                        Pose.Identity, activityPose)
+                                                                .getInverse())
+                                                .getTranslation();
+                        updatedHitTestFuture.set(
+                                new HitTestResult(
+                                        updatedHitPosition,
+                                        updatedSurfaceNormal,
+                                        result.getSurfaceType(),
+                                        result.getDistance()));
+                    } catch (InterruptedException | ExecutionException e) {
+                        Log.e(TAG, "Failed to get hit test result: " + e.getMessage());
+                        updatedHitTestFuture.setException(e);
+                    }
+                },
+                mExecutor);
+        return updatedHitTestFuture;
     }
 }

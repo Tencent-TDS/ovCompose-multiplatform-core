@@ -22,7 +22,7 @@ package androidx.appfunctions {
     property public abstract androidx.appfunctions.AppFunctionConfiguration appFunctionConfiguration;
   }
 
-  @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) public final class AppFunctionManagerCompat {
+  public final class AppFunctionManagerCompat {
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public suspend Object? executeAppFunction(androidx.appfunctions.ExecuteAppFunctionRequest request, kotlin.coroutines.Continuation<? super androidx.appfunctions.ExecuteAppFunctionResponse>);
     method public static androidx.appfunctions.AppFunctionManagerCompat? getInstance(android.content.Context context);
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public suspend Object? isAppFunctionEnabled(String packageName, String functionId, kotlin.coroutines.Continuation<? super java.lang.Boolean>);

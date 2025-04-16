@@ -50,8 +50,11 @@ public class SessionConfigureConfigurationNotSupported() : SessionConfigureResul
 /**
  * Result of an unsuccessful [Session.configure] call. The session was not configured due to
  * insufficient permissions.
+ *
+ * @property permissions the list of permissions that were not granted.
  */
-public class SessionConfigurePermissionNotGranted() : SessionConfigureResult()
+public class SessionConfigurePermissionsNotGranted(public val permissions: List<String>) :
+    SessionConfigureResult()
 
 /** Result of a [Session.resume] call. */
 public sealed class SessionResumeResult

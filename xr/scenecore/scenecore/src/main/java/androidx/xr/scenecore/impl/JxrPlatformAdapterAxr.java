@@ -80,6 +80,7 @@ import com.android.extensions.xr.space.ActivityPanelLaunchParameters;
 import com.android.extensions.xr.space.SpatialState;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
+import com.google.androidxr.splitengine.SubspaceNode;
 import com.google.ar.imp.apibindings.ImpressApi;
 import com.google.ar.imp.apibindings.ImpressApiImpl;
 import com.google.ar.imp.apibindings.Texture;
@@ -88,7 +89,6 @@ import com.google.ar.imp.view.splitengine.ImpSplitEngine;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -134,7 +134,6 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     private final ImpressApi mImpressApi;
     private final Map<Consumer<SpatialCapabilities>, Executor>
             mSpatialCapabilitiesChangedListeners = new ConcurrentHashMap<>();
-    @VisibleForTesting Closeable mSpatialVisibilityChangedListenerCloseable;
 
     @Nullable private Activity mActivity;
     private SplitEngineSubspaceManager mSplitEngineSubspaceManager;
@@ -535,18 +534,16 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     public void setSpatialVisibilityChangedListener(
             @NonNull Executor callbackExecutor, @NonNull Consumer<SpatialVisibility> listener) {
         try {
-            mSpatialVisibilityChangedListenerCloseable =
-                    mExtensions.subscribeToVisibility(
-                            mActivity,
-                            (spatialVisibilityEvent) ->
-                                    listener.accept(
-                                            RuntimeUtils.convertSpatialVisibility(
-                                                    spatialVisibilityEvent)),
-                            callbackExecutor);
+            mExtensions.setVisibilityStateCallback(
+                    mActivity,
+                    (spatialVisibilityEvent) ->
+                            listener.accept(
+                                    RuntimeUtils.convertSpatialVisibility(spatialVisibilityEvent)),
+                    callbackExecutor);
         } catch (RuntimeException e) {
             Log.e(
                     TAG,
-                    "Could not subscribe to Scene Spatial Visibility callbacks due to error: "
+                    "Could not set Scene Spatial Visibility callbacks due to error: "
                             + e.getMessage());
         }
     }
@@ -554,13 +551,11 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     public void clearSpatialVisibilityChangedListener() {
         try {
-            if (mSpatialVisibilityChangedListenerCloseable != null) {
-                mSpatialVisibilityChangedListenerCloseable.close();
-            }
-        } catch (Exception e) {
-            Log.w(
+            mExtensions.clearVisibilityStateCallback(mActivity);
+        } catch (RuntimeException e) {
+            Log.e(
                     TAG,
-                    "Could not close Scene Spatial Visibility subscription with error: "
+                    "Could not clear Scene Spatial Visibility callbacks due to error: "
                             + e.getMessage());
         }
     }
@@ -1517,5 +1512,20 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 mActivity::runOnUiThread);
 
         return exrImageResourceFuture;
+    }
+
+    @Override
+    @NonNull
+    public SubspaceNodeEntityImpl createSubspaceNodeEntity(
+            @NonNull SubspaceNode subspaceNode, @NonNull Dimensions size) {
+        SubspaceNodeEntityImpl subspaceNodeEntity =
+                new SubspaceNodeEntityImpl(
+                        mExtensions,
+                        mEntityManager,
+                        mExecutor,
+                        subspaceNode.getSubspaceNode(),
+                        size);
+        subspaceNodeEntity.setParent(mActivitySpace);
+        return subspaceNodeEntity;
     }
 }

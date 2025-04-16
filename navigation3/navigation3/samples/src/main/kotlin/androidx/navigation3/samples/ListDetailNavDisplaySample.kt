@@ -43,7 +43,7 @@ object ListDetailNavDisplay {
 fun <T : Any> ListDetailNavDisplay(
     backstack: List<T>,
     modifier: Modifier = Modifier,
-    localProviders: List<NavEntryDecorator> = emptyList(),
+    entryDecorators: List<NavEntryDecorator> = emptyList(),
     onBack: () -> Unit = { if (backstack is MutableList) backstack.removeAt(backstack.size - 1) },
     windowWidthSizeClass: WindowWidthSizeClass =
         calculateWindowSizeClass(LocalActivity.current!!).widthSizeClass,
@@ -51,7 +51,7 @@ fun <T : Any> ListDetailNavDisplay(
 ) {
     val isSinglePaneLayout = (windowWidthSizeClass == WindowWidthSizeClass.Compact)
     BackHandler(isSinglePaneLayout && backstack.size > 1, onBack)
-    DecoratedNavEntryProvider(backstack, entryProvider, localProviders) { entries ->
+    DecoratedNavEntryProvider(backstack, entryProvider, entryDecorators) { entries ->
         val lastEntry = entries.last()
         if (isSinglePaneLayout) {
             Box(modifier = modifier) { lastEntry.content.invoke(lastEntry.key) }

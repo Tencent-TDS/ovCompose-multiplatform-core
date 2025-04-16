@@ -38,6 +38,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.withContext
 
@@ -56,6 +57,13 @@ actual suspend fun <R> performSuspending(
         }
     }
 
+/**
+ * The thread transaction coroutine context is set by the SupportSQLite wrapper when there is an
+ * active transaction so DAO function can interop with the active transaction.
+ */
+@get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+val activeThreadTransactionContext = ThreadLocal<CoroutineContext>()
+
 /** Blocking version of [performSuspending] */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 fun <R> performBlocking(
@@ -66,10 +74,17 @@ fun <R> performBlocking(
 ): R {
     db.assertNotMainThread()
     db.assertNotSuspendingTransaction()
+    val context = activeThreadTransactionContext.get() ?: EmptyCoroutineContext
     return runBlockingUninterruptible {
-        db.internalPerform(isReadOnly, inTransaction) { connection ->
-            val rawConnection = (connection as RawConnectionAccessor).rawConnection
-            block.invoke(rawConnection)
+        withContext(context) {
+            // If in compatibility mode and the database is already in a transaction, then do not
+            // start a nested transaction to avoid the overhead and because the SupportSQLite APIs
+            // do not support real SAVEPOINT-based nested transactions.
+            val inTransaction = !(db.inCompatibilityMode() && db.inTransaction()) && inTransaction
+            db.internalPerform(isReadOnly, inTransaction) { connection ->
+                val rawConnection = (connection as RawConnectionAccessor).rawConnection
+                block.invoke(rawConnection)
+            }
         }
     }
 }

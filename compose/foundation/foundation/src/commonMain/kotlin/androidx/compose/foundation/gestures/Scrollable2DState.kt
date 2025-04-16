@@ -66,13 +66,13 @@ internal interface Scrollable2DState {
     val isScrollInProgress: Boolean
 
     /**
-     * Whether this [Scrollable2DState] can scroll by [delta] (consume a [delta]).
+     * Whether this [Scrollable2DState] can scroll at a given vector [angle] in rads.
      *
      * Note that `true` here does not imply that delta *will* be consumed - the Scrollable2DState
      * may decide not to handle the incoming delta (such as if it is already being scrolled
      * separately).
      */
-    fun canScroll(delta: Offset): Boolean
+    fun canScroll(angle: Float): Boolean
 }
 
 /** Scope used for suspending scroll blocks */
@@ -158,5 +158,5 @@ private class DefaultScrollable2DState(val onDelta: (Offset) -> Offset) : Scroll
     override val isScrollInProgress: Boolean
         get() = isScrollingState.value
 
-    override fun canScroll(delta: Offset): Boolean = true
+    override fun canScroll(angle: Float): Boolean = true
 }

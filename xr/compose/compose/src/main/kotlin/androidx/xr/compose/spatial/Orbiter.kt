@@ -57,10 +57,13 @@ import androidx.xr.scenecore.PixelDimensions
 public object OrbiterDefaults {
 
     /** Default shape for an Orbiter. */
-    public val shape: SpatialShape = SpatialRoundedCornerShape(ZeroCornerSize)
+    public val Shape: SpatialShape = SpatialRoundedCornerShape(ZeroCornerSize)
+
+    /** Default elevation level for an Orbiter. */
+    public val Elevation: SpatialElevationLevel = SpatialElevationLevel.Level1
 
     /** Default settings for an Orbiter */
-    public val orbiterSettings: OrbiterSettings = OrbiterSettings()
+    public val Settings: OrbiterSettings = OrbiterSettings()
 }
 
 /**
@@ -115,6 +118,7 @@ public class OrbiterSettings(
  *   [Alignment.Start] or [Alignment.End].
  * @param settings The settings for the orbiter.
  * @param shape The shape of this Orbiter when it is rendered in 3D space.
+ * @param elevation The z-direction elevation level of this Orbiter.
  * @param content The content of the orbiter.
  *
  * Example:
@@ -131,8 +135,9 @@ public fun Orbiter(
     position: OrbiterEdge.Horizontal,
     offset: Dp = 0.dp,
     alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
-    shape: SpatialShape = OrbiterDefaults.shape,
+    settings: OrbiterSettings = OrbiterDefaults.Settings,
+    shape: SpatialShape = OrbiterDefaults.Shape,
+    elevation: SpatialElevationLevel = OrbiterDefaults.Elevation,
     content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
@@ -142,6 +147,7 @@ public fun Orbiter(
             offset = outer(offset),
             settings = settings,
             shape = shape,
+            elevation = elevation,
             content = content,
         )
     )
@@ -167,6 +173,7 @@ public fun Orbiter(
  *   [Alignment.Start] or [Alignment.End].
  * @param settings The settings for the orbiter.
  * @param shape The shape of this Orbiter when it is rendered in 3D space.
+ * @param elevation The z-direction elevation level of this Orbiter.
  * @param content The content of the orbiter.
  *
  * Example:
@@ -183,8 +190,9 @@ public fun Orbiter(
     position: OrbiterEdge.Horizontal,
     offset: EdgeOffset,
     alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
-    shape: SpatialShape = OrbiterDefaults.shape,
+    settings: OrbiterSettings = OrbiterDefaults.Settings,
+    shape: SpatialShape = OrbiterDefaults.Shape,
+    elevation: SpatialElevationLevel = OrbiterDefaults.Elevation,
     content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
@@ -194,6 +202,7 @@ public fun Orbiter(
             offset = offset,
             settings = settings,
             shape = shape,
+            elevation = elevation,
             content = content,
         )
     )
@@ -216,6 +225,7 @@ public fun Orbiter(
  *   [Alignment.Top] or [Alignment.Bottom].
  * @param settings The settings for the orbiter.
  * @param shape The shape of this Orbiter when it is rendered in 3D space.
+ * @param elevation The z-direction elevation level of this Orbiter.
  * @param content The content of the orbiter.
  *
  * Example:
@@ -232,8 +242,9 @@ public fun Orbiter(
     position: OrbiterEdge.Vertical,
     offset: Dp = 0.dp,
     alignment: Alignment.Vertical = Alignment.CenterVertically,
-    settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
-    shape: SpatialShape = OrbiterDefaults.shape,
+    settings: OrbiterSettings = OrbiterDefaults.Settings,
+    shape: SpatialShape = OrbiterDefaults.Shape,
+    elevation: SpatialElevationLevel = OrbiterDefaults.Elevation,
     content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
@@ -243,6 +254,7 @@ public fun Orbiter(
             offset = outer(offset),
             settings = settings,
             shape = shape,
+            elevation = elevation,
             content = content,
         )
     )
@@ -268,6 +280,7 @@ public fun Orbiter(
  *   [Alignment.Top] or [Alignment.Bottom].
  * @param settings The settings for the orbiter.
  * @param shape The shape of this Orbiter when it is rendered in 3D space.
+ * @param elevation The z-direction elevation level of this Orbiter.
  * @param content The content of the orbiter.
  *
  * Example:
@@ -284,8 +297,9 @@ public fun Orbiter(
     position: OrbiterEdge.Vertical,
     offset: EdgeOffset,
     alignment: Alignment.Vertical = Alignment.CenterVertically,
-    settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
-    shape: SpatialShape = OrbiterDefaults.shape,
+    settings: OrbiterSettings = OrbiterDefaults.Settings,
+    shape: SpatialShape = OrbiterDefaults.Shape,
+    elevation: SpatialElevationLevel = OrbiterDefaults.Elevation,
     content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
@@ -295,6 +309,7 @@ public fun Orbiter(
             offset = offset,
             settings = settings,
             shape = shape,
+            elevation = elevation,
             content = content,
         )
     )
@@ -330,7 +345,7 @@ internal fun PositionedOrbiter(data: OrbiterData) {
                     ),
                     panelSize.run { IntSize(width, height) },
                     it,
-                    SpatialElevationLevel.Level1.level,
+                    data.elevation.level,
                 )
             },
         shape = data.shape,
@@ -483,9 +498,10 @@ internal data class OrbiterData(
     public val verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     public val horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     public val offset: EdgeOffset,
-    public val settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
+    public val settings: OrbiterSettings = OrbiterDefaults.Settings,
     public val content: @Composable () -> Unit,
     public val shape: SpatialShape,
+    public val elevation: SpatialElevationLevel = OrbiterDefaults.Elevation,
 )
 
 /**

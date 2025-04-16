@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.util.fastFirstOrNull
+import androidx.compose.ui.util.trace
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutAnimateItemElement
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutAnimationSpecsNode
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutIntervalContent
@@ -212,8 +213,10 @@ internal class TransformingLazyColumnItemScopeImpl(
 
     private val _scrollProgress: TransformingLazyColumnItemScrollProgress
         get() =
-            state.layoutInfo.visibleItems.fastFirstOrNull { it.index == index }?.scrollProgress
-                ?: TransformingLazyColumnItemScrollProgress.Unspecified
+            trace("wear-compose:tlc:scrollProgress") {
+                state.layoutInfo.visibleItems.fastFirstOrNull { it.index == index }?.scrollProgress
+                    ?: TransformingLazyColumnItemScrollProgress.Unspecified
+            }
 
     override val DrawScope.scrollProgress: TransformingLazyColumnItemScrollProgress
         get() = _scrollProgress

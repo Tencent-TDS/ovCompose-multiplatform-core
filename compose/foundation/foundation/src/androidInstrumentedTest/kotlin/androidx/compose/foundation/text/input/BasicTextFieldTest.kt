@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TEST_FONT_FAMILY
 import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.contextmenu.test.FakeToolbarRequester
 import androidx.compose.foundation.text.input.TextFieldBuffer.ChangeList
 import androidx.compose.foundation.text.input.internal.TextLayoutState
 import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
@@ -1322,7 +1323,8 @@ internal class BasicTextFieldTest {
                     enabled = true,
                     readOnly = false,
                     isFocused = false,
-                    isPassword = false
+                    isPassword = false,
+                    toolbarRequester = FakeToolbarRequester(),
                 )
                 .apply { requestAutofillAction = mockLambda }
 

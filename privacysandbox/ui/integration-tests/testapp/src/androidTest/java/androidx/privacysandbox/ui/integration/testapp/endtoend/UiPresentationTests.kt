@@ -44,25 +44,43 @@ import org.junit.runners.Parameterized
 
 @MediumTest
 @RunWith(Parameterized::class)
-class UiPresentationTests(@FragmentOption val zOrdering: String) {
-
+class UiPresentationTests(
+    @FragmentOption val mediationOption: String,
+    @FragmentOption val zOrdering: String
+) {
     private lateinit var scenario: ActivityScenario<MainActivity>
     private lateinit var sdkToClientCallback: SdkToClientCallback
 
     companion object {
         private const val CALLBACK_WAIT_MS = 2000L
 
+        private val mediationOptions =
+            arrayOf(
+                FragmentOptions.MEDIATION_TYPE_NON_MEDIATED,
+                FragmentOptions.MEDIATION_TYPE_IN_RUNTIME,
+                FragmentOptions.MEDIATION_TYPE_IN_APP
+            )
+        private val zOrderings =
+            arrayOf(FragmentOptions.Z_ORDER_BELOW, FragmentOptions.Z_ORDER_ABOVE)
+
         @JvmStatic
-        @Parameterized.Parameters(name = "zOrdering={0}")
-        fun data(): Array<Any> =
-            arrayOf(arrayOf(FragmentOptions.Z_ORDER_BELOW), arrayOf(FragmentOptions.Z_ORDER_ABOVE))
+        @Parameterized.Parameters(name = "mediationOption={0}, zOrdering={1}")
+        fun data(): Collection<Array<String>> {
+            val testData = mutableListOf<Array<String>>()
+            for (mediation in mediationOptions) {
+                for (zOrder in zOrderings) {
+                    testData.add(arrayOf(mediation, zOrder))
+                }
+            }
+            return testData
+        }
     }
 
     @Before
     fun setup() {
         launchTestAppAndWaitForLoadingSdks(
             FragmentOptions.FRAGMENT_RESIZE_HIDDEN,
-            FragmentOptions.MEDIATION_TYPE_NON_MEDIATED,
+            mediationOption,
             zOrdering
         )
         sdkToClientCallback = SdkToClientCallback()

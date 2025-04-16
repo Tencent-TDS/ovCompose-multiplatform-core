@@ -18,11 +18,19 @@ package androidx.xr.runtime.testing
 
 import android.app.Activity
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.Feature
 import androidx.xr.runtime.internal.RuntimeFactory
 
 /** Factory for creating test-only instances of [Runtime]. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class FakeRuntimeFactory() : RuntimeFactory {
+    public companion object {
+        /** Will be passed to the [FakeLifecycleManager] constructor during testing */
+        @get:JvmName("hasCreatePermission") public var hasCreatePermission: Boolean = true
+    }
+
+    override val requirements: Set<Feature> = emptySet()
+
     override fun createRuntime(activity: Activity): FakeRuntime =
-        FakeRuntime(FakeLifecycleManager(), FakePerceptionManager())
+        FakeRuntime(FakeLifecycleManager(hasCreatePermission), FakePerceptionManager())
 }

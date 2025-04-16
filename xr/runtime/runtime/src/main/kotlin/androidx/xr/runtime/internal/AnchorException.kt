@@ -32,3 +32,8 @@ public class AnchorResourcesExhaustedException(cause: Throwable? = null) :
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class AnchorNotTrackingException(cause: Throwable? = null) :
     AnchorException("Unable to create anchor. Camera is not tracking.", cause)
+
+/** Anchor was not loaded from a valid UUID. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public class AnchorInvalidUuidException(cause: Throwable? = null) :
+    AnchorException("Unable to create anchor. Invalid UUID provided.", cause)

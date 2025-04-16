@@ -21,6 +21,7 @@ import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionS
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.SERIALIZABLE_SINGULAR
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
@@ -78,6 +79,9 @@ open class AnnotatedAppFunctionSerializable(
             )
         }
     }
+
+    /** All the [KSDeclaration] from the AppFunctionSerializable. */
+    val declarations: Sequence<KSDeclaration> by lazy { appFunctionSerializableClass.declarations }
 
     /**
      * Parameterize [AnnotatedAppFunctionSerializable] with [arguments].

@@ -41,7 +41,7 @@ dependencies {
     implementation(project(":compose:material3:material3"))
     implementation(project(":compose:material3:material3-adaptive-navigation-suite"))
 
-    implementation("androidx.xr.compose:compose:1.0.0-alpha03")
+    implementation(project(":xr:compose:compose"))
 }
 
 android {

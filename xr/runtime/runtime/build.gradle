@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.kotlinCoroutinesGuava)
     implementation("androidx.core:core:1.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
+    implementation("com.google.ar:impress:0.0.3")
 
     testImplementation(libs.kotlinCoroutinesTest)
     testImplementation(libs.junit)
@@ -55,6 +56,9 @@ dependencies {
 }
 
 android {
+    defaultConfig {
+        minSdkVersion 23
+    }
     namespace = "androidx.xr.runtime"
     testOptions.unitTests.includeAndroidResources = true
     defaultConfig {

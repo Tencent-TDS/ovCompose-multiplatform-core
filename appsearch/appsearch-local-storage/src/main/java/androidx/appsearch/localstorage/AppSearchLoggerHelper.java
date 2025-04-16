@@ -71,7 +71,9 @@ public final class AppSearchLoggerHelper {
                 .setNativeQualifiedIdJoinIndexLatencyMillis(
                         fromNativeStats.getQualifiedIdJoinIndexLatencyMs())
                 .setNativeLiteIndexSortLatencyMillis(
-                        fromNativeStats.getLiteIndexSortLatencyMs());
+                        fromNativeStats.getLiteIndexSortLatencyMs())
+                .setMetadataTermIndexLatencyMillis(fromNativeStats.getMetadataTermIndexLatencyMs())
+                .setEmbeddingIndexLatencyMillis(fromNativeStats.getEmbeddingIndexLatencyMs());
     }
 
     /**
@@ -173,7 +175,13 @@ public final class AppSearchLoggerHelper {
         toStatsBuilder
                 .setNativeLatencyMillis(fromNativeStats.getLatencyMs())
                 .setDeleteType(RemoveStats.QUERY)
-                .setDeletedDocumentCount(fromNativeStats.getNumDocumentsDeleted());
+                .setDeletedDocumentCount(fromNativeStats.getNumDocumentsDeleted())
+                .setQueryLength(fromNativeStats.getQueryLength())
+                .setNumTerms(fromNativeStats.getNumTerms())
+                .setNumNamespacesFiltered(fromNativeStats.getNumNamespacesFiltered())
+                .setNumSchemaTypesFiltered(fromNativeStats.getNumSchemaTypesFiltered())
+                .setParseQueryLatencyMillis(fromNativeStats.getParseQueryLatencyMs())
+                .setDocumentRemovalLatencyMillis(fromNativeStats.getDocumentRemovalLatencyMs());
     }
 
     /**
@@ -196,7 +204,10 @@ public final class AppSearchLoggerHelper {
                 .setExpiredDocumentCount(fromNativeStats.getNumExpiredDocuments())
                 .setStorageSizeBeforeBytes(fromNativeStats.getStorageSizeBefore())
                 .setStorageSizeAfterBytes(fromNativeStats.getStorageSizeAfter())
-                .setTimeSinceLastOptimizeMillis(fromNativeStats.getTimeSinceLastOptimizeMs());
+                .setTimeSinceLastOptimizeMillis(fromNativeStats.getTimeSinceLastOptimizeMs())
+                .setIndexRestorationMode(fromNativeStats.getIndexRestorationMode().getNumber())
+                .setNumOriginalNamespaces(fromNativeStats.getNumOriginalNamespaces())
+                .setNumDeletedNamespaces(fromNativeStats.getNumDeletedNamespaces());
     }
 
     /*

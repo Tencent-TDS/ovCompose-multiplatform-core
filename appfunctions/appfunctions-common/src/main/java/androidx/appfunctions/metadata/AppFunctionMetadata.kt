@@ -92,6 +92,27 @@ constructor(
         append("components=$components")
         append(")")
     }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun copy(
+        id: String = this.id,
+        packageName: String = this.packageName,
+        isEnabled: Boolean = this.isEnabled,
+        schema: AppFunctionSchemaMetadata? = this.schema,
+        parameters: List<AppFunctionParameterMetadata> = this.parameters,
+        response: AppFunctionResponseMetadata = this.response,
+        components: AppFunctionComponentsMetadata = this.components
+    ): AppFunctionMetadata {
+        return AppFunctionMetadata(
+            id = id,
+            packageName = packageName,
+            isEnabled = isEnabled,
+            schema = schema,
+            parameters = parameters,
+            response = response,
+            components = components
+        )
+    }
 }
 
 /**
@@ -126,6 +147,26 @@ public data class CompileTimeAppFunctionMetadata(
     /** Reusable components that could be shared within the function specification. */
     public val components: AppFunctionComponentsMetadata = AppFunctionComponentsMetadata(),
 ) {
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun copy(
+        id: String? = null,
+        isEnabledByDefault: Boolean? = null,
+        schema: AppFunctionSchemaMetadata? = null,
+        parameters: List<AppFunctionParameterMetadata>? = null,
+        response: AppFunctionResponseMetadata? = null,
+        components: AppFunctionComponentsMetadata? = null
+    ): CompileTimeAppFunctionMetadata {
+        return CompileTimeAppFunctionMetadata(
+            id = id ?: this.id,
+            isEnabledByDefault = isEnabledByDefault ?: this.isEnabledByDefault,
+            schema = schema ?: this.schema,
+            parameters = parameters ?: this.parameters,
+            response = response ?: this.response,
+            components = components ?: this.components
+        )
+    }
+
     /**
      * Converts the [CompileTimeAppFunctionMetadata] to an [AppFunctionMetadataDocument].
      *
@@ -140,8 +181,7 @@ public data class CompileTimeAppFunctionMetadata(
             schemaCategory = schema?.category,
             schemaVersion = schema?.version,
             parameters = parameters.map { it.toAppFunctionParameterMetadataDocument() },
-            response = response.toAppFunctionResponseMetadataDocument(),
-            components = components.toAppFunctionComponentsMetadataDocument()
+            response = response.toAppFunctionResponseMetadataDocument()
         )
     }
 }
@@ -172,6 +212,4 @@ public data class AppFunctionMetadataDocument(
     @Document.DocumentProperty public val parameters: List<AppFunctionParameterMetadataDocument>?,
     /** The response of the AppFunction. */
     @Document.DocumentProperty public val response: AppFunctionResponseMetadataDocument?,
-    /** The reusable components for the AppFunction. */
-    @Document.DocumentProperty public val components: AppFunctionComponentsMetadataDocument?,
 )

@@ -19,7 +19,9 @@ package androidx.xr.arcore
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.AnchorPersistenceMode
 import androidx.xr.runtime.Session
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Anchor as RuntimeAnchor
+import androidx.xr.runtime.internal.AnchorInvalidUuidException
 import androidx.xr.runtime.internal.AnchorNotTrackingException
 import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
 import androidx.xr.runtime.math.Pose
@@ -98,6 +100,8 @@ internal constructor(
             val runtimeAnchor: RuntimeAnchor
             try {
                 runtimeAnchor = session.runtime.perceptionManager.loadAnchor(uuid)
+            } catch (e: AnchorInvalidUuidException) {
+                return AnchorLoadInvalidUuid()
             } catch (e: AnchorResourcesExhaustedException) {
                 return AnchorCreateResourcesExhausted()
             }

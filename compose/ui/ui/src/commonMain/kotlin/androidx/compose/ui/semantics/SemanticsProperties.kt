@@ -20,6 +20,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.autofill.ContentDataType
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
@@ -255,6 +256,17 @@ object SemanticsProperties {
 
     /** @see SemanticsPropertyReceiver.maxTextLength */
     val MaxTextLength = SemanticsPropertyKey<Int>("MaxTextLength")
+
+    /** @see SemanticsPropertyReceiver.shape */
+    val Shape =
+        SemanticsPropertyKey<Shape>(
+            name = "Shape",
+            isImportantForAccessibility = false,
+            mergePolicy = { parentValue, _ ->
+                // Never merge shapes
+                parentValue
+            }
+        )
 }
 
 /**
@@ -1118,6 +1130,9 @@ fun SemanticsPropertyReceiver.indexForKey(mapping: (Any) -> Int) {
  * this value is -1, signifying there is no maximum text length limit.
  */
 var SemanticsPropertyReceiver.maxTextLength by SemanticsProperties.MaxTextLength
+
+/** The shape of the UI element if it's different from the bounding rectangle. */
+var SemanticsPropertyReceiver.shape by SemanticsProperties.Shape
 
 /**
  * The node is marked as a collection of horizontally or vertically stacked selectable elements.

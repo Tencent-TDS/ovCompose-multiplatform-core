@@ -10,6 +10,20 @@ open annotation class androidx.navigation3/EntryDsl : kotlin/Annotation { // and
     constructor <init>() // androidx.navigation3/EntryDsl.<init>|<init>(){}[0]
 }
 
+abstract fun interface <#A: kotlin/Any> androidx.navigation3/SceneStrategy { // androidx.navigation3/SceneStrategy|null[0]
+    abstract fun calculateScene(kotlin.collections/List<androidx.navigation3/NavEntry<#A>>): androidx.navigation3/SceneStrategyResult<#A>? // androidx.navigation3/SceneStrategy.calculateScene|calculateScene(kotlin.collections.List<androidx.navigation3.NavEntry<1:0>>){}[0]
+    open fun then(androidx.navigation3/SceneStrategy<#A>): androidx.navigation3/SceneStrategy<#A> // androidx.navigation3/SceneStrategy.then|then(androidx.navigation3.SceneStrategy<1:0>){}[0]
+}
+
+abstract interface <#A: kotlin/Any> androidx.navigation3/Scene { // androidx.navigation3/Scene|null[0]
+    abstract val content // androidx.navigation3/Scene.content|{}content[0]
+        abstract fun <get-content>(): kotlin/Function0<kotlin/Unit> // androidx.navigation3/Scene.content.<get-content>|<get-content>(){}[0]
+    abstract val entries // androidx.navigation3/Scene.entries|{}entries[0]
+        abstract fun <get-entries>(): kotlin.collections/List<androidx.navigation3/NavEntry<#A>> // androidx.navigation3/Scene.entries.<get-entries>|<get-entries>(){}[0]
+    abstract val key // androidx.navigation3/Scene.key|{}key[0]
+        abstract fun <get-key>(): kotlin/Any // androidx.navigation3/Scene.key.<get-key>|<get-key>(){}[0]
+}
+
 abstract interface androidx.navigation3/NavEntryDecorator { // androidx.navigation3/NavEntryDecorator|null[0]
     abstract fun <#A1: kotlin/Any> DecorateEntry(androidx.navigation3/NavEntry<#A1>) // androidx.navigation3/NavEntryDecorator.DecorateEntry|DecorateEntry(androidx.navigation3.NavEntry<0:0>){0§<kotlin.Any>}[0]
     open fun DecorateBackStack(kotlin.collections/List<kotlin/Any>, kotlin/Function0<kotlin/Unit>) // androidx.navigation3/NavEntryDecorator.DecorateBackStack|DecorateBackStack(kotlin.collections.List<kotlin.Any>;kotlin.Function0<kotlin.Unit>){}[0]
@@ -59,6 +73,15 @@ final class <#A: kotlin/Any> androidx.navigation3/EntryProviderBuilder { // andr
     final fun <#A1: kotlin/Any> addEntryProvider(#A1, kotlin.collections/Map<kotlin/String, kotlin/Any> = ..., kotlin/Function1<#A1, kotlin/Unit>) // androidx.navigation3/EntryProviderBuilder.addEntryProvider|addEntryProvider(0:0;kotlin.collections.Map<kotlin.String,kotlin.Any>;kotlin.Function1<0:0,kotlin.Unit>){0§<kotlin.Any>}[0]
     final fun <#A1: kotlin/Any> addEntryProvider(kotlin.reflect/KClass<#A1>, kotlin.collections/Map<kotlin/String, kotlin/Any> = ..., kotlin/Function1<#A1, kotlin/Unit>) // androidx.navigation3/EntryProviderBuilder.addEntryProvider|addEntryProvider(kotlin.reflect.KClass<0:0>;kotlin.collections.Map<kotlin.String,kotlin.Any>;kotlin.Function1<0:0,kotlin.Unit>){0§<kotlin.Any>}[0]
     final fun build(): kotlin/Function1<#A, androidx.navigation3/NavEntry<#A>> // androidx.navigation3/EntryProviderBuilder.build|build(){}[0]
+}
+
+final class <#A: kotlin/Any> androidx.navigation3/SceneStrategyResult { // androidx.navigation3/SceneStrategyResult|null[0]
+    constructor <init>(androidx.navigation3/Scene<#A>, kotlin.collections/List<androidx.navigation3/NavEntry<#A>>) // androidx.navigation3/SceneStrategyResult.<init>|<init>(androidx.navigation3.Scene<1:0>;kotlin.collections.List<androidx.navigation3.NavEntry<1:0>>){}[0]
+
+    final val previousEntries // androidx.navigation3/SceneStrategyResult.previousEntries|{}previousEntries[0]
+        final fun <get-previousEntries>(): kotlin.collections/List<androidx.navigation3/NavEntry<#A>> // androidx.navigation3/SceneStrategyResult.previousEntries.<get-previousEntries>|<get-previousEntries>(){}[0]
+    final val scene // androidx.navigation3/SceneStrategyResult.scene|{}scene[0]
+        final fun <get-scene>(): androidx.navigation3/Scene<#A> // androidx.navigation3/SceneStrategyResult.scene.<get-scene>|<get-scene>(){}[0]
 }
 
 open class <#A: kotlin/Any> androidx.navigation3/NavEntry { // androidx.navigation3/NavEntry|null[0]

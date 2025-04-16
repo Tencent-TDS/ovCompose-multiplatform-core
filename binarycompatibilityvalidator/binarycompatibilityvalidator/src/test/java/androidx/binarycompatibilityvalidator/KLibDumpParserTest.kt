@@ -171,6 +171,22 @@ class KlibDumpParserTest {
     }
 
     @Test
+    fun parseAFunctionWithQualifiedReceiver() {
+        val input =
+            "final fun <#A: kotlin/Any> " +
+                "(androidx.compose.ui.text/AnnotatedString.Builder.BulletScope)" +
+                ".androidx.compose.ui.text/withBulletListItem" +
+                "(androidx.compose.ui.text/Bullet? = "
+        "..., kotlin/Function1<androidx.compose.ui.text/AnnotatedString.Builder, #A>): #A"
+        val parsed = KlibDumpParser(input).parseFunction()
+        assertThat(parsed).isNotNull()
+
+        assertThat(parsed.qualifiedName.toString())
+            .isEqualTo("androidx.compose.ui.text/withBulletListItem")
+        assertThat(parsed.hasExtensionReceiverParameter).isTrue()
+    }
+
+    @Test
     fun parseAGetterFunction() {
         val input = "final inline fun <get-indices>(): kotlin.ranges/IntRange"
         val parentQName =

@@ -16,9 +16,13 @@
 
 package androidx.xr.arcore
 
+import android.content.ContentResolver
+import android.provider.Settings.System
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.HandJointType
 import androidx.xr.runtime.HandTrackingMode
 import androidx.xr.runtime.Session
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Hand as RuntimeHand
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
@@ -34,6 +38,9 @@ import kotlinx.coroutines.flow.asStateFlow
 public class Hand internal constructor(internal val runtimeHand: RuntimeHand) : Updatable {
     /** * Companion object holding info to the left and right hands. */
     public companion object {
+
+        internal const val PRIMARY_HAND_SETTING_NAME = "primary_hand"
+
         /**
          * Returns the Hand object that corresponds to the user's left hand when available.
          *
@@ -66,12 +73,31 @@ public class Hand internal constructor(internal val runtimeHand: RuntimeHand) : 
             return perceptionStateExtender.xrResourcesManager.rightHand
         }
 
+        /**
+         * Returns the handedness of the user's primary hand.
+         *
+         * @param resolver the [ContentResolver] to use to retrieve the setting.
+         * @return the [Handedness] of the user's primary hand. If the setting is not configured,
+         *   returns [Handedness.UNKNOWN].
+         */
+        public fun getHandedness(resolver: ContentResolver): Handedness =
+            Handedness.values()[
+                    System.getInt(resolver, PRIMARY_HAND_SETTING_NAME, Handedness.UNKNOWN.ordinal)]
+
         private fun getPerceptionStateExtender(session: Session): PerceptionStateExtender {
             val perceptionStateExtender: PerceptionStateExtender? =
                 session.stateExtenders.filterIsInstance<PerceptionStateExtender>().first()
             check(perceptionStateExtender != null) { "PerceptionStateExtender is not available." }
             return perceptionStateExtender
         }
+    }
+
+    /** The handedness of the user's hand. */
+    public enum class Handedness {
+        LEFT,
+        RIGHT,
+        /** The handedness is not available if it is not explicitly set. */
+        UNKNOWN,
     }
 
     /**

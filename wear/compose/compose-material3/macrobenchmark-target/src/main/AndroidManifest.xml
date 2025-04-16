@@ -313,6 +313,17 @@
         </activity>
 
         <activity
+            android:name=".TimeTextActivity"
+            android:theme="@style/AppTheme"
+            android:exported="true">
+            <intent-filter>
+                <action android:name=
+                    "androidx.wear.compose.material3.macrobenchmark.target.TIME_TEXT_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".TransformingLazyColumnActivity"
             android:theme="@style/AppTheme"
             android:exported="true">

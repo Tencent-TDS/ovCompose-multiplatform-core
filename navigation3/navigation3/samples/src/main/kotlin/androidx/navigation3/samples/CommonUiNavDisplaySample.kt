@@ -84,7 +84,7 @@ fun <T : Any> CommonUiNavDisplay(
     topLevelRoutes: List<TopLevelRoute>,
     onItemClick: (TopLevelRoute) -> Unit,
     modifier: Modifier = Modifier,
-    localProviders: List<NavEntryDecorator> = emptyList(),
+    entryDecorators: List<NavEntryDecorator> = emptyList(),
     contentAlignment: Alignment = Alignment.TopStart,
     sizeTransform: SizeTransform? = null,
     enterTransition: EnterTransition =
@@ -107,7 +107,7 @@ fun <T : Any> CommonUiNavDisplay(
     entryProvider: (key: T) -> NavEntry<out T>
 ) {
     BackHandler(backstack.size > 1, onBack)
-    DecoratedNavEntryProvider(backstack, entryProvider, localProviders) { entries ->
+    DecoratedNavEntryProvider(backstack, entryProvider, entryDecorators) { entries ->
         // Make a copy shallow copy so that transition.currentState and transition.targetState are
         // different backstack instances. This ensures currentState reflects the old backstack when
         // the backstack (targetState) is updated.

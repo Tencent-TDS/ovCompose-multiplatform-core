@@ -19,7 +19,6 @@ package androidx.appfunctions
 import android.content.Context
 import android.os.Build
 import androidx.annotation.IntDef
-import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.appfunctions.internal.AppFunctionManagerApi
 import androidx.appfunctions.internal.AppFunctionReader
@@ -36,14 +35,12 @@ import kotlinx.coroutines.flow.Flow
  * Provides access to interact with App Functions. This is a backward-compatible wrapper for the
  * platform class [android.app.appfunctions.AppFunctionManager].
  */
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 public class AppFunctionManagerCompat
 internal constructor(
     private val context: Context,
-    private val translatorSelector: TranslatorSelector = Dependencies.translatorSelector,
-    private val appFunctionReader: AppFunctionReader = AppSearchAppFunctionReader(context),
-    private val appFunctionManagerApi: AppFunctionManagerApi =
-        ExtensionAppFunctionManagerApi(context)
+    private val translatorSelector: TranslatorSelector,
+    private val appFunctionReader: AppFunctionReader,
+    private val appFunctionManagerApi: AppFunctionManagerApi,
 ) {
 
     /**
@@ -232,18 +229,24 @@ internal constructor(
         /**
          * Gets an instance of [AppFunctionManagerCompat] if the AppFunction feature is supported.
          *
-         * Support is determined by verifying if the device implements the App Functions extension
-         * library.
+         * Support is determined by verifying the SDK version is at least 33 and if the device
+         * implements the App Functions extension library.
          *
          * @return an instance of [AppFunctionManagerCompat] if the AppFunction feature is supported
          *   or `null`.
          */
         @JvmStatic
-        public fun getInstance(context: Context): AppFunctionManagerCompat? =
-            if (isSupported()) {
-                AppFunctionManagerCompat(context)
+        public fun getInstance(context: Context): AppFunctionManagerCompat? {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isSupported()) {
+                AppFunctionManagerCompat(
+                    context,
+                    Dependencies.translatorSelector,
+                    AppSearchAppFunctionReader(context, Dependencies.schemaAppFunctionInventory),
+                    ExtensionAppFunctionManagerApi(context),
+                )
             } else {
                 null
             }
+        }
     }
 }

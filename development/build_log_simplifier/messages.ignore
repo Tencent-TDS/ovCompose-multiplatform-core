@@ -372,6 +372,8 @@ For more details, see: https://kotl\.in/gradle/internal\-compiler\-symbols
 # b/359449191
 > Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:testsdkproviderwrapper\) with ExtractCompileSdkShimTransform
 > Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:mediateesdkproviderwrapper\) with ExtractCompileSdkShimTransform
+> Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:macrobenchmark:testapp:testsdkproviderwrapper\) with ExtractCompileSdkShimTransform
+> Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:macrobenchmark:testapp:mediateesdkproviderwrapper\) with ExtractCompileSdkShimTransform
 # > Task :room:integration-tests:room-testapp:runErrorProneWithPreKmpCompilerRelease
 \$OUT_DIR/androidx/room/integration\-tests/room\-testapp/build/errorProne/WithPreKmpCompilerRelease/androidx/room/integration/testapp/database/CustomerDao_Impl\.java:[0-9]+: warning: \[removal\] finalize\(\) in Object has been deprecated and marked for removal
 protected void finalize\(\) \{
@@ -388,4 +390,5 @@ WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/androidx/biometri
 WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/androidx/biometric/auth/Class[0-9]+BiometricOrCredentialAuthExtensions\.kt:[0-9]+ Failed to resolve See Class[0-9]+BiometricOrCredentialAuthPrompt\.authenticate in DFunction authenticate\. Did you mean Class[0-9]+BiometricOrCredentialAuthPrompt\#authenticate\?
 WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/androidx/biometric/auth/Class[0-9]+BiometricAuthExtensions\.kt:[0-9]+ Failed to resolve See Class[0-9]+BiometricAuthPrompt\.authenticate in DFunction authenticate\. Did you mean Class[0-9]+BiometricAuthPrompt\#authenticate\?
 # Remove OPT_IN_MARKER_ON_WRONG_TARGET from this list and from all instances in code when b/174708311 is fixed
-.*This code uses error suppression for '(ABSTRACT_MEMBER_NOT_IMPLEMENTED|CANNOT_OVERRIDE_INVISIBLE_MEMBER|INVISIBLE_REFERENCE|OPT_IN_MARKER_ON_WRONG_TARGET|UPPER_BOUND_VIOLATED|WRONG_ANNOTATION_TARGET)'.*
+# Remove UNSAFE_CALL when b/409324917 is fixed
+.*This code uses error suppression for '(ABSTRACT_MEMBER_NOT_IMPLEMENTED|CANNOT_OVERRIDE_INVISIBLE_MEMBER|INVISIBLE_REFERENCE|OPT_IN_MARKER_ON_WRONG_TARGET|UNSAFE_CALL|UPPER_BOUND_VIOLATED|WRONG_ANNOTATION_TARGET)'.*

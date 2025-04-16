@@ -200,7 +200,9 @@ public fun CircularProgressIndicator(
     ) {
         val sweep = progressAnimation.value * 360f
         val adjustedGapSize = gapSize + strokeWidth
-        val gapSizeSweep = (adjustedGapSize.value / (PI * size.width.toDp().value).toFloat()) * 360f
+
+        val minSize = min(size.height, size.width)
+        val gapSizeSweep = (adjustedGapSize.value / (PI * minSize.toDp().value).toFloat()) * 360f
 
         rotate(globalRotation.value + additionalRotation.value) {
             drawCircularIndicator(

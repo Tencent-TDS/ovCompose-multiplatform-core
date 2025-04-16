@@ -32,6 +32,10 @@ internal constructor(val components: List<TextContextMenuComponent>) {
             components.fastJoinToString(prefix = "[\n\t", separator = "\n\t", postfix = "\n]")
         return "TextContextMenuData(components=$componentsStr)"
     }
+
+    internal companion object {
+        val Empty = TextContextMenuData(emptyList())
+    }
 }
 
 /**

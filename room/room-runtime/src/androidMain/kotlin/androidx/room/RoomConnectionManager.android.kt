@@ -38,7 +38,7 @@ internal actual class RoomConnectionManager : BaseRoomConnectionManager {
     override val openDelegate: RoomOpenDelegate
     override val callbacks: List<RoomDatabase.Callback>
 
-    private val connectionPool: ConnectionPool
+    internal val connectionPool: ConnectionPool
 
     internal val supportOpenHelper: SupportSQLiteOpenHelper?
         get() = (connectionPool as? SupportSQLiteConnectionPool)?.supportDriver?.openHelper

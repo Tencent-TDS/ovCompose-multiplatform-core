@@ -147,65 +147,29 @@ class AppFunctionDataTest {
     @Test
     fun testReadWriteGeneric_nestedObjectParameter() {
         val data =
-            AppFunctionData.Builder(TEST_NESTED_PARAMETER_METADATA, AppFunctionComponentsMetadata())
+            AppFunctionData.Builder("")
                 .setGenericField(
-                    "data",
-                    AppFunctionData.Builder(TEST_OBJECT_METADATA, AppFunctionComponentsMetadata())
-                        .setGenericField("long", 100, Long::class.java)
-                        .build(),
-                    AppFunctionData::class.java,
+                    "note",
+                    Note(title = "testTitle", attachment = Attachment("testUri")),
+                    Note::class.java,
                 )
                 .setGenericListField(
-                    "dataList",
+                    "noteList",
                     listOf(
-                        AppFunctionData.Builder(
-                                TEST_OBJECT_METADATA,
-                                AppFunctionComponentsMetadata()
-                            )
-                            .setGenericField("double", 20.0, Double::class.java)
-                            .build(),
-                        AppFunctionData.Builder(
-                                TEST_OBJECT_METADATA,
-                                AppFunctionComponentsMetadata()
-                            )
-                            .setGenericField("string", "testString", String::class.java)
-                            .build()
+                        Note(title = "testTitle1", attachment = Attachment("testUri1")),
+                        Note(title = "testTitle2", attachment = Attachment("testUri2")),
                     ),
-                    AppFunctionData::class.java,
+                    Note::class.java,
                 )
                 .build()
 
-        assertThat(
-                data
-                    .getGenericField("data", AppFunctionData::class.java)
-                    .getGenericField("long", Long::class.java)
+        assertThat(data.getGenericField("note", Note::class.java))
+            .isEqualTo(Note(title = "testTitle", attachment = Attachment("testUri")))
+        assertThat(data.getGenericListField<Note, List<Note>>("noteList", Note::class.java))
+            .containsExactly(
+                Note(title = "testTitle1", attachment = Attachment("testUri1")),
+                Note(title = "testTitle2", attachment = Attachment("testUri2")),
             )
-            .isEqualTo(100)
-        assertThat(
-                data.getGenericListField<AppFunctionData, List<AppFunctionData>>(
-                    "dataList",
-                    AppFunctionData::class.java
-                )
-            )
-            .hasSize(2)
-        assertThat(
-                data
-                    .getGenericListField<AppFunctionData, List<AppFunctionData>>(
-                        "dataList",
-                        AppFunctionData::class.java
-                    )[0]
-                    .getGenericField("double", Double::class.java)
-            )
-            .isEqualTo(20.0)
-        assertThat(
-                data
-                    .getGenericListField<AppFunctionData, List<AppFunctionData>>(
-                        "dataList",
-                        AppFunctionData::class.java
-                    )[1]
-                    .getGenericField("string", String::class.java)
-            )
-            .isEqualTo("testString")
     }
 
     @Test

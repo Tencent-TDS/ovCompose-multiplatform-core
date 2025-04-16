@@ -995,6 +995,16 @@ internal class CompositionImpl(
     override fun recompose(): Boolean =
         synchronized(lock) {
             drainPendingModificationsForCompositionLocked()
+            val pendingPausedComposition = pendingPausedComposition
+            if (pendingPausedComposition != null && !pendingPausedComposition.isRecomposing) {
+                // If the composition is pending do not recompose it now as the recomposition
+                // is in the control of the pausable composition and is supposed to happen when
+                // the resume is called. However, this may cause the pausable composition to go
+                // revert to an incomplete state. If isRecomposing is true then this is being
+                // called in resume()
+                pendingPausedComposition.markIncomplete()
+                return false
+            }
             guardChanges {
                 guardInvalidationsLocked { invalidations ->
                     val observer = observer()

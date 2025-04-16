@@ -33,6 +33,8 @@ import androidx.annotation.WorkerThread
 import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.room.Room.LOG_TAG
 import androidx.room.concurrent.CloseBarrier
+import androidx.room.coroutines.AndroidSQLiteDriverConnectionPool
+import androidx.room.coroutines.ConnectionPool
 import androidx.room.coroutines.runBlockingUninterruptible
 import androidx.room.driver.SupportSQLiteConnection
 import androidx.room.migration.AutoMigrationSpec
@@ -46,6 +48,7 @@ import androidx.room.support.QueryInterceptorOpenHelperFactory
 import androidx.room.util.contains as containsCommon
 import androidx.room.util.findAndInstantiateDatabaseImpl
 import androidx.room.util.findMigrationPath as findMigrationPathExt
+import androidx.room.util.performBlocking
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.db.SimpleSQLiteQuery
@@ -53,6 +56,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.SupportSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteStatement
+import androidx.sqlite.db.framework.FrameworkSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import java.io.File
 import java.io.InputStream
@@ -101,8 +105,13 @@ actual abstract class RoomDatabase {
     )
     protected var mDatabase: SupportSQLiteDatabase? = null
 
+    private lateinit var configuration: DatabaseConfiguration
     private lateinit var coroutineScope: CoroutineScope
     private lateinit var transactionContext: CoroutineContext
+
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    val path: String?
+        get() = configuration.name?.let { configuration.context.getDatabasePath(it).path }
 
     /** The Executor in use by this database for async queries. */
     open val queryExecutor: Executor
@@ -116,7 +125,12 @@ actual abstract class RoomDatabase {
 
     private lateinit var internalTransactionExecutor: Executor
 
-    /** The SQLite open helper used by this database. */
+    /**
+     * The SQLite open helper used by this database.
+     *
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
+     */
+    // TODO(b/408062492): @Deprecate with replace to wrapper
     open val openHelper: SupportSQLiteOpenHelper
         get() =
             connectionManager.supportOpenHelper
@@ -126,6 +140,9 @@ actual abstract class RoomDatabase {
                 )
 
     private lateinit var connectionManager: RoomConnectionManager
+
+    internal val connectionPool: ConnectionPool
+        get() = connectionManager.connectionPool
 
     /**
      * The invalidation tracker for this database.
@@ -217,8 +234,8 @@ actual abstract class RoomDatabase {
      * @throws IllegalArgumentException if initialization fails.
      */
     @CallSuper
-    @OptIn(ExperimentalCoroutinesApi::class) // For limitedParallelism(1)
     actual open fun init(configuration: DatabaseConfiguration) {
+        this.configuration = configuration
         useTempTrackingTable = configuration.useTempTrackingTable
 
         connectionManager = createConnectionManager(configuration)
@@ -242,6 +259,7 @@ actual abstract class RoomDatabase {
                 if (inCompatibilityMode()) {
                     // To prevent starvation due to primary connection blocking in
                     // SupportSQLiteDatabase a limited dispatcher is used for transactions.
+                    @OptIn(ExperimentalCoroutinesApi::class) // For limitedParallelism(1)
                     coroutineScope.coroutineContext + dispatcher.limitedParallelism(1)
                 } else {
                     // When a SQLiteDriver is provided a suspending connection pool is used and
@@ -596,7 +614,8 @@ actual abstract class RoomDatabase {
      *
      * @see RoomConnectionManager
      */
-    internal fun inCompatibilityMode(): Boolean = connectionManager.supportOpenHelper != null
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun inCompatibilityMode(): Boolean = connectionManager.supportOpenHelper != null
 
     // Below, there are wrapper methods for SupportSQLiteDatabase. This helps us track which
     // methods we are using and also helps unit tests to mock this class without mocking
@@ -607,6 +626,7 @@ actual abstract class RoomDatabase {
      * @param query The sql query
      * @param args The bind arguments for the placeholders in the query
      * @return A Cursor obtained by running the given query in the Room database.
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
      */
     open fun query(query: String, args: Array<out Any?>?): Cursor {
         assertNotMainThread()
@@ -620,6 +640,7 @@ actual abstract class RoomDatabase {
      * @param query The Query which includes the SQL and a bind callback for bind arguments.
      * @param signal The cancellation signal to be attached to the query.
      * @return Result of the query.
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
      */
     @JvmOverloads
     open fun query(query: SupportSQLiteQuery, signal: CancellationSignal? = null): Cursor {
@@ -637,6 +658,7 @@ actual abstract class RoomDatabase {
      *
      * @param sql The query to compile.
      * @return The compiled query.
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
      */
     open fun compileStatement(sql: String): SupportSQLiteStatement {
         assertNotMainThread()
@@ -644,7 +666,11 @@ actual abstract class RoomDatabase {
         return openHelper.writableDatabase.compileStatement(sql)
     }
 
-    /** Wrapper for [SupportSQLiteDatabase.beginTransaction]. */
+    /**
+     * Wrapper for [SupportSQLiteDatabase.beginTransaction].
+     *
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
+     */
     @Deprecated("beginTransaction() is deprecated", ReplaceWith("runInTransaction(Runnable)"))
     open fun beginTransaction() {
         assertNotMainThread()
@@ -669,7 +695,11 @@ actual abstract class RoomDatabase {
         }
     }
 
-    /** Wrapper for [SupportSQLiteDatabase.endTransaction]. */
+    /**
+     * Wrapper for [SupportSQLiteDatabase.endTransaction].
+     *
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
+     */
     @Deprecated("endTransaction() is deprecated", ReplaceWith("runInTransaction(Runnable)"))
     open fun endTransaction() {
         val autoCloser = autoCloser
@@ -689,7 +719,11 @@ actual abstract class RoomDatabase {
         }
     }
 
-    /** Wrapper for [SupportSQLiteDatabase.setTransactionSuccessful]. */
+    /**
+     * Wrapper for [SupportSQLiteDatabase.setTransactionSuccessful].
+     *
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
+     */
     @Deprecated(
         "setTransactionSuccessful() is deprecated",
         ReplaceWith("runInTransaction(Runnable)")
@@ -704,17 +738,13 @@ actual abstract class RoomDatabase {
      *
      * Room will only perform at most one transaction at a time.
      *
+     * If a [SQLiteDriver] is configured with this database, then it is best to use
+     * [useWriterConnection] along with [immediateTransaction] to perform transactional operations.
+     *
      * @param body The piece of code to execute.
      */
-    @Suppress("DEPRECATION")
     open fun runInTransaction(body: Runnable) {
-        beginTransaction()
-        try {
-            body.run()
-            setTransactionSuccessful()
-        } finally {
-            endTransaction()
-        }
+        runInTransaction { body.run() }
     }
 
     /**
@@ -723,19 +753,32 @@ actual abstract class RoomDatabase {
      *
      * Room will only perform at most one transaction at a time.
      *
+     * If a [SQLiteDriver] is configured with this database, then it is best to use
+     * [useWriterConnection] along with [immediateTransaction] to perform transactional operations.
+     *
      * @param body The piece of code to execute.
      * @param V The type of the return value.
      * @return The value returned from the [Callable].
      */
-    @Suppress("DEPRECATION")
     open fun <V> runInTransaction(body: Callable<V>): V {
-        beginTransaction()
-        return try {
-            val result = body.call()
-            setTransactionSuccessful()
-            result
-        } finally {
-            endTransaction()
+        return runInTransaction { body.call() }
+    }
+
+    @Suppress("DEPRECATION") // Usage of try-finally transaction idiom APIs
+    private fun <T> runInTransaction(body: () -> T): T {
+        if (inCompatibilityMode()) {
+            beginTransaction()
+            try {
+                val result = body.invoke()
+                setTransactionSuccessful()
+                return result
+            } finally {
+                endTransaction()
+            }
+        } else {
+            return performBlocking(db = this, isReadOnly = false, inTransaction = true) {
+                body.invoke()
+            }
         }
     }
 
@@ -762,9 +805,11 @@ actual abstract class RoomDatabase {
     }
 
     /**
-     * Returns true if current thread is in a transaction.
+     * Wrapper for [SupportSQLiteDatabase.inTransaction]. Returns true if current thread is in a
+     * transaction.
      *
      * @return True if there is an active transaction in current thread, false otherwise.
+     * @throws IllegalStateException If a [SQLiteDriver] is configured with this database.
      * @see SupportSQLiteDatabase.inTransaction
      */
     open fun inTransaction(): Boolean {
@@ -2117,3 +2162,10 @@ fun RoomDatabase.invalidationTrackerFlow(
     vararg tables: String,
     emitInitialState: Boolean = true
 ): Flow<Set<String>> = invalidationTracker.createFlow(*tables, emitInitialState = emitInitialState)
+
+// TODO(b/408010324): Avoid exposing this restricted APIs, create separation of concerns.
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+fun RoomDatabase.getAndroidDriverDatabase(): SupportSQLiteDatabase? =
+    (connectionPool as? AndroidSQLiteDriverConnectionPool)?.androidConnection?.db?.let {
+        FrameworkSQLiteDatabase(it)
+    }

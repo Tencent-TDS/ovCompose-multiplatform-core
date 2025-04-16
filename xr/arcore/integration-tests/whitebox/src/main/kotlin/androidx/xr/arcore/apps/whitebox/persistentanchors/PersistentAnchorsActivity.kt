@@ -59,21 +59,25 @@ import androidx.xr.arcore.Anchor
 import androidx.xr.arcore.AnchorCreateNotTracking
 import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
+import androidx.xr.arcore.AnchorLoadInvalidUuid
 import androidx.xr.arcore.apps.whitebox.common.BackToMainActivityButton
 import androidx.xr.arcore.apps.whitebox.common.SessionLifecycleHelper
 import androidx.xr.runtime.AnchorPersistenceMode
 import androidx.xr.runtime.Config
+import androidx.xr.runtime.HeadTrackingMode
 import androidx.xr.runtime.Session
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.AnchorEntity
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PixelDimensions
-import androidx.xr.scenecore.Session as JxrCoreSession
+import androidx.xr.scenecore.scene
 import java.util.UUID
 import kotlin.collections.List
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -83,7 +87,6 @@ class PersistentAnchorsActivity : ComponentActivity() {
 
     private lateinit var session: Session
     private lateinit var sessionHelper: SessionLifecycleHelper
-    private lateinit var jxrCoreSession: JxrCoreSession
     private lateinit var movableEntity: Entity
     private val movableEntityOffset = Pose(Vector3(0f, 1f, -2.0f))
     private val uuids = MutableStateFlow<List<UUID>>(emptyList())
@@ -92,21 +95,29 @@ class PersistentAnchorsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sessionHelper = SessionLifecycleHelper(this)
-        session = sessionHelper.session
+        sessionHelper =
+            SessionLifecycleHelper(
+                this,
+                onSessionAvailable = { session ->
+                    this.session = session
+
+                    createTargetPanel()
+
+                    session.lifecycleScope.launch {
+                        session.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                            session.configure(
+                                Config(
+                                    anchorPersistence = AnchorPersistenceMode.Enabled,
+                                    headTracking = HeadTrackingMode.Enabled,
+                                )
+                            )
+                            setContent { MainPanel() }
+                            onResumeCallback()
+                        }
+                    }
+                },
+            )
         lifecycle.addObserver(sessionHelper)
-
-        jxrCoreSession = JxrCoreSession.create(this)
-
-        createTargetPanel()
-
-        session.lifecycleScope.launch {
-            session.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                session.configure(Config(anchorPersistence = AnchorPersistenceMode.Enabled))
-                setContent { MainPanel() }
-                onResumeCallback()
-            }
-        }
     }
 
     private fun createTargetPanel() {
@@ -115,13 +126,13 @@ class PersistentAnchorsActivity : ComponentActivity() {
         configureComposeView(composeView, this)
         movableEntity =
             PanelEntity.create(
-                jxrCoreSession,
+                session,
                 composeView,
                 PixelDimensions(640, 640),
                 "movableEntity",
                 movableEntityOffset,
             )
-        movableEntity.setParent(jxrCoreSession.activitySpace)
+        movableEntity.setParent(session.scene.activitySpace)
     }
 
     private fun onResumeCallback() {
@@ -135,9 +146,9 @@ class PersistentAnchorsActivity : ComponentActivity() {
     }
 
     private fun updatePlaneEntity() {
-        jxrCoreSession.spatialUser.head?.let {
+        session.scene.spatialUser.head?.let {
             movableEntity.setPose(
-                it.transformPoseTo(movableEntityOffset, jxrCoreSession.activitySpace)
+                it.transformPoseTo(movableEntityOffset, session.scene.activitySpace)
             )
         }
     }
@@ -225,9 +236,9 @@ class PersistentAnchorsActivity : ComponentActivity() {
         // the target panel and future anchors.
         anchorOffset.value += 0.25f
         val anchorPose =
-            jxrCoreSession.activitySpace.transformPoseTo(
+            session.scene.activitySpace.transformPoseTo(
                 movableEntity.getPose().translate(Vector3(anchorOffset.value, 0f, 0f)),
-                jxrCoreSession.perceptionSpace,
+                session.scene.perceptionSpace,
             )
         try {
             when (val anchorResult = Anchor.create(session, anchorPose)) {
@@ -240,6 +251,10 @@ class PersistentAnchorsActivity : ComponentActivity() {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: camera not tracking.")
                     Toast.makeText(this, "Camera not tracking.", Toast.LENGTH_LONG).show()
                 }
+                is AnchorLoadInvalidUuid -> {
+                    Log.e(ACTIVITY_NAME, "Failed to load anchor: invalid UUID.")
+                    Toast.makeText(this, "Invalid UUID.", Toast.LENGTH_LONG).show()
+                }
             }
         } catch (e: IllegalStateException) {
             Log.e(ACTIVITY_NAME, "Failed to create anchor: ${e.message}")
@@ -249,17 +264,25 @@ class PersistentAnchorsActivity : ComponentActivity() {
     private fun createAnchorPanel(anchor: Anchor) {
         val composeView = ComposeView(this)
         configureComposeView(composeView, this)
-        val anchorEntity = AnchorEntity.create(jxrCoreSession, anchor)
-        val panelEntity =
-            PanelEntity.create(
-                jxrCoreSession,
-                composeView,
-                PixelDimensions(640, 640),
-                "anchorEntity ${anchor.hashCode()}",
-                Pose(),
-            )
-        panelEntity.setParent(anchorEntity)
-        composeView.setContent { AnchorPanel(anchor, panelEntity) }
+        val anchorEntity = AnchorEntity.create(session, anchor)
+
+        lifecycleScope.launch {
+            anchor.state.collect { anchorState ->
+                if (anchorState.trackingState == TrackingState.Tracking) {
+                    val panelEntity =
+                        PanelEntity.create(
+                            session,
+                            composeView,
+                            PixelDimensions(640, 640),
+                            "anchorEntity ${anchor.hashCode()}",
+                            Pose(),
+                        )
+                    panelEntity.setParent(anchorEntity)
+                    composeView.setContent { AnchorPanel(anchor, panelEntity) }
+                    cancel()
+                }
+            }
+        }
     }
 
     @Composable
@@ -328,6 +351,10 @@ class PersistentAnchorsActivity : ComponentActivity() {
                 is AnchorCreateNotTracking -> {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: camera not tracking.")
                     Toast.makeText(this, "Camera not tracking.", Toast.LENGTH_LONG).show()
+                }
+                is AnchorLoadInvalidUuid -> {
+                    Log.e(ACTIVITY_NAME, "Failed to load anchor: invalid UUID.")
+                    Toast.makeText(this, "Invalid UUID.", Toast.LENGTH_LONG).show()
                 }
             }
         } catch (e: IllegalStateException) {

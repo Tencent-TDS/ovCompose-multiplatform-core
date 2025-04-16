@@ -25,3 +25,5 @@ public typealias HandTrackingMode = androidx.xr.runtime.internal.Config.HandTrac
 public typealias DepthEstimationMode = androidx.xr.runtime.internal.Config.DepthEstimationMode
 
 public typealias AnchorPersistenceMode = androidx.xr.runtime.internal.Config.AnchorPersistenceMode
+
+public typealias HeadTrackingMode = androidx.xr.runtime.internal.Config.HeadTrackingMode

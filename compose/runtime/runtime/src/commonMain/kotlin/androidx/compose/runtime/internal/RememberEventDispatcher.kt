@@ -61,7 +61,9 @@ internal class RememberEventDispatcher() : RememberManager {
     private var abandoning: MutableSet<RememberObserver>? = null
     private var traceContext: CompositionErrorContext? = null
     private val remembering = mutableVectorOf<RememberObserverHolder>()
+    private val rememberSet = mutableScatterSetOf<RememberObserverHolder>()
     private var currentRememberingList = remembering
+    private var currentRememberSet = rememberSet
     private val leaving = mutableVectorOf<Any>()
     private val sideEffects = mutableVectorOf<() -> Unit>()
     private var releasing: MutableScatterSet<ComposeNodeLifecycleCallback>? = null
@@ -102,7 +104,9 @@ internal class RememberEventDispatcher() : RememberManager {
         this.abandoning = null
         this.traceContext = null
         this.remembering.clear()
+        this.rememberSet.clear()
         this.currentRememberingList = remembering
+        this.currentRememberSet = rememberSet
         this.leaving.clear()
         this.sideEffects.clear()
         this.releasing = null
@@ -115,6 +119,7 @@ internal class RememberEventDispatcher() : RememberManager {
 
     override fun remembering(instance: RememberObserverHolder) {
         currentRememberingList.add(instance)
+        currentRememberSet.add(instance)
     }
 
     override fun forgetting(
@@ -123,6 +128,12 @@ internal class RememberEventDispatcher() : RememberManager {
         priority: Int,
         endRelativeAfter: Int
     ) {
+        if (instance in currentRememberSet) {
+            currentRememberSet.remove(instance)
+            currentRememberingList.remove(instance)
+            val abandoning = abandoning ?: return
+            abandoning.add(instance.wrapped)
+        }
         recordLeaving(instance, endRelativeOrder, priority, endRelativeAfter)
     }
 

@@ -46,6 +46,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.pdf.event.PdfTrackingEvent
+import androidx.pdf.event.RequestFailureEvent
 import androidx.pdf.util.AnnotationUtils
 import androidx.pdf.util.Uris
 import androidx.pdf.view.PdfView
@@ -316,6 +318,17 @@ public open class PdfViewerFragment constructor() : Fragment() {
         _pdfView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             toolboxGestureEventProcessor.processEvent(ScrollTo(scrollY))
         }
+        _pdfView.requestFailedListener =
+            object : PdfView.EventListener {
+                override fun onEvent(event: PdfTrackingEvent) {
+                    when (event) {
+                        is RequestFailureEvent -> {
+                            // TODO(b/409464802): Propagate it through event callback
+                            onLoadDocumentError(event.exception)
+                        }
+                    }
+                }
+            }
 
         pdfViewManager =
             PdfViewManager(

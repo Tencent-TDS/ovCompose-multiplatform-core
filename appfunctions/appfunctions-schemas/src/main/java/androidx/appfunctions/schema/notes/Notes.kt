@@ -23,8 +23,9 @@ import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionOpenable
 import androidx.appfunctions.AppFunctionSchemaDefinition
 import androidx.appfunctions.schema.types.SetField
+import java.time.LocalDateTime
 
-// TODO(b/401517540): Add remaining APIs: folder APIs
+// TODO(b/407951385): Expose schema version.
 /**
  * The category name of Notes related app functions.
  *
@@ -62,7 +63,6 @@ public interface FindNotesAppFunction<
     ): Response
 
     /** The parameters for finding notes. */
-    // TODO(b/401517540): Add start and end dates when DateTime is supported.
     public interface Parameters {
         /**
          * The search query to be processed. A null value means to query all notes with the
@@ -73,6 +73,35 @@ public interface FindNotesAppFunction<
          * processed; for example by name matching or semantic analysis.
          */
         public val query: String?
+            get() = null
+
+        /**
+         * The date/time on or after which a note must have been modified to be included in the
+         * results.
+         *
+         * Acts as a lower bound for filtering notes based on their modification timestamp. A `null`
+         * value means no lower bound is applied.
+         *
+         * If `modifiedAfter` is equal to `modifiedBefore`, an empty list will be returned.
+         *
+         * [androidx.appfunctions.AppFunctionInvalidArgumentException] should be thrown if
+         * `modifiedAfter` is specified and is after `modifiedBefore`.
+         */
+        public val modifiedAfter: LocalDateTime?
+            get() = null
+
+        /**
+         * The date/time before which a note must have been modified to be included in the results.
+         *
+         * Acts as a strict upper bound for filtering notes based on their modification timestamp. A
+         * `null` value means no upper bound is applied.
+         *
+         * If `modifiedAfter` is equal to `modifiedBefore`, an empty list will be returned.
+         *
+         * [androidx.appfunctions.AppFunctionInvalidArgumentException] should be thrown if
+         * `modifiedAfter` is specified and is after `modifiedBefore`.
+         */
+        public val modifiedBefore: LocalDateTime?
             get() = null
     }
 
@@ -370,7 +399,7 @@ public interface ShowNoteAppFunction<
 
 /** Finds notes groups with the given search criteria. */
 @AppFunctionSchemaDefinition(
-    name = "findNotesGroups",
+    name = "findFolders",
     version = FindNotesGroupsAppFunction.SCHEMA_VERSION,
     category = APP_FUNCTION_SCHEMA_CATEGORY_NOTES
 )
@@ -422,7 +451,7 @@ public interface FindNotesGroupsAppFunction<
 
 /** Creates a group with the given parameters. */
 @AppFunctionSchemaDefinition(
-    name = "createNotesGroup",
+    name = "createFolder",
     version = CreateNotesGroupAppFunction.SCHEMA_VERSION,
     category = APP_FUNCTION_SCHEMA_CATEGORY_NOTES
 )
@@ -447,8 +476,8 @@ public interface CreateNotesGroupAppFunction<
 
     /** The parameters for creating a group. */
     public interface Parameters {
-        /** The name of the group. */
-        public val name: String
+        /** The label of the group. */
+        public val label: String
     }
 
     /** The response including the created group. */
@@ -466,7 +495,7 @@ public interface CreateNotesGroupAppFunction<
 
 /** Deletes groups with the given parameters. */
 @AppFunctionSchemaDefinition(
-    name = "deleteNotesGroups",
+    name = "deleteFolders",
     version = DeleteNotesGroupsAppFunction.SCHEMA_VERSION,
     category = APP_FUNCTION_SCHEMA_CATEGORY_NOTES
 )
@@ -506,6 +535,62 @@ public interface DeleteNotesGroupsAppFunction<
 
     public companion object {
 
+        /** Current schema version. */
+        @RestrictTo(LIBRARY_GROUP) internal const val SCHEMA_VERSION: Int = 2
+    }
+}
+
+/** Updates an existing [AppFunctionNotesGroup]. */
+@AppFunctionSchemaDefinition(
+    name = "updateFolder",
+    version = UpdateNotesGroupAppFunction.SCHEMA_VERSION,
+    category = APP_FUNCTION_SCHEMA_CATEGORY_NOTES
+)
+public interface UpdateNotesGroupAppFunction<
+    Parameters : UpdateNotesGroupAppFunction.Parameters,
+    Response : UpdateNotesGroupAppFunction.Response
+> {
+    /**
+     * Updates an existing [AppFunctionNotesGroup] with the given parameters.
+     *
+     * For each field in [Parameters], if the corresponding [SetField] is not null, the note group's
+     * field will be updated. The value within the [SetField] will be used to update the original
+     * value. Fields with a null [SetField] will not be updated.
+     *
+     * The implementing app should throw an appropriate subclass of
+     * [androidx.appfunctions.AppFunctionException] in exceptional cases.
+     *
+     * @param appFunctionContext The AppFunction execution context.
+     * @param parameters The parameters defining the notes group to update and the new values.
+     * @return The response including the updated notes group.
+     */
+    public suspend fun updateNotesGroup(
+        appFunctionContext: AppFunctionContext,
+        parameters: Parameters,
+    ): Response
+
+    /** The parameters for updating a notes group. */
+    public interface Parameters {
+        /**
+         * The ID of the notes group to update.
+         *
+         * [androidx.appfunctions.AppFunctionElementNotFoundException] should be thrown when a group
+         * with the specified notesGroupId doesn't exist.
+         */
+        public val notesGroupId: String
+
+        /** The new label for the group, if it should be updated. */
+        public val label: SetField<String>?
+            get() = null
+    }
+
+    /** The response including the updated notes group. */
+    public interface Response {
+        /** The updated notes group. */
+        public val updatedNotesGroup: AppFunctionNotesGroup
+    }
+
+    public companion object {
         /** Current schema version. */
         @RestrictTo(LIBRARY_GROUP) internal const val SCHEMA_VERSION: Int = 2
     }
@@ -557,6 +642,6 @@ public interface AppFunctionNote {
 public interface AppFunctionNotesGroup {
     /** The ID of the group. */
     public val id: String
-    /** The name of the group. */
-    public val name: String
+    /** The label of the group. */
+    public val label: String
 }

@@ -41,17 +41,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.LocalReduceMotion
+import androidx.wear.compose.foundation.hierarchicalFocusRequester
 import androidx.wear.compose.foundation.lazy.layout.LazyLayout
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutIntervalContent
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutItemProvider
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
 import androidx.wear.compose.foundation.lazy.layout.getDefaultLazyLayoutKey
-import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
@@ -151,6 +152,7 @@ public fun TransformingLazyColumn(
         )
 
     val semanticState = remember(state) { TransformingLazyColumnSemanticState(state) }
+    val focusRequester = remember { FocusRequester() }
 
     LazyLayout(
         itemProvider = itemProviderLambda,
@@ -162,10 +164,11 @@ public fun TransformingLazyColumn(
                 .then(
                     if (rotaryScrollableBehavior != null && userScrollEnabled)
                         Modifier.rotaryScrollable(
-                            behavior = rotaryScrollableBehavior,
-                            focusRequester = rememberActiveFocusRequester(),
-                            overscrollEffect = overscrollEffect
-                        )
+                                behavior = rotaryScrollableBehavior,
+                                focusRequester = focusRequester,
+                                overscrollEffect = overscrollEffect
+                            )
+                            .hierarchicalFocusRequester(focusRequester)
                     else Modifier
                 )
                 .lazyLayoutSemantics(

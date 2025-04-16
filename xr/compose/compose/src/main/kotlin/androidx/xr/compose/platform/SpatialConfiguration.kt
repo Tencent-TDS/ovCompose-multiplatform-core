@@ -28,7 +28,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.xr.compose.unit.DpVolumeSize
 import androidx.xr.compose.unit.toDpVolumeSize
-import androidx.xr.scenecore.Session
+import androidx.xr.runtime.FEATURE_XR_API_SPATIAL
+import androidx.xr.runtime.Session
+import androidx.xr.scenecore.scene
 
 /**
  * The name of the system feature that indicates whether the system supports XR Spatial features.
@@ -118,11 +120,16 @@ public interface SpatialConfiguration {
     public companion object {
         /**
          * XR Spatial APIs are supported for this system. This is equivalent to
-         * PackageManager.hasSystemFeature(FEATURE_XR_SPATIAL, version) where version is the minimum
-         * version for features available in the XR Compose library used.
+         * PackageManager.hasSystemFeature(FEATURE_XR_API_SPATIAL) or
+         * PackageManager.hasSystemFeature(XR_IMMERSIVE_FEATURE). When one of these features is
+         * available, it is safe to assume we are in an XR environment.
          */
         public fun hasXrSpatialFeature(context: Context): Boolean {
-            return context.packageManager.hasSystemFeature(XR_IMMERSIVE_FEATURE)
+            // TODO(b/398957058): Remove the XR_IMMERSIVE_FEATURE check once the google play team
+            // logic
+            // is updated.
+            return (context.packageManager.hasSystemFeature(XR_IMMERSIVE_FEATURE) ||
+                context.packageManager.hasSystemFeature(FEATURE_XR_API_SPATIAL))
         }
 
         private val sessionInstances: MutableMap<Session, SpatialConfiguration> = mutableMapOf()
@@ -157,18 +164,18 @@ private class SessionSpatialConfiguration(
     override val hasXrSpatialFeature: Boolean,
 ) : SpatialConfiguration {
     private var boundsState by
-        mutableStateOf(session.activitySpace.getBounds()).apply {
-            session.activitySpace.addBoundsChangedListener { value = it }
+        mutableStateOf(session.scene.activitySpace.getBounds()).apply {
+            session.scene.activitySpace.addBoundsChangedListener { value = it }
         }
 
     override val bounds: DpVolumeSize
         get() = boundsState.toDpVolumeSize()
 
     override fun requestHomeSpaceMode() {
-        session.spatialEnvironment.requestHomeSpaceMode()
+        session.scene.spatialEnvironment.requestHomeSpaceMode()
     }
 
     override fun requestFullSpaceMode() {
-        session.spatialEnvironment.requestFullSpaceMode()
+        session.scene.spatialEnvironment.requestFullSpaceMode()
     }
 }

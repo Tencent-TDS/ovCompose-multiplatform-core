@@ -1,7 +1,7 @@
 // Signature format: 4.0
 package androidx.browser.auth {
 
-  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public interface AuthTabCallback {
+  public interface AuthTabCallback {
     method public void onExtraCallback(String, android.os.Bundle);
     method public android.os.Bundle onExtraCallbackWithResult(String, android.os.Bundle);
     method public void onNavigationEvent(int, android.os.Bundle);
@@ -22,7 +22,7 @@ package androidx.browser.auth {
     method public androidx.browser.auth.AuthTabColorSchemeParams.Builder setToolbarColor(@ColorInt int);
   }
 
-  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public class AuthTabIntent {
+  public class AuthTabIntent {
     method public android.graphics.Bitmap? getCloseButtonIcon();
     method public static androidx.browser.auth.AuthTabColorSchemeParams getColorSchemeParams(android.content.Intent, @IntRange(from=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_LIGHT, to=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_DARK) int);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabSession.PendingSession? getPendingSession();
@@ -60,21 +60,18 @@ package androidx.browser.auth {
     method public androidx.browser.auth.AuthTabIntent.Builder setSession(androidx.browser.auth.AuthTabSession);
   }
 
-  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public final class AuthTabSession {
+  public final class AuthTabSession {
   }
 
   @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static class AuthTabSession.PendingSession {
   }
 
-  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public final class AuthTabSessionToken {
+  public final class AuthTabSessionToken {
     method public static androidx.browser.auth.AuthTabSessionToken? createSessionTokenFromIntent(android.content.Intent);
     method public androidx.browser.auth.AuthTabCallback? getCallback();
     method public android.app.PendingIntent? getId();
     method public boolean hasId();
     method public boolean isAssociatedWith(androidx.browser.auth.AuthTabSession);
-  }
-
-  @SuppressCompatibility @RequiresOptIn @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) public @interface ExperimentalAuthTab {
   }
 
 }
@@ -188,19 +185,19 @@ package androidx.browser.customtabs {
   }
 
   public class CustomTabsClient {
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabSession? attachAuthTabSession(androidx.browser.auth.AuthTabSession.PendingSession);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabSession? attachAuthTabSession(androidx.browser.auth.AuthTabSession.PendingSession);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.customtabs.CustomTabsSession? attachSession(androidx.browser.customtabs.CustomTabsSession.PendingSession);
     method public static boolean bindCustomTabsService(android.content.Context, String?, androidx.browser.customtabs.CustomTabsServiceConnection);
     method public static boolean bindCustomTabsServicePreservePriority(android.content.Context, String?, androidx.browser.customtabs.CustomTabsServiceConnection);
     method public static boolean connectAndInitialize(android.content.Context, String);
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.auth.AuthTabSession.PendingSession createPendingAuthTabSession(android.content.Context, int);
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.auth.AuthTabSession.PendingSession createPendingAuthTabSession(android.content.Context, int, java.util.concurrent.Executor, androidx.browser.auth.AuthTabCallback);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.auth.AuthTabSession.PendingSession createPendingAuthTabSession(android.content.Context, int);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.auth.AuthTabSession.PendingSession createPendingAuthTabSession(android.content.Context, int, java.util.concurrent.Executor, androidx.browser.auth.AuthTabCallback);
     method public android.os.Bundle? extraCommand(String, android.os.Bundle?);
     method public static String? getPackageName(android.content.Context, java.util.List<java.lang.String!>?);
     method public static String? getPackageName(android.content.Context, java.util.List<java.lang.String!>?, boolean);
     method public static boolean isSetNetworkSupported(android.content.Context, String);
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?);
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?, int);
+    method public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?);
+    method public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?, int);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.customtabs.CustomTabsSession.PendingSession newPendingSession(android.content.Context, androidx.browser.customtabs.CustomTabsCallback?, int);
     method public androidx.browser.customtabs.CustomTabsSession? newSession(androidx.browser.customtabs.CustomTabsCallback?);
     method public androidx.browser.customtabs.CustomTabsSession? newSession(androidx.browser.customtabs.CustomTabsCallback?, int);
@@ -359,7 +356,7 @@ package androidx.browser.customtabs {
 
   public abstract class CustomTabsService extends android.app.Service {
     ctor public CustomTabsService();
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab protected boolean cleanUpSession(androidx.browser.auth.AuthTabSessionToken);
+    method protected boolean cleanUpSession(androidx.browser.auth.AuthTabSessionToken);
     method protected boolean cleanUpSession(androidx.browser.customtabs.CustomTabsSessionToken);
     method protected abstract android.os.Bundle? extraCommand(String, android.os.Bundle?);
     method protected boolean isEngagementSignalsApiAvailable(androidx.browser.customtabs.CustomTabsSessionToken, android.os.Bundle);
@@ -371,7 +368,7 @@ package androidx.browser.customtabs {
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPrefetch protected void prefetch(androidx.browser.customtabs.CustomTabsSessionToken, android.net.Uri, androidx.browser.customtabs.PrefetchOptions);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPrefetch protected void prefetch(androidx.browser.customtabs.CustomTabsSessionToken, java.util.List<android.net.Uri!>, androidx.browser.customtabs.PrefetchOptions);
     method protected abstract boolean receiveFile(androidx.browser.customtabs.CustomTabsSessionToken, android.net.Uri, int, android.os.Bundle?);
-    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab protected boolean registerAuthTabSession(androidx.browser.auth.AuthTabSessionToken);
+    method protected boolean registerAuthTabSession(androidx.browser.auth.AuthTabSessionToken);
     method protected abstract boolean requestPostMessageChannel(androidx.browser.customtabs.CustomTabsSessionToken, android.net.Uri);
     method protected boolean requestPostMessageChannel(androidx.browser.customtabs.CustomTabsSessionToken, android.net.Uri, android.net.Uri?, android.os.Bundle);
     method protected boolean setEngagementSignalsCallback(androidx.browser.customtabs.CustomTabsSessionToken, androidx.browser.customtabs.EngagementSignalsCallback, android.os.Bundle);

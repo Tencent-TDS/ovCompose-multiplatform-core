@@ -21,6 +21,7 @@ import androidx.collection.mutableFloatListOf
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -621,5 +622,43 @@ class RulerTest {
         offset = 100
         rule.waitForIdle()
         assertThat(rulerValue).isWithin(0.01f).of(-100f)
+    }
+
+    @Test
+    fun verticalDerivedRuler() {
+        var rulerValue = 0f
+        class FixedValueRuler : VerticalRuler(), DerivedRuler {
+            override fun Placeable.PlacementScope.calculate(defaultValue: Float): Float = 10f
+        }
+
+        val myRuler = FixedValueRuler()
+        rule.setContent {
+            Box(
+                Modifier.fillMaxSize().layout { measurable, constraints ->
+                    val p = measurable.measure(constraints)
+                    layout(p.width, p.height) { rulerValue = myRuler.current(Float.NaN) }
+                }
+            )
+        }
+        rule.runOnIdle { assertThat(rulerValue).isWithin(0.01f).of(10f) }
+    }
+
+    @Test
+    fun horizontalDerivedRuler() {
+        var rulerValue = 0f
+        class FixedValueRuler : HorizontalRuler(), DerivedRuler {
+            override fun Placeable.PlacementScope.calculate(defaultValue: Float): Float = 10f
+        }
+
+        val myRuler = FixedValueRuler()
+        rule.setContent {
+            Box(
+                Modifier.fillMaxSize().layout { measurable, constraints ->
+                    val p = measurable.measure(constraints)
+                    layout(p.width, p.height) { rulerValue = myRuler.current(Float.NaN) }
+                }
+            )
+        }
+        rule.runOnIdle { assertThat(rulerValue).isWithin(0.01f).of(10f) }
     }
 }

@@ -17,7 +17,6 @@
 package androidx.appfunctions
 
 import android.content.Context
-import android.content.pm.SigningInfo
 import android.os.Build
 import android.os.OutcomeReceiver
 import android.util.Log
@@ -156,9 +155,6 @@ internal class AppFunctionServiceDelegate(
 
             override val callingPackageName: String
                 get() = callingPackageName
-
-            override val callingPackageSigningInfo: SigningInfo
-                get() = TODO("Not yet implemented")
         }
     }
 }

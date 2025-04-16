@@ -24,6 +24,8 @@ import android.widget.Button
 import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.xr.runtime.Session
+import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.Entity
@@ -32,11 +34,11 @@ import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.MovableComponent
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PixelDimensions
-import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.scene
 
 class VisibilityTestActivity : AppCompatActivity() {
 
-    private val session by lazy { Session.create(this) }
+    private val session by lazy { (Session.create(this) as SessionCreateSuccess).session }
 
     private var parentGltfEntity: GltfModelEntity? = null
     private var childGltfEntity1: GltfModelEntity? = null
@@ -52,7 +54,7 @@ class VisibilityTestActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.visibilitytest_activity)
 
-        parentPanelEntity = createPanelEntity(session, "Parent Panel", session.activitySpace)
+        parentPanelEntity = createPanelEntity(session, "Parent Panel", session.scene.activitySpace)
         childPanelEntity1 = createPanelEntity(session, "Child Panel 1", parentPanelEntity)
         childPanelEntity2 = createPanelEntity(session, "Child Panel 2", childPanelEntity1)
         val sharkModelFuture = GltfModel.create(session, "models/GreatWhiteShark.glb")
@@ -71,10 +73,10 @@ class VisibilityTestActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.toggle_fsm_hsm).setOnClickListener { _ ->
             if (isFsm) {
-                session.spatialEnvironment.requestHomeSpaceMode()
+                session.scene.spatialEnvironment.requestHomeSpaceMode()
                 isFsm = false
             } else {
-                session.spatialEnvironment.requestFullSpaceMode()
+                session.scene.spatialEnvironment.requestFullSpaceMode()
                 isFsm = true
             }
         }
@@ -83,15 +85,15 @@ class VisibilityTestActivity : AppCompatActivity() {
         // because
         // the user cannot see the Switch to unhide.
         findViewById<Button>(R.id.hide_space).setOnClickListener { _ ->
-            session.activitySpace.setHidden(true)
+            session.scene.activitySpace.setHidden(true)
             Handler(Looper.getMainLooper())
-                .postDelayed({ session.activitySpace.setHidden(false) }, 3000)
+                .postDelayed({ session.scene.activitySpace.setHidden(false) }, 3000)
         }
 
         findViewById<Button>(R.id.hide_main_panel).setOnClickListener { _ ->
-            session.mainPanelEntity.setHidden(true)
+            session.scene.mainPanelEntity.setHidden(true)
             Handler(Looper.getMainLooper())
-                .postDelayed({ session.mainPanelEntity.setHidden(false) }, 3000)
+                .postDelayed({ session.scene.mainPanelEntity.setHidden(false) }, 3000)
         }
 
         findViewById<Switch>(R.id.hide_all).setOnCheckedChangeListener { _, isChecked: Boolean ->
@@ -169,7 +171,7 @@ class VisibilityTestActivity : AppCompatActivity() {
 
     private fun createGltfEntities(session: Session, model: GltfModel) {
         parentGltfEntity = GltfModelEntity.create(session, model, Pose(Vector3(1.5f, 0f, -2f)))
-        parentGltfEntity?.setParent(session.activitySpace)
+        parentGltfEntity?.setParent(session.scene.activitySpace)
 
         childGltfEntity1 = GltfModelEntity.create(session, model, Pose(Vector3(0.5f, -0.5f, 0f)))
         childGltfEntity1?.setParent(parentGltfEntity)

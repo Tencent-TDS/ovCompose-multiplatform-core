@@ -161,7 +161,7 @@ public val DefaultNavigationRailOrbiterProperties: VerticalOrbiterProperties =
         position = OrbiterEdge.Vertical.Start,
         offset = XrNavigationRailTokens.OrbiterEdgeOffset,
         alignment = Alignment.CenterVertically,
-        settings = OrbiterDefaults.orbiterSettings,
+        settings = OrbiterDefaults.Settings,
         shape = SpatialRoundedCornerShape(CornerSize(50)),
     )
 

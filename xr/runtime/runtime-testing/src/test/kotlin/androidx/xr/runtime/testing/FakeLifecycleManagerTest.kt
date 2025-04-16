@@ -77,6 +77,13 @@ class FakeLifecycleManagerTest {
     }
 
     @Test
+    fun create_hasMissingPermission_throwsPermissionNotGrantedException() {
+        underTest.hasCreatePermission = false
+
+        assertFailsWith<PermissionNotGrantedException> { underTest.create() }
+    }
+
+    @Test
     fun configure_beforeCreate_doesNotThrowsIllegalStateException() {
         underTest.configure(Config())
     }

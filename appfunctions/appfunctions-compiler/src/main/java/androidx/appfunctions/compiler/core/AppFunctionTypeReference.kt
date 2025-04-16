@@ -27,7 +27,9 @@ import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.TypeName
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 /** Represents a type that is supported by AppFunction and AppFunctionSerializable. */
 class AppFunctionTypeReference(val selfTypeReference: KSTypeReference) {
@@ -244,7 +246,12 @@ class AppFunctionTypeReference(val selfTypeReference: KSTypeReference) {
             )
 
         private val SUPPORTED_SINGLE_SERIALIZABLE_PROXY_TYPES =
-            setOf(LocalDateTime::class.ensureQualifiedName(), ANDROID_URI)
+            setOf(
+                LocalDateTime::class.ensureQualifiedName(),
+                ANDROID_URI,
+                ZoneId::class.ensureQualifiedName(),
+                Instant::class.ensureQualifiedName()
+            )
 
         private val SUPPORTED_PRIMITIVE_TYPES_IN_LIST = setOf(String::class.ensureQualifiedName())
 

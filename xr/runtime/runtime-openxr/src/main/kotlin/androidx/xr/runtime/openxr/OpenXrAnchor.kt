@@ -18,8 +18,8 @@ package androidx.xr.runtime.openxr
 
 import android.os.IBinder
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Anchor
-import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
 import java.nio.ByteBuffer
 import java.util.UUID

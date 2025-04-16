@@ -87,6 +87,10 @@ public class Config(
              */
             @JvmField public val HorizontalAndVertical: PlaneTrackingMode = PlaneTrackingMode(1)
         }
+
+        override fun toString(): String {
+            return "PlaneTracking_" + if (mode == 0) "Disabled" else "HorizontalAndVertical"
+        }
     }
 
     /**
@@ -104,6 +108,10 @@ public class Config(
              * resources.
              */
             @JvmField public val Enabled: HandTrackingMode = HandTrackingMode(1)
+        }
+
+        override fun toString(): String {
+            return "HandTracking_" + if (mode == 0) "Disabled" else "Enabled"
         }
     }
 
@@ -123,6 +131,10 @@ public class Config(
              */
             @JvmField public val Enabled: DepthEstimationMode = DepthEstimationMode(1)
         }
+
+        override fun toString(): String {
+            return "DepthEstimation_" + if (mode == 0) "Disabled" else "Enabled"
+        }
     }
 
     /**
@@ -136,6 +148,10 @@ public class Config(
             @JvmField public val Disabled: AnchorPersistenceMode = AnchorPersistenceMode(0)
             /** Anchors may be persisted. */
             @JvmField public val Enabled: AnchorPersistenceMode = AnchorPersistenceMode(1)
+        }
+
+        override fun toString(): String {
+            return "AnchorPersistence_" + if (mode == 0) "Disabled" else "Enabled"
         }
     }
 

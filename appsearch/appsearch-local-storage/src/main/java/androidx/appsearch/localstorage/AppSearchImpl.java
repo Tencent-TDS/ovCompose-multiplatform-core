@@ -1923,7 +1923,7 @@ public final class AppSearchImpl implements Closeable {
      * @param databaseName      The databaseName this document resides in.
      * @param request           The request configuration for BatchGet.
      * @param callerAccess      The information about caller. Visibility will be checked if
-     *                          it is not NULL.
+     *                          it is not NULL. This indicates it is a global get call.
      *
      * @return The Document contents in a {@link AppSearchBatchResult}.
      */
@@ -1979,7 +1979,19 @@ public final class AppSearchImpl implements Closeable {
 
                      resultBuilder.setSuccess(id, doc);
                 } catch (Throwable t) {
-                    resultBuilder.setResult(id, throwableToFailedResult(t));
+                    // Global get
+                    if (callerAccess != null) {
+                        // Not passing cause in AppSearchException as that violates privacy
+                        // guarantees as user could differentiate between document not existing
+                        // and not having access.
+                        resultBuilder.setResult(id,
+                                new AppSearchException(AppSearchResult.RESULT_NOT_FOUND,
+                                        "Document ("
+                                                + request.getNamespace() + ", " + id
+                                                + ") not found.").toAppSearchResult());
+                    } else {
+                        resultBuilder.setResult(id, throwableToFailedResult(t));
+                    }
                 }
             }
 

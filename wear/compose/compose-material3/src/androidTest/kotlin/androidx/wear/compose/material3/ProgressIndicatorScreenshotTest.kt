@@ -385,6 +385,21 @@ class ProgressIndicatorScreenshotTest {
             )
         }
 
+    @Test
+    fun progress_indicator_indeterminate_different_height(@TestParameter screenSize: ScreenSize) =
+        verifyProgressIndicatorScreenshot(screenSize = screenSize) {
+            CircularProgressIndicator(
+                modifier =
+                    Modifier.size(
+                            CircularProgressIndicatorDefaults
+                                .IndeterminateCircularIndicatorDiameter + 6.dp,
+                            CircularProgressIndicatorDefaults
+                                .IndeterminateCircularIndicatorDiameter,
+                        )
+                        .testTag(TEST_TAG),
+            )
+        }
+
     private fun verifyProgressIndicatorScreenshot(
         screenSize: ScreenSize,
         content: @Composable () -> Unit

@@ -35,15 +35,12 @@ import androidx.xr.arcore.apps.whitebox.helloar.rendering.AnchorRenderer
 import androidx.xr.arcore.apps.whitebox.helloar.rendering.PlaneRenderer
 import androidx.xr.arcore.perceptionState
 import androidx.xr.runtime.Session
-import androidx.xr.scenecore.Session as JxrCoreSession
 
 /** Sample that demonstrates fundamental ARCore for Android XR usage. */
 class HelloArActivity : ComponentActivity() {
 
     private lateinit var session: Session
     private lateinit var sessionHelper: SessionLifecycleHelper
-
-    private lateinit var jxrCoreSession: JxrCoreSession
 
     private lateinit var planeRenderer: PlaneRenderer
     private lateinit var anchorRenderer: AnchorRenderer
@@ -52,19 +49,21 @@ class HelloArActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Create session and renderers.
-        sessionHelper = SessionLifecycleHelper(this)
-        session = sessionHelper.session
+        sessionHelper =
+            SessionLifecycleHelper(
+                this,
+                onSessionAvailable = { session ->
+                    this.session = session
+
+                    planeRenderer = PlaneRenderer(session, lifecycleScope)
+                    anchorRenderer = AnchorRenderer(this, planeRenderer, session, lifecycleScope)
+                    session.lifecycle.addObserver(planeRenderer)
+                    session.lifecycle.addObserver(anchorRenderer)
+
+                    setContent { HelloWorld(session) }
+                },
+            )
         lifecycle.addObserver(sessionHelper)
-
-        jxrCoreSession = JxrCoreSession.create(this)
-
-        planeRenderer = PlaneRenderer(session, jxrCoreSession, lifecycleScope)
-        anchorRenderer =
-            AnchorRenderer(this, planeRenderer, session, jxrCoreSession, lifecycleScope)
-        session.lifecycle.addObserver(planeRenderer)
-        session.lifecycle.addObserver(anchorRenderer)
-
-        setContent { HelloWorld(session) }
     }
 }
 

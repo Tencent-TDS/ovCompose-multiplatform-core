@@ -48,9 +48,10 @@ import androidx.xr.compose.platform.LocalSpatialCapabilities
 import androidx.xr.compose.unit.Meter
 import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.compose.unit.toMeter
+import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.scene
 import kotlinx.coroutines.launch
 
 /**
@@ -241,7 +242,7 @@ private fun LayoutSpatialDialog(
 }
 
 private fun Session.setActivitySpaceZDepth(value: Meter) {
-    activitySpace.setPose(Pose(translation = Vector3(0f, 0f, value.toM())))
+    scene.activitySpace.setPose(Pose(translation = Vector3(0f, 0f, value.toM())))
 }
 
 private fun Session.resetActivitySpaceZDepth() {

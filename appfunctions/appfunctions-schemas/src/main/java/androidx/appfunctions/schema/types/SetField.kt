@@ -16,6 +16,7 @@
 
 package androidx.appfunctions.schema.types
 
+import androidx.appfunctions.AppFunctionSerializable
 import java.util.Objects
 
 /**
@@ -50,7 +51,8 @@ import java.util.Objects
  * @param T The type of the field being set.
  * @param value The new field value.
  */
-public class SetField<T>(public val value: T) {
+@AppFunctionSerializable
+public class SetField<out T>(public val value: T) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is SetField<*>) return false

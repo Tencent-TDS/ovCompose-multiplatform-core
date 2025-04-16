@@ -146,7 +146,7 @@ public val DefaultNavigationBarOrbiterProperties: HorizontalOrbiterProperties =
         position = OrbiterEdge.Horizontal.Bottom,
         offset = XrNavigationBarTokens.OrbiterEdgeOffset,
         alignment = Alignment.CenterHorizontally,
-        settings = OrbiterDefaults.orbiterSettings,
+        settings = OrbiterDefaults.Settings,
         shape = SpatialRoundedCornerShape(CornerSize(50)),
     )
 

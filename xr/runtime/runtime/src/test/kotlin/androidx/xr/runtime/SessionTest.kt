@@ -20,6 +20,7 @@ import android.app.Activity
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.runtime.testing.FakeLifecycleManager
+import androidx.xr.runtime.testing.FakeRuntimeFactory
 import androidx.xr.runtime.testing.FakeStateExtender
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertFailsWith
@@ -83,6 +84,17 @@ class SessionTest {
     }
 
     @Test
+    fun create_permissionException_returnsPermissionsNotGrantedResult() {
+        FakeRuntimeFactory.hasCreatePermission = false
+
+        val result = Session.create(activity)
+        // Reset the flag to true so other tests are not affected.
+        FakeRuntimeFactory.hasCreatePermission = true
+
+        assertThat(result).isInstanceOf(SessionCreatePermissionsNotGranted::class.java)
+    }
+
+    @Test
     fun configure_destroyed_throwsIllegalStateException() {
         val underTest = (Session.create(activity) as SessionCreateSuccess).session
         underTest.destroy()
@@ -130,7 +142,21 @@ class SessionTest {
                 underTest.config.copy(depthEstimation = DepthEstimationMode.Disabled)
             )
 
-        assertThat(result).isInstanceOf(SessionConfigurePermissionNotGranted::class.java)
+        assertThat(result).isInstanceOf(SessionConfigurePermissionsNotGranted::class.java)
+        assertThat(underTest.config).isEqualTo(currentConfig)
+    }
+
+    @Test
+    fun configure_unsupportedMode_returnsConfigurationNotSupportedResult() {
+        val underTest = (Session.create(activity) as SessionCreateSuccess).session
+        val lifecycleManager = underTest.runtime.lifecycleManager as FakeLifecycleManager
+        val currentConfig = underTest.config
+
+        lifecycleManager.shouldSupportPlaneTracking = false
+        val result =
+            underTest.configure(Config(planeTracking = PlaneTrackingMode.HorizontalAndVertical))
+
+        assertThat(result).isInstanceOf(SessionConfigureConfigurationNotSupported::class.java)
         assertThat(underTest.config).isEqualTo(currentConfig)
     }
 

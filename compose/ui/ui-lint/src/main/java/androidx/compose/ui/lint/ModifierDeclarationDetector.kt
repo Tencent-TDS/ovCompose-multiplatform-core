@@ -35,13 +35,13 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiType
 import java.util.EnumSet
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.calls.KtCall
-import org.jetbrains.kotlin.analysis.api.calls.KtCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.calls.KtImplicitReceiverValue
-import org.jetbrains.kotlin.analysis.api.calls.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.symbols.KtCallableSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtReceiverParameterSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.KaCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
+import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -259,8 +259,8 @@ private fun UMethod.ensureReceiverIsReferenced(context: JavaContext) {
                 val ktCallExpression =
                     node.sourcePsi as? KtCallExpression ?: return isReceiverReferenced
                 analyze(ktCallExpression) {
-                    val ktCall = ktCallExpression.resolveCall()?.singleCallOrNull<KtCall>()
-                    val callee = (ktCall as? KtCallableMemberCall<*, *>)?.partiallyAppliedSymbol
+                    val kaCall = ktCallExpression.resolveToCall()?.singleCallOrNull<KaCall>()
+                    val callee = (kaCall as? KaCallableMemberCall<*, *>)?.partiallyAppliedSymbol
                     val receiver =
                         (callee?.extensionReceiver ?: callee?.dispatchReceiver)
                         // Explicit receivers of `this` are handled separately in
@@ -268,12 +268,12 @@ private fun UMethod.ensureReceiverIsReferenced(context: JavaContext) {
                         // that lets us be more defensive and avoid warning for cases like passing
                         // `this` as a parameter to a function / class where we may run into false
                         // positives if we only account for explicit receivers in a call expression.
-                        as? KtImplicitReceiverValue ?: return isReceiverReferenced
-                    val symbol = receiver.symbol as? KtReceiverParameterSymbol
+                        as? KaImplicitReceiverValue ?: return isReceiverReferenced
+                    val symbol = receiver.symbol as? KaReceiverParameterSymbol
                     // The symbol of the enclosing factory method
                     val enclosingMethodSymbol =
-                        (factoryMethod.sourcePsi as? KtDeclaration)?.getSymbol()
-                            as? KtFunctionSymbol
+                        (factoryMethod.sourcePsi as? KtDeclaration)?.symbol
+                            as? KaNamedFunctionSymbol
                     // If the receiver parameter symbol matches the outer modifier factory's
                     // symbol, then that means that the receiver for this call is the
                     // factory method, and not some other declaration that provides a modifier
@@ -298,14 +298,14 @@ private fun UMethod.ensureReceiverIsReferenced(context: JavaContext) {
                     val symbol = ktThisExpression.instanceReference.mainReference.resolveToSymbol()
                     val referredMethodSymbol =
                         when (symbol) {
-                            is KtReceiverParameterSymbol -> symbol.owningCallableSymbol
-                            is KtCallableSymbol -> symbol
+                            is KaReceiverParameterSymbol -> symbol.owningCallableSymbol
+                            is KaCallableSymbol -> symbol
                             else -> null
                         }
                     // The symbol of the enclosing factory method
                     val enclosingMethodSymbol =
-                        (factoryMethod.sourcePsi as? KtDeclaration)?.getSymbol()
-                            as? KtFunctionSymbol
+                        (factoryMethod.sourcePsi as? KtDeclaration)?.symbol
+                            as? KaNamedFunctionSymbol
                     // If the symbol `this` points to matches the enclosing factory method, then we
                     // consider the modifier receiver referenced. If the symbols do not match,
                     // `this` might point to an inner scope

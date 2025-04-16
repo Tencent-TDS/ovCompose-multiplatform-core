@@ -80,7 +80,7 @@
     <string name="navigate" msgid="2713090390373996139">"नेव्हिगेट करा"</string>
     <string name="dial" msgid="3145707439707628311">"डायल करा"</string>
     <string name="address" msgid="9010635942573581302">"पत्ता"</string>
-    <string name="phone" msgid="2504766809811627577">"फोन"</string>
+    <string name="phone" msgid="2504766809811627577">"Phone"</string>
     <string name="fail_start_nav" msgid="6921321606009212189">"नेव्हिगेशन सुरू करता आले नाही"</string>
     <string name="fail_start_dialer" msgid="1471602619507306261">"डायलर सुरू करता आला नाही"</string>
     <string name="car_hardware_demo_title" msgid="3679106197233262689">"कारच्या हार्डवेअरचा डेमो"</string>

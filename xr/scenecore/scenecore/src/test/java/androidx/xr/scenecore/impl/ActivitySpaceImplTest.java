@@ -30,8 +30,8 @@ import static org.mockito.Mockito.when;
 import android.app.Activity;
 import android.util.Size;
 
-import androidx.xr.runtime.internal.ActivityPose.HitTestRange;
-import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue;
+import androidx.xr.runtime.internal.ActivityPose.HitTestFilter;
+import androidx.xr.runtime.internal.ActivityPose.HitTestFilterValue;
 import androidx.xr.runtime.internal.ActivitySpace;
 import androidx.xr.runtime.internal.Dimensions;
 import androidx.xr.runtime.internal.HitTestResult;
@@ -164,7 +164,8 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
                         /* state= */ PassthroughVisibilityState.DISABLED, /* opacity= */ 0.0f),
                 /* isEnvironmentInherited= */ false,
                 /* mainWindowSize= */ new Size(100, 100),
-                /* preferredAspectRatio= */ 1.0f);
+                /* preferredAspectRatio= */ 1.0f,
+                /* sceneParentTransform= */ null);
     }
 
     @Test
@@ -242,7 +243,7 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
         Vec3 hitPosition = new Vec3(1.0f, 2.0f, 3.0f);
         Vec3 surfaceNormal = new Vec3(4.0f, 5.0f, 6.0f);
         int surfaceType = com.android.extensions.xr.space.HitTestResult.SURFACE_PANEL;
-        @HitTestRangeValue int hitTestRange = HitTestRange.HIT_TEST_RANGE_ALL_SCENES;
+        @HitTestFilterValue int hitTestFilter = HitTestFilter.SELF_SCENE;
 
         com.android.extensions.xr.space.HitTestResult.Builder hitTestResultBuilder =
                 new com.android.extensions.xr.space.HitTestResult.Builder(
@@ -253,7 +254,7 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
                 .setHitTestResult(mActivity, extensionsHitTestResult);
 
         ListenableFuture<HitTestResult> hitTestResultFuture =
-                mActivitySpace.hitTest(new Vector3(1, 1, 1), new Vector3(1, 1, 1), hitTestRange);
+                mActivitySpace.hitTest(new Vector3(1, 1, 1), new Vector3(1, 1, 1), hitTestFilter);
         mFakeExecutor.runAll();
         HitTestResult hitTestResult = hitTestResultFuture.get();
 

@@ -23,9 +23,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.outlined.Coffee
@@ -35,6 +35,7 @@ import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
@@ -47,33 +48,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEachIndexed
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Preview
 @Sampled
 @Composable
 fun ButtonGroupSample() {
-    ButtonGroup(modifier = Modifier.padding(horizontal = 8.dp)) {
-        val options = listOf("A", "B", "C", "D")
-        val checked = remember { mutableStateListOf(false, false, false, false) }
-        val modifiers =
-            listOf(
-                Modifier.weight(1.5f),
-                Modifier.weight(1f),
-                Modifier.width(90.dp),
-                Modifier.weight(1f)
-            )
-        val interactionSources = List(4) { MutableInteractionSource() }
-        options.fastForEachIndexed { index, label ->
-            ToggleButton(
-                checked = checked[index],
-                onCheckedChange = { checked[index] = it },
-                interactionSource = interactionSources[index],
-                modifier = modifiers[index].animateWidth(interactionSources[index])
+    val numButtons = 10
+    val interactionSources = remember { List(numButtons) { MutableInteractionSource() } }
+    ButtonGroup(
+        overflowIndicator = { menuState ->
+            IconButton(
+                onClick = {
+                    if (menuState.isExpanded) {
+                        menuState.dismiss()
+                    } else {
+                        menuState.show()
+                    }
+                }
             ) {
-                Text(label)
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "Localized description"
+                )
             }
+        }
+    ) {
+        for (i in 0 until numButtons) {
+            clickableItem(
+                onClick = {},
+                label = "$i",
+                interactionSource = interactionSources[i],
+                modifier = Modifier.animateWidth(interactionSources[i])
+            )
         }
     }
 }

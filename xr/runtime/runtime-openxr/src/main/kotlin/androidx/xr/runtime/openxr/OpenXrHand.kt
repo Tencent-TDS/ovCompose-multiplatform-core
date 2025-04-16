@@ -17,8 +17,8 @@
 package androidx.xr.runtime.openxr
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Hand
-import androidx.xr.runtime.internal.TrackingState
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 

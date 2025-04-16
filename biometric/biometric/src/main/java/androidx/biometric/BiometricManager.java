@@ -32,6 +32,11 @@ import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StringRes;
 import androidx.annotation.VisibleForTesting;
+import androidx.biometric.utils.AuthenticatorUtils;
+import androidx.biometric.utils.CryptoObjectUtils;
+import androidx.biometric.utils.DeviceUtils;
+import androidx.biometric.utils.KeyguardUtils;
+import androidx.biometric.utils.PackageUtils;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -201,7 +206,8 @@ public class BiometricManager {
         Authenticators.IDENTITY_CHECK
     })
     @Retention(RetentionPolicy.SOURCE)
-    @interface AuthenticatorTypes {}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public @interface AuthenticatorTypes {}
 
     private static final int AUTH_MODALITY_NONE = 0;
     private static final int AUTH_MODALITY_CREDENTIAL = 1;

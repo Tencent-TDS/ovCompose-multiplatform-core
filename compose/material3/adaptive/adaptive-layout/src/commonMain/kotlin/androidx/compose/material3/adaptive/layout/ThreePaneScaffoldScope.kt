@@ -95,8 +95,6 @@ internal class ThreePaneScaffoldPaneScopeImpl(
     scaffoldScope: ThreePaneScaffoldScope,
 ) : ThreePaneScaffoldPaneScope, ThreePaneScaffoldScope by scaffoldScope {
     override var paneMotion: PaneMotion by mutableStateOf(PaneMotion.ExitToLeft)
-    // TODO(conradchen): Remove this when it goes to public API of PaneScaffoldScope
-    val saveableStateHolder = (scaffoldScope as ThreePaneScaffoldScopeImpl).saveableStateHolder
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)

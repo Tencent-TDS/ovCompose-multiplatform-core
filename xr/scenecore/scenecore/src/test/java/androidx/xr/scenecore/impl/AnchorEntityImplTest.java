@@ -37,13 +37,13 @@ import android.os.IBinder;
 import android.os.SystemClock;
 
 import androidx.test.rule.GrantPermissionRule;
+import androidx.xr.runtime.TrackingState;
 import androidx.xr.runtime.internal.Anchor.PersistenceState;
 import androidx.xr.runtime.internal.AnchorEntity.OnStateChangedListener;
 import androidx.xr.runtime.internal.AnchorEntity.State;
 import androidx.xr.runtime.internal.Dimensions;
 import androidx.xr.runtime.internal.PlaneSemantic;
 import androidx.xr.runtime.internal.PlaneType;
-import androidx.xr.runtime.internal.TrackingState;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;

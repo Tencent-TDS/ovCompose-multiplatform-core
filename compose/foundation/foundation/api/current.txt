@@ -912,7 +912,7 @@ package androidx.compose.foundation.lazy {
     property public abstract java.util.List<androidx.compose.foundation.lazy.LazyListItemInfo> visibleItemsInfo;
   }
 
-  @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public interface LazyListPrefetchResultScope {
+  @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public sealed interface LazyListPrefetchResultScope {
     method public int getIndex();
     method public int getMainAxisSize();
     property public abstract int index;
@@ -1092,7 +1092,7 @@ package androidx.compose.foundation.lazy.grid {
     property public abstract java.util.List<androidx.compose.foundation.lazy.grid.LazyGridItemInfo> visibleItemsInfo;
   }
 
-  @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public interface LazyGridPrefetchResultScope {
+  @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public sealed interface LazyGridPrefetchResultScope {
     method public int getLineIndex();
     method public int getLineItemCount();
     method public int getMainAxisSize(int itemIndexInLine);
@@ -1269,7 +1269,7 @@ package androidx.compose.foundation.lazy.layout {
     method @Deprecated public androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState.PrefetchHandle schedulePrefetch(int index, long constraints);
   }
 
-  public static interface LazyLayoutPrefetchState.LazyLayoutPrefetchResultScope {
+  public static sealed interface LazyLayoutPrefetchState.LazyLayoutPrefetchResultScope {
     method public int getIndex();
     method public int getPlaceablesCount();
     method public long getSize(int placeableIndex);

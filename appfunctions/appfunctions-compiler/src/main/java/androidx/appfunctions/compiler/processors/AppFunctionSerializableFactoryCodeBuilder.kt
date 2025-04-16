@@ -443,7 +443,12 @@ class AppFunctionSerializableFactoryCodeBuilder(
             PRIMITIVE_SINGULAR,
             PRIMITIVE_ARRAY,
             PRIMITIVE_LIST -> appendPrimitiveGetterStatement(paramName, afType)
-            SERIALIZABLE_SINGULAR -> appendSerializableGetterStatement(paramName, afType)
+            SERIALIZABLE_SINGULAR ->
+                appendSerializableGetterStatement(
+                    paramName,
+                    getSerializableFactoryVariableName(getAnnotatedSerializable(afType)),
+                    afType
+                )
             SERIALIZABLE_LIST ->
                 appendSerializableListGetterStatement(
                     paramName,
@@ -457,7 +462,8 @@ class AppFunctionSerializableFactoryCodeBuilder(
                     )
                 appendSerializableGetterStatement(
                     paramName,
-                    AppFunctionTypeReference(targetSerializableProxy.serializableReferenceType)
+                    getSerializableFactoryVariableName(targetSerializableProxy),
+                    afType
                 )
             }
             SERIALIZABLE_PROXY_LIST -> {
@@ -501,6 +507,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
     private fun CodeBlock.Builder.appendSerializableGetterStatement(
         paramName: String,
+        factoryName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
         val annotatedSerializable = getAnnotatedSerializable(afType)
@@ -508,7 +515,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
             mapOf<String, Any>(
                 "param_name" to paramName,
                 "param_type" to afType.selfTypeReference.toTypeName(),
-                "factory_name" to getSerializableFactoryVariableName(annotatedSerializable),
+                "factory_name" to factoryName,
                 "app_function_data_param_name" to APP_FUNCTION_DATA_PARAM_NAME,
                 "getter_name" to getAppFunctionDataGetterName(afType),
                 "from_app_function_data_method_name" to FromAppFunctionDataMethod.METHOD_NAME,
@@ -669,7 +676,12 @@ class AppFunctionSerializableFactoryCodeBuilder(
             PRIMITIVE_SINGULAR,
             PRIMITIVE_ARRAY,
             PRIMITIVE_LIST -> appendPrimitiveSetterStatement(paramName, afType)
-            SERIALIZABLE_SINGULAR -> appendSerializableSetterStatement(paramName, afType)
+            SERIALIZABLE_SINGULAR ->
+                appendSerializableSetterStatement(
+                    paramName,
+                    getSerializableFactoryVariableName(getAnnotatedSerializable(afType)),
+                    afType
+                )
             SERIALIZABLE_LIST ->
                 appendSerializableListSetterStatement(
                     paramName,
@@ -683,7 +695,8 @@ class AppFunctionSerializableFactoryCodeBuilder(
                     )
                 appendSerializableSetterStatement(
                     paramName,
-                    AppFunctionTypeReference(targetSerializableProxy.serializableReferenceType)
+                    getSerializableFactoryVariableName(targetSerializableProxy),
+                    afType
                 )
             }
             SERIALIZABLE_PROXY_LIST -> {
@@ -715,13 +728,13 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
     private fun CodeBlock.Builder.appendSerializableSetterStatement(
         paramName: String,
+        factoryName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
-        val annotatedSerializable = getAnnotatedSerializable(afType)
         val formatStringMap =
             mapOf<String, Any>(
                 "param_name" to paramName,
-                "factory_name" to getSerializableFactoryVariableName(annotatedSerializable),
+                "factory_name" to factoryName,
                 "setter_name" to getAppFunctionDataSetterName(afType),
             )
 

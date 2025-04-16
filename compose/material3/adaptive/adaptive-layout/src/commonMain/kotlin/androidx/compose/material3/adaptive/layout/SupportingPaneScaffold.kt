@@ -157,7 +157,8 @@ object SupportingPaneScaffoldDefaults {
      */
     fun adaptStrategies(
         mainPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
-        supportingPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
+        supportingPaneAdaptStrategy: AdaptStrategy =
+            AdaptStrategy.Reflow(SupportingPaneScaffoldRole.Main),
         extraPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
     ): ThreePaneScaffoldAdaptStrategies =
         ThreePaneScaffoldAdaptStrategies(

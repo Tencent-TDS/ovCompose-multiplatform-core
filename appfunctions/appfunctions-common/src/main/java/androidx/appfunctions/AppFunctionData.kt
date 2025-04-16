@@ -62,6 +62,8 @@ import java.time.LocalDateTime
  *   }
  * }
  * ```
+ *
+ * @see [AppFunctionData.Builder]
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 public class AppFunctionData
@@ -702,14 +704,14 @@ internal constructor(
             Boolean::class.java -> getBooleanOrNull(key) as T
             String::class.java -> getString(key) as T
             PendingIntent::class.java -> getPendingIntent(key) as T
-            AppFunctionData::class.java -> getAppFunctionData(key) as T
             IntArray::class.java -> getIntArray(key) as T
             LongArray::class.java -> getLongArray(key) as T
             FloatArray::class.java -> getFloatArray(key) as T
             DoubleArray::class.java -> getDoubleArray(key) as T
             BooleanArray::class.java -> getBooleanArray(key) as T
             ByteArray::class.java -> getByteArray(key) as T
-            else -> throw IllegalArgumentException("Unsupported type $valueClass")
+            // TODO(b/408385427): Handle deserialization in generic factory
+            else -> getAppFunctionData(key)?.deserialize(valueClass as Class<Any>) as T
         }
     }
 
@@ -731,8 +733,10 @@ internal constructor(
         return when (itemValueClass) {
             String::class.java -> getStringList(key) as T
             PendingIntent::class.java -> getPendingIntentList(key) as T
-            AppFunctionData::class.java -> getAppFunctionDataList(key) as T
-            else -> throw IllegalArgumentException()
+            // TODO(b/408385427): Handle deserialization in generic factory
+            else ->
+                getAppFunctionDataList(key)?.map { it.deserialize(itemValueClass as Class<Any>) }
+                    as T
         }
     }
 
@@ -867,6 +871,8 @@ internal constructor(
          * @param parameterMetadataList List of [AppFunctionParameterMetadata] defining the input
          *   parameters.
          * @param componentMetadata [AppFunctionComponentsMetadata] that has the shared data type.
+         * @see [AppFunctionParameterMetadata]
+         * @see [AppFunctionComponentsMetadata]
          */
         public constructor(
             parameterMetadataList: List<AppFunctionParameterMetadata>,
@@ -883,6 +889,8 @@ internal constructor(
          *
          * @param objectTypeMetadata [AppFunctionObjectTypeMetadata] defining the object structure.
          * @param componentMetadata [AppFunctionComponentsMetadata] that has the shared data type.
+         * @see [AppFunctionObjectTypeMetadata]
+         * @see [AppFunctionComponentsMetadata]
          */
         public constructor(
             objectTypeMetadata: AppFunctionObjectTypeMetadata,
@@ -1177,6 +1185,7 @@ internal constructor(
             if (value == null) {
                 return this
             }
+            @Suppress("UNCHECKED_CAST")
             return when (valueClass) {
                 Int::class.java -> setInt(key, value as Int)
                 Long::class.java -> setLong(key, value as Long)
@@ -1185,14 +1194,14 @@ internal constructor(
                 Boolean::class.java -> setBoolean(key, value as Boolean)
                 String::class.java -> setString(key, value as String)
                 PendingIntent::class.java -> setPendingIntent(key, value as PendingIntent)
-                AppFunctionData::class.java -> setAppFunctionData(key, value as AppFunctionData)
                 IntArray::class.java -> setIntArray(key, value as IntArray)
                 LongArray::class.java -> setLongArray(key, value as LongArray)
                 FloatArray::class.java -> setFloatArray(key, value as FloatArray)
                 DoubleArray::class.java -> setDoubleArray(key, value as DoubleArray)
                 BooleanArray::class.java -> setBooleanArray(key, value as BooleanArray)
                 ByteArray::class.java -> setByteArray(key, value as ByteArray)
-                else -> throw IllegalArgumentException("Unsupported type $valueClass")
+                // TODO(b/408385427): Handle serialization in generic factory
+                else -> setAppFunctionData(key, serialize(value, valueClass as Class<Any>))
             }
         }
 
@@ -1220,9 +1229,12 @@ internal constructor(
             return when (itemValueClass) {
                 String::class.java -> setStringList(key, value as List<String>)
                 PendingIntent::class.java -> setPendingIntentList(key, value as List<PendingIntent>)
-                AppFunctionData::class.java ->
-                    setAppFunctionDataList(key, value as List<AppFunctionData>)
-                else -> throw IllegalArgumentException()
+                // TODO(b/408385427): Handle serialization in generic factory
+                else ->
+                    setAppFunctionDataList(
+                        key,
+                        value.map { serialize(it as Any, itemValueClass as Class<Any>) }
+                    )
             }
         }
 

@@ -22,11 +22,8 @@
  * modifying its settings.
  */
 
-
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -60,7 +57,4 @@ androidx {
     inceptionYear = "2025"
     description = "Provides Compose-specific annotations used by the compiler and tooling"
     samples(project(":compose:runtime:runtime-annotation:runtime-annotation-samples"))
-    //TODO(b/407640605): Target Kotlin 2 when :compose:runtime:runtime does. The two tasks below fail:
-    // :compose:runtime:runtime:jvmStubsTest and :compose:runtime:runtime:testReleaseUnitTest
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

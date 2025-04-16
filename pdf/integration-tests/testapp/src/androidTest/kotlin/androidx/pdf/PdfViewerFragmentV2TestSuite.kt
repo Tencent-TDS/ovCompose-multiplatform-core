@@ -22,6 +22,7 @@ import android.os.Build
 import android.view.InputDevice
 import android.view.MotionEvent
 import androidx.annotation.RequiresExtension
+import androidx.core.os.OperationCanceledException
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
@@ -45,6 +46,7 @@ import androidx.test.espresso.action.ViewActions.swipeDown
 import androidx.test.espresso.action.ViewActions.swipeUp
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
@@ -59,6 +61,7 @@ import androidx.test.uiautomator.UiSelector
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -367,8 +370,29 @@ class PdfViewerFragmentV2TestSuite {
 
     // TODO(b/392638037): Add immersive mode integration test
 
-    // TODO(b/401173291): Add Dismissing password dialog to throw OperationCancelledException
-    // integration test
+    @Test
+    fun testPdfViewerFragment_dismissPasswordDialog() {
+
+        scenarioLoadDocument(
+            scenario = scenario,
+            filename = TEST_PROTECTED_DOCUMENT_FILE,
+            nextState = Lifecycle.State.STARTED,
+            orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+        ) {
+            // Loading view assertion
+            onView(withId(PdfR.id.pdfLoadingProgressBar)).check(matches(isDisplayed()))
+        }
+        scenario.onFragment { fragment ->
+            fragment.pdfLoadingIdlingResource.decrement()
+            assertNull(fragment.documentError)
+        }
+
+        onView(ViewMatchers.withText(CANCEL)).inRoot(RootMatchers.isDialog()).perform(click())
+
+        scenario.onFragment { fragment ->
+            assert(fragment.documentError is OperationCanceledException)
+        }
+    }
 
     // TODO(b/401229449): Add Select Api in PdfDocument integration test
 
@@ -389,7 +413,10 @@ class PdfViewerFragmentV2TestSuite {
 
     companion object {
         private const val TEST_DOCUMENT_FILE = "sample.pdf"
+        private const val TEST_PROTECTED_DOCUMENT_FILE = "sample-protected.pdf"
         private const val TEST_CORRUPTED_DOCUMENT_FILE = "corrupted.pdf"
+
+        private const val CANCEL = "Cancel"
         private const val SEARCH_QUERY = "ipsum"
         private const val KEYBOARD_CONTENT_DESC = "keyboard"
 

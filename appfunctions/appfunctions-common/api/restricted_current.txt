@@ -14,10 +14,8 @@ package androidx.appfunctions {
 
   public interface AppFunctionContext {
     method public String getCallingPackageName();
-    method public android.content.pm.SigningInfo getCallingPackageSigningInfo();
     method public android.content.Context getContext();
     property public abstract String callingPackageName;
-    property public abstract android.content.pm.SigningInfo callingPackageSigningInfo;
     property public abstract android.content.Context context;
   }
 

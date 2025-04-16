@@ -80,8 +80,8 @@ abstract class PrivacySandboxLibraryPlugin : Plugin<Project> {
 
             // Add additional dependencies required for KSP outputs
 
-            val toolsVersion = "1.0.0-alpha08"
-            val sdkRuntimeVersion = "1.0.0-alpha13"
+            val toolsVersion = "1.0.0-alpha13"
+            val sdkRuntimeVersion = "1.0.0-alpha17"
             project.dependencies.apply {
                 add("ksp", "androidx.privacysandbox.tools:tools-apicompiler:$toolsVersion")
                 add("implementation", "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")

@@ -96,7 +96,6 @@ import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
 
 import com.android.extensions.xr.ShadowXrExtensions;
 import com.android.extensions.xr.ShadowXrExtensions.SpaceMode;
-import com.android.extensions.xr.VisibilityChangedEvent;
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.environment.EnvironmentVisibilityState;
 import com.android.extensions.xr.environment.PassthroughVisibilityState;
@@ -113,6 +112,7 @@ import com.android.extensions.xr.node.Vec3;
 import com.android.extensions.xr.space.ShadowSpatialCapabilities;
 import com.android.extensions.xr.space.ShadowSpatialState;
 import com.android.extensions.xr.space.SpatialState;
+import com.android.extensions.xr.space.VisibilityState;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.androidxr.splitengine.SubspaceNode;
@@ -132,7 +132,6 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 
-import java.io.Closeable;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.UUID;
@@ -191,10 +190,6 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.initSession(mActivity, OPEN_XR_REFERENCE_SPACE_TYPE, mFakeExecutor))
                 .thenReturn(immediateFuture(mSession));
         when(mPerceptionLibrary.getActivity()).thenReturn(mActivity);
-        // TODO: b/377554103 - Remove delay once the subscription API are synced with the node
-        // creation.
-        mFakeExecutor.simulateSleepExecutingAllTasks(
-                Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
         // This is a little unrealistic because it's going to return the same subspace for all the
         // entities created in this test. In practice this is an implementation detail that's
         // irrelevant
@@ -2508,23 +2503,23 @@ public final class JxrPlatformAdapterAxrTest {
         ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
 
         // VISIBLE
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.FULLY_VISIBLE));
         verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
 
         // PARTIALLY_VISIBLE
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.PARTIALLY_VISIBLE));
         verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.PARTIALLY_WITHIN_FOV));
 
         // OUTSIDE_OF_FOV
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.NOT_VISIBLE));
         verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
 
         // UNKNOWN
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.UNKNOWN));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.UNKNOWN));
         verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.UNKNOWN));
     }
 
@@ -2540,15 +2535,15 @@ public final class JxrPlatformAdapterAxrTest {
 
         // Listener 1 is set and called once.
         mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener1);
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.FULLY_VISIBLE));
         verify(mockListener1).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
         verify(mockListener2, never()).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
 
         // Listener 2 is set and called once. Listener 1 is not called again.
         mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener2);
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.NOT_VISIBLE));
         verify(mockListener2).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
         verify(mockListener1, never()).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
     }
@@ -2569,29 +2564,23 @@ public final class JxrPlatformAdapterAxrTest {
 
         // Verify that the callback is called once when the visibility changes.
         ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.FULLY_VISIBLE));
         verify(mockListener).accept(any());
 
         // Clear the listener and verify that the callback is not called a second time.
         mRuntime.clearSpatialVisibilityChangedListener();
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.NOT_VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.PARTIALLY_VISIBLE));
         verify(mockListener).accept(any());
     }
 
     @Test
-    public void clearSpatialVisibilityChangedListener_handlesException() {
-        mRuntime.mSpatialVisibilityChangedListenerCloseable =
-                new Closeable() {
-                    @Override
-                    public void close() {
-                        throw new RuntimeException("Test error");
-                    }
-                };
-        // No assert needed, the test will fail if the exception is not handled.
+    public void
+            clearSpatialVisibilityChangedListener_handlesExceptionWhenCalledWithoutSettingListener() {
+        // No assert needed, the test will fail if an unhandled exception is thrown.
         mRuntime.clearSpatialVisibilityChangedListener();
     }
 
@@ -2604,16 +2593,16 @@ public final class JxrPlatformAdapterAxrTest {
 
         // Verify that the callback is called once when the visibility changes.
         ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.FULLY_VISIBLE));
         verify(mockListener).accept(any());
 
         // Ensure dispose() clears the listener that the callback is not called a second time.
         mRuntime.dispose();
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
-        shadowXrExtensions.sendVisibilityChangedEvent(
-                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.NOT_VISIBLE));
+        shadowXrExtensions.sendVisibilityState(
+                mActivity, new VisibilityState(VisibilityState.PARTIALLY_VISIBLE));
         verify(mockListener).accept(any());
     }
 }

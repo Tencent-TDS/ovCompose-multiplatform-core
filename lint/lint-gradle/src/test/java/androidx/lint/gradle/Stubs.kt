@@ -195,4 +195,18 @@ internal val STUBS =
             """
                 .trimIndent()
         ),
+        kotlin(
+            """
+                package com.android.build.gradle.internal.tasks
+                annotation class BuildAnalyzer
+            """
+                .trimIndent()
+        ),
+        kotlin(
+            """
+                package org.gradle.process.internal
+                class ExecException : Exception()
+            """
+                .trimIndent()
+        )
     )

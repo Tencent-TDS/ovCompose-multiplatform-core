@@ -19,7 +19,7 @@ package androidx.appfunctions.internal
 import androidx.annotation.RequiresApi
 import androidx.appfunctions.metadata.AppFunctionSchemaMetadata
 import androidx.appfunctions.schema.notes.APP_FUNCTION_SCHEMA_CATEGORY_NOTES
-import androidx.appfunctions.schema.notes.translators.CreateNoteTranslator
+import androidx.appfunctions.schema.notes.translators.NotesTranslatorSelector
 
 @RequiresApi(33)
 internal class TranslatorSelectorImpl : TranslatorSelector {
@@ -27,9 +27,7 @@ internal class TranslatorSelectorImpl : TranslatorSelector {
     override fun getTranslator(schemaMetadata: AppFunctionSchemaMetadata): Translator? {
         // TODO: Generate the mapping.
         if (schemaMetadata.category == APP_FUNCTION_SCHEMA_CATEGORY_NOTES) {
-            if (schemaMetadata.name == "createNote") {
-                return CreateNoteTranslator()
-            }
+            return NotesTranslatorSelector.getTranslator(schemaMetadata.name)
         }
         return null
     }

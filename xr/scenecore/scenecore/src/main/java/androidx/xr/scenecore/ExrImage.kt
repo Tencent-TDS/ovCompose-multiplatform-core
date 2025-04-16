@@ -19,6 +19,7 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
+import androidx.xr.runtime.Session
 import androidx.xr.runtime.internal.ExrImageResource as RtExrImage
 import androidx.xr.runtime.internal.JxrPlatformAdapter
 import com.google.common.util.concurrent.ListenableFuture

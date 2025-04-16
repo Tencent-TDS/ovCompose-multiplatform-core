@@ -381,7 +381,7 @@ internal class ResponsiveTransformationSpecImpl(
         measuredHeight: Int,
         scrollProgress: TransformingLazyColumnItemScrollProgress
     ): Int =
-        with(transformProgress(scrollProgress, this)) {
+        with(TransitionAreaProgress(scrollProgress)) {
             ceil(compute(scale, easing) * measuredHeight).fastRoundToInt()
         }
 
@@ -389,13 +389,7 @@ internal class ResponsiveTransformationSpecImpl(
         scrollProgress: TransformingLazyColumnItemScrollProgress,
     ) {
         if (scrollProgress.isUnspecified) return
-        with(
-            transformationState(
-                spec = this@ResponsiveTransformationSpecImpl,
-                itemHeight = size.height,
-                scrollProgress = scrollProgress
-            )
-        ) {
+        with(TransformationState(scrollProgress = scrollProgress)) {
             compositingStrategy = CompositingStrategy.Offscreen
             alpha = contentAlpha
         }
@@ -405,13 +399,7 @@ internal class ResponsiveTransformationSpecImpl(
         scrollProgress: TransformingLazyColumnItemScrollProgress
     ) {
         if (scrollProgress.isUnspecified) return
-        with(
-            transformationState(
-                spec = this@ResponsiveTransformationSpecImpl,
-                itemHeight = size.height,
-                scrollProgress = scrollProgress
-            )
-        ) {
+        with(TransformationState(scrollProgress = scrollProgress)) {
             compositingStrategy = CompositingStrategy.Offscreen
             translationY = -1f * size.height * (1f - scale) / 2f
             alpha = containerAlpha
@@ -426,13 +414,7 @@ internal class ResponsiveTransformationSpecImpl(
         border: BorderStroke?
     ): Painter =
         BackgroundPainter(
-            transformState = {
-                transformationState(
-                    spec = this@ResponsiveTransformationSpecImpl,
-                    itemHeight = itemHeight,
-                    scrollProgress = scrollProgress,
-                )
-            },
+            transformState = { TransformationState(scrollProgress = scrollProgress) },
             shape = shape,
             border = border,
             backgroundPainter = painter
@@ -469,6 +451,47 @@ private fun lerp(
         contentAlpha = lerp(start.contentAlpha, stop.contentAlpha, progress),
         scale = lerp(start.scale, stop.scale, progress),
     )
+
+/** Uses a TransformationSpec to compute a TransformationState. */
+internal fun ResponsiveTransformationSpecImpl.TransformationState(
+    scrollProgress: TransformingLazyColumnItemScrollProgress
+): TransformationState =
+    with(TransitionAreaProgress(scrollProgress)) {
+        TransformationState(
+            scale = compute(scale, easing),
+            containerAlpha = compute(containerAlpha, easing),
+            contentAlpha = compute(contentAlpha, easing),
+        )
+    }
+
+/** Uses a TransformationSpec to convert a scrollProgress into a transitionProgress. */
+internal fun ResponsiveTransformationSpecImpl.TransitionAreaProgress(
+    scrollProgress: TransformingLazyColumnItemScrollProgress,
+): TransitionAreaProgress =
+    if (scrollProgress == TransformingLazyColumnItemScrollProgress.Unspecified) {
+        TransitionAreaProgress.None
+    } else {
+        // Size of the item, relative to the screen
+        val relativeItemHeight =
+            scrollProgress.bottomOffsetFraction - scrollProgress.topOffsetFraction
+
+        // Where is the size of the item in the minElementHeight .. maxElementHeight range
+        val sizeRatio =
+            inverseLerp(minElementHeightFraction, maxElementHeightFraction, relativeItemHeight)
+
+        // Size of each transition area.
+        val scalingLine =
+            lerp(minTransitionAreaHeightFraction, maxTransitionAreaHeightFraction, sizeRatio)
+                // Ensure the top & bottom transition areas don't overlap.
+                .coerceAtMost((1f + relativeItemHeight) / 2f)
+
+        // See if we are in the top/bottom transition area and return that value.
+        if (scrollProgress.bottomOffsetFraction < 1f - scrollProgress.topOffsetFraction) {
+            TransitionAreaProgress.Top(scrollProgress.bottomOffsetFraction / scalingLine)
+        } else {
+            TransitionAreaProgress.Bottom((1f - scrollProgress.topOffsetFraction) / scalingLine)
+        }
+    }
 
 /**
  * Computes the appropriate [ResponsiveTransformationSpecImpl] for a given screen size, given one or

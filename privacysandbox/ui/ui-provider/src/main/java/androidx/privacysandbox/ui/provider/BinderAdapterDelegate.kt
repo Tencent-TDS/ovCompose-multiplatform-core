@@ -31,6 +31,7 @@ import android.view.SurfaceControlViewHost
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import androidx.privacysandbox.ui.core.ClientAdapterWrapper
 import androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ExperimentalFeatures
 import androidx.privacysandbox.ui.core.IDelegateChangeListener
@@ -58,6 +59,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  */
 @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
 fun SandboxedUiAdapter.toCoreLibInfo(@Suppress("ContextFirst") context: Context): Bundle {
+    // If the ui adapter has already been wrapped as a client SandboxedUiAdapter
+    // at some point it needs no further wrapping
+    if (this is ClientAdapterWrapper) {
+        return this.getSourceBundle()
+    }
     // TODO: Add version info
     val bundle = Bundle()
     val binderAdapter =

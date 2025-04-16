@@ -342,11 +342,24 @@ package androidx.compose.material3 {
   }
 
   public final class ButtonGroupKt {
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void ButtonGroup(optional androidx.compose.ui.Modifier modifier, optional @FloatRange(from=0.0) float expandedRatio, optional androidx.compose.foundation.layout.Arrangement.Horizontal horizontalArrangement, kotlin.jvm.functions.Function1<? super androidx.compose.material3.ButtonGroupScope,kotlin.Unit> content);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void ButtonGroup(optional androidx.compose.ui.Modifier modifier, optional @FloatRange(from=0.0) float expandedRatio, optional androidx.compose.foundation.layout.Arrangement.Horizontal horizontalArrangement, kotlin.jvm.functions.Function1<? super androidx.compose.material3.ButtonGroupScope,kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void ButtonGroup(kotlin.jvm.functions.Function1<? super androidx.compose.material3.ButtonGroupMenuState,kotlin.Unit> overflowIndicator, optional androidx.compose.ui.Modifier modifier, optional @FloatRange(from=0.0) float expandedRatio, optional androidx.compose.foundation.layout.Arrangement.Horizontal horizontalArrangement, kotlin.jvm.functions.Function1<? super androidx.compose.material3.ButtonGroupScope,kotlin.Unit> content);
+  }
+
+  public final class ButtonGroupMenuState {
+    ctor public ButtonGroupMenuState();
+    ctor public ButtonGroupMenuState(optional boolean initialIsExpanded);
+    method public void dismiss();
+    method public boolean isExpanded();
+    method public void show();
+    property public boolean isExpanded;
   }
 
   @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public interface ButtonGroupScope {
     method public androidx.compose.ui.Modifier animateWidth(androidx.compose.ui.Modifier, androidx.compose.foundation.interaction.InteractionSource interactionSource);
+    method public void clickableItem(kotlin.jvm.functions.Function0<kotlin.Unit> onClick, String label, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional kotlin.jvm.functions.Function0<kotlin.Unit>? icon, optional boolean enabled);
+    method public void customItem(kotlin.jvm.functions.Function0<kotlin.Unit> buttonGroupContent, kotlin.jvm.functions.Function1<? super androidx.compose.material3.ButtonGroupMenuState,kotlin.Unit> menuContent);
+    method public void toggleableItem(boolean checked, String label, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional kotlin.jvm.functions.Function0<kotlin.Unit>? icon, optional boolean enabled);
     method public androidx.compose.ui.Modifier weight(androidx.compose.ui.Modifier, @FloatRange(from=0.0, fromInclusive=false) float weight);
     method @Deprecated public androidx.compose.ui.Modifier weight(androidx.compose.ui.Modifier, @FloatRange(from=0.0, fromInclusive=false) float weight, optional boolean fill);
   }

@@ -3453,6 +3453,8 @@ internal class ComposerImpl(
                 invokeComposable(this, { content.content(parameter) })
                 providersInvalid = savedProvidersInvalid
             }
+        } catch (e: Throwable) {
+            throw e.attachComposeStackTrace { currentStackTrace() }
         } finally {
             // Restore the state back to what is expected by the caller.
             endGroup()

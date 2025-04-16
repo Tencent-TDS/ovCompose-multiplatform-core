@@ -32,9 +32,11 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.spatial.EdgeOffset.Companion.inner
 import androidx.xr.compose.testing.SubspaceTestingActivity
 import androidx.xr.compose.testing.TestSetup
+import androidx.xr.scenecore.scene
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,8 +71,8 @@ class OrbiterTest {
     fun orbiter_homeSpaceMode_contentIsInline() {
         composeTestRule.setContent {
             TestSetup {
-                this.spatialEnvironment.requestHomeSpaceMode()
                 Parent { Orbiter(OrbiterEdge.Top) { Text("Main Content") } }
+                LocalSession.current?.scene?.spatialEnvironment?.requestHomeSpaceMode()
             }
         }
 
@@ -81,7 +83,6 @@ class OrbiterTest {
     fun orbiter_nonSpatial_doesNotRenderContent() {
         composeTestRule.setContent {
             TestSetup {
-                this.spatialEnvironment.requestHomeSpaceMode()
                 Parent {
                     Orbiter(
                         OrbiterEdge.Top,
@@ -90,6 +91,7 @@ class OrbiterTest {
                         Text("Main Content")
                     }
                 }
+                LocalSession.current?.scene?.spatialEnvironment?.requestHomeSpaceMode()
             }
         }
 
@@ -116,9 +118,9 @@ class OrbiterTest {
     fun orbiter_afterSwitchToFullSpaceMode_isSpatial() {
         composeTestRule.setContent {
             TestSetup {
-                this.spatialEnvironment.requestHomeSpaceMode()
+                LocalSession.current?.scene?.spatialEnvironment?.requestHomeSpaceMode()
                 Parent { Orbiter(position = OrbiterEdge.Bottom) { Text("Bottom") } }
-                this.spatialEnvironment.requestFullSpaceMode()
+                LocalSession.current?.scene?.spatialEnvironment?.requestFullSpaceMode()
             }
         }
 
@@ -169,7 +171,7 @@ class OrbiterTest {
     fun orbiter_orbiterRendered() {
         composeTestRule.setContent {
             TestSetup {
-                this.spatialEnvironment.requestHomeSpaceMode()
+                LocalSession.current?.scene?.spatialEnvironment?.requestHomeSpaceMode()
                 Box {
                     Text("Main Content")
                     Orbiter(OrbiterEdge.Start) { Text("Orbiter Content") }
@@ -187,7 +189,7 @@ class OrbiterTest {
 
         composeTestRule.setContent {
             TestSetup {
-                this.spatialEnvironment.requestHomeSpaceMode()
+                LocalSession.current?.scene?.spatialEnvironment?.requestHomeSpaceMode()
                 Box(modifier = Modifier.size(100.dp)) {
                     Text("Main Content")
                     if (showOrbiter) {
@@ -208,11 +210,13 @@ class OrbiterTest {
 
         composeTestRule.setContent {
             TestSetup {
+                val session = LocalSession.current
+
                 LaunchedEffect(isFullSpaceMode) {
                     if (isFullSpaceMode) {
-                        this@TestSetup.spatialEnvironment.requestFullSpaceMode()
+                        session?.scene?.spatialEnvironment?.requestFullSpaceMode()
                     } else {
-                        this@TestSetup.spatialEnvironment.requestHomeSpaceMode()
+                        session?.scene?.spatialEnvironment?.requestHomeSpaceMode()
                     }
                 }
 

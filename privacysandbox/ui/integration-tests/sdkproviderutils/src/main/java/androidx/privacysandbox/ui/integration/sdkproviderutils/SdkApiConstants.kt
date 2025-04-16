@@ -113,5 +113,7 @@ class SdkApiConstants {
                 const val URL = "url"
             }
         }
+
+        const val MEDIATION_TEST_CALLBACK = "mediation-test-callback"
     }
 }

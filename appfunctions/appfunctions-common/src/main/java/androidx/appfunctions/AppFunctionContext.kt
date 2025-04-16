@@ -17,7 +17,6 @@
 package androidx.appfunctions
 
 import android.content.Context
-import android.content.pm.SigningInfo
 
 /** The execution context of app function. */
 public interface AppFunctionContext {
@@ -29,10 +28,4 @@ public interface AppFunctionContext {
      * validate the caller.
      */
     public val callingPackageName: String
-
-    /**
-     * Return the [android.content.pm.SigningInfo] of the package that invoked this AppFunction. You
-     * can use this information to validate the caller.
-     */
-    public val callingPackageSigningInfo: SigningInfo
 }

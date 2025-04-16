@@ -22,11 +22,15 @@ import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.CredentialManagerCallback
 import androidx.credentials.PublicKeyCredential
+import androidx.credentials.exceptions.CreateCredentialCancellationException
 import androidx.credentials.exceptions.CreateCredentialException
+import androidx.credentials.exceptions.CreateCredentialInterruptedException
 import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.internal.toJetpackCreateException
 import androidx.credentials.playservices.CredentialProviderPlayServicesImpl
 import androidx.credentials.playservices.controllers.CredentialProviderController
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.identitycredentials.CreateCredentialRequest
 import com.google.android.gms.identitycredentials.CreateCredentialResponse
 import com.google.android.gms.identitycredentials.IdentityCredentialManager
@@ -76,8 +80,12 @@ internal class CreatePublicKeyCredentialController(private val context: Context)
                         }
                     } catch (e: Exception) {
                         cancelOrCallbackExceptionOrResult(cancellationSignal) {
-                            executor.execute {
-                                callback.onError(toJetpackCreateException(e.message.toString()))
+                            if (e is CreateCredentialException) {
+                                executor.execute { callback.onError(e) }
+                            } else {
+                                executor.execute {
+                                    callback.onError(CreateCredentialUnknownException(e.message))
+                                }
                             }
                         }
                     }
@@ -85,11 +93,30 @@ internal class CreatePublicKeyCredentialController(private val context: Context)
             }
             .addOnFailureListener { e ->
                 cancelOrCallbackExceptionOrResult(cancellationSignal) {
-                    executor.execute {
-                        callback.onError(CreateCredentialUnknownException(e.message))
-                    }
+                    val exception = fromGmsException(e)
+                    executor.execute { callback.onError(exception) }
                 }
             }
+    }
+
+    private fun fromGmsException(e: Throwable): CreateCredentialException {
+        return when (e) {
+            is com.google.android.gms.identitycredentials.CreateCredentialException ->
+                toJetpackCreateException(e.type, e.message)
+            is ApiException ->
+                when (e.statusCode) {
+                    CommonStatusCodes.CANCELED -> {
+                        CreateCredentialCancellationException(e.message)
+                    }
+                    in retryables -> {
+                        CreateCredentialInterruptedException(e.message)
+                    }
+                    else -> {
+                        CreateCredentialUnknownException("Conditional create failed, failure: $e")
+                    }
+                }
+            else -> CreateCredentialUnknownException("Conditional create failed, failure: $e")
+        }
     }
 
     public override fun convertRequestToPlayServices(

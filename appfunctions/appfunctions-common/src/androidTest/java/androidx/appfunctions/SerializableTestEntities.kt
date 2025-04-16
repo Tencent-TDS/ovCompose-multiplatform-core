@@ -22,11 +22,11 @@ import androidx.appfunctions.internal.AppFunctionSerializableFactory
 
 class MissingFactoryClass(val item: String)
 
-class Attachment(
+data class Attachment(
     val uri: String,
 )
 
-class Note(val title: String, val attachment: Attachment)
+data class Note(val title: String, val attachment: Attachment)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 class `$AttachmentFactory` : AppFunctionSerializableFactory<Attachment> {

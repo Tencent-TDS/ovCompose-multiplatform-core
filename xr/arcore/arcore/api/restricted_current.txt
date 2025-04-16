@@ -27,11 +27,11 @@ package androidx.xr.arcore {
   }
 
   public static final class Anchor.State {
-    ctor public Anchor.State(androidx.xr.runtime.internal.TrackingState trackingState, androidx.xr.runtime.math.Pose pose);
+    ctor public Anchor.State(androidx.xr.runtime.TrackingState trackingState, androidx.xr.runtime.math.Pose pose);
     method public androidx.xr.runtime.math.Pose getPose();
-    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
+    method public androidx.xr.runtime.TrackingState getTrackingState();
     property public androidx.xr.runtime.math.Pose pose;
-    property public androidx.xr.runtime.internal.TrackingState trackingState;
+    property public androidx.xr.runtime.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class AnchorCreateNotTracking extends androidx.xr.arcore.AnchorCreateResult {
@@ -51,6 +51,10 @@ package androidx.xr.arcore {
     property public androidx.xr.arcore.Anchor anchor;
   }
 
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class AnchorLoadInvalidUuid extends androidx.xr.arcore.AnchorCreateResult {
+    ctor public AnchorLoadInvalidUuid();
+  }
+
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class Hand {
     method public kotlinx.coroutines.flow.StateFlow<androidx.xr.arcore.Hand.State> getState();
     method public static androidx.xr.arcore.Hand? left(androidx.xr.runtime.Session session);
@@ -61,18 +65,25 @@ package androidx.xr.arcore {
   }
 
   public static final class Hand.Companion {
+    method public androidx.xr.arcore.Hand.Handedness getHandedness(android.content.ContentResolver resolver);
     method public androidx.xr.arcore.Hand? left(androidx.xr.runtime.Session session);
     method public androidx.xr.arcore.Hand? right(androidx.xr.runtime.Session session);
   }
 
+  public enum Hand.Handedness {
+    enum_constant public static final androidx.xr.arcore.Hand.Handedness LEFT;
+    enum_constant public static final androidx.xr.arcore.Hand.Handedness RIGHT;
+    enum_constant public static final androidx.xr.arcore.Hand.Handedness UNKNOWN;
+  }
+
   public static final class Hand.State {
-    ctor public Hand.State(androidx.xr.runtime.internal.TrackingState trackingState, java.nio.ByteBuffer handJointsBuffer);
-    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
+    ctor public Hand.State(androidx.xr.runtime.TrackingState trackingState, java.nio.ByteBuffer handJointsBuffer);
+    method public java.util.Map<androidx.xr.runtime.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
     method public java.nio.ByteBuffer getHandJointsBuffer();
-    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
-    property public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
+    method public androidx.xr.runtime.TrackingState getTrackingState();
+    property public java.util.Map<androidx.xr.runtime.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
     property public java.nio.ByteBuffer handJointsBuffer;
-    property public androidx.xr.runtime.internal.TrackingState trackingState;
+    property public androidx.xr.runtime.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HitResult {
@@ -138,18 +149,18 @@ package androidx.xr.arcore {
   }
 
   public static final class Plane.State implements androidx.xr.arcore.Trackable.State {
-    ctor public Plane.State(androidx.xr.runtime.internal.TrackingState trackingState, androidx.xr.arcore.Plane.Label label, androidx.xr.runtime.math.Pose centerPose, androidx.xr.runtime.math.Vector2 extents, androidx.xr.arcore.Plane? subsumedBy, java.util.List<androidx.xr.runtime.math.Vector2> vertices);
+    ctor public Plane.State(androidx.xr.runtime.TrackingState trackingState, androidx.xr.arcore.Plane.Label label, androidx.xr.runtime.math.Pose centerPose, androidx.xr.runtime.math.Vector2 extents, androidx.xr.arcore.Plane? subsumedBy, java.util.List<androidx.xr.runtime.math.Vector2> vertices);
     method public androidx.xr.runtime.math.Pose getCenterPose();
     method public androidx.xr.runtime.math.Vector2 getExtents();
     method public androidx.xr.arcore.Plane.Label getLabel();
     method public androidx.xr.arcore.Plane? getSubsumedBy();
-    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
+    method public androidx.xr.runtime.TrackingState getTrackingState();
     method public java.util.List<androidx.xr.runtime.math.Vector2> getVertices();
     property public androidx.xr.runtime.math.Pose centerPose;
     property public androidx.xr.runtime.math.Vector2 extents;
     property public androidx.xr.arcore.Plane.Label label;
     property public androidx.xr.arcore.Plane? subsumedBy;
-    property public androidx.xr.runtime.internal.TrackingState trackingState;
+    property public androidx.xr.runtime.TrackingState trackingState;
     property public java.util.List<androidx.xr.runtime.math.Vector2> vertices;
   }
 
@@ -173,8 +184,8 @@ package androidx.xr.arcore {
   }
 
   public static interface Trackable.State {
-    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
-    property public abstract androidx.xr.runtime.internal.TrackingState trackingState;
+    method public androidx.xr.runtime.TrackingState getTrackingState();
+    property public abstract androidx.xr.runtime.TrackingState trackingState;
   }
 
 }

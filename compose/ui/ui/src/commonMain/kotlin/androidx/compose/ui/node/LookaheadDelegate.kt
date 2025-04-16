@@ -34,10 +34,12 @@ import androidx.compose.ui.layout.Ruler
 import androidx.compose.ui.layout.RulerScope
 import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.layout.VerticalRuler
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
 
 /**
  * This is the base class for NodeCoordinator and LookaheadDelegate. The common functionalities
@@ -51,7 +53,8 @@ internal abstract class LookaheadCapablePlaceable :
     abstract val hasMeasureResult: Boolean
     abstract override val layoutNode: LayoutNode
     abstract val coordinates: LayoutCoordinates
-    private var _rulerScope: RulerScope? = null
+    private var _rulerScope: ResettableRulerScope? = null
+    private var rulersLambda: (RulerScope.() -> Unit)? = null
 
     /**
      * Indicates whether the [Placeable] was placed under a motion frame of reference.
@@ -79,31 +82,9 @@ internal abstract class LookaheadCapablePlaceable :
         }
     }
 
-    val rulerScope: RulerScope
+    private val rulerScope: ResettableRulerScope
         get() {
-            return _rulerScope
-                ?: object : RulerScope {
-                    override val coordinates: LayoutCoordinates
-                        get() {
-                            this@LookaheadCapablePlaceable.layoutNode.layoutDelegate
-                                .onCoordinatesUsed()
-                            return this@LookaheadCapablePlaceable.coordinates
-                        }
-
-                    override fun Ruler.provides(value: Float) {
-                        this@LookaheadCapablePlaceable.provideRulerValue(this, value)
-                    }
-
-                    override fun VerticalRuler.providesRelative(value: Float) {
-                        this@LookaheadCapablePlaceable.provideRelativeRulerValue(this, value)
-                    }
-
-                    override val density: Float
-                        get() = this@LookaheadCapablePlaceable.density
-
-                    override val fontScale: Float
-                        get() = this@LookaheadCapablePlaceable.fontScale
-                }
+            return _rulerScope ?: ResettableRulerScope().also { _rulerScope = it }
         }
 
     final override fun get(alignmentLine: AlignmentLine): Int {
@@ -262,7 +243,15 @@ internal abstract class LookaheadCapablePlaceable :
                 }
             } else {
                 // NOTE: consider using a mutable PlaceableResult to be reused for this purpose
-                captureRulers(PlaceableResult(result, this))
+                if (
+                    this.rulersLambda !== result.rulers ||
+                        (rulerScope.coordinatesAccessed &&
+                            (rulerScope.positionInRoot != coordinates.positionInRoot().round() ||
+                                rulerScope.size != coordinates.size))
+                ) {
+                    captureRulers(PlaceableResult(result, this))
+                    this.rulersLambda = result.rulers
+                }
             }
         } else {
             rulerReaders?.forEachValue { notifyRulerValueChange(it) }
@@ -282,6 +271,9 @@ internal abstract class LookaheadCapablePlaceable :
         newValues.clear()
         // capture the new values
         layoutNode.owner?.snapshotObserver?.observeReads(placeableResult, onCommitAffectingRuler) {
+            rulerScope.coordinatesAccessed = false
+            rulerScope.positionInRoot = IntOffset.Max
+            rulerScope.size = IntSize.Zero
             placeableResult.result.rulers?.invoke(rulerScope)
         }
         // compare the old values to the new ones
@@ -322,6 +314,7 @@ internal abstract class LookaheadCapablePlaceable :
             }
         } else {
             captureRulers(placeableResult)
+            this.rulersLambda = rulerLambda
         }
     }
 
@@ -350,6 +343,38 @@ internal abstract class LookaheadCapablePlaceable :
             } else {
                 width - value
             }
+    }
+
+    private inner class ResettableRulerScope : RulerScope {
+        var coordinatesAccessed = false
+        var positionInRoot = IntOffset.Max
+        var size = IntSize.Zero
+
+        override val coordinates: LayoutCoordinates
+            get() {
+                coordinatesAccessed = true
+                val coords = this@LookaheadCapablePlaceable.coordinates
+                if (positionInRoot == IntOffset.Max) {
+                    positionInRoot = coords.positionInRoot().round()
+                    size = coords.size
+                }
+                this@LookaheadCapablePlaceable.layoutNode.layoutDelegate.onCoordinatesUsed()
+                return coords
+            }
+
+        override fun Ruler.provides(value: Float) {
+            this@LookaheadCapablePlaceable.provideRulerValue(this, value)
+        }
+
+        override fun VerticalRuler.providesRelative(value: Float) {
+            this@LookaheadCapablePlaceable.provideRelativeRulerValue(this, value)
+        }
+
+        override val density: Float
+            get() = this@LookaheadCapablePlaceable.density
+
+        override val fontScale: Float
+            get() = this@LookaheadCapablePlaceable.fontScale
     }
 
     companion object {

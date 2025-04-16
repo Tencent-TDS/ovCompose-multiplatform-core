@@ -87,7 +87,8 @@ public interface CameraPipe {
         val cameraBackendConfig: CameraBackendConfig = CameraBackendConfig(),
         val cameraInteropConfig: CameraInteropConfig = CameraInteropConfig(),
         val imageSources: ImageSources? = null,
-        val usePruningDeviceManager: Boolean = false,
+        // TODO: b/409140708 - Remove this flag once we've removed all its references.
+        val usePruningDeviceManager: Boolean = true,
     )
 
     /**

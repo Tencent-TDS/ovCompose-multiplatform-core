@@ -1427,7 +1427,8 @@ private fun BottomAppBarLayout(
                     activeScrollBehavior?.state?.heightOffsetLimit = -placeable.height.toFloat()
 
                     val height =
-                        placeable.height + (activeScrollBehavior?.state?.heightOffset ?: 0f)
+                        (placeable.height + (activeScrollBehavior?.state?.heightOffset ?: 0f))
+                            .coerceAtLeast(0f)
                     layout(placeable.width, height.roundToInt()) { placeable.place(0, 0) }
                 }
                 .then(appBarDragModifier),

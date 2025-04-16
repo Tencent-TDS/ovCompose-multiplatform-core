@@ -24,6 +24,7 @@ import androidx.appfunctions.compiler.core.IntrospectionHelper.APP_FUNCTION_INVE
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AggregatedAppFunctionInventoryClass
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AggregatedAppFunctionInvokerClass
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionInvokerClass
+import androidx.appfunctions.compiler.core.addGeneratedTimeStamp
 import androidx.appfunctions.compiler.core.toClassName
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
@@ -89,6 +90,7 @@ class AppFunctionAggregateProcessor(
         val fileSpec =
             FileSpec.builder(APP_FUNCTIONS_INTERNAL_PACKAGE_NAME, aggregatedInventoryClassName)
                 .addType(aggregatedInventoryClassBuilder.build())
+                .addGeneratedTimeStamp()
                 .build()
 
         codeGenerator

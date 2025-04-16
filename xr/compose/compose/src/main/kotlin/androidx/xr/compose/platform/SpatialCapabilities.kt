@@ -22,14 +22,13 @@ import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.xr.scenecore.Session
+import androidx.xr.runtime.Session
 import androidx.xr.scenecore.SpatialCapabilities.Companion.SPATIAL_CAPABILITY_3D_CONTENT
 import androidx.xr.scenecore.SpatialCapabilities.Companion.SPATIAL_CAPABILITY_APP_ENVIRONMENT
 import androidx.xr.scenecore.SpatialCapabilities.Companion.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL
 import androidx.xr.scenecore.SpatialCapabilities.Companion.SPATIAL_CAPABILITY_SPATIAL_AUDIO
 import androidx.xr.scenecore.SpatialCapabilities.Companion.SPATIAL_CAPABILITY_UI
-import androidx.xr.scenecore.addSpatialCapabilitiesChangedListener
-import androidx.xr.scenecore.getSpatialCapabilities
+import androidx.xr.scenecore.scene
 
 @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public val LocalSpatialCapabilities: CompositionLocal<SpatialCapabilities> =
@@ -93,8 +92,8 @@ public interface SpatialCapabilities {
 
 private class SessionSpatialCapabilities(session: Session) : SpatialCapabilities {
     private var capabilities by
-        mutableStateOf(session.getSpatialCapabilities()).apply {
-            session.addSpatialCapabilitiesChangedListener { value = it }
+        mutableStateOf(session.scene.spatialCapabilities).apply {
+            session.scene.addSpatialCapabilitiesChangedListener { value = it }
         }
 
     override val isSpatialUiEnabled: Boolean

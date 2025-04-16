@@ -36,6 +36,13 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.biometric.BiometricManager.Authenticators;
+import androidx.biometric.utils.AuthenticatorUtils;
+import androidx.biometric.utils.CryptoObjectUtils;
+import androidx.biometric.utils.DeviceUtils;
+import androidx.biometric.utils.ErrorUtils;
+import androidx.biometric.utils.KeyguardUtils;
+import androidx.biometric.utils.PackageUtils;
+import androidx.biometric.utils.PromptContentViewUtils;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
@@ -212,27 +219,23 @@ public class BiometricFragment extends Fragment {
     // The view model for the ongoing authentication session (non-null after onCreate).
     private @Nullable BiometricViewModel mViewModel;
     private @NonNull Handler mHandler = new Handler(Looper.getMainLooper());
-    private BiometricPrompt.AuthenticationCallback mClientCallback;
 
     /**
      * Creates a new instance of {@link BiometricFragment}.
      *
      * @return A {@link BiometricFragment}.
      */
-    static BiometricFragment newInstance(boolean hostedInActivity,
-            BiometricPrompt.AuthenticationCallback clientCallback) {
+    static BiometricFragment newInstance(boolean hostedInActivity) {
         final BiometricFragment fragment = new BiometricFragment();
         final Bundle args = new Bundle();
         args.putBoolean(ARG_HOST_ACTIVITY, hostedInActivity);
         fragment.setArguments(args);
-        fragment.setClientCallback(clientCallback);
         return fragment;
     }
 
     @VisibleForTesting
     static BiometricFragment newInstance(@NonNull Handler handler,
             @NonNull BiometricViewModel viewModel,
-            BiometricPrompt.AuthenticationCallback clientCallback,
             boolean hostedInActivity, boolean hasFingerprint, boolean hasFace, boolean hasIris) {
         final BiometricFragment fragment = new BiometricFragment();
         final Bundle args = new Bundle();
@@ -243,7 +246,6 @@ public class BiometricFragment extends Fragment {
         args.putBoolean(ARG_HAS_FACE, hasFace);
         args.putBoolean(ARG_HAS_IRIS, hasIris);
         fragment.setArguments(args);
-        fragment.setClientCallback(clientCallback);
         return fragment;
     }
 
@@ -300,12 +302,6 @@ public class BiometricFragment extends Fragment {
                 && isPermanentRemoving()) {
             cancelAuthentication(BiometricFragment.CANCELED_FROM_INTERNAL);
         }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mClientCallback = null;
     }
 
     @Override
@@ -385,14 +381,6 @@ public class BiometricFragment extends Fragment {
                         mViewModel.setFingerprintDialogCancelPending(false);
                     }
                 });
-    }
-
-    /**
-     * Sets the client's callbacks. This should be called whenever {@link BiometricPrompt} is
-     * recreated with new client callbacks.
-     */
-    void setClientCallback(BiometricPrompt.AuthenticationCallback callback) {
-        mClientCallback = callback;
     }
 
     /**
@@ -957,13 +945,8 @@ public class BiometricFragment extends Fragment {
         }
 
         mViewModel.setAwaitingResult(false);
-        mViewModel.getClientExecutor().execute(() -> {
-            if (mClientCallback != null) {
-                mClientCallback.onAuthenticationSucceeded(result);
-            } else {
-                logCallbackNullError();
-            }
-        });
+        mViewModel.getClientExecutor().execute(
+                () -> mViewModel.getClientCallback().onAuthenticationSucceeded(result));
     }
 
     /**
@@ -971,6 +954,7 @@ public class BiometricFragment extends Fragment {
      *
      * @param errorCode   An integer ID associated with the error.
      * @param errorString A human-readable string that describes the error.
+     *
      * @see #sendErrorAndDismiss(int, CharSequence)
      * @see BiometricPrompt.AuthenticationCallback#onAuthenticationError(int, CharSequence)
      */
@@ -986,13 +970,8 @@ public class BiometricFragment extends Fragment {
         }
 
         mViewModel.setAwaitingResult(false);
-        mViewModel.getClientExecutor().execute(() -> {
-            if (mClientCallback != null) {
-                mClientCallback.onAuthenticationError(errorCode, errorString);
-            } else {
-                logCallbackNullError();
-            }
-        });
+        mViewModel.getClientExecutor().execute(
+                () -> mViewModel.getClientCallback().onAuthenticationError(errorCode, errorString));
     }
 
     /**
@@ -1006,13 +985,8 @@ public class BiometricFragment extends Fragment {
             return;
         }
 
-        mViewModel.getClientExecutor().execute(() -> {
-            if (mClientCallback != null) {
-                mClientCallback.onAuthenticationFailed();
-            } else {
-                logCallbackNullError();
-            }
-        });
+        mViewModel.getClientExecutor().execute(
+                () -> mViewModel.getClientCallback().onAuthenticationFailed());
     }
 
     /**
@@ -1156,12 +1130,6 @@ public class BiometricFragment extends Fragment {
         return context != null && DeviceUtils.shouldHideFingerprintDialog(context, Build.MODEL)
                 ? 0
                 : HIDE_DIALOG_DELAY_MS;
-    }
-
-    private void logCallbackNullError() {
-        Log.e(TAG,
-                "Callbacks are not re-registered when the caller's activity/fragment is "
-                        + "recreated!");
     }
 
     /**

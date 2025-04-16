@@ -1645,7 +1645,6 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
      *
      * This annotation WILL BE REMOVED with the new memory model of Kotlin/Native.
      */
-    @Suppress("OPTIONAL_DECLARATION_USAGE_IN_NON_COMMON_SOURCE")
     @kotlin.native.concurrent.ThreadLocal
     companion object {
 

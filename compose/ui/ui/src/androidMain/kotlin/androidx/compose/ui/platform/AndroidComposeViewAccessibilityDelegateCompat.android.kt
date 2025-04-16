@@ -19,7 +19,9 @@ package androidx.compose.ui.platform
 import android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK
 import android.content.Context
 import android.content.res.Resources
+import android.graphics.Rect as AndroidRect
 import android.graphics.RectF
+import android.graphics.Region
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -59,6 +61,9 @@ import androidx.compose.ui.contentcapture.ContentCaptureManager
 import androidx.compose.ui.focus.FocusDirection.Companion.Exit
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.positionInRoot
@@ -155,6 +160,13 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
         const val LogTag = "AccessibilityDelegate"
         const val ExtraDataTestTagKey = "androidx.compose.ui.semantics.testTag"
         const val ExtraDataIdKey = "androidx.compose.ui.semantics.id"
+        const val ExtraDataShapeTypeKey = "androidx.compose.ui.semantics.shapeType"
+        const val ExtraDataShapeTypeRectangle = 0
+        const val ExtraDataShapeTypeRounded = 1
+        const val ExtraDataShapeTypeGeneric = 2
+        const val ExtraDataShapeRectKey = "androidx.compose.ui.semantics.shapeRect"
+        const val ExtraDataShapeRectCornersKey = "androidx.compose.ui.semantics.shapeCorners"
+        const val ExtraDataShapeRegionKey = "androidx.compose.ui.semantics.shapeRegion"
 
         /**
          * Intent size limitations prevent sending over a megabyte of data. Limit text length to
@@ -801,6 +813,12 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             }
             if (semanticsNode.unmergedConfig.contains(SemanticsProperties.TestTag)) {
                 extraDataKeys.add(ExtraDataTestTagKey)
+            }
+            if (semanticsNode.unmergedConfig.contains(SemanticsProperties.Shape)) {
+                extraDataKeys.add(ExtraDataShapeTypeKey)
+                extraDataKeys.add(ExtraDataShapeRectKey)
+                extraDataKeys.add(ExtraDataShapeRectCornersKey)
+                extraDataKeys.add(ExtraDataShapeRegionKey)
             }
 
             info.availableExtraData = extraDataKeys
@@ -1689,6 +1707,49 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             }
         } else if (extraDataKey == ExtraDataIdKey) {
             info.extras.putInt(extraDataKey, node.id)
+        } else if (extraDataKey == ExtraDataShapeTypeKey) {
+            node.unmergedConfig.getOrNull(SemanticsProperties.Shape)?.let { shape ->
+                val outline = shape.createOutline(node)
+                // We set not only the shape type but also the shape data itself, as an
+                // optimization, since we already need to create an Outline to get the shape type
+                // and to avoid another request for the shape data.
+                when (outline) {
+                    is Outline.Rectangle -> {
+                        info.extras.putInt(ExtraDataShapeTypeKey, ExtraDataShapeTypeRectangle)
+                        info.extras.putParcelable(ExtraDataShapeRectKey, outline.toAndroidRect())
+                    }
+                    is Outline.Rounded -> {
+                        info.extras.putInt(ExtraDataShapeTypeKey, ExtraDataShapeTypeRounded)
+                        info.extras.putParcelable(ExtraDataShapeRectKey, outline.toAndroidRect())
+                        info.extras.putFloatArray(
+                            ExtraDataShapeRectCornersKey,
+                            outline.toCornerArray()
+                        )
+                    }
+                    is Outline.Generic -> {
+                        info.extras.putInt(ExtraDataShapeTypeKey, ExtraDataShapeTypeGeneric)
+                        info.extras.putParcelable(ExtraDataShapeRegionKey, outline.toRegion())
+                    }
+                }
+            }
+        } else if (extraDataKey == ExtraDataShapeRectKey) {
+            node.unmergedConfig.getOrNull(SemanticsProperties.Shape)?.let { shape ->
+                shape.createOutline(node).toAndroidRect()?.let { rect ->
+                    info.extras.putParcelable(ExtraDataShapeRectKey, rect)
+                }
+            }
+        } else if (extraDataKey == ExtraDataShapeRectCornersKey) {
+            node.unmergedConfig.getOrNull(SemanticsProperties.Shape)?.let { shape ->
+                shape.createOutline(node).toCornerArray()?.let { corners ->
+                    info.extras.putFloatArray(ExtraDataShapeRectCornersKey, corners)
+                }
+            }
+        } else if (extraDataKey == ExtraDataShapeRegionKey) {
+            node.unmergedConfig.getOrNull(SemanticsProperties.Shape)?.let { shape ->
+                shape.createOutline(node).toRegion()?.let { region ->
+                    info.extras.putParcelable(ExtraDataShapeRegionKey, region)
+                }
+            }
         }
     }
 
@@ -1721,6 +1782,39 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             null
         }
     }
+
+    private fun Shape.createOutline(node: SemanticsNode) =
+        createOutline(node.size.toSize(), node.layoutInfo.layoutDirection, view.density)
+
+    private fun Outline.toAndroidRect(): AndroidRect? =
+        if (this is Outline.Rectangle || this is Outline.Rounded) bounds.toAndroidRect() else null
+
+    /**
+     * Returns a radii array for each corner (top-left, top-right, bottom-right, bottom-left) if the
+     * outline represents a rounded-corner rectangle, otherwise returns null.
+     */
+    private fun Outline.toCornerArray(): FloatArray? =
+        if (this is Outline.Rounded) {
+            floatArrayOf(
+                roundRect.topLeftCornerRadius.x,
+                roundRect.topLeftCornerRadius.y,
+                roundRect.topRightCornerRadius.x,
+                roundRect.topRightCornerRadius.y,
+                roundRect.bottomRightCornerRadius.x,
+                roundRect.bottomRightCornerRadius.y,
+                roundRect.bottomLeftCornerRadius.x,
+                roundRect.bottomLeftCornerRadius.y
+            )
+        } else null
+
+    private fun Outline.toRegion(): Region? =
+        if (this is Outline.Generic) {
+            val boundingRectangle = Region(bounds.toAndroidRect())
+            Region().apply { setPath(path.asAndroidPath(), boundingRectangle) }
+        } else null
+
+    private fun Rect.toAndroidRect(): AndroidRect =
+        AndroidRect(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
 
     /**
      * Dispatches hover {@link android.view.MotionEvent}s to the virtual view hierarchy when the

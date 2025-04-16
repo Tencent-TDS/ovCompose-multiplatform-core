@@ -33,7 +33,6 @@ import androidx.wear.compose.material3.samples.EdgeButtonSample
 import androidx.wear.compose.material3.samples.EdgeSwipeForSwipeToDismiss
 import androidx.wear.compose.material3.samples.FadingExpandingLabelButtonSample
 import androidx.wear.compose.material3.samples.ImageCardSample
-import androidx.wear.compose.material3.samples.ImageCardWithTimeAndTitleSample
 import androidx.wear.compose.material3.samples.LevelIndicatorSample
 import androidx.wear.compose.material3.samples.ListHeaderSample
 import androidx.wear.compose.material3.samples.SimpleSwipeToDismissBox
@@ -42,6 +41,7 @@ import androidx.wear.compose.material3.samples.SwipeToRevealNonAnchoredSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSingleActionCardSample
 import androidx.wear.compose.material3.samples.SwipeToRevealWithTransformingLazyColumnSample
+import androidx.wear.compose.material3.samples.TitleCardWithImageWithTimeAndTitleSample
 import androidx.wear.compose.material3.samples.TransformingLazyColumnAnimationSample
 import androidx.wear.compose.material3.samples.TransformingLazyColumnExpandableCardSample
 import androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
@@ -126,7 +126,7 @@ val WearMaterial3Demos =
                         ComposableDemo("Title Card") { TitleCardDemo() },
                         ComposableDemo("Base Image Card") { Centralize { ImageCardSample() } },
                         ComposableDemo("Image Card") {
-                            Centralize { ImageCardWithTimeAndTitleSample() }
+                            Centralize { TitleCardWithImageWithTimeAndTitleSample() }
                         },
                         ComposableDemo("Image Card Builder") { ImageCardBuilder() }
                     )

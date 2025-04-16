@@ -3649,8 +3649,7 @@ public final class Recorder implements VideoOutput {
          *
          * <p>The target video encoding bitrate attempts to keep the actual video encoding
          * bitrate close to the requested {@code bitrate}. Bitrate may vary during a recording
-         * depending on the scene
-         * being recorded.
+         * depending on the scene being recorded.
          *
          * <p>Additional checks will be performed on the requested {@code bitrate} to make sure the
          * specified bitrate is applicable, and sometimes the passed bitrate will be changed

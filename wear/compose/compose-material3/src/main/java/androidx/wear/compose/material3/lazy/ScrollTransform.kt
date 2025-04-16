@@ -16,75 +16,37 @@
 
 package androidx.wear.compose.material3.lazy
 
-import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
 import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
-import androidx.wear.compose.foundation.lazy.inverseLerp
-
-/**
- * A modifier that enables Material3 Motion transformations for content within a
- * [TransformingLazyColumn] item. It also draws the background behind the content using Material3
- * Motion transformations.
- *
- * This modifier calculates and applies transformations to the content based on the
- * [TransformingLazyColumnItemScrollProgress] of the item inside the [TransformingLazyColumn]. It
- * adjusts the height, position, applies scaling and morphing effects as the item scrolls.
- *
- * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
- *
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
- * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
- * @param backgroundColor Color of the background.
- * @param shape Shape of the background.
- */
-@Composable
-public fun Modifier.scrollTransform(
-    scope: TransformingLazyColumnItemScope,
-    backgroundColor: Color,
-    shape: Shape = RectangleShape
-): Modifier =
-    if (LocalReduceMotion.current) this
-    else
-        with(scope) {
-            val spec = remember(scope) { TransformingLazyColumnScrollTransformBehavior { null } }
-            val painter =
-                remember(scope, backgroundColor, shape) {
-                    ScalingMorphingBackgroundPainter(
-                        spec,
-                        shape,
-                        border = null,
-                        backgroundPainter = ColorPainter(backgroundColor)
-                    ) {
-                        scrollProgress
-                    }
-                }
-            this@scrollTransform then
-                Modifier.paint(painter)
-                    .transformedHeight { height, scrollProgress ->
-                        with(spec) {
-                            scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
-                        }
-                    }
-                    .graphicsLayer { contentTransformation(spec) { scrollProgress } }
-        }
 
 /**
  * A modifier that enables Material3 Motion transformations for content within a
@@ -104,7 +66,7 @@ public fun Modifier.scrollTransform(
  * @param border Border to draw around the background, or null if no border is needed.
  */
 @Composable
-public fun Modifier.scrollTransform(
+internal fun Modifier.scrollTransform(
     scope: TransformingLazyColumnItemScope,
     shape: Shape,
     painter: Painter,
@@ -131,154 +93,252 @@ public fun Modifier.scrollTransform(
                     .clip(shape)
         }
 
-/**
- * A modifier that enables Material3 Motion transformations for content within a
- * [TransformingLazyColumn] item.
- *
- * This modifier calculates and applies transformations to the content and background based on the
- * [TransformingLazyColumnItemScrollProgress] of the item inside the
- * [TransformingLazyColumnItemScope]. It adjusts the height, position, applies scaling and morphing
- * effects as the item scrolls.
- *
- * Note that in most cases is recommended to use one of the other overrides to explicitly provide
- * [Shape] and background [Color] (or [Painter]) so the modifier can do the background drawing and
- * apply specific effects to background and content, as in the Material spec.
- *
- * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
- *
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
- * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
- */
-@Composable
-public fun Modifier.scrollTransform(
-    scope: TransformingLazyColumnItemScope,
-): Modifier =
-    if (LocalReduceMotion.current) this
-    else
-        with(scope) {
-            val spec = remember(scope) { TransformingLazyColumnScrollTransformBehavior { null } }
-
-            this@scrollTransform then
-                Modifier.transformedHeight { height, scrollProgress ->
-                        with(spec) {
-                            scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
-                        }
+internal fun GraphicsLayerScope.contentTransformation(
+    behavior: TransformingLazyColumnScrollTransformBehavior,
+    scrollProgress: () -> TransformingLazyColumnItemScrollProgress
+) =
+    with(behavior) {
+        scrollProgress()
+            .takeIf { it != TransformingLazyColumnItemScrollProgress.Unspecified }
+            ?.let {
+                compositingStrategy = CompositingStrategy.Offscreen
+                clip = true
+                shape =
+                    object : Shape {
+                        override fun createOutline(
+                            size: Size,
+                            layoutDirection: LayoutDirection,
+                            density: Density
+                        ): Outline =
+                            Outline.Rounded(
+                                RoundRect(
+                                    rect =
+                                        Rect(
+                                            left = 0f,
+                                            top = 0f,
+                                            right =
+                                                size.width -
+                                                    2f * size.width * it.contentXOffsetFraction,
+                                            bottom = it.morphedHeight(size.height)
+                                        ),
+                                )
+                            )
                     }
-                    .graphicsLayer { contentTransformation(spec) { scrollProgress } }
-        }
-
-/**
- * Class that represents where in the transition areas a given item is. This can be either in the
- * top transition area, the bottom transition area, or neither.
- */
-@JvmInline
-internal value class TransitionAreaProgress(private val encodedProgress: Float) {
-    // encodedProgress is, going from top to bottom:
-    // -1 to 0 for top transition
-    // 0 in the center of the screen, no transition
-    // 0 to 1 for bottom transition.
-
-    /** Are we in the top transition area */
-    val isInTopTransitionArea: Boolean
-        get() = encodedProgress < 0
-
-    /**
-     * How far into the transition area we are. 0 = item is entering the screen, 1 = item is
-     * exiting/outside the transition area.
-     */
-    val progress: Float
-        get() = if (encodedProgress < 0) encodedProgress + 1 else 1 - encodedProgress
-
-    /**
-     * Compute the value the given variable will have, given the current progress on the
-     * transformation zone and the easing to apply.
-     */
-    fun compute(variable: TransformationVariableSpec, easing: Easing): Float {
-        val edgeValue = if (isInTopTransitionArea) variable.topValue else variable.bottomValue
-        val transformationZoneProgress =
-            inverseLerp(
-                variable.transformationZoneEnterFraction,
-                variable.transformationZoneExitFraction,
-                progress
-            )
-        return lerp(edgeValue, 1f, easing.transform(transformationZoneProgress))
+                translationX = size.width * it.contentXOffsetFraction * it.scale
+                translationY = -1f * size.height * (1f - it.scale) / 2f
+                alpha = it.contentAlpha
+                scaleX = it.scale
+                scaleY = it.scale
+            }
     }
 
-    companion object {
-        /** We are not in a transition area */
-        val None = TransitionAreaProgress(0f)
+internal class ScalingMorphingBackgroundPainter(
+    private val behavior: TransformingLazyColumnScrollTransformBehavior,
+    private val shape: Shape,
+    private val border: BorderStroke?,
+    private val backgroundPainter: Painter,
+    private val progress: DrawScope.() -> TransformingLazyColumnItemScrollProgress
+) : Painter() {
+    override val intrinsicSize: Size
+        get() = Size.Unspecified
 
-        /**
-         * We are in the top transition area, progress is 0 for an item entering the screen, up to 1
-         * for an item exiting this transition area.
-         */
-        fun Top(progress: Float) = TransitionAreaProgress((progress - 1f).coerceAtMost(0f))
+    override fun DrawScope.onDraw() {
+        with(behavior) {
+            progress()
+                .takeIf { it != TransformingLazyColumnItemScrollProgress.Unspecified }
+                ?.let {
+                    val contentWidth =
+                        (1f - 2 * (1f - it.backgroundXOffsetFraction)) * size.width * it.scale
+                    val xOffset = (size.width - contentWidth) / 2f
 
-        /**
-         * We are in the botom transition area, progress is 0 for an item entering the screen, up to
-         * 1 for an item exiting this transition area.
-         */
-        fun Bottom(progress: Float) = TransitionAreaProgress((1f - progress).coerceAtLeast(0f))
+                    translate(xOffset, 0f) {
+                        val placementHeight = it.placementHeight(size.height)
+                        val shapeOutline =
+                            shape.createOutline(
+                                Size(contentWidth, placementHeight),
+                                layoutDirection,
+                                this@onDraw
+                            )
+
+                        // TODO: b/376693576 - cache the path.
+                        clipPath(Path().apply { addOutline(shapeOutline) }) {
+                            if (border != null) {
+                                drawOutline(
+                                    outline = shapeOutline,
+                                    brush = border.brush,
+                                    alpha = it.backgroundAlpha,
+                                    style = Stroke(border.width.toPx())
+                                )
+                            }
+                            with(backgroundPainter) { draw(Size(contentWidth, placementHeight)) }
+                        }
+                    }
+                }
+        }
     }
 }
 
-/** Uses a TransformationSpec to compute a TransformationState. */
-internal fun transformationState(
-    spec: ResponsiveTransformationSpecImpl,
-    itemHeight: Float,
-    scrollProgress: TransformingLazyColumnItemScrollProgress
-): TransformationState =
-    with(transformProgress(scrollProgress, spec)) {
-        TransformationState(
-            scale = compute(spec.scale, spec.easing),
-            containerAlpha = compute(spec.containerAlpha, spec.easing),
-            contentAlpha = compute(spec.contentAlpha, spec.easing),
-            itemHeight = itemHeight
-        )
-    }
+/**
+ * The set of parameters implementing motion transformation behavior for Material3.
+ *
+ * New morphing effect allows to change the shape and the size of the visual element and its extent
+ * depends on the [TransformingLazyColumnItemScrollProgress].
+ *
+ * @property morphingMinHeight The minimum height each element morphs to before the whole element
+ *   scales down. Providing null value means no morphing effect will be applied.
+ */
+internal class TransformingLazyColumnScrollTransformBehavior(
+    private val morphingMinHeight: () -> Float?
+) {
+    // Scaling
 
-/** Uses a TransformationSpec to convert a scrollProgress into a transitionProgress. */
-internal fun transformProgress(
-    scrollProgress: TransformingLazyColumnItemScrollProgress,
-    spec: ResponsiveTransformationSpecImpl
-): TransitionAreaProgress =
-    if (scrollProgress == TransformingLazyColumnItemScrollProgress.Unspecified) {
-        TransitionAreaProgress.None
-    } else {
-        // Size of the item, relative to the screen
-        val relativeItemHeight =
-            scrollProgress.bottomOffsetFraction - scrollProgress.topOffsetFraction
+    /** Scale factor applied to the item at the top edge of the LazyColumn. */
+    private val topEdgeScalingFactor = 0.6f
 
-        // Where is the size of the item in the minElementHeight .. maxElementHeight range
-        val sizeRatio =
-            inverseLerp(
-                spec.minElementHeightFraction,
-                spec.maxElementHeightFraction,
-                relativeItemHeight
-            )
+    /** Scale factor applied to the item at the bottom edge of the LazyColumn. */
+    private val bottomEdgeScaleFactor = 0.3f
 
-        // Size of each transition area.
-        val scalingLine =
-            lerp(
-                    spec.minTransitionAreaHeightFraction,
-                    spec.maxTransitionAreaHeightFraction,
-                    sizeRatio
-                )
-                // Ensure the top & bottom transition areas don't overlap.
-                .coerceAtMost((1f + relativeItemHeight) / 2f)
+    /** Easing applied to the scale factor at the top part of the LazyColumn. */
+    private val topScaleEasing = CubicBezierEasing(0.4f, 0f, 1f, 1f)
 
-        // See if we are in the top/bottom transition area and return that value.
-        if (scrollProgress.bottomOffsetFraction < 1f - scrollProgress.topOffsetFraction) {
-            TransitionAreaProgress.Top(scrollProgress.bottomOffsetFraction / scalingLine)
-        } else {
-            TransitionAreaProgress.Bottom((1f - scrollProgress.topOffsetFraction) / scalingLine)
-        }
-    }
+    /** Easing applied to the scale factor at the bottom part of the LazyColumn. */
+    private val bottomScaleEasing = CubicBezierEasing(0f, 0f, 0.6f, 1f)
 
-// TODO: Decide what we want to compute & store vs compute when needed.
-internal data class TransformationState(
-    val containerAlpha: Float,
-    val contentAlpha: Float,
-    val scale: Float,
-    val itemHeight: Float, // Height before scaling
-)
+    // Alpha
+
+    /** Alpha applied to the content of the item at the top edge of the LazyColumn. */
+    private val topEdgeContentAlpha = 0.33f
+
+    /** Alpha applied to the content of the item at the bottom edge of the LazyColumn. */
+    private val bottomEdgeContentAlpha = 0f
+
+    /** Alpha easing applied to the content of the item at the bottom edge of the LazyColumn. */
+    private val bottomContentAlphaEasing = CubicBezierEasing(0.6f, 0f, 0.4f, 1f)
+
+    /** Alpha applied to the background of the item at the top edge of the LazyColumn. */
+    private val topEdgeBackgroundAlpha = 0.3f
+
+    /** Alpha applied to the background of the item at the bottom edge of the LazyColumn. */
+    private val bottomEdgeBackgroundAlpha = 0.15f
+
+    // Morphing
+
+    /** Multiplier used to drift the item's bottom edge around sticky bottom line. */
+    private val driftFactor = 0.5f
+
+    /**
+     * Line to which the item's bottom edge will stick, as a percentage of the screen height, while
+     * the rest of the content is morphing.
+     */
+    private val stickyBottomFlippedOffsetPercentage = 0.09f
+
+    /** Final value of the width morphing as percentage of the width. */
+    private val morphWidthTargetPercentage = 1f
+
+    private val widthMorphEasing: CubicBezierEasing
+        get() = bottomScaleEasing
+
+    /** Height of an item before scaling is applied. */
+    fun TransformingLazyColumnItemScrollProgress.morphedHeight(contentHeight: Float): Float =
+        morphingMinHeight()?.let {
+            val driftingBottomFraction =
+                stickyBottomFlippedOffsetPercentage + (flippedBottomOffsetFraction * driftFactor)
+            if (flippedBottomOffsetFraction < driftingBottomFraction) {
+                val newHeight =
+                    contentHeight * (flippedTopOffsetFraction - driftingBottomFraction) /
+                        (flippedTopOffsetFraction - flippedBottomOffsetFraction)
+                return maxOf(it, newHeight)
+            } else {
+                return@let contentHeight
+            }
+        } ?: contentHeight
+
+    /** Height of an item after all effects are applied. */
+    fun TransformingLazyColumnItemScrollProgress.placementHeight(contentHeight: Float): Float =
+        morphedHeight(contentHeight) * scale
+
+    private val TransformingLazyColumnItemScrollProgress.flippedTopOffsetFraction: Float
+        get() = 1f - topOffsetFraction
+
+    private val TransformingLazyColumnItemScrollProgress.flippedBottomOffsetFraction: Float
+        get() = 1f - bottomOffsetFraction
+
+    val TransformingLazyColumnItemScrollProgress.scale: Float
+        get() =
+            when {
+                flippedTopOffsetFraction < 0.5f ->
+                    lerp(
+                        bottomEdgeScaleFactor,
+                        1f,
+                        bottomScaleEasing.transform(
+                            (0f..0.5f).progression(flippedTopOffsetFraction)
+                        )
+                    )
+                flippedBottomOffsetFraction > 0.5f ->
+                    lerp(
+                        1f,
+                        topEdgeScalingFactor,
+                        topScaleEasing.transform(
+                            (0.5f..1f).progression(flippedBottomOffsetFraction)
+                        )
+                    )
+                else -> 1f
+            }
+
+    val TransformingLazyColumnItemScrollProgress.backgroundXOffsetFraction: Float
+        get() =
+            when {
+                flippedTopOffsetFraction < 0.3f ->
+                    lerp(
+                        morphWidthTargetPercentage,
+                        1f,
+                        widthMorphEasing.transform((0f..0.3f).progression(flippedTopOffsetFraction))
+                    )
+                else -> 1f
+            }
+
+    val TransformingLazyColumnItemScrollProgress.contentXOffsetFraction: Float
+        get() = 1f - backgroundXOffsetFraction
+
+    val TransformingLazyColumnItemScrollProgress.contentAlpha: Float
+        get() =
+            when {
+                flippedTopOffsetFraction < 0.03f -> 0f
+                flippedTopOffsetFraction < 0.15f ->
+                    lerp(
+                        bottomEdgeContentAlpha,
+                        1f,
+                        bottomContentAlphaEasing.transform(
+                            (0.03f..0.15f).progression(flippedTopOffsetFraction)
+                        )
+                    )
+                flippedBottomOffsetFraction > 0.7f ->
+                    lerp(
+                        1f,
+                        topEdgeContentAlpha,
+                        (0.7f..1f).progression(flippedBottomOffsetFraction)
+                    )
+                else -> 1f
+            }
+
+    val TransformingLazyColumnItemScrollProgress.backgroundAlpha: Float
+        get() =
+            when {
+                flippedTopOffsetFraction < 0.3f ->
+                    lerp(
+                        bottomEdgeBackgroundAlpha,
+                        1f,
+                        (0f..0.3f).progression(flippedTopOffsetFraction)
+                    )
+                flippedBottomOffsetFraction > 0.6f ->
+                    lerp(
+                        1f,
+                        topEdgeBackgroundAlpha,
+                        (0.6f..1f).progression(flippedBottomOffsetFraction)
+                    )
+                else -> 1f
+            }
+
+    private fun ClosedRange<Float>.progression(value: Float) =
+        ((value - start) / (endInclusive - start)).coerceIn(0f..1f)
+}

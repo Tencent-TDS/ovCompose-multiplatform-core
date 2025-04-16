@@ -669,7 +669,7 @@ private class InsetsListener(
         prepared = false
         runningAnimation = false
         val insets = savedInsets
-        if (animation.durationMillis != 0L && insets != null) {
+        if (animation.durationMillis > 0L && insets != null) {
             composeInsets.updateImeAnimationSource(insets)
             composeInsets.updateImeAnimationTarget(insets)
             composeInsets.update(insets)

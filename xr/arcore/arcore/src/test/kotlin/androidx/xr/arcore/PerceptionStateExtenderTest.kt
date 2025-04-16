@@ -19,9 +19,9 @@ package androidx.xr.arcore
 import android.app.Activity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.runtime.CoreState
-import androidx.xr.runtime.internal.HandJointType
+import androidx.xr.runtime.HandJointType
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Trackable as RuntimeTrackable
-import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3

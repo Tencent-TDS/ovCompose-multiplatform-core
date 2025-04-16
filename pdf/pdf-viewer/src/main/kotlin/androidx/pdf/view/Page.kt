@@ -30,6 +30,10 @@ import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
 import androidx.pdf.PdfDocument
+import androidx.pdf.exceptions.RequestFailedException
+import androidx.pdf.exceptions.RequestMetadata
+import androidx.pdf.util.PAGE_CONTENTS_REQUEST_NAME
+import androidx.pdf.util.PAGE_LINKS_REQUEST_NAME
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
@@ -153,7 +157,16 @@ internal class Page(
                             }
                         onPageTextReady.invoke(pageNum)
                     } catch (e: DeadObjectException) {
-                        errorFlow.emit(e)
+                        val exception =
+                            RequestFailedException(
+                                requestMetadata =
+                                    RequestMetadata(
+                                        requestName = PAGE_CONTENTS_REQUEST_NAME,
+                                        pageRange = pageNum..pageNum
+                                    ),
+                                throwable = e
+                            )
+                        errorFlow.emit(exception)
                     }
                 }
                 .also { it.invokeOnCompletion { fetchPageTextJob = null } }
@@ -188,7 +201,16 @@ internal class Page(
                     try {
                         links = pdfDocument.getPageLinks(pageNum)
                     } catch (e: DeadObjectException) {
-                        errorFlow.emit(e)
+                        val exception =
+                            RequestFailedException(
+                                requestMetadata =
+                                    RequestMetadata(
+                                        requestName = PAGE_LINKS_REQUEST_NAME,
+                                        pageRange = pageNum..pageNum
+                                    ),
+                                throwable = e
+                            )
+                        errorFlow.emit(exception)
                     }
                 }
                 .also { it.invokeOnCompletion { fetchLinksJob = null } }

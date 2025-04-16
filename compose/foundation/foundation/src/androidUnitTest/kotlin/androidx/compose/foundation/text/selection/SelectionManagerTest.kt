@@ -20,6 +20,8 @@ import androidx.collection.LongObjectMap
 import androidx.collection.emptyLongObjectMap
 import androidx.collection.longObjectMapOf
 import androidx.collection.mutableLongObjectMapOf
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagFlipperRunner
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagSuppress
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -35,7 +37,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import org.mockito.kotlin.any
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
@@ -45,7 +46,7 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
-@RunWith(JUnit4::class)
+@RunWith(ContextMenuFlagFlipperRunner::class)
 class SelectionManagerTest {
     private val selectionRegistrar = spy(SelectionRegistrarImpl())
     private val selectable = FakeSelectable()
@@ -861,6 +862,7 @@ class SelectionManagerTest {
         assertThat(actualTextToCopy).isEqualTo(annotatedString.subSequence(endOffset, startOffset))
     }
 
+    @ContextMenuFlagSuppress(suppressedFlagValue = true)
     @Test
     fun showSelectionToolbar_trigger_textToolbar_showMenu() {
         val text = "Text Demo"
@@ -894,6 +896,7 @@ class SelectionManagerTest {
         verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), isNull(), any(), isNull())
     }
 
+    @ContextMenuFlagSuppress(suppressedFlagValue = true)
     @Test
     fun showSelectionToolbar_withoutFocus_notTrigger_textToolbar_showMenu() {
         val text = "Text Demo"

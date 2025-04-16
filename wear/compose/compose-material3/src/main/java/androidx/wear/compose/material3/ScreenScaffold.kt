@@ -31,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,8 +52,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.ActiveFocusListener
 import androidx.wear.compose.foundation.ScrollInfoProvider
+import androidx.wear.compose.foundation.hierarchicalFocus
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
@@ -687,22 +686,25 @@ public fun ScreenScaffold(
     val scaffoldState = LocalScaffoldState.current
     val key = remember { Any() }
 
-    key(scrollInfoProvider) {
-        DisposableEffect(key) { onDispose { scaffoldState.screenContent.removeScreen(key) } }
+    // Update the timeText & scrollInfoProvider if there is a change and the screen is already
+    // present
+    scaffoldState.screenContent.updateIfNeeded(key, timeText, scrollInfoProvider)
 
-        ActiveFocusListener { focused ->
-            if (focused) {
-                scaffoldState.screenContent.addScreen(key, timeText, scrollInfoProvider)
-            } else {
-                scaffoldState.screenContent.removeScreen(key)
-            }
-        }
-    }
+    DisposableEffect(key) { onDispose { scaffoldState.screenContent.removeScreen(key) } }
 
     scaffoldState.screenContent.UpdateIdlingDetectorIfNeeded()
 
     WrapWithOverscrollFactoryIfRequired(overscrollEffect) {
-        Box(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier =
+                modifier.fillMaxSize().hierarchicalFocus(true) { focused ->
+                    if (focused) {
+                        scaffoldState.screenContent.addScreen(key, timeText, scrollInfoProvider)
+                    } else {
+                        scaffoldState.screenContent.removeScreen(key)
+                    }
+                }
+        ) {
             Box(modifier = Modifier.overscroll(overscrollEffect)) { content(contentPadding) }
             scrollInfoProvider?.let {
                 AnimatedIndicator(

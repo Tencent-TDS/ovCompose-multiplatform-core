@@ -28,7 +28,7 @@ import androidx.compose.runtime.Composable
  * i.e. a [NavEntryDecorator] added earlier in a list has its data available to those added later.
  *
  * @param backStack the list of keys that represent the backstack
- * @param localProviders the [NavEntryDecorator]s that are providing data to the content
+ * @param entryDecorators the [NavEntryDecorator]s that are providing data to the content
  * @param entryProvider a function that returns the [NavEntry] for a given key
  * @param content the content to be displayed
  */
@@ -36,7 +36,7 @@ import androidx.compose.runtime.Composable
 public fun <T : Any> DecoratedNavEntryProvider(
     backStack: List<T>,
     entryProvider: (key: T) -> NavEntry<out T>,
-    localProviders: List<NavEntryDecorator> = listOf(SaveableStateNavEntryDecorator),
+    entryDecorators: List<NavEntryDecorator> = listOf(SaveableStateNavEntryDecorator),
     content: @Composable (List<NavEntry<T>>) -> Unit
 ) {
     // Kotlin does not know these things are compatible so we need this explicit cast
@@ -47,7 +47,7 @@ public fun <T : Any> DecoratedNavEntryProvider(
     val entries =
         backStack.map {
             val entry = entryProvider.invoke(it)
-            localProviders.distinct().foldRight(entry) { provider: NavEntryDecorator, wrappedEntry
+            entryDecorators.distinct().foldRight(entry) { provider: NavEntryDecorator, wrappedEntry
                 ->
                 object : NavEntryWrapper<T>(wrappedEntry) {
                     override val content: @Composable ((T) -> Unit) = {
@@ -58,7 +58,7 @@ public fun <T : Any> DecoratedNavEntryProvider(
         }
 
     // Provides the entire backstack to the previously wrapped entries
-    localProviders
+    entryDecorators
         .distinct()
         .foldRight<NavEntryDecorator, @Composable () -> Unit>({ content(entries) }) {
             provider: NavEntryDecorator,

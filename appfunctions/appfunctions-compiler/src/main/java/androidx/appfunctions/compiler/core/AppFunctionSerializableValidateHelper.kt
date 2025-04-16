@@ -21,6 +21,8 @@ import androidx.appfunctions.compiler.core.AppFunctionTypeReference.Companion.is
 import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Visibility
 
 /** A helper to validate an AppFunctionSerializable declaration. */
@@ -53,13 +55,26 @@ class AppFunctionSerializableValidateHelper(
         }
 
         for (parameter in primaryConstructorDeclaration.parameters) {
-            if (!parameter.isVal) {
+            if (!checkHasGetter(parameter)) {
                 throw ProcessingException(
                     "All parameters in @AppFunctionSerializable primary constructor must have getters",
                     parameter
                 )
             }
         }
+    }
+
+    private fun checkHasGetter(parameter: KSValueParameter): Boolean {
+        val parameterName = parameter.name?.asString() ?: return false
+
+        val matchedProperty =
+            annotatedSerializable.declarations
+                .filterIsInstance<KSPropertyDeclaration>()
+                .singleOrNull { propertyDeclaration ->
+                    val propertyName = propertyDeclaration.simpleName.asString()
+                    propertyName == parameterName && propertyDeclaration.getter != null
+                }
+        return matchedProperty != null
     }
 
     /** Validate if the parameters are valid. */

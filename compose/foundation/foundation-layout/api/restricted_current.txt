@@ -324,6 +324,11 @@ package androidx.compose.foundation.layout {
     method @androidx.compose.runtime.Stable public androidx.compose.ui.Modifier weight(androidx.compose.ui.Modifier, @FloatRange(from=0.0, fromInclusive=false) float weight, optional boolean fill);
   }
 
+  public final class RulerAlignmentKt {
+    method public static androidx.compose.ui.Modifier fitInside(androidx.compose.ui.Modifier, androidx.compose.ui.layout.RectRulers rulers);
+    method public static androidx.compose.ui.Modifier fitOutside(androidx.compose.ui.Modifier, androidx.compose.ui.layout.RectRulers rulers);
+  }
+
   public final class SizeKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier defaultMinSize(androidx.compose.ui.Modifier, optional float minWidth, optional float minHeight);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier fillMaxHeight(androidx.compose.ui.Modifier, optional @FloatRange(from=0.0, to=1.0) float fraction);

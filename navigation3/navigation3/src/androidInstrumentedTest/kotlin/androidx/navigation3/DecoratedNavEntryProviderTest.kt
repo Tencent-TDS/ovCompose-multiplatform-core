@@ -48,7 +48,7 @@ class DecoratedNavEntryProviderTest {
         composeTestRule.setContent {
             DecoratedNavEntryProvider(
                 backStack = listOf("something"),
-                localProviders = listOf(provider),
+                entryDecorators = listOf(provider),
                 entryProvider = { NavEntry("something") {} }
             ) { records ->
                 records.last().content.invoke("something")
@@ -75,7 +75,7 @@ class DecoratedNavEntryProviderTest {
         composeTestRule.setContent {
             DecoratedNavEntryProvider(
                 backStack = listOf("something"),
-                localProviders = listOf(provider, provider),
+                entryDecorators = listOf(provider, provider),
                 entryProvider = { NavEntry("something") {} }
             ) { records ->
                 records.last().content.invoke("something")
@@ -109,7 +109,7 @@ class DecoratedNavEntryProviderTest {
             backStack = remember { mutableStateListOf("something") }
             DecoratedNavEntryProvider(
                 backStack = backStack,
-                localProviders = listOf(provider),
+                entryDecorators = listOf(provider),
                 entryProvider = { NavEntry("something") {} }
             ) { entries ->
                 entries.lastOrNull()?.content?.invoke("something")
@@ -159,7 +159,7 @@ class DecoratedNavEntryProviderTest {
             backStack = remember { mutableStateListOf("something") }
             DecoratedNavEntryProvider(
                 backStack = backStack,
-                localProviders = listOf(outerProvider, innerProvider),
+                entryDecorators = listOf(outerProvider, innerProvider),
                 entryProvider = { NavEntry("something") {} }
             ) { entries ->
                 entries.lastOrNull()?.content?.invoke("something")
@@ -198,7 +198,7 @@ class DecoratedNavEntryProviderTest {
             backStack = remember { mutableStateListOf("something") }
             DecoratedNavEntryProvider(
                 backStack = backStack,
-                localProviders =
+                entryDecorators =
                     listOf(
                         provider,
                     ),
@@ -256,7 +256,7 @@ class DecoratedNavEntryProviderTest {
             backStack = remember { mutableStateListOf("something") }
             DecoratedNavEntryProvider(
                 backStack = backStack,
-                localProviders = listOf(outerProvider, innerProvider),
+                entryDecorators = listOf(outerProvider, innerProvider),
                 entryProvider = { NavEntry("something") {} }
             ) { entries ->
                 entries.lastOrNull()?.content?.invoke("something")

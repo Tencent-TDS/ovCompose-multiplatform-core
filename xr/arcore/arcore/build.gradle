@@ -39,6 +39,7 @@ dependencies {
 
     testImplementation(libs.kotlinCoroutinesTest)
     testImplementation(libs.junit)
+    testImplementation(libs.mockitoKotlin)
     testImplementation(libs.robolectric)
     testImplementation(libs.testExtJunit)
     testImplementation(libs.testRunner)
@@ -50,6 +51,9 @@ dependencies {
 }
 
 android {
+    defaultConfig {
+        minSdkVersion 23
+    }
     namespace = "androidx.xr.arcore"
     sourceSets.main.resources.srcDirs += "src/main/resources"
     testOptions.unitTests.includeAndroidResources = true

@@ -65,7 +65,7 @@ public val DefaultSingleRowTopAppBarOrbiterProperties: HorizontalOrbiterProperti
         position = OrbiterEdge.Horizontal.Top,
         offset = XrSingleRowTopAppBarTokens.OrbiterEdgeOffset,
         alignment = Alignment.CenterHorizontally,
-        settings = OrbiterDefaults.orbiterSettings,
+        settings = OrbiterDefaults.Settings,
         shape = SpatialRoundedCornerShape(CornerSize(50)),
     )
 
@@ -106,7 +106,7 @@ public val DefaultTwoRowsTopAppBarOrbiterProperties: HorizontalOrbiterProperties
         position = OrbiterEdge.Horizontal.Top,
         offset = XrTwoRowsTopAppBarTokens.OrbiterEdgeOffset,
         alignment = Alignment.CenterHorizontally,
-        settings = OrbiterDefaults.orbiterSettings,
+        settings = OrbiterDefaults.Settings,
         shape = SpatialRoundedCornerShape(CornerSize(50)),
     )
 

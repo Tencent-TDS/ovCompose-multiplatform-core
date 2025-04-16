@@ -93,19 +93,21 @@ import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.padding
 import androidx.xr.compose.subspace.layout.width
 import androidx.xr.compose.unit.Meter.Companion.meters
+import androidx.xr.runtime.Session
+import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
-import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.scene
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.guava.await
 
 class SubspaceComposableApp : ComponentActivity() {
 
-    val session by lazy { Session.create(this) }
+    val session by lazy { (Session.create(this) as SessionCreateSuccess).session }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -141,10 +143,12 @@ class SubspaceComposableApp : ComponentActivity() {
         NavHost(navController = navController, startDestination = PageRoutes.HOME) {
             composable(PageRoutes.HOME) {
                 SideEffect {
-                    Session.create(this@SubspaceComposableApp)
+                    (Session.create(this@SubspaceComposableApp) as SessionCreateSuccess)
+                        .session
+                        .scene
                         .spatialEnvironment
                         .requestHomeSpaceMode()
-                    session.mainPanelEntity.setHidden(false)
+                    session.scene.mainPanelEntity.setHidden(false)
                 }
 
                 MainContent(text = "Home Page in Home Space Mode", navController = navController)
@@ -152,20 +156,24 @@ class SubspaceComposableApp : ComponentActivity() {
 
             composable(PageRoutes.PANELS) {
                 SideEffect {
-                    Session.create(this@SubspaceComposableApp)
+                    (Session.create(this@SubspaceComposableApp) as SessionCreateSuccess)
+                        .session
+                        .scene
                         .spatialEnvironment
                         .requestFullSpaceMode()
-                    session.mainPanelEntity.setHidden(true)
+                    session.scene.mainPanelEntity.setHidden(true)
                 }
 
                 Subspace { PanelGrid(navController = navController) }
             }
             composable(PageRoutes.ARROWS) {
                 SideEffect {
-                    Session.create(this@SubspaceComposableApp)
+                    (Session.create(this@SubspaceComposableApp) as SessionCreateSuccess)
+                        .session
+                        .scene
                         .spatialEnvironment
                         .requestFullSpaceMode()
-                    session.mainPanelEntity.setHidden(false)
+                    session.scene.mainPanelEntity.setHidden(false)
                 }
 
                 MainContent(text = "Now some arrows are shown!", navController = navController)

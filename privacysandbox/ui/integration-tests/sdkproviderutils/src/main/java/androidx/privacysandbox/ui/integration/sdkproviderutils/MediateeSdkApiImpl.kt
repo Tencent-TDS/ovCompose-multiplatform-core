@@ -37,11 +37,18 @@ class MediateeSdkApiImpl() {
             @AdType adType: Int,
             withSlowDraw: Boolean,
             drawViewability: Boolean,
-            sdkContext: Context
+            sdkContext: Context,
+            automatedTestCallbackProxy: IAutomatedTestCallbackProxy? = null
         ): Bundle =
             when (adFormat) {
                 AdFormat.BANNER_AD ->
-                    loadBannerAdUtil(adType, withSlowDraw, drawViewability, sdkContext)
+                    loadBannerAdUtil(
+                        adType,
+                        withSlowDraw,
+                        drawViewability,
+                        sdkContext,
+                        automatedTestCallbackProxy
+                    )
                 AdFormat.NATIVE_AD -> loadNativeAdUtil(adType, sdkContext)
                 else -> Bundle()
             }
@@ -50,7 +57,8 @@ class MediateeSdkApiImpl() {
             @AdType adType: Int,
             waitInsideOnDraw: Boolean,
             drawViewability: Boolean,
-            sdkContext: Context
+            sdkContext: Context,
+            automatedTestCallbackProxy: IAutomatedTestCallbackProxy? = null
         ): Bundle {
             val testAdapters = TestAdapters(sdkContext)
             val mediationDescription =
@@ -64,7 +72,12 @@ class MediateeSdkApiImpl() {
                         loadWebViewBannerAdFromLocalAssets(testAdapters)
                     AdType.NON_WEBVIEW_VIDEO -> loadVideoAd(testAdapters)
                     else ->
-                        loadNonWebViewBannerAd(testAdapters, mediationDescription, waitInsideOnDraw)
+                        loadNonWebViewBannerAd(
+                            testAdapters,
+                            mediationDescription,
+                            waitInsideOnDraw,
+                            automatedTestCallbackProxy
+                        )
                 }
             ViewabilityHandler.addObserverFactoryToAdapter(adapter, drawViewability)
             return adapter.toCoreLibInfo(sdkContext)
@@ -100,9 +113,10 @@ class MediateeSdkApiImpl() {
         private fun loadNonWebViewBannerAd(
             testAdapters: TestAdapters,
             text: String,
-            waitInsideOnDraw: Boolean
+            waitInsideOnDraw: Boolean,
+            automatedTestCallbackProxy: IAutomatedTestCallbackProxy?
         ): AbstractSandboxedUiAdapter {
-            return testAdapters.TestBannerAd(text, waitInsideOnDraw)
+            return testAdapters.TestBannerAd(text, waitInsideOnDraw, automatedTestCallbackProxy)
         }
     }
 

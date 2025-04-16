@@ -267,14 +267,11 @@ internal class PasswordInputTransformation(val scheduleHide: () -> Unit) : Input
         private set
 
     override fun TextFieldBuffer.transformInput() {
-        // We only care about a single character insertion changes
-        val singleCharacterInsertion =
-            changes.changeCount == 1 &&
-                changes.getRange(0).length == 1 &&
-                changes.getOriginalRange(0).length == 0
+        // We only care about changes that add a single character
+        val singleCharacterChange = changes.changeCount == 1 && changes.getRange(0).length == 1
 
         // if there is an expanded selection, don't reveal anything
-        if (!singleCharacterInsertion || hasSelection) {
+        if (!singleCharacterChange || hasSelection) {
             revealCodepointIndex = -1
             return
         }

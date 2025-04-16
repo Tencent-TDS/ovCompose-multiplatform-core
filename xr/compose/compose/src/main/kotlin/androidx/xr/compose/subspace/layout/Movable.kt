@@ -30,13 +30,13 @@ import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.compose.unit.toDimensionsInMeters
 import androidx.xr.compose.unit.toIntVolumeSize
+import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Ray
 import androidx.xr.scenecore.BasePanelEntity
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.MovableComponent
 import androidx.xr.scenecore.MoveListener
-import androidx.xr.scenecore.Session
 import java.util.concurrent.Executor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
@@ -60,9 +60,9 @@ import kotlinx.coroutines.asExecutor
  *   this scaleWithDistance is enabled, the subspace element moved will grow or shrink. It will also
  *   maintain any explicit scale that it had before movement.
  * @param onPoseChange a callback to process the pose change during movement, with translation in
- *   pixels. This will only be called if [enabled] is true. If the callback returns false the
- *   default behavior of moving this composable's subspace hierarchy will be executed. If it returns
- *   true, it is the responsibility of the callback to process the event.
+ *   pixels. This will only be called if [enabled] is true. If the callback returns false or isn't
+ *   specified, the default behavior of moving this composable's subspace hierarchy will be
+ *   executed. If it returns true, it is the responsibility of the callback to process the event.
  * @see [PoseChangeEvent]
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)

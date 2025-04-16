@@ -28,6 +28,7 @@ import android.view.SurfaceControlViewHost
 import android.view.View
 import android.window.SurfaceSyncGroup
 import androidx.annotation.RequiresApi
+import androidx.privacysandbox.ui.core.ClientAdapterWrapper
 import androidx.privacysandbox.ui.core.IDelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.IRemoteSessionClient
 import androidx.privacysandbox.ui.core.IRemoteSessionController
@@ -63,7 +64,6 @@ object SandboxedUiAdapterFactory {
             requireNotNull(coreLibInfo.getBinder(UI_ADAPTER_BINDER)) {
                 "Invalid bundle, missing $UI_ADAPTER_BINDER."
             }
-        val adapterInterface = ISandboxedUiAdapter.Stub.asInterface(uiAdapterBinder)
         // the following check for DelegatingAdapter check must happen before the checks for
         // remote/local binder as the checks below have fallback to a RemoteAdapter if it's not
         // local.
@@ -91,9 +91,9 @@ object SandboxedUiAdapterFactory {
         return if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !useLocalAdapter
         ) {
-            RemoteAdapter(adapterInterface)
+            RemoteAdapter(coreLibInfo)
         } else {
-            LocalAdapter(adapterInterface)
+            LocalAdapter(coreLibInfo)
         }
     }
 
@@ -102,8 +102,13 @@ object SandboxedUiAdapterFactory {
      * different class loader.
      */
     @SuppressLint("BanUncheckedReflection") // using reflection on library classes
-    private class LocalAdapter(adapterInterface: ISandboxedUiAdapter) : SandboxedUiAdapter {
-        private val uiProviderBinder = adapterInterface.asBinder()
+    private class LocalAdapter(private val adapterBundle: Bundle) :
+        SandboxedUiAdapter, ClientAdapterWrapper {
+
+        val uiProviderBinder =
+            requireNotNull(adapterBundle.getBinder(UI_ADAPTER_BINDER)) {
+                "Invalid bundle, missing $UI_ADAPTER_BINDER."
+            }
 
         private val targetSessionClientClass =
             Class.forName(
@@ -179,6 +184,10 @@ object SandboxedUiAdapterFactory {
             } catch (exception: Throwable) {
                 client.onSessionError(exception)
             }
+        }
+
+        override fun getSourceBundle(): Bundle {
+            return adapterBundle
         }
 
         private class SessionClientProxyHandler(
@@ -286,8 +295,15 @@ object SandboxedUiAdapterFactory {
 
     /** [RemoteAdapter] fetches content from a provider living on a different process. */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private class RemoteAdapter(private val adapterInterface: ISandboxedUiAdapter) :
-        SandboxedUiAdapter {
+    private class RemoteAdapter(private val adapterBundle: Bundle) :
+        SandboxedUiAdapter, ClientAdapterWrapper {
+
+        val uiAdapterBinder =
+            requireNotNull(adapterBundle.getBinder(UI_ADAPTER_BINDER)) {
+                "Invalid bundle, missing $UI_ADAPTER_BINDER."
+            }
+        val adapterInterface: ISandboxedUiAdapter =
+            ISandboxedUiAdapter.Stub.asInterface(uiAdapterBinder)
 
         override fun openSession(
             context: Context,
@@ -312,6 +328,10 @@ object SandboxedUiAdapterFactory {
                     RemoteSessionClient(context, client, clientExecutor)
                 )
             }
+        }
+
+        override fun getSourceBundle(): Bundle {
+            return adapterBundle
         }
 
         class RemoteSessionClient(

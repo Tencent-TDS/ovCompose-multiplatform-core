@@ -773,4 +773,40 @@ class AppFunctionCompilerTest {
             goldenFileName = "${'$'}AggregatedAppFunctionInvoker_Impl.KT",
         )
     }
+
+    @Test
+    fun testGenerateSchemaDefinitionRegistry() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames =
+                    listOf(
+                        "NoteSchemaDefinitions.KT",
+                        "FakeSchemas.KT",
+                        "DiffPackageSerializable.KT",
+                        "DiffPackageSchemas.KT",
+                        "AnotherDiffPackageSerializable.KT",
+                    )
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "${'$'}Main_SchemaDefinitionComponentRegistry.kt",
+            goldenFileName = "${'$'}Main_SchemaDefinitionComponentRegistry.KT",
+        )
+    }
+
+    @Test
+    fun testGenerateSchemaInventory() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("NoteSchemaDefinitions.KT"),
+                processorOptions = mapOf("appfunctions:generateMetadataFromSchema" to "true")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "${'$'}SchemaAppFunctionInventory_Impl.kt",
+            goldenFileName = "${'$'}SchemaAppFunctionInventory_Impl.KT"
+        )
+    }
 }

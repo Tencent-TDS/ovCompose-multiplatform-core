@@ -19,6 +19,8 @@ package androidx.xr.compose.subspace.layout
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.compose.testing.SubspaceTestingActivity
+import androidx.xr.compose.testing.TestSetup
+import androidx.xr.scenecore.scene
 import java.lang.IllegalArgumentException
 import kotlin.test.assertFailsWith
 import org.junit.Rule
@@ -32,10 +34,10 @@ class CoreEntityTest {
 
     @Test
     fun coreEntity_coreContentlessEntity_shouldThrowIfNotContentless() {
-        composeTestRule.setContent {}
+        composeTestRule.setContent { TestSetup {} }
 
         assertFailsWith<IllegalArgumentException> {
-            CoreContentlessEntity(composeTestRule.activity.session.activitySpace)
+            CoreContentlessEntity(composeTestRule.activity.session.scene.activitySpace)
         }
     }
 }

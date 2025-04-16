@@ -30,7 +30,23 @@ import kotlin.test.Test
 class PaneScaffoldDirectiveTest {
     @Test
     @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
-    fun test_calculateStandardPaneScaffoldDirective_compactWidth() {
+    fun test_calculateStandardPaneScaffoldDirective_compactWidthAndCompactHeight() {
+        val scaffoldDirective =
+            calculatePaneScaffoldDirective(
+                WindowAdaptiveInfo(WindowSizeClass.compute(400f, 420f), Posture())
+            )
+
+        assertThat(scaffoldDirective.maxHorizontalPartitions).isEqualTo(1)
+        assertThat(scaffoldDirective.maxVerticalPartitions).isEqualTo(1)
+        assertThat(scaffoldDirective.horizontalPartitionSpacerSize).isEqualTo(0.dp)
+        assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(0.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredWidth).isEqualTo(360.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredHeight).isEqualTo(420.dp)
+    }
+
+    @Test
+    @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
+    fun test_calculateStandardPaneScaffoldDirective_compactWidthAndMediumHeight() {
         val scaffoldDirective =
             calculatePaneScaffoldDirective(
                 WindowAdaptiveInfo(WindowSizeClass.compute(400f, 800f), Posture())
@@ -41,29 +57,31 @@ class PaneScaffoldDirectiveTest {
         assertThat(scaffoldDirective.horizontalPartitionSpacerSize).isEqualTo(0.dp)
         assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(0.dp)
         assertThat(scaffoldDirective.defaultPanePreferredWidth).isEqualTo(360.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredHeight).isEqualTo(420.dp)
     }
 
     @Test
     @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
-    fun test_calculateStandardPaneScaffoldDirective_mediumWidth() {
+    fun test_calculateStandardPaneScaffoldDirective_mediumWidthAndExpandedHeight() {
         val scaffoldDirective =
             calculatePaneScaffoldDirective(
                 WindowAdaptiveInfo(WindowSizeClass.compute(750f, 900f), Posture())
             )
 
         assertThat(scaffoldDirective.maxHorizontalPartitions).isEqualTo(1)
-        assertThat(scaffoldDirective.maxVerticalPartitions).isEqualTo(1)
+        assertThat(scaffoldDirective.maxVerticalPartitions).isEqualTo(2)
         assertThat(scaffoldDirective.horizontalPartitionSpacerSize).isEqualTo(0.dp)
-        assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(0.dp)
+        assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(24.dp)
         assertThat(scaffoldDirective.defaultPanePreferredWidth).isEqualTo(360.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredHeight).isEqualTo(420.dp)
     }
 
     @Test
     @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
-    fun test_calculateStandardPaneScaffoldDirective_expandedWidth() {
+    fun test_calculateStandardPaneScaffoldDirective_expandedWidthAndExpandedHeight() {
         val scaffoldDirective =
             calculatePaneScaffoldDirective(
-                WindowAdaptiveInfo(WindowSizeClass.compute(1200f, 800f), Posture())
+                WindowAdaptiveInfo(WindowSizeClass.compute(1200f, 1000f), Posture())
             )
 
         assertThat(scaffoldDirective.maxHorizontalPartitions).isEqualTo(2)
@@ -71,6 +89,7 @@ class PaneScaffoldDirectiveTest {
         assertThat(scaffoldDirective.horizontalPartitionSpacerSize).isEqualTo(24.dp)
         assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(0.dp)
         assertThat(scaffoldDirective.defaultPanePreferredWidth).isEqualTo(360.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredHeight).isEqualTo(420.dp)
     }
 
     @Test
@@ -86,6 +105,7 @@ class PaneScaffoldDirectiveTest {
         assertThat(scaffoldDirective.horizontalPartitionSpacerSize).isEqualTo(0.dp)
         assertThat(scaffoldDirective.verticalPartitionSpacerSize).isEqualTo(24.dp)
         assertThat(scaffoldDirective.defaultPanePreferredWidth).isEqualTo(360.dp)
+        assertThat(scaffoldDirective.defaultPanePreferredHeight).isEqualTo(420.dp)
     }
 
     @Test
@@ -105,7 +125,7 @@ class PaneScaffoldDirectiveTest {
 
     @Test
     @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
-    fun test_calculateDensePaneScaffoldDirective_mediumWidth() {
+    fun test_calculateDensePaneScaffoldDirective_mediumWidthAndExpandedHeight() {
         val scaffoldDirective =
             calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
                 WindowAdaptiveInfo(WindowSizeClass.compute(750f, 900f), Posture())
@@ -120,10 +140,10 @@ class PaneScaffoldDirectiveTest {
 
     @Test
     @Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
-    fun test_calculateDensePaneScaffoldDirective_expandedWidth() {
+    fun test_calculateDensePaneScaffoldDirective_expandedWidthAndExpandedHeight() {
         val scaffoldDirective =
             calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
-                WindowAdaptiveInfo(WindowSizeClass.compute(1200f, 800f), Posture())
+                WindowAdaptiveInfo(WindowSizeClass.compute(1200f, 1000f), Posture())
             )
 
         assertThat(scaffoldDirective.maxHorizontalPartitions).isEqualTo(2)

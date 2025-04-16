@@ -32,7 +32,6 @@ import android.support.customtabs.ICustomTabsService;
 import androidx.annotation.IntDef;
 import androidx.annotation.RestrictTo;
 import androidx.browser.auth.AuthTabSessionToken;
-import androidx.browser.auth.ExperimentalAuthTab;
 import androidx.collection.SimpleArrayMap;
 
 import org.jspecify.annotations.NonNull;
@@ -337,7 +336,6 @@ public abstract class CustomTabsService extends Service {
             }
         }
 
-        @ExperimentalAuthTab
         @Override
         public boolean newAuthTabSession(IAuthTabCallback callback, Bundle extras) {
             PendingIntent sessionId = getSessionIdFromBundle(extras);
@@ -393,7 +391,6 @@ public abstract class CustomTabsService extends Service {
      * @return True if the provided session was cleaned up as a result of this call, false if the
      * session doesn't exist or has already been cleaned up.
      */
-    @ExperimentalAuthTab
     protected boolean cleanUpSession(@NonNull AuthTabSessionToken sessionToken) {
         try {
             synchronized (mDeathRecipientMap) {
@@ -678,7 +675,6 @@ public abstract class CustomTabsService extends Service {
      *                     {@link AuthTabSessionToken#getCallback()}.
      * @return Whether a new session was successfully created.
      */
-    @ExperimentalAuthTab
     protected boolean registerAuthTabSession(@NonNull AuthTabSessionToken sessionToken) {
         return false;
     }

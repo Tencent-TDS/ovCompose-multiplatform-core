@@ -538,6 +538,7 @@ class FocusViewInteropTest {
                 LazyColumn(Modifier.size(10f.toDp()), lazyListState) {
                     items(3) { index ->
                         AndroidView(
+                            modifier = Modifier.size(10f.toDp()),
                             factory = { context ->
                                 Button(context).apply {
                                     text = "Android Button"

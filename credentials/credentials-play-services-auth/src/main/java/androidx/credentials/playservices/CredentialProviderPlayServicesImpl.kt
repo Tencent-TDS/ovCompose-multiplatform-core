@@ -149,7 +149,7 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
                     .invokePlayServices(request, callback, executor, cancellationSignal)
             }
             is CreatePublicKeyCredentialRequest -> {
-                if (request.isConditionalCreateRequest) {
+                if (request.isConditional) {
                     CreatePublicKeyCredentialController.getInstance(context)
                         .invokePlayServices(request, callback, executor, cancellationSignal)
                 } else {

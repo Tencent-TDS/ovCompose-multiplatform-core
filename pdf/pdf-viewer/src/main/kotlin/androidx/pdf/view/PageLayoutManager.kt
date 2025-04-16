@@ -24,6 +24,9 @@ import android.os.DeadObjectException
 import android.util.Range
 import android.util.SparseArray
 import androidx.pdf.PdfDocument
+import androidx.pdf.exceptions.RequestFailedException
+import androidx.pdf.exceptions.RequestMetadata
+import androidx.pdf.util.PAGE_INFO_REQUEST_NAME
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
@@ -239,10 +242,23 @@ internal class PageLayoutManager(
                     // Add the value to the model before emitting, and on the main thread
                     withContext(Dispatchers.Main) { paginationModel.addPage(pageNum, size) }
                     _dimensions.emit(pageNum to Point(pageMetadata.width, pageMetadata.height))
-                } catch (e: DeadObjectException) {
+                }
+                // TODO(b/409465579): Propagate custom exception from SandboxedPdfDocument to
+                // decouple
+                // it from service specific exceptions
+                catch (e: DeadObjectException) {
                     // An exception happened above because of service disconnection. Propagate
                     // error event to UI to take appropriate action.
-                    errorFlow.emit(e)
+                    val exception =
+                        RequestFailedException(
+                            requestMetadata =
+                                RequestMetadata(
+                                    requestName = PAGE_INFO_REQUEST_NAME,
+                                    pageRange = pageNum..pageNum
+                                ),
+                            throwable = e
+                        )
+                    errorFlow.emit(exception)
                 }
             }
     }

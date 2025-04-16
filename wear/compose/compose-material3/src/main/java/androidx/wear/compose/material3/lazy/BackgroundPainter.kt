@@ -27,53 +27,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
-
-internal class ScalingMorphingBackgroundPainter(
-    private val behavior: TransformingLazyColumnScrollTransformBehavior,
-    private val shape: Shape,
-    private val border: BorderStroke?,
-    private val backgroundPainter: Painter,
-    private val progress: DrawScope.() -> TransformingLazyColumnItemScrollProgress
-) : Painter() {
-    override val intrinsicSize: Size
-        get() = Size.Unspecified
-
-    override fun DrawScope.onDraw() {
-        with(behavior) {
-            progress()
-                .takeIf { it != TransformingLazyColumnItemScrollProgress.Unspecified }
-                ?.let {
-                    val contentWidth =
-                        (1f - 2 * (1f - it.backgroundXOffsetFraction)) * size.width * it.scale
-                    val xOffset = (size.width - contentWidth) / 2f
-
-                    translate(xOffset, 0f) {
-                        val placementHeight = it.placementHeight(size.height)
-                        val shapeOutline =
-                            shape.createOutline(
-                                Size(contentWidth, placementHeight),
-                                layoutDirection,
-                                this@onDraw
-                            )
-
-                        // TODO: b/376693576 - cache the path.
-                        clipPath(Path().apply { addOutline(shapeOutline) }) {
-                            if (border != null) {
-                                drawOutline(
-                                    outline = shapeOutline,
-                                    brush = border.brush,
-                                    alpha = it.backgroundAlpha,
-                                    style = Stroke(border.width.toPx())
-                                )
-                            }
-                            with(backgroundPainter) { draw(Size(contentWidth, placementHeight)) }
-                        }
-                    }
-                }
-        }
-    }
-}
 
 internal class BackgroundPainter(
     internal val transformState: DrawScope.() -> TransformationState?,
@@ -90,7 +43,7 @@ internal class BackgroundPainter(
             val xOffset = (size.width - contentWidth) / 2f
 
             translate(xOffset, 0f) {
-                val placementHeight = it.itemHeight * it.scale // Save as placement height ?
+                val placementHeight = size.height * it.scale // Save as placement height ?
                 val shapeOutline =
                     shape.createOutline(
                         Size(contentWidth, placementHeight),

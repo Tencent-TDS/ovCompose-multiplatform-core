@@ -83,8 +83,6 @@ android {
 androidx {
     name = "androidx.appfunctions:appfunctions-runtime"
     type = SoftwareType.PUBLISHED_LIBRARY
-    //TODO(b/407634710): Task :appfunctions:appfunctions-runtime:kspReleaseAndroidTestKotlin fails when targeting Kotlin 2
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2025"
     description = "Runtime library for the app to provide and interact with AppFunctions"
 }

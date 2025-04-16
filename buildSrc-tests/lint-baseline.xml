@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.11.0-alpha02" type="baseline" client="gradle" dependencies="false" name="AGP (8.11.0-alpha02)" variant="all" version="8.11.0-alpha02">
+<issues format="6" by="lint 8.11.0-alpha03" type="baseline" client="gradle" dependencies="false" name="AGP (8.11.0-alpha03)" variant="all" version="8.11.0-alpha03">
 
     <issue
         id="EagerGradleConfiguration"
@@ -489,6 +489,15 @@
 
     <issue
         id="InternalAgpApiUsage"
+        message="Avoid using internal Android Gradle Plugin APIs (method dependsOn from com.android.build.gradle.internal.tasks.factory.TaskFactoryUtils)"
+        errorLine1="    anchorTask.dependsOn(task)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalAgpApiUsage"
         message="Avoid using internal Android Gradle Plugin APIs"
         errorLine1="import com.android.build.gradle.internal.lint.AndroidLintAnalysisTask"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -510,6 +519,33 @@
         message="Avoid using internal Android Gradle Plugin APIs"
         errorLine1="import com.android.build.gradle.internal.lint.VariantInputs"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/LintConfiguration.kt"/>
+    </issue>
+
+    <issue
+        id="InternalAgpApiUsage"
+        message="Avoid using internal Android Gradle Plugin APIs (method getJavaDirectories from com.android.build.gradle.internal.lint.SourceProviderInput)"
+        errorLine1="            sourceProvider.javaDirectories.withChangesAllowed {"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/LintConfiguration.kt"/>
+    </issue>
+
+    <issue
+        id="InternalAgpApiUsage"
+        message="Avoid using internal Android Gradle Plugin APIs (method getVariantInputs from com.android.build.gradle.internal.lint.AndroidLintAnalysisTask)"
+        errorLine1="        it.variantInputs.addSourceSets()"
+        errorLine2="        ~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/LintConfiguration.kt"/>
+    </issue>
+
+    <issue
+        id="InternalAgpApiUsage"
+        message="Avoid using internal Android Gradle Plugin APIs (method getVariantInputs from com.android.build.gradle.internal.lint.LintModelWriterTask)"
+        errorLine1="    project.tasks.withType&lt;LintModelWriterTask>().configureEach { it.variantInputs.addSourceSets() }"
+        errorLine2="                                                                  ~~~~~~~~~~~~~~~~">
         <location
             file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/LintConfiguration.kt"/>
     </issue>
@@ -561,6 +597,51 @@
 
     <issue
         id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method isAlias from org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectComponentPublication)"
+        errorLine1="                if (!mavenPub.isAlias) {"
+        errorLine2="                     ~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getComponent from org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectComponentPublication)"
+        errorLine1="                    pub.component.map { component ->"
+        errorLine2="                    ~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getUsages from org.gradle.api.internal.component.SoftwareComponentInternal)"
+        errorLine1="                            component.usages.orEmpty().flatMap { it.dependencies }"
+        errorLine2="                            ~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getComponent from org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectComponentPublication)"
+        errorLine1="                    pub.component.map { component ->"
+        errorLine2="                    ~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getUsages from org.gradle.api.internal.component.SoftwareComponentInternal)"
+        errorLine1="                        component.usages.orEmpty().flatMap { it.dependencyConstraints }"
+        errorLine2="                        ~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/buildInfo/CreateLibraryBuildInfoFileTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
         message="Avoid using internal Gradle APIs"
         errorLine1="import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -582,6 +663,24 @@
         message="Avoid using internal Gradle APIs"
         errorLine1="import org.gradle.internal.time.Clock"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/FileLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setLevel from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="                            it.level = LogLevel.DEBUG"
+        errorLine2="                            ~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/FileLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setOutputEventListener from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="                            it.setOutputEventListener { file.appendText(it.toString() + &quot;\n&quot;) }"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/FileLogger.kt"/>
     </issue>
@@ -624,6 +723,42 @@
 
     <issue
         id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method publishWithOriginalFileName from org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal)"
+        errorLine1="                    (this as MavenPublicationInternal).publishWithOriginalFileName()"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/MavenUploadHelper.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getUsages from org.gradle.api.internal.component.SoftwareComponentInternal)"
+        errorLine1="                                return (sourcesComponents.flatMap { it.usages } +"
+        errorLine2="                                                                    ~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/MavenUploadHelper.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method getUsages from org.gradle.api.internal.component.SoftwareComponentInternal)"
+        errorLine1="                                        kotlinComponent.usages)"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/MavenUploadHelper.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setAlias from org.gradle.api.publish.internal.PublicationInternal)"
+        errorLine1="                    it.isAlias = true"
+        errorLine2="                    ~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/MavenUploadHelper.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
         message="Avoid using internal Gradle APIs"
         errorLine1="import org.gradle.api.internal.artifacts.ivyservice.TypedResolveException"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -651,6 +786,24 @@
 
     <issue
         id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method get from org.gradle.internal.service.ServiceRegistry)"
+        errorLine1="            val userInput = services.get(UserInputHandler::class.java)"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/studio/StudioTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method askYesNoQuestion from org.gradle.api.internal.tasks.userinput.UserInputHandler)"
+        errorLine1="                    userInput.askYesNoQuestion("
+        errorLine2="                    ^">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/studio/StudioTask.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
         message="Avoid using internal Gradle APIs"
         errorLine1="import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -672,6 +825,42 @@
         message="Avoid using internal Gradle APIs"
         errorLine1="import org.gradle.internal.time.Clock"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/ToStringLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setLevel from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="            it.level = LogLevel.DEBUG"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/ToStringLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setLevel from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="            it.level = LogLevel.DEBUG"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/ToStringLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setOutputEventListener from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="            it.setOutputEventListener { stringBuilder.append(it.toString() + &quot;\n&quot;) }"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/ToStringLogger.kt"/>
+    </issue>
+
+    <issue
+        id="InternalGradleApiUsage"
+        message="Avoid using internal Gradle APIs (method setOutputEventListener from org.gradle.internal.logging.slf4j.OutputEventListenerBackedLoggerContext)"
+        errorLine1="            it.setOutputEventListener { stringBuilder.append(it.toString() + &quot;\n&quot;) }"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="${:buildSrc-tests*main*MAIN*sourceProvider*0*javaDir*4}/androidx/build/dependencyTracker/ToStringLogger.kt"/>
     </issue>

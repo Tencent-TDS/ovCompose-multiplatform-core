@@ -30,7 +30,6 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.DeadObjectException
 import android.os.Looper
 import android.os.Parcelable
 import android.util.AttributeSet
@@ -52,6 +51,9 @@ import androidx.core.os.HandlerCompat
 import androidx.core.view.ViewCompat
 import androidx.pdf.PdfDocument
 import androidx.pdf.R
+import androidx.pdf.event.PdfTrackingEvent
+import androidx.pdf.event.RequestFailureEvent
+import androidx.pdf.exceptions.RequestFailedException
 import androidx.pdf.util.Accessibility
 import androidx.pdf.util.MathUtils
 import androidx.pdf.util.ZoomUtils
@@ -193,6 +195,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             return selectionStateManager?.selectionModel?.value?.selection
         }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public var requestFailedListener: EventListener? = null
+
     @VisibleForTesting
     public val currentPageIndicatorLabel: String
         get() = fastScroller?.fastScrollDrawer?.currentPageIndicatorLabel ?: ""
@@ -210,6 +215,11 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
     public interface OnScrollStateChangedListener {
         /** Called when a scroll state changes */
         public fun onScrollStateChanged(x: Int, y: Int, isStable: Boolean)
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public interface EventListener {
+        public fun onEvent(event: PdfTrackingEvent)
     }
 
     private var onSelectionChangedListeners = mutableListOf<OnSelectionChangedListener>()
@@ -238,6 +248,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
     private var scrollPositionToRestore: PointF? = null
     private var zoomToRestore: Float? = null
     private val errorFlow = MutableSharedFlow<Throwable>()
+    /** Used to track is the first page is rendered. */
+    private var isFirstPageRendered: Boolean = false
 
     /**
      * Indicates whether the fast scroller's visibility is managed externally.
@@ -809,6 +821,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 localPdfDocument,
                 backgroundScope,
                 resources.getDimensionPixelSize(R.dimen.text_select_handle_touch_size),
+                errorFlow,
                 localStateToRestore.selectionModel
             )
 
@@ -872,7 +885,12 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 mainScope.launch(start = CoroutineStart.UNDISPATCHED) {
                     // Prevent 2 copies from running concurrently
                     pageSignalsToJoin?.join()
-                    launch { manager.invalidationSignalFlow.collect { invalidate() } }
+                    launch {
+                        manager.invalidationSignalFlow.collect {
+                            isFirstPageRendered = true
+                            invalidate()
+                        }
+                    }
                     launch {
                         manager.pageTextReadyFlow.collect { pageNum ->
                             accessibilityPageHelper?.onPageTextReady(pageNum)
@@ -904,7 +922,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 errorsToJoin?.join()
                 // Add debounce to prevents multiple, rapid error indicators from being displayed
                 // to the user in quick succession.
-                errorFlow.collect { handleError(it) }
+                errorFlow.collect { error ->
+                    val localError =
+                        if (error is RequestFailedException)
+                            error.copy(isFirstPageRendered = isFirstPageRendered)
+                        else error
+
+                    if (localError is RequestFailedException && localError.showError)
+                        showErrorInSnackbar(localError)
+
+                    requestFailedListener?.onEvent(RequestFailureEvent(localError))
+                }
             }
     }
 
@@ -934,11 +962,11 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         }
     }
 
-    private fun handleError(error: Throwable) {
+    private fun showErrorInSnackbar(error: Throwable) {
         val errorMsg =
             when (error) {
                 // TODO(b/404836992): Fix strings after confirmation from UXW
-                is DeadObjectException -> context.getString(R.string.error_cannot_open_pdf)
+                is RequestFailedException -> context.getString(R.string.error_cannot_open_pdf)
                 else -> context.getString(R.string.error_cannot_open_pdf)
             }
         Snackbar.make(this, errorMsg, Snackbar.LENGTH_SHORT).show()
@@ -1014,7 +1042,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 SelectionStateManager(
                     localPdfDocument,
                     backgroundScope,
-                    resources.getDimensionPixelSize(R.dimen.text_select_handle_touch_size)
+                    resources.getDimensionPixelSize(R.dimen.text_select_handle_touch_size),
+                    errorFlow
                 )
             setAccessibility()
         }

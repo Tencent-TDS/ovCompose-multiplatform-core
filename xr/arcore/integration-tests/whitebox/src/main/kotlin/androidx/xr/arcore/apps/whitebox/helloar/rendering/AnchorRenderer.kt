@@ -25,10 +25,12 @@ import androidx.xr.arcore.Anchor
 import androidx.xr.arcore.AnchorCreateNotTracking
 import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
+import androidx.xr.arcore.AnchorLoadInvalidUuid
 import androidx.xr.arcore.Plane
-import androidx.xr.arcore.TrackingState
 import androidx.xr.arcore.hitTest
+import androidx.xr.runtime.HeadTrackingMode
 import androidx.xr.runtime.Session
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Ray
@@ -37,7 +39,7 @@ import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.InputEvent
 import androidx.xr.scenecore.InteractableComponent
-import androidx.xr.scenecore.Session as JxrCoreSession
+import androidx.xr.scenecore.scene
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -49,7 +51,6 @@ internal class AnchorRenderer(
     val activity: Activity,
     val planeRenderer: PlaneRenderer,
     val session: Session,
-    val renderSession: JxrCoreSession,
     val coroutineScope: CoroutineScope,
 ) : DefaultLifecycleObserver {
 
@@ -60,11 +61,11 @@ internal class AnchorRenderer(
     private lateinit var updateJob: CompletableJob
 
     override fun onResume(owner: LifecycleOwner) {
+        session.configure(session.config.copy(headTracking = HeadTrackingMode.Enabled))
         updateJob =
             SupervisorJob(
                 coroutineScope.launch() {
-                    gltfAnchorModel =
-                        GltfModel.create(renderSession, "models/xyzArrows.glb").await()
+                    gltfAnchorModel = GltfModel.create(session, "models/xyzArrows.glb").await()
                     planeRenderer.renderedPlanes.collect { attachInteractableComponents(it) }
                 }
             )
@@ -86,18 +87,18 @@ internal class AnchorRenderer(
         for (planeModel in planeModels) {
             if (planeModel.entity.getComponents().isEmpty()) {
                 planeModel.entity.addComponent(
-                    InteractableComponent.create(renderSession, activity.mainExecutor) { event ->
+                    InteractableComponent.create(session, activity.mainExecutor) { event ->
                         if (event.action.equals(InputEvent.ACTION_DOWN)) {
                             val up =
-                                renderSession.spatialUser.head?.getActivitySpacePose()?.up
+                                session.scene.spatialUser.head?.getActivitySpacePose()?.up
                                     ?: Vector3.Up
                             val perceptionRayPose =
-                                renderSession.activitySpace.transformPoseTo(
+                                session.scene.activitySpace.transformPoseTo(
                                     Pose(
                                         event.origin,
                                         Quaternion.fromLookTowards(event.direction, up)
                                     ),
-                                    renderSession.perceptionSpace,
+                                    session.scene.perceptionSpace,
                                 )
                             val perceptionRay =
                                 Ray(perceptionRayPose.translation, perceptionRayPose.forward)
@@ -143,6 +144,18 @@ internal class AnchorRenderer(
                                                     )
                                                     .show()
                                             }
+                                            is AnchorLoadInvalidUuid -> {
+                                                Log.e(
+                                                    activity::class.simpleName,
+                                                    "Failed to create anchor: invalid UUID."
+                                                )
+                                                Toast.makeText(
+                                                        activity,
+                                                        "Anchor failed to load.",
+                                                        Toast.LENGTH_LONG
+                                                    )
+                                                    .show()
+                                            }
                                         }
                                     } catch (e: IllegalStateException) {
                                         Log.e(
@@ -159,16 +172,16 @@ internal class AnchorRenderer(
     }
 
     private fun createAnchorModel(anchor: Anchor): AnchorModel {
-        val entity = GltfModelEntity.create(renderSession, gltfAnchorModel, Pose())
+        val entity = GltfModelEntity.create(session, gltfAnchorModel, Pose())
         entity.setScale(.1f)
         val renderJob =
             coroutineScope.launch(updateJob) {
                 anchor.state.collect { state ->
                     if (state.trackingState == TrackingState.Tracking) {
                         entity.setPose(
-                            renderSession.perceptionSpace.transformPoseTo(
+                            session.scene.perceptionSpace.transformPoseTo(
                                 state.pose,
-                                renderSession.activitySpace
+                                session.scene.activitySpace
                             )
                         )
                     } else if (state.trackingState == TrackingState.Stopped) {

@@ -59,13 +59,13 @@ class GroupSizeValidationTests {
     @Test
     @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun textLikeSize() = compositionTest {
-        slotExpect(name = "TextLike", noMoreGroupsThan = 4, noMoreSlotsThan = 4) { TextLike("") }
+        slotExpect(name = "TextLike", noMoreGroupsThan = 4, noMoreSlotsThan = 5) { TextLike("") }
     }
 
     @Test
     @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun basicTextLikeSize() = compositionTest {
-        slotExpect(name = "TextLike", noMoreGroupsThan = 5, noMoreSlotsThan = 13) {
+        slotExpect(name = "TextLike", noMoreGroupsThan = 5, noMoreSlotsThan = 14) {
             BasicTextLike("")
         }
     }
@@ -73,7 +73,7 @@ class GroupSizeValidationTests {
     @Test
     @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun checkboxLike() = compositionTest {
-        slotExpect(name = "CheckboxLike", noMoreGroupsThan = 8, noMoreSlotsThan = 17) {
+        slotExpect(name = "CheckboxLike", noMoreGroupsThan = 8, noMoreSlotsThan = 18) {
             CheckboxLike(checked = false, onCheckedChange = {})
         }
     }

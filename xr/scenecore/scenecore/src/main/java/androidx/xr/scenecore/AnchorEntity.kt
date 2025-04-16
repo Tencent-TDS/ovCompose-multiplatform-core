@@ -19,7 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.xr.arcore.Anchor
-import androidx.xr.runtime.Session as PerceptionSession
+import androidx.xr.runtime.PlaneTrackingMode
+import androidx.xr.runtime.Session
 import androidx.xr.runtime.internal.AnchorEntity as RtAnchorEntity
 import androidx.xr.runtime.internal.JxrPlatformAdapter
 import java.time.Duration
@@ -107,7 +108,7 @@ private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
      * @return the ARCore for XR Anchor corresponding to the native pointer.
      */
     // TODO(b/373711152) : Remove this method once the ARCore for XR API migration is done.
-    public fun getAnchor(session: PerceptionSession): Anchor {
+    public fun getAnchor(session: Session): Anchor {
         return Anchor.loadFromNativePointer(session, rtEntity.nativePointer)
     }
 
@@ -206,10 +207,6 @@ private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
          * Public factory function for an AnchorEntity which searches for a location to create an
          * Anchor among the tracked planes available to the perception system.
          *
-         * Note that this function will fail if the application has not been granted the
-         * "android.permission.SCENE_UNDERSTANDING" permission. Consider using PermissionHelper to
-         * help request permission from the User.
-         *
          * @param session Session to create the AnchorEntity in.
          * @param bounds Bounds for this AnchorEntity.
          * @param planeType Orientation of plane to which this Anchor should attach.
@@ -219,6 +216,8 @@ private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
          *   will be set to AnchorEntity.State.TIMEDOUT. It may take longer than the timeout period
          *   before the anchor state is updated. If the timeout duration is zero it will search for
          *   the anchor indefinitely.
+         * @throws [IllegalStateException] if [session.config.planeTracking] is set to
+         *   [PlaneTrackingMode.Disabled].
          */
         @JvmStatic
         @JvmOverloads
@@ -229,9 +228,13 @@ private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
             planeSemantic: @PlaneSemanticValue Int,
             timeout: Duration = Duration.ZERO,
         ): AnchorEntity {
+            check(session.config.planeTracking != PlaneTrackingMode.Disabled) {
+                "Config.PlaneTrackingMode is set to Disabled."
+            }
+
             return AnchorEntity.create(
                 session.platformAdapter,
-                session.entityManager,
+                session.scene.entityManager,
                 bounds,
                 planeType,
                 planeSemantic,
@@ -247,7 +250,7 @@ private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
          */
         @JvmStatic
         public fun create(session: Session, anchor: Anchor): AnchorEntity {
-            return AnchorEntity.create(session.platformAdapter, session.entityManager, anchor)
+            return AnchorEntity.create(session.platformAdapter, session.scene.entityManager, anchor)
         }
     }
 

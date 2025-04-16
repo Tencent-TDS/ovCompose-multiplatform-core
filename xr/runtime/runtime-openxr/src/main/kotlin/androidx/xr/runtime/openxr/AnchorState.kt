@@ -17,7 +17,7 @@
 package androidx.xr.runtime.openxr
 
 import androidx.annotation.RestrictTo
-import androidx.xr.runtime.internal.TrackingState
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.math.Pose
 
 /**

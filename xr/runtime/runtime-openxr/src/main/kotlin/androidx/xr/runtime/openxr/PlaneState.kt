@@ -16,8 +16,8 @@
 
 package androidx.xr.runtime.openxr
 
+import androidx.xr.runtime.TrackingState
 import androidx.xr.runtime.internal.Plane
-import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector2
 

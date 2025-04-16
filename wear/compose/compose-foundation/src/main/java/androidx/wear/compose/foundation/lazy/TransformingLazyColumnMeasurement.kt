@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
+import androidx.compose.ui.util.trace
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutMeasureScope
 import kotlinx.coroutines.CoroutineScope
 
@@ -104,27 +105,29 @@ internal fun rememberTransformingLazyColumnMeasurePolicy(
             }
 
             Snapshot.withMutableSnapshot {
-                    measurementStrategy.measure(
-                        itemsCount = itemsCount,
-                        keyIndexMap = itemProvider.keyIndexMap,
-                        measuredItemProvider = measuredItemProvider,
-                        itemSpacing = verticalArrangement.spacing.roundToPx(),
-                        containerConstraints = containerConstraints,
-                        scrollToBeConsumed = scrollToBeConsumed,
-                        anchorItemIndex = anchorItemIndex,
-                        anchorItemScrollOffset = anchorItemScrollOffset,
-                        lastMeasuredAnchorItemHeight = lastMeasuredAnchorItemHeight,
-                        coroutineScope = coroutineScope,
-                        density = this,
-                        layout = { width, height, placement ->
-                            layout(
-                                containerConstraints.constrainWidth(width),
-                                containerConstraints.constrainHeight(height),
-                                emptyMap(),
-                                placement
-                            )
-                        }
-                    )
+                    trace("wear-compose:tlc:measure") {
+                        measurementStrategy.measure(
+                            itemsCount = itemsCount,
+                            keyIndexMap = itemProvider.keyIndexMap,
+                            measuredItemProvider = measuredItemProvider,
+                            itemSpacing = verticalArrangement.spacing.roundToPx(),
+                            containerConstraints = containerConstraints,
+                            scrollToBeConsumed = scrollToBeConsumed,
+                            anchorItemIndex = anchorItemIndex,
+                            anchorItemScrollOffset = anchorItemScrollOffset,
+                            lastMeasuredAnchorItemHeight = lastMeasuredAnchorItemHeight,
+                            coroutineScope = coroutineScope,
+                            density = this,
+                            layout = { width, height, placement ->
+                                layout(
+                                    containerConstraints.constrainWidth(width),
+                                    containerConstraints.constrainHeight(height),
+                                    emptyMap(),
+                                    placement
+                                )
+                            }
+                        )
+                    }
                 }
                 .also { state.applyMeasureResult(it) }
         }

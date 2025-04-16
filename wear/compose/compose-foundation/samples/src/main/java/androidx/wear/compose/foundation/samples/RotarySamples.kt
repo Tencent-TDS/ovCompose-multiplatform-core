@@ -33,13 +33,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastSumBy
-import androidx.wear.compose.foundation.rememberActiveFocusRequester
+import androidx.wear.compose.foundation.hierarchicalFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.RotarySnapLayoutInfoProvider
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
@@ -49,10 +50,11 @@ import androidx.wear.compose.material.Text
 @Composable
 fun RotaryScrollSample() {
     val scrollableState = rememberLazyListState()
-    val focusRequester = rememberActiveFocusRequester()
+    val focusRequester = remember { FocusRequester() }
     LazyColumn(
         modifier =
             Modifier.fillMaxSize()
+                .hierarchicalFocusRequester(focusRequester)
                 .rotaryScrollable(
                     behavior = RotaryScrollableDefaults.behavior(scrollableState),
                     focusRequester = focusRequester
@@ -74,7 +76,7 @@ fun RotaryScrollSample() {
 @Composable
 fun RotaryScrollWithOverscrollSample() {
     val scrollableState = rememberScrollState()
-    val focusRequester = rememberActiveFocusRequester()
+    val focusRequester = remember { FocusRequester() }
     val overscrollEffect = rememberOverscrollEffect()
 
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
@@ -86,6 +88,7 @@ fun RotaryScrollWithOverscrollSample() {
                 focusRequester = focusRequester,
                 overscrollEffect = overscrollEffect
             )
+            .hierarchicalFocusRequester(focusRequester)
             .verticalScroll(scrollableState, overscrollEffect)
             .overscroll(overscrollEffect),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -102,19 +105,18 @@ fun RotaryScrollWithOverscrollSample() {
 @Composable
 fun RotarySnapSample() {
     val scrollableState = rememberLazyListState()
-    val focusRequester = rememberActiveFocusRequester()
+    val focusRequester = remember { FocusRequester() }
     LazyColumn(
         modifier =
             Modifier.fillMaxSize()
+                .hierarchicalFocusRequester(focusRequester)
                 .rotaryScrollable(
                     behavior =
                         RotaryScrollableDefaults.snapBehavior(
                             scrollableState,
                             // This sample has a custom implementation of
-                            // RotarySnapLayoutInfoProvider
-                            // which is required for snapping behavior. ScalingLazyColumn has it
-                            // built-in,
-                            // so it's not required there.
+                            // RotarySnapLayoutInfoProvider which is required for snapping behavior.
+                            // ScalingLazyColumn has it built-in, so it's not required there.
                             remember(scrollableState) {
                                 object : RotarySnapLayoutInfoProvider {
 

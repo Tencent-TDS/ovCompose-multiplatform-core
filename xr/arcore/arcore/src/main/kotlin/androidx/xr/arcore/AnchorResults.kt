@@ -39,3 +39,7 @@ public class AnchorCreateResourcesExhausted() : AnchorCreateResult()
 /** Result of an unsuccessful [Anchor.create] call. Required tracking is not available. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class AnchorCreateNotTracking() : AnchorCreateResult()
+
+/** Result of an unsuccessful [Anchor.load] call. The anchor was loaded from an invalid UUID. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public class AnchorLoadInvalidUuid() : AnchorCreateResult()

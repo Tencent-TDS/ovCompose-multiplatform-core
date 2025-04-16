@@ -21,7 +21,7 @@ import androidx.annotation.RestrictTo
 
 /** Factory for creating instances of JxrPlatformAdapter. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public fun interface JxrPlatformAdapterFactory {
+public interface JxrPlatformAdapterFactory : Service {
     /** Creates a [JxrPlatformAdapter] instance */
     public fun createPlatformAdapter(activity: Activity): JxrPlatformAdapter
 }

@@ -261,8 +261,5 @@ fun Project.allowMissingLintProject() =
 fun Project.isCustomCompileSdkAllowed(): Boolean =
     findBooleanProperty(ALLOW_CUSTOM_COMPILE_SDK) ?: true
 
-fun Project.findBooleanProperty(propName: String) = booleanPropertyProvider(propName).get()
-
-fun Project.booleanPropertyProvider(propName: String): Provider<Boolean> {
-    return project.providers.gradleProperty(propName).map { s -> s.toBoolean() }.orElse(false)
-}
+fun Project.findBooleanProperty(propName: String): Boolean? =
+    project.providers.gradleProperty(propName).map { it.toBoolean() }.getOrNull()
