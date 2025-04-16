@@ -18,10 +18,11 @@ package androidx.build
 
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
+import com.android.utils.childrenIterator
+import com.android.utils.forEach
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.stream.JsonWriter
-import groovy.util.Node
 import java.io.File
 import java.io.StringReader
 import java.io.StringWriter
@@ -55,19 +56,24 @@ import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.xml.sax.InputSource
 import org.xml.sax.XMLReader
+import androidx.build.jetbrains.originalToRedirectedDependency
+import org.gradle.api.artifacts.ModuleIdentifier
+import org.gradle.api.artifacts.ModuleVersionIdentifier
+import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
 fun Project.configureMavenArtifactUpload(
     extension: AndroidXExtension,
+    kmpExtension: AndroidXMultiplatformExtension,
     componentFactory: SoftwareComponentFactory
 ) {
     apply(mapOf("plugin" to "maven-publish"))
     var registered = false
     fun registerOnFirstPublishableArtifact(component: SoftwareComponent) {
         if (!registered) {
-            configureComponentPublishing(extension, component, componentFactory)
+            configureComponentPublishing(extension, kmpExtension, component, componentFactory)
             Release.register(this, extension)
             registered = true
         }
@@ -104,6 +110,7 @@ private fun Project.releaseTaskShouldBeRegistered(extension: AndroidXExtension):
  */
 private fun Project.configureComponentPublishing(
     extension: AndroidXExtension,
+    kmpExtension: AndroidXMultiplatformExtension,
     component: SoftwareComponent,
     componentFactory: SoftwareComponentFactory
 ) {
@@ -123,11 +130,14 @@ private fun Project.configureComponentPublishing(
         // Check every project is the project map to see if they are an Android Library
         val projectModules = project.getProjectsMap()
         for ((mavenCoordinates, projectPath) in projectModules) {
-            project.findProject(projectPath)?.plugins?.hasPlugin(
-                LibraryPlugin::class.java
-            )?.let { hasLibraryPlugin ->
-                if (hasLibraryPlugin) {
-                    androidxAndroidProjects.add(mavenCoordinates)
+            project.findProject(projectPath)?.plugins?.let { plugins ->
+                if (plugins.hasPlugin(LibraryPlugin::class.java)) {
+                    if (plugins.hasPlugin(KotlinMultiplatformPluginWrapper::class.java)) {
+                        // For KMP projects, android AAR is published under -android
+                        androidxAndroidProjects.add("$mavenCoordinates-android")
+                    } else {
+                        androidxAndroidProjects.add(mavenCoordinates)
+                    }
                 }
             }
         }
@@ -160,10 +170,12 @@ private fun Project.configureComponentPublishing(
                 }
             }
         }
-        publications.withType(MavenPublication::class.java).all {
-            it.pom { pom ->
+        publications.withType(MavenPublication::class.java).all { publication ->
+            publication.pom { pom ->
                 addInformativeMetadata(extension, pom)
-                tweakDependenciesMetadata(androidxGroup, pom, androidLibrariesSetProvider)
+                tweakDependenciesMetadata(
+                    pom, androidLibrariesSetProvider,
+                    publication.name == KMP_ANCHOR_PUBLICATION_NAME, kmpExtension.defaultPlatform)
             }
         }
     }
@@ -182,12 +194,23 @@ private fun Project.configureComponentPublishing(
     }
     project.tasks.withType(GenerateMavenPom::class.java).configureEach { task ->
         task.doLast {
+            fun hasTargetWithComponent(componentName: String) =
+                multiplatformExtension?.targets?.find { target ->
+                    target.components.any { it.name == componentName }
+                } != null
+
+            // extract heuristically from:
+            // "build/publications/kotlinMultiplatformDecorated/pom-default.xml"
+            // "build/publications/desktop/pom-default.xml"
+            // ...
+            // and take only if it is a target's component (we redirect only targets)
+            val componentName = task.destination.parentFile.name.takeIf(::hasTargetWithComponent)
+
             val pomFile = task.destination
             val pom = pomFile.readText()
-            val sortedPom = sortPomDependencies(pom)
-
-            if (pom != sortedPom) {
-                pomFile.writeText(sortedPom)
+            val modifiedPom = modifyPomDependencies(pom, componentName)
+            if (pom != modifiedPom) {
+                pomFile.writeText(modifiedPom)
             }
         }
     }
@@ -208,9 +231,9 @@ private fun Project.configureComponentPublishing(
 }
 
 /**
- * Looks for a dependencies XML element within [pom] and sorts its contents.
+ * Looks for a dependencies XML element within [pom], sorts its contents and modify it by redirecting coordinates
  */
-fun sortPomDependencies(pom: String): String {
+internal fun Project.modifyPomDependencies(pom: String, componentName: String?): String {
     // Workaround for using the default namespace in dom4j.
     val namespaceUris = mapOf("ns" to "http://maven.apache.org/POM/4.0.0")
     val docFactory = DocumentFactory()
@@ -219,13 +242,21 @@ fun sortPomDependencies(pom: String): String {
     val xmlReader = JAXPSAXParser()
     val document = parseText(docFactory, xmlReader, pom)
 
+    val originalToRedirected = if (componentName != null) {
+        originalToRedirectedDependency(componentName)
+    } else {
+        emptyMap()
+    }
+
     // For each <dependencies> element, sort the contained elements in-place.
     document.rootElement
         .selectNodes("ns:dependencies")
         .filterIsInstance<Element>()
         .forEach { element ->
             val deps = element.elements()
-            val sortedDeps = deps.toSortedSet(compareBy { it.stringValue }).toList()
+            val modifiedDeps = deps
+                .onEach { modifyPomDependency(it, originalToRedirected) }
+                .sortedBy { it.stringValue }
 
             // Content contains formatting nodes, so to avoid modifying those we replace
             // each element with the sorted element from its respective index. Note this
@@ -234,7 +265,7 @@ fun sortPomDependencies(pom: String): String {
             element.content().replaceAll {
                 val index = deps.indexOf(it)
                 if (index >= 0) {
-                    sortedDeps[index]
+                    modifiedDeps[index]
                 } else {
                     it
                 }
@@ -251,6 +282,22 @@ fun sortPomDependencies(pom: String): String {
     }
 
     return stringWriter.toString()
+}
+
+internal fun modifyPomDependency(
+    dependency: Element,
+    originalToRedirected: Map<ModuleIdentifier, ModuleVersionIdentifier>
+) {
+    val groupIdNode = dependency.selectSingleNode("ns:groupId")
+    val artifactIdNode = dependency.selectSingleNode("ns:artifactId")
+    val versionNode = dependency.selectSingleNode("ns:version")
+    val id = DefaultModuleIdentifier.newId(groupIdNode.stringValue, artifactIdNode.stringValue)
+    val redirected = originalToRedirected[id]
+    if (redirected != null) {
+        groupIdNode.text = redirected.group
+        artifactIdNode.text = redirected.name
+        versionNode.text = redirected.version
+    }
 }
 
 // Coped from org.dom4j.DocumentHelper with modifications to allow SAXReader configuration.
@@ -319,13 +366,17 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
+private val jetBrainsLibrariesWithAndroidTarget = setOf(
+    ":compose:ui:ui-backhandler",
+)
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
+    if (project.path !in jetBrainsLibrariesWithAndroidTarget) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
-
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {
             target.publishLibraryVariants(
-                Release.DEFAULT_PUBLISH_CONFIG
+                Release.DEFAULT_PUBLISH_CONFIG,
+                "debug"
             )
         }
     }
@@ -348,7 +399,7 @@ private fun Project.replaceBaseMultiplatformPublication(
     ) { sourcesComponents ->
         configure<PublishingExtension> {
             publications { pubs ->
-                pubs.create<MavenPublication>("androidxKmp") {
+                pubs.create<MavenPublication>(KMP_ANCHOR_PUBLICATION_NAME) {
                     // Duplicate behavior from KMP plugin
                     // (https://cs.github.com/JetBrains/kotlin/blob/0c001cc9939a2ab11815263ed825c1096b3ce087/libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/plugin/mpp/Publishing.kt#L42)
                     // Should be able to remove internal API usage once
@@ -357,7 +408,7 @@ private fun Project.replaceBaseMultiplatformPublication(
 
                     from(object : ComponentWithVariants, SoftwareComponentInternal {
                         override fun getName(): String {
-                            return "androidxKmp"
+                            return KMP_ANCHOR_PUBLICATION_NAME
                         }
 
                         override fun getUsages(): MutableSet<out UsageContext> {
@@ -503,9 +554,10 @@ private fun Project.addInformativeMetadata(extension: AndroidXExtension, pom: Ma
 }
 
 private fun tweakDependenciesMetadata(
-    mavenGroup: LibraryGroup,
     pom: MavenPom,
-    androidLibrariesSetProvider: Provider<Set<String>>
+    androidLibrariesSetProvider: Provider<Set<String>>,
+    kmpAnchor: Boolean,
+    pomPlatform: String?
 ) {
     pom.withXml { xml ->
         // The following code depends on getProjectsMap which is only available late in
@@ -513,117 +565,110 @@ private fun tweakDependenciesMetadata(
         // modified. TODO remove the use of getProjectsMap and move to earlier configuration.
         // For more context see:
         // https://android-review.googlesource.com/c/platform/frameworks/support/+/1144664/8/buildSrc/src/main/kotlin/androidx/build/MavenUploadHelper.kt#177
-        assignSingleVersionDependenciesInGroupForPom(xml, mavenGroup)
-        assignAarTypes(xml, androidLibrariesSetProvider)
+        assignAarTypes(xml, androidLibrariesSetProvider.get())
         ensureConsistentJvmSuffix(xml)
+
+        if (kmpAnchor && pomPlatform != null) {
+            insertDefaultMultiplatformDependencies(xml, pomPlatform)
+        }
     }
 }
 
 // TODO(aurimas): remove this when Gradle bug is fixed.
 // https://github.com/gradle/gradle/issues/3170
-private fun assignAarTypes(
+fun assignAarTypes(
     xml: XmlProvider,
-    androidLibrariesSetProvider: Provider<Set<String>>
+    androidLibrariesSet: Set<String>
 ) {
-    val dependencies = xml.asNode().children().find {
-        it is Node && it.name().toString().endsWith("dependencies")
-    } as Node?
+    val xmlElement = xml.asElement()
+    val dependencies = xmlElement.find {
+        it.nodeName == "dependencies"
+    } as? org.w3c.dom.Element
 
-    dependencies?.children()?.forEach { dep ->
-        if (dep !is Node) {
-            return@forEach
-        }
-        val groupId = dep.children().first {
-            it is Node && it.name().toString().endsWith("groupId")
-        } as Node
-        val artifactId = dep.children().first {
-            it is Node && it.name().toString().endsWith("artifactId")
-        } as Node
-        if (androidLibrariesSetProvider.get().contains(
-                "${groupId.children()[0] as String}:${artifactId.children()[0] as String}"
-            )
-        ) {
-            dep.appendNode("type", "aar")
+    dependencies?.getElementsByTagName("dependency")?.forEach { dependency ->
+        val groupId = dependency.find { it.nodeName == "groupId" }?.textContent
+            ?: throw IllegalArgumentException("Failed to locate groupId node")
+        val artifactId = dependency.find { it.nodeName == "artifactId" }?.textContent
+            ?: throw IllegalArgumentException("Failed to locate artifactId node")
+        if (androidLibrariesSet.contains("$groupId:$artifactId")) {
+            dependency.appendElement("type", "aar")
         }
     }
 }
 
-/**
- * Modifies the given .pom to specify that every dependency in <group> refers to a single version
- * and can't be automatically promoted to a new version.
- * This will replace, for example, a version string of "1.0" with a version string of "[1.0]"
- *
- * Note: this is not enforced in Gradle nor in plain Maven (without the Enforcer plugin)
- * (https://github.com/gradle/gradle/issues/8297)
- */
-private fun assignSingleVersionDependenciesInGroupForPom(
+fun insertDefaultMultiplatformDependencies(
     xml: XmlProvider,
-    mavenGroup: LibraryGroup
+    platformId: String
 ) {
-    if (!mavenGroup.requireSameVersion) {
-        return
-    }
+    val xmlElement = xml.asElement()
+    val groupId = xmlElement.find { it.nodeName == "groupId" }?.textContent
+        ?: throw IllegalArgumentException("Failed to locate groupId node")
+    val artifactId = xmlElement.find { it.nodeName == "artifactId" }?.textContent
+        ?: throw IllegalArgumentException("Failed to locate artifactId node")
+    val version = xmlElement.find { it.nodeName == "version" }?.textContent
+        ?: throw IllegalArgumentException("Failed to locate version node")
 
-    val dependencies = xml.asNode().children().find {
-        it is Node && it.name().toString().endsWith("dependencies")
-    } as Node?
-    dependencies?.children()?.forEach { dep ->
-        if (dep !is Node) {
-            return@forEach
-        }
-        val groupId = dep.children().first {
-            it is Node && it.name().toString().endsWith("groupId")
-        } as Node
-        if (groupId.children()[0].toString() == mavenGroup.group) {
-            val versionNode = dep.children().first {
-                it is Node && it.name().toString().endsWith("version")
-            } as Node
-            val declaredVersion = versionNode.children()[0].toString()
-            if (isVersionRange(declaredVersion)) {
-                throw GradleException(
-                    "Unsupported version '$declaredVersion': " +
-                        "already is a version range"
-                )
-            }
-            val pinnedVersion = "[$declaredVersion]"
-            versionNode.setValue(pinnedVersion)
-        }
+    // Find the top-level <dependencies> element or add one if there are no other dependencies.
+    val dependencies = xmlElement.find {
+        it.nodeName == "dependencies"
+    } ?: xmlElement.appendElement("dependencies")
+    dependencies.appendElement("dependency").apply {
+        appendElement("groupId", groupId)
+        appendElement("artifactId", "$artifactId-$platformId")
+        appendElement("version", version)
+        appendElement("scope", "runtime")
     }
 }
 
-private fun isVersionRange(text: String): Boolean {
-    return text.contains("[") ||
-        text.contains("]") ||
-        text.contains("(") ||
-        text.contains(")") ||
-        text.contains(",")
+private fun org.w3c.dom.Node.appendElement(
+    tagName: String,
+    textValue: String? = null
+): org.w3c.dom.Element {
+    val element = ownerDocument.createElement(tagName)
+    appendChild(element)
+
+    if (textValue != null) {
+        val textNode = ownerDocument.createTextNode(textValue)
+        element.appendChild(textNode)
+    }
+
+    return element
+}
+
+private fun org.w3c.dom.Node.find(
+    predicate: (org.w3c.dom.Node) -> Boolean
+): org.w3c.dom.Node? {
+    val iterator = childrenIterator()
+    while (iterator.hasNext()) {
+        val node = iterator.next()
+        if (predicate(node)) {
+            return node
+        }
+    }
+    return null
 }
 
 /**
  * Ensures that artifactIds are consistent when using configuration caching.
  * A workaround for https://github.com/gradle/gradle/issues/18369
  */
-private fun ensureConsistentJvmSuffix(
+fun ensureConsistentJvmSuffix(
     xml: XmlProvider
 ) {
-    val dependencies = xml.asNode().children().find {
-        it is Node && it.name().toString().endsWith("dependencies")
-    } as Node?
-    dependencies?.children()?.forEach { dep ->
-        if (dep !is Node) {
-            return@forEach
-        }
-        val artifactIdNode = dep.children().first {
-            it is Node && it.name().toString().endsWith("artifactId")
-        } as Node
-        val artifactId = artifactIdNode.children()[0].toString()
+    val dependencies = xml.asElement().find {
+        it.nodeName == "dependencies"
+    } as? org.w3c.dom.Element ?: return
+
+    dependencies.getElementsByTagName("dependency").forEach { dependency ->
+        val artifactId = dependency.find { it.nodeName == "artifactId" }
+            ?: throw IllegalArgumentException("Failed to locate artifactId node")
         // kotlinx-coroutines-core is only a .pom and only depends on kotlinx-coroutines-core-jvm,
         // so the two artifacts should be approximately equivalent. However,
         // when loading from configuration cache, Gradle often returns a different resolution.
         // We replace it here to ensure consistency and predictability, and
         // to avoid having to rerun any zip tasks that include it
-        if (artifactId == "kotlinx-coroutines-core-jvm") {
-            artifactIdNode.setValue("kotlinx-coroutines-core")
+        if (artifactId.textContent == "kotlinx-coroutines-core-jvm") {
+            artifactId.textContent = "kotlinx-coroutines-core"
         }
     }
 }
@@ -632,3 +677,5 @@ private fun Project.appliesJavaGradlePluginPlugin() = pluginManager.hasPlugin("j
 
 private const val ANDROID_GIT_URL =
     "scm:git:https://android.googlesource.com/platform/frameworks/support"
+
+internal const val KMP_ANCHOR_PUBLICATION_NAME = "androidxKmp"
