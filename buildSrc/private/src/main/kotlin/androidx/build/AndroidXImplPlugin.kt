@@ -48,7 +48,6 @@ import androidx.build.uptodatedness.TaskUpToDateValidator
 import androidx.build.uptodatedness.cacheEvenIfNoOutputs
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.attributes.BuildTypeAttr
-import com.android.build.api.dsl.AarMetadata
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.KotlinMultiplatformAndroidDeviceTestCompilation
@@ -64,8 +63,6 @@ import com.android.build.api.variant.HasDeviceTests
 import com.android.build.api.variant.HasUnitTestBuilder
 import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
-import com.android.build.api.variant.LibraryVariant
-import com.android.build.api.variant.LibraryVariantBuilder
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
@@ -681,53 +678,6 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
             )
         }
 
-    private fun configureCommonAndroidLibrary(
-        project: Project,
-        androidXExtension: AndroidXExtension,
-        androidComponents:
-            AndroidComponentsExtension<*, out LibraryVariantBuilder, out LibraryVariant>,
-    ) {
-        androidComponents.onVariants { variant ->
-            variant.hostTests.forEach { (_, hostTest) ->
-                hostTest.configureTestTask { it.configureForRobolectric() }
-            }
-            variant.configureTests()
-            variant.enableMicrobenchmarkInternalDefaults(project)
-            project.validateKotlinModuleFiles(
-                variant.name,
-                variant.artifacts.get(SingleArtifact.AAR)
-            )
-        }
-
-        project.disableStrictVersionConstraints()
-        project.configureJavaCompilationWarnings(androidXExtension)
-        project.setUpCheckDocsTask(androidXExtension)
-    }
-
-    private fun AarMetadata.configure(compileSdk: Int?) {
-        // Taken from
-        // https://developer.android.com/build/releases/gradle-plugin#api-level-support
-        fun mapToMinAgpVersion(compileSdk: Int): String {
-            return when (compileSdk) {
-                34 -> "8.1.1"
-                35 -> "8.6.0"
-                36 -> "8.9.1"
-                else -> throw Exception("Unknown compileSdk to minAgpVersion mapping")
-            }
-        }
-
-        // Propagate the compileSdk value into minCompileSdk. Don't propagate
-        // compileSdkExtension, since only one library actually depends on the extension
-        // APIs and they can explicitly declare that in their build.gradle. Note that when
-        // we're using a preview SDK, the value for compileSdk will be null and the
-        // resulting AAR metadata won't have a minCompileSdk --
-        // this is okay because AGP automatically embeds forceCompileSdkPreview in the AAR
-        // metadata and uses it instead of minCompileSdk.
-        if (compileSdk == null) return
-        minCompileSdk = compileSdk
-        minAgpVersion = mapToMinAgpVersion(compileSdk)
-    }
-
     private fun configureWithKotlinMultiplatformAndroidPlugin(
         project: Project,
         kotlinMultiplatformAndroidTarget: KotlinMultiplatformAndroidLibraryTarget,
@@ -739,36 +689,45 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
             project,
             kotlinMultiplatformAndroidComponentsExtension
         )
-        configureCommonAndroidLibrary(
-            project,
-            androidXExtension,
-            kotlinMultiplatformAndroidComponentsExtension,
-        )
         kotlinMultiplatformAndroidComponentsExtension.apply {
             finalizeDsl {
-                it.aarMetadata.configure(it.compileSdk)
-                it.lint.targetSdk = project.defaultAndroidConfig.targetSdk
-                // When b/409613130 is fixed, set it.testOptions.targetSdk =
-                // project.defaultAndroidConfig.targetSdk
+                // Propagate the compileSdk value into minCompileSdk. Must be done after the DSL in
+                // build.gradle files (that sets compileSdk in the first place) is evaluated.
+
+                kotlinMultiplatformAndroidTarget.aarMetadata.minCompileSdk =
+                    kotlinMultiplatformAndroidTarget.compileSdk
+
                 project.setUpBlankProguardFileForKmpAarIfNeeded(
                     kotlinMultiplatformAndroidTarget.optimization.consumerKeepRules
                 )
             }
         }
+        project.disableStrictVersionConstraints()
 
         project.configureProjectForApiTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
         project.configureProjectForKzipTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
 
         kotlinMultiplatformAndroidComponentsExtension.onVariants { variant ->
+            variant.hostTests.forEach { (_, hostTest) ->
+                hostTest.configureTestTask { it.configureForRobolectric() }
+            }
+            variant.configureTests()
+
             project.configureMultiplatformSourcesForAndroid(
                 variant.name,
                 kotlinMultiplatformAndroidTarget,
                 androidXExtension.samplesProjects
             )
+
+            project.validateKotlinModuleFiles(
+                variant.name,
+                variant.artifacts.get(SingleArtifact.AAR)
+            )
         }
 
         project.configurePublicResourcesStub(project.multiplatformExtension!!)
         project.configureVersionFileWriter(project.multiplatformExtension!!, androidXExtension)
+        project.configureJavaCompilationWarnings(androidXExtension)
 
         project.configureDependencyVerification(androidXExtension) { taskProvider ->
             kotlinMultiplatformAndroidTarget.compilations.configureEach {
@@ -797,6 +756,7 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                 it.outgoing.artifact(project.tasks.named("createFullJarAndroidMain"))
             }
         }
+        project.setUpCheckDocsTask(androidXExtension)
         project.writeBlankPublicTxtToAar(kotlinMultiplatformAndroidComponentsExtension)
     }
 
@@ -920,10 +880,20 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
         experimentalProperties.put(ASB_SIGNING_CONFIG_PROPERTY_NAME, keyStore.absolutePath)
     }
 
+    // Taken from
+    // https://developer.android.com/build/releases/gradle-plugin#api-level-support
+    private fun mapToMinAgpVersion(compileSdk: Int): String {
+        return when (compileSdk) {
+            34 -> "8.1.1"
+            35 -> "8.6.0"
+            36 -> "8.9.1"
+            else -> throw Exception("Unknown compileSdk to minAgpVersion mapping")
+        }
+    }
+
     private fun configureWithLibraryPlugin(project: Project, androidXExtension: AndroidXExtension) {
         val buildTypeForTests = "release"
-        val libraryExtension = project.extensions.getByType<LibraryExtension>()
-        libraryExtension.apply {
+        project.extensions.getByType<LibraryExtension>().apply {
             publishing { singleVariant(DEFAULT_PUBLISH_CONFIG) }
 
             configureAndroidBaseOptions(project, androidXExtension)
@@ -944,15 +914,20 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
 
         val libraryAndroidComponentsExtension =
             project.extensions.getByType<LibraryAndroidComponentsExtension>()
-        configureCommonAndroidLibrary(
-            project,
-            androidXExtension,
-            libraryAndroidComponentsExtension,
-        )
 
         libraryAndroidComponentsExtension.apply {
             finalizeDsl {
-                it.defaultConfig.aarMetadata.configure(it.compileSdk)
+                // Propagate the compileSdk value into minCompileSdk. Don't propagate
+                // compileSdkExtension, since only one library actually depends on the extension
+                // APIs and they can explicitly declare that in their build.gradle. Note that when
+                // we're using a preview SDK, the value for compileSdk will be null and the
+                // resulting AAR metadata won't have a minCompileSdk --
+                // this is okay because AGP automatically embeds forceCompileSdkPreview in the AAR
+                // metadata and uses it instead of minCompileSdk.
+                it.compileSdk?.apply {
+                    it.defaultConfig.aarMetadata.minCompileSdk = this
+                    it.defaultConfig.aarMetadata.minAgpVersion = mapToMinAgpVersion(this)
+                }
                 it.lint.targetSdk = project.defaultAndroidConfig.targetSdk
                 it.testOptions.targetSdk = project.defaultAndroidConfig.targetSdk
                 // Replace with a public API once available, see b/360392255
@@ -962,11 +937,23 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                     project.setUpBlankProguardFileForAarIfNeeded(buildType)
                 }
             }
-            // Disable debug build type for Android Libraries
             beforeVariants(selector().withBuildType("debug")) { variant -> variant.enable = false }
+            beforeVariants(selector().all()) { variant ->
+                variant.androidTest.targetSdk = project.defaultAndroidConfig.targetSdk
+            }
+            onVariants { variant ->
+                variant.configureTests()
+                variant.enableMicrobenchmarkInternalDefaults(project)
+                project.validateKotlinModuleFiles(
+                    variant.name,
+                    variant.artifacts.get(SingleArtifact.AAR)
+                )
+            }
         }
 
+        project.disableStrictVersionConstraints()
         project.configureVersionFileWriter(libraryAndroidComponentsExtension, androidXExtension)
+        project.configureJavaCompilationWarnings(androidXExtension)
 
         val prebuiltLibraries = listOf("libtracing_perfetto.so", "libc++_shared.so")
         val copyPublicResourcesDirTask =
@@ -1012,6 +999,9 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                 }
             project.addToBuildOnServer(verifyELFRegionAlignmentTaskProvider)
         }
+
+        project.setUpCheckDocsTask(androidXExtension)
+
         project.buildOnServerDependsOnAssembleRelease()
         project.buildOnServerDependsOnLint()
     }
@@ -1133,6 +1123,7 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
 
         testOptions.animationsDisabled = !project.isMacrobenchmark()
         testOptions.unitTests.isReturnDefaultValues = true
+        testOptions.unitTests.all { task -> task.configureForRobolectric() }
 
         // Include resources in Robolectric tests as a workaround for b/184641296
         testOptions.unitTests.isIncludeAndroidResources = true
