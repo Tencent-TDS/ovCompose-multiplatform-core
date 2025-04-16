@@ -81,6 +81,16 @@ internal class UIKitBackGestureDispatcher(
         rightEdgePanGestureRecognizer.enabled = listener != null
     }
 
+    val isBackGestureActive: Boolean
+        get() =
+            leftEdgePanGestureRecognizer.state in activeGestureStates ||
+                rightEdgePanGestureRecognizer.state in activeGestureStates
+
+    private val activeGestureStates = listOf(
+        UIGestureRecognizerStateBegan,
+        UIGestureRecognizerStateChanged
+    )
+
     fun attachToView(view: UIView?) {
         if (enableBackGesture) {
             removeGestureListeners()
@@ -175,7 +185,7 @@ private class UiKitScreenEdgePanGestureHandler(
 
 /**
  * A special gesture recognizer that can cancel touches in the Compose scene.
- * See [androidx.compose.ui.window.UserInputGestureRecognizer.canBePreventedByGestureRecognizer]
+ * See [androidx.compose.ui.window.TouchesGestureRecognizer.canBePreventedByGestureRecognizer]
  */
 internal class UIKitBackGestureRecognizer(
     target: Any?, action: CPointer<out CPointed>?
