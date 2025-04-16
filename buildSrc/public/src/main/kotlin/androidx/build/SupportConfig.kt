@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 
 object SupportConfig {
-    const val DEFAULT_MIN_SDK_VERSION = 14
+    const val DEFAULT_MIN_SDK_VERSION = 19
     const val INSTRUMENTATION_RUNNER = "androidx.test.runner.AndroidJUnitRunner"
-    private const val INTERNAL_BUILD_TOOLS_VERSION = "34.0.0-rc3"
-    private const val PUBLIC_BUILD_TOOLS_VERSION = "34.0.0-rc3"
-    const val NDK_VERSION = "23.1.7779620"
+    private const val INTERNAL_BUILD_TOOLS_VERSION = "33.0.2"
+    private const val PUBLIC_BUILD_TOOLS_VERSION = "33.0.2"
+    const val NDK_VERSION = "25.2.9519653"
 
     /**
      * The Android SDK version to use for compilation.
@@ -34,7 +34,7 @@ object SupportConfig {
      * Either an integer value or a pre-release platform code, prefixed with "android-" (ex.
      * "android-28" or "android-Q") as you would see within the SDK's platforms directory.
      */
-    const val COMPILE_SDK_VERSION = "android-33-ext5"
+    const val COMPILE_SDK_VERSION = "android-33"
 
     /**
      * The Android SDK version to use for targetSdkVersion meta-data.
@@ -65,7 +65,7 @@ object SupportConfig {
 }
 
 fun Project.getExternalProjectPath(): File {
-    return File(rootProject.projectDir, "../../external").canonicalFile
+    return File(rootProject.projectDir, "external").canonicalFile
 }
 
 fun Project.getKeystore(): File {

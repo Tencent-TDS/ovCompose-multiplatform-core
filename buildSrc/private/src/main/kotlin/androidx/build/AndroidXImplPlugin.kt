@@ -24,16 +24,11 @@ import androidx.build.SupportConfig.DEFAULT_MIN_SDK_VERSION
 import androidx.build.SupportConfig.INSTRUMENTATION_RUNNER
 import androidx.build.SupportConfig.TARGET_SDK_VERSION
 import androidx.build.buildInfo.addCreateLibraryBuildInfoFileTasks
-import androidx.build.checkapi.JavaApiTaskConfig
-import androidx.build.checkapi.KmpApiTaskConfig
-import androidx.build.checkapi.LibraryApiTaskConfig
-import androidx.build.checkapi.configureProjectForApiTasks
 import androidx.build.dependencies.KOTLIN_VERSION
 import androidx.build.docs.AndroidXKmpDocsImplPlugin
 import androidx.build.gradle.isRoot
 import androidx.build.license.configureExternalDependencyLicenseCheck
 import androidx.build.resources.configurePublicResourcesStub
-import androidx.build.sbom.validateAllArchiveInputsRecognized
 import androidx.build.studio.StudioTask
 import androidx.build.testConfiguration.ModuleInfoGenerator
 import androidx.build.testConfiguration.TestModule
@@ -56,14 +51,13 @@ import com.android.build.gradle.TestPlugin
 import com.android.build.gradle.TestedExtension
 import java.io.File
 import java.time.Duration
-import java.util.Locale
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion.VERSION_11
 import org.gradle.api.JavaVersion.VERSION_17
-import org.gradle.api.JavaVersion.VERSION_1_8
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -86,6 +80,8 @@ import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
@@ -107,10 +103,11 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             throw Exception("Root project should use AndroidXRootImplPlugin instead")
         val extension = project.extensions.create<AndroidXExtension>(EXTENSION_NAME, project)
 
-        project.extensions.create<AndroidXMultiplatformExtension>(
+        val kmpExtension = project.extensions.create<AndroidXMultiplatformExtension>(
             AndroidXMultiplatformExtension.EXTENSION_NAME,
             project
         )
+
         project.tasks.register(BUILD_ON_SERVER_TASK, DefaultTask::class.java)
         // Perform different actions based on which plugins have been applied to the project.
         // Many of the actions overlap, ex. API tracking.
@@ -140,22 +137,74 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         }
 
         project.configureTaskTimeouts()
-        project.configureMavenArtifactUpload(extension, componentFactory)
+        project.configureMavenArtifactUpload(extension, kmpExtension, componentFactory)
         project.configureExternalDependencyLicenseCheck()
-        project.configureProjectStructureValidation(extension)
-        project.configureProjectVersionValidation(extension)
+//        project.configureProjectStructureValidation(extension)
+        // TODO: [1.4 Update] check that it is not needed
+        //   This validation is not needed for JetBrains Fork, since they usually set in a force way
+//        project.configureProjectVersionValidation(extension)
+
+        // JetBrains Fork only.
+        // extension to download latest androidx artifacts instead of depending on project modules
+        project.registerAndroidxArtifact(extension)
+
         project.registerProjectOrArtifact()
         project.addCreateLibraryBuildInfoFileTasks(extension)
 
         project.configurations.create("samples")
-        project.validateMultiplatformPluginHasNotBeenApplied()
+//        project.validateMultiplatformPluginHasNotBeenApplied()
 
         project.tasks.register("printCoordinates", PrintProjectCoordinatesTask::class.java) {
             it.configureWithAndroidXExtension(extension)
         }
         project.configureConstraintsWithinGroup(extension)
-        project.validateProjectParser(extension)
-        project.validateAllArchiveInputsRecognized()
+//        project.validateProjectParser(extension)
+//        project.validateAllArchiveInputsRecognized()
+//        project.afterEvaluate {
+//            if (extension.shouldPublish()) {
+//                project.validatePublishedMultiplatformHasDefault()
+//            }
+//        }
+
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            project.extensions.configure(KotlinMultiplatformExtension::class.java) {
+                it.compilerOptions {
+                    languageVersion.set(KotlinVersion.KOTLIN_2_0)
+                    apiVersion.set(KotlinVersion.KOTLIN_2_0)
+                }
+            }
+        }
+
+    }
+
+    /**
+     * Register task that provides androidx library name by given androidx module
+     *
+     * It works using libraryversions.toml where versions for androidx libraries are located.
+     *
+     * JetBrains Fork only.
+     */
+    private fun Project.registerAndroidxArtifact(extension: AndroidXExtension) {
+        extra.set(
+            ANDROIDX_ARTIFACT_EXT_NAME,
+            KotlinClosure1<String, Any>(
+                function = {
+                    val (group, libraryName) = this.trim(':').split(":")
+
+                    // find androidx library from libraryversions.toml by given module
+                    val androidxLibrary = extension.getLibraryGroupFromProjectPath(this)!!
+                    val atomicVersion = androidxLibrary.atomicGroupVersion
+
+                    // not all libraries have atomicVersion, for such cases we will use group name
+                    // e.g. CORE doesn't have atomicVersion, so we will find just a version for CORE
+                    // assuming that it will exist
+                    val version = atomicVersion ?: extension.LibraryVersions[group.uppercase()]!!
+
+                    "${androidxLibrary.group}:$libraryName:$version"
+                }
+            )
+        )
     }
 
     private fun Project.registerProjectOrArtifact() {
@@ -304,7 +353,10 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 if (!project.name.contains("camera-camera2-pipe")) {
                     kotlinCompilerArgs += "-Xjvm-default=all"
                 }
-                task.kotlinOptions.freeCompilerArgs += kotlinCompilerArgs
+                task.compilerOptions.freeCompilerArgs.addAll(kotlinCompilerArgs)
+
+                // Suppress a warning that 'expect'/'actual' classes are in Beta.
+                task.compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
             }
 
             val isAndroidProject = project.plugins.hasPlugin(LibraryPlugin::class.java) ||
@@ -316,14 +368,14 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                     // Workaround for https://youtrack.jetbrains.com/issue/KT-37652
                     if (task.name.endsWith("TestKotlin")) return@configureEach
                     if (task.name.endsWith("TestKotlinJvm")) return@configureEach
-                    task.kotlinOptions.freeCompilerArgs += listOf("-Xexplicit-api=strict")
+                    task.compilerOptions.freeCompilerArgs.addAll(listOf("-Xexplicit-api=strict"))
                 }
             }
         }
         // setup a partial docs artifact that can be used to generate offline docs, if requested.
         AndroidXKmpDocsImplPlugin.setupPartialDocsArtifact(project)
         if (plugin is KotlinMultiplatformPluginWrapper) {
-            project.configureKonanDirectory()
+            //project.configureKonanDirectory()
             project.extensions.findByType<LibraryExtension>()?.apply {
                 configureAndroidLibraryWithMultiplatformPluginOptions()
             }
@@ -490,24 +542,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             }
         }
 
-        val reportLibraryMetrics = project.configureReportLibraryMetricsTask()
-        project.addToBuildOnServer(reportLibraryMetrics)
-        libraryExtension.defaultPublishVariant { libraryVariant ->
-            reportLibraryMetrics.configure {
-                it.jarFiles.from(
-                    libraryVariant.packageLibraryProvider.map { zip ->
-                        zip.inputs.files
-                    }
-                )
-            }
-        }
-
-        // Standard docs, resource API, and Metalava configuration for AndroidX projects.
-        project.configureProjectForApiTasks(
-            LibraryApiTaskConfig(libraryExtension),
-            androidXExtension
-        )
-
         project.addToProjectMap(androidXExtension)
     }
 
@@ -554,12 +588,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         if (project.multiplatformExtension == null) {
             project.configureNonAndroidProjectForLint(extension)
         }
-        val apiTaskConfig = if (project.multiplatformExtension != null) {
-            KmpApiTaskConfig
-        } else {
-            JavaApiTaskConfig
-        }
-        project.configureProjectForApiTasks(apiTaskConfig, extension)
 
         project.afterEvaluate {
             if (extension.shouldRelease()) {
@@ -784,7 +812,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         val relativeRootPath = konanPrebuiltsFolder.relativeTo(rootProject.projectDir).path
         val relativeProjectPath = konanPrebuiltsFolder.relativeTo(projectDir).path
         tasks.withType(KotlinNativeCompile::class.java).configureEach {
-            it.kotlinOptions.freeCompilerArgs += listOf(
+            it.compilerOptions.freeCompilerArgs.add(
                 "-Xoverride-konan-properties=dependenciesUrl=file:$relativeRootPath"
             )
         }
@@ -1203,4 +1231,5 @@ fun removeLineAndColumnAttributes(baseline: String): String = baseline.replace(
     ""
 )
 
+const val ANDROIDX_ARTIFACT_EXT_NAME = "androidxArtifact"
 const val PROJECT_OR_ARTIFACT_EXT_NAME = "projectOrArtifact"
