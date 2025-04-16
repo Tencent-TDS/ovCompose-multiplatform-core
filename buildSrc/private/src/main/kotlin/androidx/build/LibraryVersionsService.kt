@@ -36,6 +36,7 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
         var composeCustomVersion: Provider<String>
         var composeCustomGroup: Provider<String>
         var useMultiplatformGroupVersions: Provider<Boolean>
+        var libsOverrideVersions: Provider<Map<String, String>>
     }
 
     private val parsedTomlFile: TomlParseResult by lazy {
@@ -60,12 +61,17 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
     // map from name of constant to Version
     val libraryVersions: Map<String, Version> by lazy {
         val versions = getTable("versions")
+        val libsGroupsAndVersions = parameters.libsOverrideVersions.get()
         versions.keySet().associateWith { versionName ->
+            val tagName = libsGroupsAndVersions.keys.firstOrNull { versionName == it }
+            val versionForTag = libsGroupsAndVersions[tagName]
             val versionValue =
                 if (versionName.startsWith("COMPOSE") &&
                     parameters.composeCustomVersion.isPresent
                 ) {
                     parameters.composeCustomVersion.get()
+                } else if (tagName != null && versionForTag != null) {
+                    versionForTag
                 } else {
                     // Do not use version from toml to about accidentally publish "stable" version
                     //
@@ -147,7 +153,8 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
             )
         }
         val result = mutableListOf<LibraryGroupAssociation>()
-        for (name in groups.keySet()) {
+        // the toml library returns keySet unsorted, but libraryGroupsByGroupId requires it to be sorted
+        for (name in groups.keySet().sorted()) {
             // get group name
             val groupDefinition = groups.getTable(name)!!
             val groupName = groupDefinition.getString("group")!!
