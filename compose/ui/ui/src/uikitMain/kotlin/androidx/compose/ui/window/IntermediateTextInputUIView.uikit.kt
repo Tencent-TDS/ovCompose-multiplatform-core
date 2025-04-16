@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
@@ -77,7 +78,6 @@ private val NoOpOnKeyboardPresses: (Set<*>) -> Unit = {}
  * Hidden UIView to interact with iOS Keyboard and TextInput system.
  * TODO maybe need to call reloadInputViews() to update UIKit text features?
  */
-@Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
     private val viewConfiguration: ViewConfiguration
 ) : CMPEditMenuView(frame = CGRectZero.readValue()),
@@ -360,11 +360,13 @@ internal class IntermediateTextInputUIView(
         return (toPosition.position - from.position).toLong()
     }
 
+    @ObjCSignatureOverride
     override fun positionWithinRange(
         range: UITextRange,
         atCharacterOffset: NSInteger
     ): UITextPosition? = null // TODO positionWithinRange
 
+    @ObjCSignatureOverride
     override fun positionWithinRange(
         range: UITextRange,
         farthestInDirection: UITextLayoutDirection

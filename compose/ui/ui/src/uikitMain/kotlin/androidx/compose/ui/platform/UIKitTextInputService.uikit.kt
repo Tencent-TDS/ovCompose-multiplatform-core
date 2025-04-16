@@ -18,7 +18,6 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -34,7 +33,6 @@ import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
@@ -207,29 +205,6 @@ internal class UIKitTextInputService(
             Key.Escape -> handleEscape(event)
             else -> false
         }
-    }
-
-    override fun updateTextLayoutResult(
-        textFieldValue: TextFieldValue,
-        offsetMapping: OffsetMapping,
-        textLayoutResult: TextLayoutResult,
-        textFieldToRootTransform: (Matrix) -> Unit,
-        innerTextFieldBounds: Rect,
-        decorationBoxBounds: Rect
-    ) {
-        super.updateTextLayoutResult(
-            textFieldValue,
-            offsetMapping,
-            textLayoutResult,
-            textFieldToRootTransform,
-            innerTextFieldBounds,
-            decorationBoxBounds
-        )
-        updateTextLayoutResult(textLayoutResult)
-
-        val matrix = Matrix()
-        textFieldToRootTransform(matrix)
-        updateTextFrame(matrix.map(decorationBoxBounds))
     }
 
     fun updateTextFrame(rect: Rect) {
