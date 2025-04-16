@@ -37,7 +37,7 @@ private val EmptyPersistentCompositionLocalMap: PersistentCompositionLocalMap =
  */
 @OptIn(InternalComposeApi::class, ExperimentalComposeRuntimeApi::class)
 abstract class CompositionContext internal constructor() {
-    internal abstract val compoundHashKey: Int
+    internal abstract val compositeKeyHashCode: CompositeKeyHashCode
     internal abstract val collectingParameterInformation: Boolean
     internal abstract val collectingSourceInformation: Boolean
     internal abstract val collectingCallByInformation: Boolean

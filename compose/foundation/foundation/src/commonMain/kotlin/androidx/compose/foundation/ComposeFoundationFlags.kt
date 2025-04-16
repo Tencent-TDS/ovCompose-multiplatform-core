@@ -111,4 +111,11 @@ object ComposeFoundationFlags {
      * parameter - this flag can be disabled as a temporary migration aid.
      */
     @Suppress("MutableBareField") @JvmField var isNonComposedClickableEnabled = true
+
+    /**
+     * Enables Compose trigger for calling
+     * [androidx.compose.ui.node.DelegatableNode.dispatchOnScrollChanged] callbacks during scroll
+     * events.
+     */
+    @Suppress("MutableBareField") @JvmField var isOnScrollChangedCallbackEnabled: Boolean = true
 }

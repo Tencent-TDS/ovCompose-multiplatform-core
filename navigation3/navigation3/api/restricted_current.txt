@@ -1,6 +1,10 @@
 // Signature format: 4.0
 package androidx.navigation3 {
 
+  public final class DecoratedNavEntryProviderKt {
+    method @androidx.compose.runtime.Composable public static <T> void DecoratedNavEntryProvider(java.util.List<? extends T> backStack, kotlin.jvm.functions.Function1<? super T,? extends androidx.navigation3.NavEntry<? extends T>> entryProvider, optional java.util.List<? extends androidx.navigation3.NavEntryDecorator> localProviders, kotlin.jvm.functions.Function1<? super java.util.List<? extends androidx.navigation3.NavEntry<T>>,kotlin.Unit> content);
+  }
+
   public final class EntryClassProvider<T> {
     ctor public EntryClassProvider(kotlin.reflect.KClass<T> clazz, java.util.Map<java.lang.String,?> metadata, kotlin.jvm.functions.Function1<? super T,kotlin.Unit> content);
     method public kotlin.reflect.KClass<T> component1();
@@ -50,10 +54,6 @@ package androidx.navigation3 {
     property public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.animation.AnimatedContentScope> LocalNavAnimatedContentScope;
   }
 
-  public final class NavBackStackProviderKt {
-    method @androidx.compose.runtime.Composable public static <T> void NavBackStackProvider(java.util.List<? extends T> backStack, kotlin.jvm.functions.Function1<? super T,? extends androidx.navigation3.NavEntry<? extends T>> entryProvider, optional java.util.List<? extends androidx.navigation3.NavLocalProvider> localProviders, kotlin.jvm.functions.Function1<? super java.util.List<? extends androidx.navigation3.NavEntry<T>>,kotlin.Unit> content);
-  }
-
   public class NavEntry<T> {
     ctor public NavEntry(T key, optional java.util.Map<java.lang.String,?> metadata, kotlin.jvm.functions.Function1<? super T,kotlin.Unit> content);
     method public kotlin.jvm.functions.Function1<T,kotlin.Unit> getContent();
@@ -62,6 +62,11 @@ package androidx.navigation3 {
     property public kotlin.jvm.functions.Function1<T,kotlin.Unit> content;
     property public T key;
     property public java.util.Map<java.lang.String,java.lang.Object> metadata;
+  }
+
+  public interface NavEntryDecorator {
+    method @androidx.compose.runtime.Composable public default void DecorateBackStack(java.util.List<?> backStack, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public <T> void DecorateEntry(androidx.navigation3.NavEntry<T> entry);
   }
 
   public class NavEntryWrapper<T> extends androidx.navigation3.NavEntry<T> {
@@ -73,19 +78,14 @@ package androidx.navigation3 {
     property public final androidx.navigation3.NavEntry<T> navEntry;
   }
 
-  public interface NavLocalProvider {
-    method @androidx.compose.runtime.Composable public default void ProvideToBackStack(java.util.List<?> backStack, kotlin.jvm.functions.Function0<kotlin.Unit> content);
-    method @androidx.compose.runtime.Composable public <T> void ProvideToEntry(androidx.navigation3.NavEntry<T> entry);
+  public final class SaveableStateNavEntryDecorator implements androidx.navigation3.NavEntryDecorator {
+    method @androidx.compose.runtime.Composable public <T> void DecorateEntry(androidx.navigation3.NavEntry<T> entry);
+    field public static final androidx.navigation3.SaveableStateNavEntryDecorator INSTANCE;
   }
 
-  public final class SaveableStateNavLocalProvider implements androidx.navigation3.NavLocalProvider {
-    method @androidx.compose.runtime.Composable public <T> void ProvideToEntry(androidx.navigation3.NavEntry<T> entry);
-    field public static final androidx.navigation3.SaveableStateNavLocalProvider INSTANCE;
-  }
-
-  public final class SavedStateNavLocalProvider implements androidx.navigation3.NavLocalProvider {
-    method @androidx.compose.runtime.Composable public <T> void ProvideToEntry(androidx.navigation3.NavEntry<T> entry);
-    field public static final androidx.navigation3.SavedStateNavLocalProvider INSTANCE;
+  public final class SavedStateNavEntryDecorator implements androidx.navigation3.NavEntryDecorator {
+    method @androidx.compose.runtime.Composable public <T> void DecorateEntry(androidx.navigation3.NavEntry<T> entry);
+    field public static final androidx.navigation3.SavedStateNavEntryDecorator INSTANCE;
   }
 
   public final class SinglePaneNavDisplay {
@@ -95,7 +95,7 @@ package androidx.navigation3 {
   }
 
   public final class SinglePaneNavDisplay_androidKt {
-    method @androidx.compose.runtime.Composable public static <T> void SinglePaneNavDisplay(java.util.List<? extends T> backStack, optional androidx.compose.ui.Modifier modifier, optional java.util.List<? extends androidx.navigation3.NavLocalProvider> localProviders, optional androidx.compose.ui.Alignment contentAlignment, optional androidx.compose.animation.SizeTransform? sizeTransform, optional androidx.compose.animation.EnterTransition enterTransition, optional androidx.compose.animation.ExitTransition exitTransition, optional androidx.compose.animation.EnterTransition popEnterTransition, optional androidx.compose.animation.ExitTransition popExitTransition, optional kotlin.jvm.functions.Function0<kotlin.Unit> onBack, kotlin.jvm.functions.Function1<? super T,? extends androidx.navigation3.NavEntry<T>> entryProvider);
+    method @androidx.compose.runtime.Composable public static <T> void SinglePaneNavDisplay(java.util.List<? extends T> backStack, optional androidx.compose.ui.Modifier modifier, optional java.util.List<? extends androidx.navigation3.NavEntryDecorator> localProviders, optional androidx.compose.ui.Alignment contentAlignment, optional androidx.compose.animation.SizeTransform? sizeTransform, optional androidx.compose.animation.EnterTransition enterTransition, optional androidx.compose.animation.ExitTransition exitTransition, optional androidx.compose.animation.EnterTransition popEnterTransition, optional androidx.compose.animation.ExitTransition popExitTransition, optional kotlin.jvm.functions.Function0<kotlin.Unit> onBack, kotlin.jvm.functions.Function1<? super T,? extends androidx.navigation3.NavEntry<T>> entryProvider);
   }
 
 }

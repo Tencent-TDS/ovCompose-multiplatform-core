@@ -19,18 +19,18 @@ package androidx.navigation3
 import androidx.compose.runtime.Composable
 
 @Suppress("UNCHECKED_CAST")
-internal fun <K : Any> createTestNavLocalProvider(
-    provideToBackStack: @Composable (backStack: List<Any>, content: @Composable () -> Unit) -> Unit,
-    provideToEntry: @Composable (entry: NavEntry<K>) -> Unit,
-): NavLocalProvider =
-    object : NavLocalProvider {
+internal fun <K : Any> createTestNavEntryDecorator(
+    decorateBackStack: @Composable (backStack: List<Any>, content: @Composable () -> Unit) -> Unit,
+    decorateEntry: @Composable (entry: NavEntry<K>) -> Unit,
+): NavEntryDecorator =
+    object : NavEntryDecorator {
         @Composable
-        override fun ProvideToBackStack(backStack: List<Any>, content: @Composable (() -> Unit)) {
-            provideToBackStack(backStack, content)
+        override fun DecorateBackStack(backStack: List<Any>, content: @Composable (() -> Unit)) {
+            decorateBackStack(backStack, content)
         }
 
         @Composable
-        override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
-            provideToEntry(entry as NavEntry<K>)
+        override fun <T : Any> DecorateEntry(entry: NavEntry<T>) {
+            decorateEntry(entry as NavEntry<K>)
         }
     }

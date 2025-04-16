@@ -84,7 +84,8 @@ package androidx.compose.runtime {
     method @androidx.compose.runtime.Composable public static inline void ReusableContent(Object? key, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static inline void ReusableContentHost(boolean active, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public static androidx.compose.runtime.Composer getCurrentComposer();
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static int getCurrentCompositeKeyHash();
+    method @Deprecated @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static int getCurrentCompositeKeyHash();
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static long getCurrentCompositeKeyHashCode();
     method @androidx.compose.runtime.Composable public static androidx.compose.runtime.CompositionLocalContext getCurrentCompositionLocalContext();
     method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public static androidx.compose.runtime.RecomposeScope getCurrentRecomposeScope();
     method @kotlin.PublishedApi internal static void invalidApplier();
@@ -96,7 +97,8 @@ package androidx.compose.runtime {
     method @androidx.compose.runtime.Composable public static inline <T> T remember(kotlin.jvm.functions.Function0<? extends T> calculation);
     method @androidx.compose.runtime.Composable public static androidx.compose.runtime.CompositionContext rememberCompositionContext();
     property @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public static androidx.compose.runtime.Composer currentComposer;
-    property @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static int currentCompositeKeyHash;
+    property @Deprecated @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static int currentCompositeKeyHash;
+    property @androidx.compose.runtime.Composable @androidx.compose.runtime.ExplicitGroupsComposable public static long currentCompositeKeyHashCode;
     property @androidx.compose.runtime.Composable public static androidx.compose.runtime.CompositionLocalContext currentCompositionLocalContext;
     property @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public static androidx.compose.runtime.RecomposeScope currentRecomposeScope;
   }
@@ -148,9 +150,10 @@ package androidx.compose.runtime {
     method @androidx.compose.runtime.ComposeCompilerApi public void endToMarker(int marker);
     method public androidx.compose.runtime.Applier<? extends java.lang.Object?> getApplier();
     method @org.jetbrains.annotations.TestOnly public kotlin.coroutines.CoroutineContext getApplyCoroutineContext();
+    method public long getCompositeKeyHashCode();
     method @org.jetbrains.annotations.TestOnly public androidx.compose.runtime.ControlledComposition getComposition();
     method public androidx.compose.runtime.tooling.CompositionData getCompositionData();
-    method public int getCompoundKeyHash();
+    method @Deprecated public default int getCompoundKeyHash();
     method public androidx.compose.runtime.CompositionLocalMap getCurrentCompositionLocalMap();
     method public int getCurrentMarker();
     method public boolean getDefaultsInvalid();
@@ -184,9 +187,10 @@ package androidx.compose.runtime {
     method @androidx.compose.runtime.ComposeCompilerApi public void useNode();
     property @androidx.compose.runtime.ComposeCompilerApi public abstract androidx.compose.runtime.Applier<? extends java.lang.Object?> applier;
     property @SuppressCompatibility @androidx.compose.runtime.InternalComposeApi @org.jetbrains.annotations.TestOnly public abstract kotlin.coroutines.CoroutineContext applyCoroutineContext;
+    property @SuppressCompatibility @androidx.compose.runtime.InternalComposeApi public abstract long compositeKeyHashCode;
     property @org.jetbrains.annotations.TestOnly public abstract androidx.compose.runtime.ControlledComposition composition;
     property public abstract androidx.compose.runtime.tooling.CompositionData compositionData;
-    property @SuppressCompatibility @androidx.compose.runtime.InternalComposeApi public abstract int compoundKeyHash;
+    property @Deprecated @SuppressCompatibility @androidx.compose.runtime.InternalComposeApi public default int compoundKeyHash;
     property public abstract androidx.compose.runtime.CompositionLocalMap currentCompositionLocalMap;
     property @androidx.compose.runtime.ComposeCompilerApi public abstract int currentMarker;
     property @androidx.compose.runtime.ComposeCompilerApi public abstract boolean defaultsInvalid;
@@ -239,6 +243,13 @@ package androidx.compose.runtime {
     field @kotlin.PublishedApi internal static final Object reference;
     field @kotlin.PublishedApi internal static final int referenceKey = 206; // 0xce
     field @kotlin.PublishedApi internal static final int reuseKey = 207; // 0xcf
+  }
+
+  public final class CompositeKeyHashCode_jvmKt {
+    method public static inline long toLong(long);
+    method public static inline String toString(long, int radix);
+    property public static long EmptyCompositeKeyHashCode;
+    field public static final long EmptyCompositeKeyHashCode = 0L; // 0x0L
   }
 
   public interface Composition {

@@ -33,7 +33,7 @@ import androidx.compose.runtime.ShouldPauseCallback
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.currentComposer
-import androidx.compose.runtime.currentCompositeKeyHash
+import androidx.compose.runtime.currentCompositeKeyHashCode
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
@@ -124,7 +124,7 @@ fun SubcomposeLayout(
     modifier: Modifier = Modifier,
     measurePolicy: SubcomposeMeasureScope.(Constraints) -> MeasureResult
 ) {
-    val compositeKeyHash = currentCompositeKeyHash
+    val compositeKeyHash = currentCompositeKeyHashCode.hashCode()
     val compositionContext = rememberCompositionContext()
     val materialized = currentComposer.materialize(modifier)
     val localMap = currentComposer.currentCompositionLocalMap

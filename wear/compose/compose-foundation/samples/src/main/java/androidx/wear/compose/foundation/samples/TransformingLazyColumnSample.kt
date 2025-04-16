@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +53,7 @@ import androidx.wear.compose.material.Text
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Sampled
 @Preview
@@ -67,7 +69,7 @@ fun TransformingLazyColumnAnimateItemSample() {
         TransformingLazyColumn(
             state = state,
             contentPadding = PaddingValues(5.dp),
-            modifier = Modifier.background(Color.Black)
+            modifier = Modifier.background(Color.Black).fillMaxSize()
         ) {
             items(list.size, key = { list[it] }) {
                 Text(
@@ -107,7 +109,7 @@ fun TransformingLazyColumnLettersSample() {
         return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)))
     }
 
-    TransformingLazyColumn {
+    TransformingLazyColumn(contentPadding = PaddingValues(vertical = 10.dp)) {
         items(count = alphabet.size) { index ->
             Text(
                 alphabet[index],
@@ -240,24 +242,42 @@ fun TransformingLazyColumnImplicitSample() {
 @Sampled
 @Preview
 @Composable
-fun UsingListAnchorItemPositionSample() {
-    val columnState = rememberTransformingLazyColumnState()
+fun TransformingLazyColumnScrollToItemSample() {
+    val state =
+        rememberTransformingLazyColumnState(
+            // Customize initial scroll position of the TransformingLazyColumn.
+            initialAnchorItemIndex = 10,
+        )
+    val coroutineScope = rememberCoroutineScope()
 
-    TransformingLazyColumn(modifier = Modifier.background(Color.Black), state = columnState) {
-        items(count = 100) {
+    TransformingLazyColumn(
+        modifier = Modifier.background(Color.Black),
+        state = state,
+        contentPadding = PaddingValues(vertical = 20.dp)
+    ) {
+        items(count = 20) {
             Text(
                 "Item $it",
                 modifier =
                     Modifier.drawBehind {
                             val isCentered =
-                                it == columnState.anchorItemIndex &&
-                                    abs(columnState.anchorItemScrollOffset) < size.height
-                            drawRect(if (isCentered) Color.Green else Color.Red)
+                                it == state.anchorItemIndex &&
+                                    abs(state.anchorItemScrollOffset) < size.height
+                            drawRect(if (isCentered) Color.Green else Color.DarkGray)
                         }
                         .padding(5.dp)
+                        .clickable { coroutineScope.launch { state.scrollToItem(it) } }
+            )
+        }
+
+        item {
+            Text(
+                "Scroll to top",
+                modifier =
+                    Modifier.clickable { coroutineScope.launch { state.animateScrollToItem(0) } }
             )
         }
     }
 
-    LaunchedEffect(columnState) { println("Anchor item index: ${columnState.anchorItemIndex}") }
+    LaunchedEffect(state.anchorItemIndex) { println("Anchor item index: ${state.anchorItemIndex}") }
 }

@@ -37,10 +37,10 @@ import androidx.savedstate.savedState
  * [SavedStateRegistryOwner] as a [LocalSavedStateRegistryOwner] so that it is available within the
  * content.
  */
-public object SavedStateNavLocalProvider : NavLocalProvider {
+public object SavedStateNavEntryDecorator : NavEntryDecorator {
 
     @Composable
-    override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+    override fun <T : Any> DecorateEntry(entry: NavEntry<T>) {
         val key = entry.key
         val childRegistry by
             rememberSaveable(

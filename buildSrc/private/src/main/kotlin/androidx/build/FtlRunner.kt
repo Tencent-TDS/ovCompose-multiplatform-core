@@ -40,6 +40,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.process.ExecOperations
+import org.gradle.process.ExecSpec
 import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = "Expected to rerun every time")
@@ -104,6 +105,24 @@ abstract class FtlRunner : DefaultTask() {
     )
     abstract val apis: ListProperty<Int>
 
+    @get:Optional
+    @get:Input
+    @get:Option(
+        option = "shardCount",
+        description = "Number of shards to split tests into (requires gcloud beta)"
+    )
+    abstract val shardCount: Property<Int>
+
+    @get:Optional
+    @get:Input
+    @get:Option(
+        option = "excludeAnnotation",
+        description =
+            "Repeatable argument to exclude annotations. " +
+                "Example: `--excludeAnnotation androidx.test.filters.FlakyTest`"
+    )
+    abstract val excludeAnnotations: ListProperty<String>
+
     @get:Input abstract val device: ListProperty<String>
 
     @TaskAction
@@ -129,26 +148,31 @@ abstract class FtlRunner : DefaultTask() {
                     "d345c82828c355acc1432535153cf1dcf456e559c26f735346bf5f38859e0512.apk"
             }
         try {
-            execOperations.exec { it.commandLine("gcloud", "--version") }
-        } catch (exception: Exception) {
+            execOperations.printCommandAndExec { it.commandLine("gcloud", "--version") }
+        } catch (_: Exception) {
             throw Exception(
                 "Missing gcloud, please follow go/androidx-dev#remote-build-cache to set it up"
             )
         }
-        val hasFilters = className.isPresent || packageName.isPresent
-        val filters =
-            listOfNotNull(
-                    if (className.isPresent) "class ${className.get()}" else null,
-                    if (packageName.isPresent) "package ${packageName.get()}" else null,
-                )
-                .joinToString(separator = ",")
+
+        val filterList = buildList {
+            if (className.isPresent) add("class ${className.get()}")
+            if (packageName.isPresent) add("package ${packageName.get()}")
+            if (excludeAnnotations.isPresent) {
+                addAll(excludeAnnotations.get().map { "notAnnotation $it" })
+            }
+        }
+        val hasFilters = filterList.isNotEmpty()
+        val filters = filterList.joinToString(separator = ",")
 
         val shouldPull = pullScreenshots.isPresent && pullScreenshots.get() == "true"
 
-        execOperations.exec {
+        val needsBeta = shardCount.isPresent
+        execOperations.printCommandAndExec {
             it.commandLine(
                 listOfNotNull(
                     "gcloud",
+                    if (needsBeta) "beta" else null,
                     "--project",
                     "androidx-dev-prod",
                     "firebase",
@@ -171,6 +195,8 @@ abstract class FtlRunner : DefaultTask() {
                     } else null,
                     if (testTimeout.isPresent) "--timeout" else null,
                     if (testTimeout.isPresent) testTimeout.get() else null,
+                    if (shardCount.isPresent) "--num-uniform-shards" else null,
+                    if (shardCount.isPresent) shardCount.get() else null,
                     if (instrumentationArgs.isPresent) "--environment-variables" else null,
                     if (instrumentationArgs.isPresent) instrumentationArgs.get() else null,
                 ) + getDeviceArguments()
@@ -298,5 +324,15 @@ fun Project.addAppApkToFtlRunner() {
                 }
             }
         }
+    }
+}
+
+private fun ExecOperations.printCommandAndExec(action: (ExecSpec) -> Unit) {
+    exec { spec ->
+        action(spec)
+
+        // Just approximating the command for user verification.
+        val commandLine = spec.commandLine.map { if (" " in it) "\"$it\"" else it }
+        println("Executing command: `${commandLine.joinToString(" ")}`")
     }
 }

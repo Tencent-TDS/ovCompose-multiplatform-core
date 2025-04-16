@@ -147,7 +147,7 @@ class LazyColumnTest {
                     .getParametersResponse
             val strings = params.stringsList.toMap()
             val param =
-                params.parameterGroup.parameterList.singleOrNull { strings[it.name] == "text" }
+                params.parameterGroup.parameterList.singleOrNull { strings[it.name] == "$0" }
             param?.let { strings[param.int32Value] }
         }
 }

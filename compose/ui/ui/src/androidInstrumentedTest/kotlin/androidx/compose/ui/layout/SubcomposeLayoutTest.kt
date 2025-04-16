@@ -3258,7 +3258,7 @@ class SubcomposeLayoutTest {
 
         rule.runOnIdle {
             assertThat(composingCounter).isEqualTo(0)
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
 
             assertThat(composingCounter).isEqualTo(1)
             assertThat(applyCounter).isEqualTo(0)
@@ -3304,7 +3304,7 @@ class SubcomposeLayoutTest {
 
         rule.runOnIdle {
             assertThat(composingCounter).isEqualTo(0)
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
         }
 
         rule.runOnIdle {
@@ -3381,7 +3381,7 @@ class SubcomposeLayoutTest {
         rule.runOnIdle {
             assertThat(composingCounter).isEqualTo(0)
             val precomposition = state.createPausedPrecomposition(Unit, content)
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
             assertThat(composingCounter).isEqualTo(1)
             precomposition.cancel()
         }
@@ -3445,7 +3445,7 @@ class SubcomposeLayoutTest {
         rule.runOnIdle {
             assertThat(remeasuresCount).isEqualTo(0)
             val precomposition = state.createPausedPrecomposition(Unit, content)
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
             val handle = precomposition.apply()
 
             assertThat(remeasuresCount).isEqualTo(0)
@@ -3497,7 +3497,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
             precomposition.cancel()
 
             val precomposition2 =
@@ -3509,7 +3509,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition2.resume { false }
+            precomposition2.resumeUntilCompleted()
             precomposition2.apply()
 
             assertThat(content1Composed).isFalse()
@@ -3573,7 +3573,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
             precomposition.apply()
 
             assertThat(content1Composed).isTrue()
@@ -3587,7 +3587,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition2.resume { false }
+            precomposition2.resumeUntilCompleted()
             val handle = precomposition2.apply()
 
             assertThat(content1Composed).isFalse()
@@ -3618,7 +3618,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition.resume { false }
+            precomposition.resumeUntilCompleted()
             precomposition.apply()
 
             assertThat(content1Composed).isTrue()
@@ -3660,7 +3660,7 @@ class SubcomposeLayoutTest {
         rule.runOnIdle {
             val precomposition = state.createPausedPrecomposition(Unit, content)
 
-            precomposition.resume { false } // but not applying
+            precomposition.resumeUntilCompleted() // but not applying
 
             assertThat(contentComposed).isFalse()
 
@@ -3697,7 +3697,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition.resume { false } // but not applying
+            precomposition.resumeUntilCompleted() // but not applying
 
             val handle =
                 state.precompose(Unit) {
@@ -3740,7 +3740,7 @@ class SubcomposeLayoutTest {
         rule.runOnIdle {
             val precomposition = state.createPausedPrecomposition(Unit, content)
 
-            precomposition.resume { false } // but not applying
+            precomposition.resumeUntilCompleted() // but not applying
 
             assertThat(contentComposed).isFalse()
 
@@ -3748,7 +3748,7 @@ class SubcomposeLayoutTest {
 
             assertThat(contentComposed).isFalse()
 
-            precomposition2.resume { false }
+            precomposition2.resumeUntilCompleted()
             val handle = precomposition2.apply()
 
             assertThat(contentComposed).isTrue()
@@ -3783,7 +3783,7 @@ class SubcomposeLayoutTest {
                     }
                 }
 
-            precomposition.resume { false } // but not applying
+            precomposition.resumeUntilCompleted() // but not applying
 
             val precomposition2 =
                 state.createPausedPrecomposition(Unit) {
@@ -3797,7 +3797,7 @@ class SubcomposeLayoutTest {
             assertThat(content1Composed).isFalse()
             assertThat(content2Composed).isFalse()
 
-            precomposition2.resume { false }
+            precomposition2.resumeUntilCompleted()
             precomposition2.apply()
 
             assertThat(content1Composed).isFalse()
@@ -3934,4 +3934,10 @@ private fun LayoutUsingAlignments(content: @Composable () -> Unit) {
 private enum class Screens {
     Screen1,
     Screen2,
+}
+
+private fun SubcomposeLayoutState.PausedPrecomposition.resumeUntilCompleted() {
+    while (!isComplete) {
+        resume { false }
+    }
 }

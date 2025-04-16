@@ -11,7 +11,8 @@ After the dependency version is updated for AndroidX, the patch file should be d
 
 Patches can be generated with `git diff > patch-file-name.patch`.
 
-| Workflow            | Patch File Name      |
-|---------------------|----------------------|
-| Gradle Nightly Test | gradle-nightly.patch |
-| KGP Nightly Test    | kgp-nightly.patch    |
+| Workflow                    | Patch File Name              |
+|-----------------------------|------------------------------|
+| Gradle Nightly Test         | gradle-nightly.patch         |
+| Gradle Release Nightly Test | gradle-release-nightly.patch |
+| KGP Nightly Test            | kgp-nightly.patch            |

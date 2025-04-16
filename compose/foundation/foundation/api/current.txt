@@ -115,12 +115,14 @@ package androidx.compose.foundation {
     property public boolean isAutomaticNestedPrefetchEnabled;
     property public boolean isDetectTapGesturesImmediateCoroutineDispatchEnabled;
     property public boolean isNonComposedClickableEnabled;
+    property public boolean isOnScrollChangedCallbackEnabled;
     property public boolean isPausableCompositionInPrefetchEnabled;
     field public static boolean DragGesturePickUpEnabled;
     field public static final androidx.compose.foundation.ComposeFoundationFlags INSTANCE;
     field public static boolean isAutomaticNestedPrefetchEnabled;
     field public static boolean isDetectTapGesturesImmediateCoroutineDispatchEnabled;
     field public static boolean isNonComposedClickableEnabled;
+    field public static boolean isOnScrollChangedCallbackEnabled;
     field public static boolean isPausableCompositionInPrefetchEnabled;
   }
 

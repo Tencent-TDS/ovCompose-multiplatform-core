@@ -52,6 +52,11 @@ public class LocalStorageIcingOptionsConfig implements IcingOptionsConfig {
     }
 
     @Override
+    public int getCompressionMemLevel() {
+        return DEFAULT_COMPRESSION_MEM_LEVEL;
+    }
+
+    @Override
     public boolean getAllowCircularSchemaDefinitions() {
         return true;
     }

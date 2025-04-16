@@ -541,15 +541,32 @@ sealed interface Composer {
     /**
      * A Compose internal property. DO NOT call directly. Use [currentCompositeKeyHash] instead.
      *
-     * This a hash value used to coordinate map externally stored state to the composition. For
-     * example, this is used by saved instance state to preserve state across activity lifetime
-     * boundaries.
+     * This a hash value used to map externally stored state to the composition. For example, this
+     * is used by saved instance state to preserve state across activity lifetime boundaries.
      *
-     * This value is not likely to be unique but is not guaranteed unique. There are known cases,
-     * such as for loops without a [key], where the runtime does not have enough information to make
-     * the compound key hash unique.
+     * This value is likely but not guaranteed to be unique. There are known cases, such as for
+     * loops without a unique [key], where the runtime does not have enough information to make the
+     * compound key hash unique.
      */
-    @InternalComposeApi val compoundKeyHash: Int
+    @Deprecated(
+        "Prefer the higher-precision compositeKeyHashCode instead",
+        ReplaceWith("compositeKeyHashCode")
+    )
+    @InternalComposeApi
+    val compoundKeyHash: Int
+        get() = compositeKeyHashCode.hashCode()
+
+    /**
+     * A Compose internal property. DO NOT call directly. Use [currentCompositeKeyHashCode] instead.
+     *
+     * This a hash value used to map externally stored state to the composition. For example, this
+     * is used by saved instance state to preserve state across activity lifetime boundaries.
+     *
+     * This value is likely but not guaranteed to be unique. There are known cases, such as for
+     * loops without a unique [key], where the runtime does not have enough information to make the
+     * compound key hash unique.
+     */
+    @InternalComposeApi val compositeKeyHashCode: CompositeKeyHashCode
 
     // Groups
 
@@ -1534,7 +1551,7 @@ internal class ComposerImpl(
         }
         validateNodeNotExpected()
 
-        updateCompoundKeyWhenWeEnterGroup(key, rGroupIndex, null, null)
+        updateCompositeKeyWhenWeEnterGroup(key, rGroupIndex, null, null)
 
         rGroupIndex++
 
@@ -1699,7 +1716,7 @@ internal class ComposerImpl(
             parentContext.recordInspectionTable(it)
         }
 
-        startGroup(parentContext.compoundHashKey)
+        startGroup(parentContext.compositeKeyHashCode.hashCode())
     }
 
     /**
@@ -1728,7 +1745,7 @@ internal class ComposerImpl(
         providersInvalidStack.clear()
         providerUpdates = null
         insertFixups.clear()
-        compoundKeyHash = 0
+        compositeKeyHashCode = CompositeKeyHashCode(0)
         childrenComposing = 0
         nodeExpected = false
         inserting = false
@@ -1771,11 +1788,11 @@ internal class ComposerImpl(
         }
 
     /**
-     * Returns the hash of the compound key calculated as a combination of the keys of all the
+     * Returns the hash of the composite key calculated as a combination of the keys of all the
      * currently started groups via [startGroup].
      */
     @InternalComposeApi
-    override var compoundKeyHash: Int = 0
+    override var compositeKeyHashCode: CompositeKeyHashCode = EmptyCompositeKeyHashCode
         private set
 
     /**
@@ -2442,7 +2459,7 @@ internal class ComposerImpl(
             holder =
                 CompositionContextHolder(
                     CompositionContextImpl(
-                        compoundKeyHash,
+                        this@ComposerImpl.compositeKeyHashCode,
                         forceRecomposeScopes,
                         sourceMarkersEnabled,
                         (composition as? CompositionImpl)?.observerHolder
@@ -2511,7 +2528,7 @@ internal class ComposerImpl(
     private fun start(key: Int, objectKey: Any?, kind: GroupKind, data: Any?) {
         validateNodeNotExpected()
 
-        updateCompoundKeyWhenWeEnterGroup(key, rGroupIndex, objectKey, data)
+        updateCompositeKeyWhenWeEnterGroup(key, rGroupIndex, objectKey, data)
 
         if (objectKey == null) rGroupIndex++
 
@@ -2654,7 +2671,7 @@ internal class ComposerImpl(
         val rGroupIndex = parentStateStack.peek2() - 1
         if (inserting) {
             val parent = writer.parent
-            updateCompoundKeyWhenWeExitGroup(
+            updateCompositeKeyWhenWeExitGroup(
                 writer.groupKey(parent),
                 rGroupIndex,
                 writer.groupObjectKey(parent),
@@ -2662,7 +2679,7 @@ internal class ComposerImpl(
             )
         } else {
             val parent = reader.parent
-            updateCompoundKeyWhenWeExitGroup(
+            updateCompositeKeyWhenWeExitGroup(
                 reader.groupKey(parent),
                 rGroupIndex,
                 reader.groupObjectKey(parent),
@@ -2837,7 +2854,7 @@ internal class ComposerImpl(
         val parent = reader.parent
         val end = parent + reader.groupSize(parent)
         val recomposeIndex = nodeIndex
-        val recomposeCompoundKey = compoundKeyHash
+        val recomposeCompositeKey = this@ComposerImpl.compositeKeyHashCode
         val oldGroupNodeCount = groupNodeCount
         val oldRGroupIndex = rGroupIndex
         var oldGroup = parent
@@ -2865,10 +2882,11 @@ internal class ComposerImpl(
                 // indexes we needed into the rGroup IntList
                 rGroupIndex = rGroupIndexOf(newGroup)
 
-                // Calculate the compound hash code (a semi-unique code for every group in the
+                // Calculate the composite hash code (a semi-unique code for every group in the
                 // composition used to restore saved state).
                 val newParent = reader.parent(newGroup)
-                compoundKeyHash = compoundKeyOf(newParent, parent, recomposeCompoundKey)
+                this@ComposerImpl.compositeKeyHashCode =
+                    compositeKeyOf(newParent, parent, recomposeCompositeKey)
 
                 // We have moved so the cached lookup of the provider is invalid
                 providerCache = null
@@ -2916,7 +2934,7 @@ internal class ComposerImpl(
             // No need to restore the parent state for nodeIndex, groupNodeCount and
             // rGroupIndex as they are going to be restored immediately by the endGroup
         }
-        compoundKeyHash = recomposeCompoundKey
+        this@ComposerImpl.compositeKeyHashCode = recomposeCompositeKey
 
         isComposing = wasComposing
     }
@@ -3089,50 +3107,57 @@ internal class ComposerImpl(
     }
 
     /**
-     * Calculate the compound key (a semi-unique key produced for every group in the composition)
+     * Calculate the composite key (a semi-unique key produced for every group in the composition)
      * for [group]. Passing in the [recomposeGroup] and [recomposeKey] allows this method to exit
      * early.
      */
-    private fun compoundKeyOf(group: Int, recomposeGroup: Int, recomposeKey: Int): Int {
-        // The general form of a group's compoundKey can be solved by recursively evaluating:
-        // compoundKey(group) = ((compoundKey(parent(group)) rol 3)
-        //      xor compoundKeyPart(group) rol 3) xor effectiveRGroupIndex
+    private fun compositeKeyOf(
+        group: Int,
+        recomposeGroup: Int,
+        recomposeKey: CompositeKeyHashCode
+    ): CompositeKeyHashCode {
+        // The general form of a group's compositeKey can be solved by recursively evaluating:
+        // compositeKey(group) = ((compositeKey(parent(group)) rol 3)
+        //      xor compositeKeyPart(group) rol 3) xor effectiveRGroupIndex
         //
         // To solve this without recursion, first expand the terms:
-        // compoundKey(group) = (compoundKey(parent(group)) rol 6)
-        //                      xor (compoundKeyPart(group) rol 3)
+        // compositeKey(group) = (compositeKey(parent(group)) rol 6)
+        //                      xor (compositeKeyPart(group) rol 3)
         //                      xor effectiveRGroupIndex
         //
         // Then rewrite this as an iterative XOR sum, where n represents the distance from the
         // starting node and takes the range 0 <= n < depth(group) and g - n represents the n-th
         // parent of g, and all terms are XOR-ed together:
         //
-        // [compoundKeyPart(g - n) rol (6n + 3)] xor [rGroupIndexOf(g - n) rol (6n)]
+        // [compositeKeyPart(g - n) rol (6n + 3)] xor [rGroupIndexOf(g - n) rol (6n)]
         //
-        // Because compoundKey(g - n) is known when (g - n) == recomposeGroup, we can terminate
+        // Because compositeKey(g - n) is known when (g - n) == recomposeGroup, we can terminate
         // early and substitute that iteration's terms with recomposeKey rol (6n).
 
         var keyRot = 3
         var rgiRot = 0
-        var result = 0
+        var result = CompositeKeyHashCode(0)
 
         var parent = group
         while (parent >= 0) {
             if (parent == recomposeGroup) {
-                result = result xor (recomposeKey rol rgiRot)
+                result = result.bottomUpCompoundWith(recomposeKey, rgiRot)
                 return result
             }
 
-            val groupKey = reader.groupCompoundKeyPart(parent)
+            val groupKey = reader.groupCompositeKeyPart(parent)
             if (groupKey == movableContentKey) {
-                result = result xor (groupKey rol rgiRot)
+                result = result.bottomUpCompoundWith(groupKey, rgiRot)
                 return result
             }
 
             val effectiveRGroupIndex = if (reader.hasObjectKey(parent)) 0 else rGroupIndexOf(parent)
-            result = result xor (groupKey rol keyRot) xor (effectiveRGroupIndex rol rgiRot)
-            keyRot = (keyRot + 6) % 32
-            rgiRot = (rgiRot + 6) % 32
+            result =
+                result
+                    .bottomUpCompoundWith(groupKey, keyRot)
+                    .bottomUpCompoundWith(effectiveRGroupIndex, rgiRot)
+            keyRot = (keyRot + 6) % CompositeKeyHashSizeBits
+            rgiRot = (rgiRot + 6) % CompositeKeyHashSizeBits
 
             parent = reader.parent(parent)
         }
@@ -3140,7 +3165,7 @@ internal class ComposerImpl(
         return result
     }
 
-    private fun SlotReader.groupCompoundKeyPart(group: Int) =
+    private fun SlotReader.groupCompositeKeyPart(group: Int): Int =
         if (hasObjectKey(group)) {
             groupObjectKey(group)?.let {
                 when (it) {
@@ -3194,11 +3219,11 @@ internal class ComposerImpl(
             val dataKey = reader.groupObjectKey
             val aux = reader.groupAux
             val rGroupIndex = rGroupIndex
-            updateCompoundKeyWhenWeEnterGroup(key, rGroupIndex, dataKey, aux)
+            updateCompositeKeyWhenWeEnterGroup(key, rGroupIndex, dataKey, aux)
             startReaderGroup(reader.isNode, null)
             recomposeToGroupEnd()
             reader.endGroup()
-            updateCompoundKeyWhenWeExitGroup(key, rGroupIndex, dataKey, aux)
+            updateCompositeKeyWhenWeExitGroup(key, rGroupIndex, dataKey, aux)
         }
     }
 
@@ -3384,12 +3409,12 @@ internal class ComposerImpl(
         startMovableGroup(movableContentKey, content)
         updateSlot(parameter)
 
-        // All movable content has a compound hash value rooted at the content itself so the hash
+        // All movable content has a composite hash value rooted at the content itself so the hash
         // value doesn't change as the content moves in the tree.
-        val savedCompoundKeyHash = compoundKeyHash
+        val savedCompositeKeyHash = compositeKeyHashCode
 
         try {
-            compoundKeyHash = movableContentKey
+            compositeKeyHashCode = CompositeKeyHashCode(movableContentKey)
 
             if (inserting) writer.markGroup()
 
@@ -3432,7 +3457,7 @@ internal class ComposerImpl(
             // Restore the state back to what is expected by the caller.
             endGroup()
             providerCache = null
-            compoundKeyHash = savedCompoundKeyHash
+            compositeKeyHashCode = savedCompositeKeyHash
             endMovableGroup()
         }
     }
@@ -4023,7 +4048,7 @@ internal class ComposerImpl(
         pending = null
         nodeIndex = 0
         groupNodeCount = 0
-        compoundKeyHash = 0
+        compositeKeyHashCode = EmptyCompositeKeyHashCode
         nodeExpected = false
         changeListWriter.resetTransientState()
         invalidateStack.clear()
@@ -4054,7 +4079,7 @@ internal class ComposerImpl(
 
     @OptIn(ExperimentalComposeRuntimeApi::class)
     internal inner class CompositionContextImpl(
-        override val compoundHashKey: Int,
+        override val compositeKeyHashCode: CompositeKeyHashCode,
         override val collectingParameterInformation: Boolean,
         override val collectingSourceInformation: Boolean,
         override val observerHolder: CompositionObserverHolder?
@@ -4205,7 +4230,7 @@ internal class ComposerImpl(
             get() = this@ComposerImpl.composition
     }
 
-    private inline fun updateCompoundKeyWhenWeEnterGroup(
+    private inline fun updateCompositeKeyWhenWeEnterGroup(
         groupKey: Int,
         rGroupIndex: Int,
         dataKey: Any?,
@@ -4213,17 +4238,18 @@ internal class ComposerImpl(
     ) {
         if (dataKey == null)
             if (data != null && groupKey == reuseKey && data != Composer.Empty)
-                updateCompoundKeyWhenWeEnterGroupKeyHash(data.hashCode(), rGroupIndex)
-            else updateCompoundKeyWhenWeEnterGroupKeyHash(groupKey, rGroupIndex)
-        else if (dataKey is Enum<*>) updateCompoundKeyWhenWeEnterGroupKeyHash(dataKey.ordinal, 0)
-        else updateCompoundKeyWhenWeEnterGroupKeyHash(dataKey.hashCode(), 0)
+                updateCompositeKeyWhenWeEnterGroupKeyHash(data.hashCode(), rGroupIndex)
+            else updateCompositeKeyWhenWeEnterGroupKeyHash(groupKey, rGroupIndex)
+        else if (dataKey is Enum<*>) updateCompositeKeyWhenWeEnterGroupKeyHash(dataKey.ordinal, 0)
+        else updateCompositeKeyWhenWeEnterGroupKeyHash(dataKey.hashCode(), 0)
     }
 
-    private inline fun updateCompoundKeyWhenWeEnterGroupKeyHash(keyHash: Int, rGroupIndex: Int) {
-        compoundKeyHash = (((compoundKeyHash rol 3) xor keyHash) rol 3) xor rGroupIndex
+    private inline fun updateCompositeKeyWhenWeEnterGroupKeyHash(groupKey: Int, rGroupIndex: Int) {
+        compositeKeyHashCode =
+            compositeKeyHashCode.compoundWith(groupKey, 3).compoundWith(rGroupIndex, 3)
     }
 
-    private inline fun updateCompoundKeyWhenWeExitGroup(
+    private inline fun updateCompositeKeyWhenWeExitGroup(
         groupKey: Int,
         rGroupIndex: Int,
         dataKey: Any?,
@@ -4231,14 +4257,15 @@ internal class ComposerImpl(
     ) {
         if (dataKey == null)
             if (data != null && groupKey == reuseKey && data != Composer.Empty)
-                updateCompoundKeyWhenWeExitGroupKeyHash(data.hashCode(), rGroupIndex)
-            else updateCompoundKeyWhenWeExitGroupKeyHash(groupKey, rGroupIndex)
-        else if (dataKey is Enum<*>) updateCompoundKeyWhenWeExitGroupKeyHash(dataKey.ordinal, 0)
-        else updateCompoundKeyWhenWeExitGroupKeyHash(dataKey.hashCode(), 0)
+                updateCompositeKeyWhenWeExitGroupKeyHash(data.hashCode(), rGroupIndex)
+            else updateCompositeKeyWhenWeExitGroupKeyHash(groupKey, rGroupIndex)
+        else if (dataKey is Enum<*>) updateCompositeKeyWhenWeExitGroupKeyHash(dataKey.ordinal, 0)
+        else updateCompositeKeyWhenWeExitGroupKeyHash(dataKey.hashCode(), 0)
     }
 
-    private inline fun updateCompoundKeyWhenWeExitGroupKeyHash(groupKey: Int, rGroupIndex: Int) {
-        compoundKeyHash = (((compoundKeyHash xor rGroupIndex) ror 3) xor groupKey.hashCode()) ror 3
+    private inline fun updateCompositeKeyWhenWeExitGroupKeyHash(groupKey: Int, rGroupIndex: Int) {
+        compositeKeyHashCode =
+            compositeKeyHashCode.unCompoundWith(rGroupIndex, 3).unCompoundWith(groupKey, 3)
     }
 
     // This is only used in tests to ensure the stacks do not silently leak.

@@ -16,8 +16,11 @@
 
 package androidx.appfunctions.schema.notes.translators
 
+import android.net.Uri
+import androidx.appfunctions.LegacyAttachment
 import androidx.appfunctions.LegacyCreateNoteParams
 import androidx.appfunctions.LegacyNote
+import androidx.appfunctions.LegacyUri
 import androidx.appfunctions.testing.TranslatorTestUtils
 import androidx.test.filters.SdkSuppress
 import org.junit.Test
@@ -33,14 +36,30 @@ class CreateNoteTranslatorTest {
             LegacyCreateNoteParams(
                 title = "Title",
                 content = "Content",
-                externalId = "legacyExternalId"
+                externalId = "legacyExternalId",
+                attachments =
+                    listOf(
+                        LegacyAttachment(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = LegacyUri(uri = "content://xxx")
+                        )
+                    )
             )
 
         val expectedUpgradedParams =
             CreateNoteAppFunctionParams(
                 title = "Title",
                 content = "Content",
-                externalUuid = "legacyExternalId"
+                externalUuid = "legacyExternalId",
+                attachments =
+                    listOf(
+                        AttachmentImpl(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = Uri.parse("content://xxx")
+                        )
+                    )
             )
         translatorTestUtils.assertUpgradeRequestTranslation(
             "createNoteParams",
@@ -57,7 +76,12 @@ class CreateNoteTranslatorTest {
             )
 
         val expectedUpgradedParams =
-            CreateNoteAppFunctionParams(title = "Title", content = null, externalUuid = null)
+            CreateNoteAppFunctionParams(
+                title = "Title",
+                content = null,
+                externalUuid = null,
+                attachments = emptyList()
+            )
         translatorTestUtils.assertUpgradeRequestTranslation(
             "createNoteParams",
             legacyParams,
@@ -71,11 +95,31 @@ class CreateNoteTranslatorTest {
             CreateNoteAppFunctionParams(
                 title = "Title",
                 content = "Content",
-                externalUuid = "externalId"
+                externalUuid = "externalId",
+                attachments =
+                    listOf(
+                        AttachmentImpl(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = Uri.parse("content://xxx")
+                        )
+                    )
             )
 
         val expectedDowngradedParams =
-            LegacyCreateNoteParams(title = "Title", content = "Content", externalId = "externalId")
+            LegacyCreateNoteParams(
+                title = "Title",
+                content = "Content",
+                externalId = "externalId",
+                attachments =
+                    listOf(
+                        LegacyAttachment(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = LegacyUri(uri = "content://xxx")
+                        )
+                    )
+            )
         translatorTestUtils.assertDowngradeRequestTranslation(
             "createNoteParams",
             jetpackParams,
@@ -86,7 +130,12 @@ class CreateNoteTranslatorTest {
     @Test
     fun downgradeRequest_nullableFieldsNotSet() {
         val jetpackParams =
-            CreateNoteAppFunctionParams(title = "Title", content = null, externalUuid = null)
+            CreateNoteAppFunctionParams(
+                title = "Title",
+                content = null,
+                externalUuid = null,
+                attachments = emptyList()
+            )
 
         val expectedDowngradedParams = LegacyCreateNoteParams(title = "Title")
         translatorTestUtils.assertDowngradeRequestTranslation(
@@ -103,11 +152,32 @@ class CreateNoteTranslatorTest {
                 id = "id",
                 title = "title",
                 content = "content",
+                attachments =
+                    listOf(
+                        LegacyAttachment(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = LegacyUri(uri = "content://xxx")
+                        )
+                    )
             )
 
         val expectedUpgradedResponse =
             CreateNoteAppFunctionResponse(
-                createdNote = AppFunctionNoteImpl(id = "id", title = "title", content = "content")
+                createdNote =
+                    AppFunctionNoteImpl(
+                        id = "id",
+                        title = "title",
+                        content = "content",
+                        attachments =
+                            listOf(
+                                AttachmentImpl(
+                                    displayName = "name",
+                                    mimeType = "text/html",
+                                    uri = Uri.parse("content://xxx")
+                                )
+                            )
+                    )
             )
         translatorTestUtils.assertUpgradeResponseTranslation(legacyNote, expectedUpgradedResponse)
     }
@@ -122,7 +192,13 @@ class CreateNoteTranslatorTest {
 
         val expectedUpgradedResponse =
             CreateNoteAppFunctionResponse(
-                createdNote = AppFunctionNoteImpl(id = "id", title = "title", content = null)
+                createdNote =
+                    AppFunctionNoteImpl(
+                        id = "id",
+                        title = "title",
+                        content = null,
+                        attachments = emptyList()
+                    )
             )
         translatorTestUtils.assertUpgradeResponseTranslation(legacyNote, expectedUpgradedResponse)
     }
@@ -131,10 +207,36 @@ class CreateNoteTranslatorTest {
     fun downgradeResponse_allFields() {
         val jetpackResponse =
             CreateNoteAppFunctionResponse(
-                createdNote = AppFunctionNoteImpl(id = "id", title = "title", content = "content")
+                createdNote =
+                    AppFunctionNoteImpl(
+                        id = "id",
+                        title = "title",
+                        content = "content",
+                        attachments =
+                            listOf(
+                                AttachmentImpl(
+                                    displayName = "name",
+                                    mimeType = "text/html",
+                                    uri = Uri.parse("content://xxx")
+                                )
+                            )
+                    )
             )
 
-        val expectedDowngradedResponse = LegacyNote(id = "id", title = "title", content = "content")
+        val expectedDowngradedResponse =
+            LegacyNote(
+                id = "id",
+                title = "title",
+                content = "content",
+                attachments =
+                    listOf(
+                        LegacyAttachment(
+                            displayName = "name",
+                            mimeType = "text/html",
+                            uri = LegacyUri(uri = "content://xxx")
+                        )
+                    )
+            )
         translatorTestUtils.assertDowngradeResponseTranslation(
             jetpackResponse,
             expectedDowngradedResponse
@@ -152,11 +254,7 @@ class CreateNoteTranslatorTest {
                     )
             )
 
-        val expectedDowngradedResponse =
-            LegacyNote(
-                id = "id",
-                title = "title",
-            )
+        val expectedDowngradedResponse = LegacyNote(id = "id", title = "title")
         translatorTestUtils.assertDowngradeResponseTranslation(
             jetpackResponse,
             expectedDowngradedResponse

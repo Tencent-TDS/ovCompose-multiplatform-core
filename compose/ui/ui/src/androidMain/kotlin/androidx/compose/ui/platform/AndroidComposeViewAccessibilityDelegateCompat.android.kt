@@ -1481,12 +1481,18 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                     ) ?: false
             }
             AccessibilityNodeInfoCompat.ACTION_FOCUS -> {
-                // The item might not be focusable in touch mode, so we use the base implementation
-                // of to switch the system to touch mode before requesting focus (b/387576999).
-                // Note that this causes a temporary focus shift to the view, which is then
-                // corrected by immediately focusing the desired Composable node
-                if (@OptIn(ExperimentalComposeUiApi::class) isFocusActionExitsTouchModeEnabled) {
-                    performAccessibilityAction(view, action, arguments)
+                // The item might not be focusable in touch mode, so we use requestFocusFromTouch()
+                // to exit touch mode before requesting focus (b/387576999).
+                // Note that this causes a temporary focus shift to the view if it was not focused,
+                // which is then corrected by immediately focusing the desired Composable node.
+                // We considered calling super.performAccessibilityAction() which would put the
+                // system in keyboard mode, but it only works when AndroidComposeView did not have
+                // focus.
+                if (
+                    @OptIn(ExperimentalComposeUiApi::class) isFocusActionExitsTouchModeEnabled &&
+                        view.isInTouchMode
+                ) {
+                    view.requestFocusFromTouch()
                 }
 
                 return node.unmergedConfig.getOrNull(RequestFocus)?.action?.invoke() ?: false

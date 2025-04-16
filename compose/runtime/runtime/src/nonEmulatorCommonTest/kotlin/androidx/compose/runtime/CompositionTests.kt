@@ -2641,9 +2641,9 @@ class CompositionTests {
     }
 
     @Test
-    fun testCompoundKeyHashStaysTheSameAfterRecompositions() = compositionTest {
-        val outerKeys = mutableListOf<Int>()
-        val innerKeys = mutableListOf<Int>()
+    fun testCompoundKeyHashCodeStaysTheSameAfterRecompositions() = compositionTest {
+        val outerKeys = mutableListOf<CompositeKeyHashCode>()
+        val innerKeys = mutableListOf<CompositeKeyHashCode>()
         var previousOuterKeysSize = 0
         var previousInnerKeysSize = 0
         var outerScope: RecomposeScope? = null
@@ -2652,15 +2652,15 @@ class CompositionTests {
         @Composable
         fun Test() {
             outerScope = currentRecomposeScope
-            outerKeys.add(currentComposer.compoundKeyHash)
+            outerKeys.add(currentComposer.compositeKeyHashCode)
             Container {
                 Linear {
                     innerScope = currentRecomposeScope
-                    innerKeys.add(currentComposer.compoundKeyHash)
+                    innerKeys.add(currentComposer.compositeKeyHashCode)
                 }
             }
             // asserts that the key is correctly rolled back after start and end of Observe
-            assertEquals(outerKeys.last(), currentComposer.compoundKeyHash)
+            assertEquals(outerKeys.last(), currentComposer.compositeKeyHashCode)
         }
 
         compose { Test() }
@@ -3579,11 +3579,11 @@ class CompositionTests {
 
     @Test
     fun enumCompositeKeyShouldBeStable() = compositionTest {
-        var parentHash: Int = 0
-        var compositeHash: Int = 0
+        var parentHash = EmptyCompositeKeyHashCode
+        var compositeHash = EmptyCompositeKeyHashCode
         compose {
-            parentHash = currentCompositeKeyHash
-            key(MyEnum.First) { compositeHash = currentCompositeKeyHash }
+            parentHash = currentCompositeKeyHashCode
+            key(MyEnum.First) { compositeHash = currentCompositeKeyHashCode }
         }
 
         val effectiveHash = compositeHash xor (parentHash rol 6)
@@ -3592,11 +3592,11 @@ class CompositionTests {
 
     @Test
     fun enumCompositeKeysShouldBeStable() = compositionTest {
-        var parentHash: Int = 0
-        var compositeHash: Int = 0
+        var parentHash = EmptyCompositeKeyHashCode
+        var compositeHash = EmptyCompositeKeyHashCode
         compose {
-            parentHash = currentCompositeKeyHash
-            key(MyEnum.First, MyEnum.Second) { compositeHash = currentCompositeKeyHash }
+            parentHash = currentCompositeKeyHashCode
+            key(MyEnum.First, MyEnum.Second) { compositeHash = currentCompositeKeyHashCode }
         }
 
         val effectiveHash = compositeHash xor (parentHash rol 6)

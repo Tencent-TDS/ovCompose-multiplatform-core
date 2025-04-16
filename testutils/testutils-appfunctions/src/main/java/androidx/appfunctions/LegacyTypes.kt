@@ -19,7 +19,7 @@ package androidx.appfunctions
 import androidx.appsearch.annotation.Document
 
 @Document(name = "com.google.android.appfunctions.schema.common.v1.types.Attachment")
-class LegacyAttachment(
+data class LegacyAttachment(
     @Document.Namespace val namespace: String = "", // unused
     @Document.Id val id: String = "", // unused
     /** The display name of the attachment. */

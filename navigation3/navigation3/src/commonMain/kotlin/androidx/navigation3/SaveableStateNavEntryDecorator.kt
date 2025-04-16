@@ -30,20 +30,20 @@ import kotlin.collections.LinkedHashSet
  * Wraps the content of a [NavEntry] with a [SaveableStateHolder.SaveableStateProvider] to ensure
  * that calls to [rememberSaveable] within the content work properly and that state can be saved.
  *
- * This [NavLocalProvider] is the only one that is **required** as saving state is considered a
+ * This [NavEntryDecorator] is the only one that is **required** as saving state is considered a
  * non-optional feature.
  */
-public object SaveableStateNavLocalProvider : NavLocalProvider {
+public object SaveableStateNavEntryDecorator : NavEntryDecorator {
 
     @Composable
-    override fun ProvideToBackStack(backStack: List<Any>, content: @Composable () -> Unit) {
+    override fun DecorateBackStack(backStack: List<Any>, content: @Composable () -> Unit) {
         val localInfo = remember { SaveableStateNavLocalInfo() }
         DisposableEffect(key1 = backStack) { onDispose { localInfo.refCount.clear() } }
 
         localInfo.savedStateHolder = rememberSaveableStateHolder()
         backStack.forEachIndexed { index, key ->
             // We update here as part of composition to ensure the value is available to
-            // ProvideToEntry
+            // DecorateEntry
             localInfo.refCount.getOrPut(key) { LinkedHashSet<Int>() }.add(getIdForKey(key, index))
             DisposableEffect(key1 = key) {
                 // We update here at the end of composition in case the backstack changed and
@@ -81,7 +81,7 @@ public object SaveableStateNavLocalProvider : NavLocalProvider {
     }
 
     @Composable
-    public override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+    public override fun <T : Any> DecorateEntry(entry: NavEntry<T>) {
         val localInfo = LocalSaveableStateNavLocalInfo.current
         val key = entry.key
         // Tracks whether the key is changed
@@ -132,7 +132,7 @@ internal val LocalSaveableStateNavLocalInfo =
     staticCompositionLocalOf<SaveableStateNavLocalInfo> {
         error(
             "CompositionLocal LocalSaveableStateNavLocalInfo not present. You must call " +
-                "ProvideToBackStack before calling ProvideToEntry."
+                "DecorateBackStack before calling DecorateEntry."
         )
     }
 

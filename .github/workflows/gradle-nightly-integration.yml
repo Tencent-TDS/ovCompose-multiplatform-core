@@ -1,4 +1,4 @@
-# This workflow builds :collection:collection with the latest release-nightly build of Gradle.
+# This workflow builds :collection:collection with the latest nightly build of Gradle.
 # It applies the patch file .github/integration-patches/gradle-nightly.patch if it exists.
 name: Gradle Nightly Integration Test
 
@@ -19,7 +19,7 @@ jobs:
       - name: "Checkout androidx repo"
         uses: actions/checkout@v4
 
-      # Optionally apply a patch file needed to use the latest version of Gradle.
+      # Optionally apply a patch file needed to use the latest nightly version of Gradle.
       - name: "Apply patch"
         # If the file exists, hashFiles will return a non-empty string.
         if: ${{ hashFiles('.github/integration-patches/gradle-nightly.patch') != '' }}
@@ -38,6 +38,6 @@ jobs:
             -Dorg.gradle.internal.repository.max.retries=20
             -Dorg.gradle.internal.repository.initial.backoff=500
             --stacktrace
-          gradle-version: release-nightly
+          gradle-version: nightly
           # Disable the cache since this is the only build using the gradle nightly.
           gradle-cache-disabled: true

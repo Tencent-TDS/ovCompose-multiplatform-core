@@ -71,34 +71,9 @@ public class `$AppFunctionWithOutputFromDifferentPackage_AppFunctionInventory` :
             isNullable = true
         )
 
-    private val COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP_STRINGPARAM:
-        AppFunctionPrimitiveTypeMetadata = AppFunctionPrimitiveTypeMetadata(
-            type = 8,
-            isNullable = false
-        )
-
-    private val COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP:
-        Map<String, AppFunctionDataTypeMetadata> = mapOf(
-      "stringParam" to COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP_STRINGPARAM,
-    )
-
-    private val COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST:
-        List<String> = listOf(
-      "stringParam",
-    )
-
-    private val COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE:
-        AppFunctionObjectTypeMetadata = AppFunctionObjectTypeMetadata(
-            properties = COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP,
-            required = COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST,
-            qualifiedName = "com.testdata.anotherDifferentPackage.AnotherDiffPackageSerializable",
-            isNullable = true
-        )
-
     private val COMPONENTS_METADATA_DATA_TYPES_MAP: Map<String, AppFunctionDataTypeMetadata> =
         mapOf(
       "com.testdata.differentPackage.DiffPackageSerializable" to COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE,
-      "com.testdata.anotherDifferentPackage.AnotherDiffPackageSerializable" to COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE,
       )
 
     private val COMPONENTS_METADATA: AppFunctionComponentsMetadata = AppFunctionComponentsMetadata(
@@ -139,30 +114,6 @@ public class `$AppFunctionWithOutputFromDifferentPackage_AppFunctionInventory` :
             valueType = ARRAY_RESPONSE_VALUE_TYPE
         )
 
-    private val COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP_LONGPARAM:
-        AppFunctionPrimitiveTypeMetadata = AppFunctionPrimitiveTypeMetadata(
-            type = 6,
-            isNullable = false
-        )
-
-    private val COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP:
-        Map<String, AppFunctionDataTypeMetadata> = mapOf(
-      "longParam" to COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP_LONGPARAM,
-    )
-
-    private val COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST:
-        List<String> = listOf(
-      "longParam",
-    )
-
-    private val COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE:
-        AppFunctionObjectTypeMetadata = AppFunctionObjectTypeMetadata(
-            properties = COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP,
-            required = COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST,
-            qualifiedName = "com.testdata.differentPackage.DiffPackageSerializable",
-            isNullable = true
-        )
-
     private val COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE_PROPERTIES_MAP_STRINGPARAM:
         AppFunctionPrimitiveTypeMetadata = AppFunctionPrimitiveTypeMetadata(
             type = 8,
@@ -189,7 +140,6 @@ public class `$AppFunctionWithOutputFromDifferentPackage_AppFunctionInventory` :
 
     private val COMPONENTS_METADATA_DATA_TYPES_MAP: Map<String, AppFunctionDataTypeMetadata> =
         mapOf(
-      "com.testdata.differentPackage.DiffPackageSerializable" to COM_TESTDATA_DIFFERENTPACKAGE_DIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE,
       "com.testdata.anotherDifferentPackage.AnotherDiffPackageSerializable" to COM_TESTDATA_ANOTHERDIFFERENTPACKAGE_ANOTHERDIFFPACKAGESERIALIZABLE_OBJECT_DATA_TYPE,
       )
 

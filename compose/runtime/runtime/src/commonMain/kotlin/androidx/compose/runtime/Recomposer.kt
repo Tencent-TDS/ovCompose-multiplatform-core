@@ -77,7 +77,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 // TODO: Can we use rootKey for this since all compositions will have an eventual Recomposer parent?
-private const val RecomposerCompoundHashKey = 1000
+private inline val RecomposerCompoundHashKey
+    get() = CompositeKeyHashCode(1000)
 
 /**
  * Runs [block] with a new, active [Recomposer] applying changes in the calling [CoroutineContext].
@@ -1528,7 +1529,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
     }
 
     // Recomposer always starts with a constant compound hash
-    internal override val compoundHashKey: Int
+    internal override val compositeKeyHashCode: CompositeKeyHashCode
         get() = RecomposerCompoundHashKey
 
     internal override val collectingCallByInformation: Boolean

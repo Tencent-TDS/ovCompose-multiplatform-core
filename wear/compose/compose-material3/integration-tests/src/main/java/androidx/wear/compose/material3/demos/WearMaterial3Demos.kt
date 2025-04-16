@@ -42,8 +42,9 @@ import androidx.wear.compose.material3.samples.SwipeToRevealNonAnchoredSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSingleActionCardSample
 import androidx.wear.compose.material3.samples.SwipeToRevealWithTransformingLazyColumnSample
-import androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
-import androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
+import androidx.wear.compose.material3.samples.TransformingLazyColumnAnimationSample
+import androidx.wear.compose.material3.samples.TransformingLazyColumnExpandableCardSample
+import androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
 
 val WearMaterial3Demos =
     Material3DemoCategory(
@@ -222,13 +223,16 @@ val WearMaterial3Demos =
                         ComposableDemo("Notifications") {
                             TransformingLazyColumnNotificationsDemo()
                         },
-                        ComposableDemo("Scaling Morphing Effect Sample") {
-                            TransformingLazyColumnScalingMorphingEffectSample()
+                        ComposableDemo("Expandable Cards") {
+                            TransformingLazyColumnExpandableCardSample()
                         },
-                        ComposableDemo("Surface Transformation") { SurfaceTransformationDemo() },
-                        ComposableDemo("TLC Buttons") { TransformingLazyColumnButtons() },
-                        ComposableDemo("TLC Cards") { TransformingLazyColumnCards() },
-                        ComposableDemo("Animation Demo") { TransformingLazyColumnScrollingSample() }
+                        ComposableDemo("TLC Buttons and Cards") { SurfaceTransformationDemo() },
+                        ComposableDemo("Animation Demo") {
+                            TransformingLazyColumnAnimationSample()
+                        },
+                        ComposableDemo("Reduced Motion") {
+                            TransformingLazyColumnReducedMotionSample()
+                        },
                     )
                 ),
                 ComposableDemo("Text") { TextWeightDemo() }

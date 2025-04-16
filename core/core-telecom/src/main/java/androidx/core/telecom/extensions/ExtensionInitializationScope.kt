@@ -90,7 +90,9 @@ public interface ExtensionInitializationScope {
      *
      * @param initialParticipants The initial [List] of [Participant]s in the call. Participants are
      *   displayed on the remote screen according to their order within the participants list,
-     *   starting with the first element. Duplicate participants are removed.
+     *   starting with the first element. Duplicate participants are removed. If the same
+     *   participant is added to the list more than once, **only the first occurrence of that
+     *   participant** will be retained in the list; subsequent duplicates are dropped.
      * @param initialActiveParticipant The initial [Participant] that is active in the call or
      *   `null` if there is no active participant.
      * @return The interface used by this application to further update the participant extension

@@ -84,7 +84,7 @@ public object SinglePaneNavDisplay {
  * The NavDisplay displays the content associated with the last key on the back stack.
  *
  * @param backStack the collection of keys that represents the state that needs to be handled
- * @param localProviders list of [NavLocalProvider] to add information to the provided entriess
+ * @param localProviders list of [NavEntryDecorator] to add information to the provided entriess
  * @param modifier the modifier to be applied to the layout.
  * @param contentAlignment The [Alignment] of the [AnimatedContent]
  * @param enterTransition Default [EnterTransition] when navigating to [NavEntry]s. Can be
@@ -108,7 +108,7 @@ public object SinglePaneNavDisplay {
 public fun <T : Any> SinglePaneNavDisplay(
     backStack: List<T>,
     modifier: Modifier = Modifier,
-    localProviders: List<NavLocalProvider> = listOf(SaveableStateNavLocalProvider),
+    localProviders: List<NavEntryDecorator> = listOf(SaveableStateNavEntryDecorator),
     contentAlignment: Alignment = Alignment.TopStart,
     sizeTransform: SizeTransform? = null,
     enterTransition: EnterTransition =
@@ -144,13 +144,13 @@ public fun <T : Any> SinglePaneNavDisplay(
 ) {
     require(backStack.isNotEmpty()) { "NavDisplay backstack cannot be empty" }
 
-    val transitionAwareLifecycleNavLocalProvider = remember {
-        TransitionAwareLifecycleNavLocalProvider()
+    val transitionAwareLifecycleNavEntryDecorator = remember {
+        TransitionAwareLifecycleNavEntryDecorator()
     }
-    NavBackStackProvider(
+    DecoratedNavEntryProvider(
         backStack,
         entryProvider,
-        localProviders + transitionAwareLifecycleNavLocalProvider
+        localProviders + transitionAwareLifecycleNavEntryDecorator
     ) { entries ->
         // Make a copy shallow copy so that transition.currentState and transition.targetState are
         // different backstack instances. This ensures currentState reflects the old backstack when
@@ -258,7 +258,7 @@ public fun <T : Any> SinglePaneNavDisplay(
         LaunchedEffect(transition.currentState, transition.targetState) {
             // If we've reached the targetState, our animation has settled
             val settled = transition.currentState == transition.targetState
-            transitionAwareLifecycleNavLocalProvider.isSettled = settled
+            transitionAwareLifecycleNavEntryDecorator.isSettled = settled
         }
     }
 }
@@ -276,12 +276,12 @@ private fun <T : Any> isPop(oldBackStack: List<T>, newBackStack: List<T>): Boole
     return divergingIndex == null && newBackStack.size != oldBackStack.size
 }
 
-private class TransitionAwareLifecycleNavLocalProvider : NavLocalProvider {
+private class TransitionAwareLifecycleNavEntryDecorator : NavEntryDecorator {
 
     var isSettled by mutableStateOf(false)
 
     @Composable
-    override fun ProvideToBackStack(backStack: List<Any>, content: @Composable (() -> Unit)) {
+    override fun DecorateBackStack(backStack: List<Any>, content: @Composable (() -> Unit)) {
         val localInfo = remember(backStack) { TransitionAwareLifecycleNavLocalInfo(backStack) }
         CompositionLocalProvider(LocalTransitionAwareLifecycleNavLocalInfo provides localInfo) {
             content.invoke()
@@ -289,7 +289,7 @@ private class TransitionAwareLifecycleNavLocalProvider : NavLocalProvider {
     }
 
     @Composable
-    override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+    override fun <T : Any> DecorateEntry(entry: NavEntry<T>) {
         val backStack = LocalTransitionAwareLifecycleNavLocalInfo.current.backStack
         // TODO: Handle duplicate keys
         val isInBackStack = entry.key in backStack
@@ -307,7 +307,7 @@ private val LocalTransitionAwareLifecycleNavLocalInfo =
     compositionLocalOf<TransitionAwareLifecycleNavLocalInfo> {
         error(
             "CompositionLocal LocalTransitionAwareLifecycleNavLocalInfo not present. You must " +
-                "call ProvideToBackStack before calling ProvideToEntry."
+                "call DecorateBackStack before calling DecorateEntry."
         )
     }
 

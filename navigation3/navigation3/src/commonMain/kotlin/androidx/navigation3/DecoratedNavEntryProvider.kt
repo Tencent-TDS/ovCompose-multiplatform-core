@@ -19,25 +19,24 @@
 package androidx.navigation3
 
 import androidx.compose.runtime.Composable
-import kotlin.collections.plus
 
 /**
- * Function that provides all of the [NavEntry]s wrapped with the given [NavLocalProvider]s. It is
- * responsible for executing the functions provided by each [NavLocalProvider] appropriately.
+ * Function that provides all of the [NavEntry]s wrapped with the given [NavEntryDecorator]s. It is
+ * responsible for executing the functions provided by each [NavEntryDecorator] appropriately.
  *
- * Note: the order in which the [NavLocalProvider]s are added to the list determines their scope,
- * i.e. a [NavLocalProvider] added earlier in a list has its data available to those added later.
+ * Note: the order in which the [NavEntryDecorator]s are added to the list determines their scope,
+ * i.e. a [NavEntryDecorator] added earlier in a list has its data available to those added later.
  *
  * @param backStack the list of keys that represent the backstack
- * @param localProviders the [NavLocalProvider]s that are providing data to the content
+ * @param localProviders the [NavEntryDecorator]s that are providing data to the content
  * @param entryProvider a function that returns the [NavEntry] for a given key
  * @param content the content to be displayed
  */
 @Composable
-public fun <T : Any> NavBackStackProvider(
+public fun <T : Any> DecoratedNavEntryProvider(
     backStack: List<T>,
     entryProvider: (key: T) -> NavEntry<out T>,
-    localProviders: List<NavLocalProvider> = listOf(SaveableStateNavLocalProvider),
+    localProviders: List<NavEntryDecorator> = listOf(SaveableStateNavEntryDecorator),
     content: @Composable (List<NavEntry<T>>) -> Unit
 ) {
     // Kotlin does not know these things are compatible so we need this explicit cast
@@ -48,10 +47,11 @@ public fun <T : Any> NavBackStackProvider(
     val entries =
         backStack.map {
             val entry = entryProvider.invoke(it)
-            localProviders.distinct().foldRight(entry) { provider: NavLocalProvider, wrappedEntry ->
+            localProviders.distinct().foldRight(entry) { provider: NavEntryDecorator, wrappedEntry
+                ->
                 object : NavEntryWrapper<T>(wrappedEntry) {
                     override val content: @Composable ((T) -> Unit) = {
-                        provider.ProvideToEntry(wrappedEntry)
+                        provider.DecorateEntry(wrappedEntry)
                     }
                 }
             }
@@ -60,10 +60,10 @@ public fun <T : Any> NavBackStackProvider(
     // Provides the entire backstack to the previously wrapped entries
     localProviders
         .distinct()
-        .foldRight<NavLocalProvider, @Composable () -> Unit>({ content(entries) }) {
-            provider: NavLocalProvider,
+        .foldRight<NavEntryDecorator, @Composable () -> Unit>({ content(entries) }) {
+            provider: NavEntryDecorator,
             wrappedContent ->
-            { provider.ProvideToBackStack(backStack = backStack, wrappedContent) }
+            { provider.DecorateBackStack(backStack = backStack, wrappedContent) }
         }
         .invoke()
 }

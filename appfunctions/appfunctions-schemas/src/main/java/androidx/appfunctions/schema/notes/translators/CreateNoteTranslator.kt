@@ -16,13 +16,17 @@
 
 package androidx.appfunctions.schema.notes.translators
 
+import android.net.Uri
 import androidx.annotation.RequiresApi
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.AppFunctionSerializable
 import androidx.appfunctions.ExecuteAppFunctionResponse.Success.Companion.PROPERTY_RETURN_VALUE
 import androidx.appfunctions.internal.Translator
 import androidx.appfunctions.schema.notes.AppFunctionNote
+import androidx.appfunctions.schema.notes.AppFunctionNote.Attachment
 import androidx.appfunctions.schema.notes.CreateNoteAppFunction
+import androidx.appfunctions.schema.notes.translators.UriTranslator.downgradeUri
+import androidx.appfunctions.schema.notes.translators.UriTranslator.upgradeUri
 
 @RequiresApi(33)
 internal class CreateNoteTranslator : Translator {
@@ -32,7 +36,11 @@ internal class CreateNoteTranslator : Translator {
             CreateNoteAppFunctionParams(
                 checkNotNull(legacyCreateNoteParams.getString("title")),
                 legacyCreateNoteParams.getString("content"),
-                legacyCreateNoteParams.getString("externalId")
+                legacyCreateNoteParams.getString("externalId"),
+                attachments =
+                    legacyCreateNoteParams.getAppFunctionDataList("attachments")?.map {
+                        upgradeAttachment(it)
+                    } ?: emptyList()
             )
         return AppFunctionData.Builder(qualifiedName = "")
             .setAppFunctionData(
@@ -45,13 +53,20 @@ internal class CreateNoteTranslator : Translator {
     override fun upgradeResponse(response: AppFunctionData): AppFunctionData {
         val legacyCreateNoteResponse =
             checkNotNull(response.getAppFunctionData(PROPERTY_RETURN_VALUE))
+
+        val upgradedAttachments =
+            legacyCreateNoteResponse.getAppFunctionDataList("attachments")?.map {
+                upgradeAttachment(it)
+            } ?: emptyList()
+
         val upgradedResponse =
             CreateNoteAppFunctionResponse(
                 createdNote =
                     AppFunctionNoteImpl(
                         id = legacyCreateNoteResponse.id,
                         title = checkNotNull(legacyCreateNoteResponse.getString("title")),
-                        content = legacyCreateNoteResponse.getString("content")
+                        content = legacyCreateNoteResponse.getString("content"),
+                        attachments = upgradedAttachments
                     )
             )
         return AppFunctionData.Builder(qualifiedName = "")
@@ -69,12 +84,15 @@ internal class CreateNoteTranslator : Translator {
         val parametersData = checkNotNull(request.getAppFunctionData("parameters"))
         val createNoteAppFunctionParams =
             parametersData.deserialize(CreateNoteAppFunctionParams::class.java)
+        val downgradedAttachments =
+            createNoteAppFunctionParams.attachments.map { downgradeAttachment(it) }
         val downgradedRequestData =
-            AppFunctionData.Builder(checkNotNull(CreateNoteAppFunctionParams::class.qualifiedName))
+            AppFunctionData.Builder(qualifiedName = "")
                 .setString("title", createNoteAppFunctionParams.title)
                 .apply {
                     createNoteAppFunctionParams.content?.let { setString("content", it) }
                     createNoteAppFunctionParams.externalUuid?.let { setString("externalId", it) }
+                    setAppFunctionDataList("attachments", downgradedAttachments)
                 }
                 .build()
         return AppFunctionData.Builder(qualifiedName = "")
@@ -86,9 +104,11 @@ internal class CreateNoteTranslator : Translator {
         val responseData = checkNotNull(response.getAppFunctionData(PROPERTY_RETURN_VALUE))
         val createNoteAppFunctionResponse =
             responseData.deserialize(CreateNoteAppFunctionResponse::class.java)
+        val downgradedAttachments =
+            createNoteAppFunctionResponse.createdNote.attachments.map { downgradeAttachment(it) }
         val downgradedData =
             AppFunctionData.Builder(
-                    checkNotNull(AppFunctionNoteImpl::class.qualifiedName),
+                    qualifiedName = "",
                     id = createNoteAppFunctionResponse.createdNote.id,
                 )
                 .setString("title", createNoteAppFunctionResponse.createdNote.title)
@@ -96,10 +116,26 @@ internal class CreateNoteTranslator : Translator {
                     createNoteAppFunctionResponse.createdNote.content?.let {
                         setString("content", it)
                     }
+                    setAppFunctionDataList("attachments", downgradedAttachments)
                 }
                 .build()
         return AppFunctionData.Builder(qualifiedName = "")
             .setAppFunctionData(PROPERTY_RETURN_VALUE, downgradedData)
+            .build()
+    }
+
+    private fun upgradeAttachment(legacyAttachment: AppFunctionData) =
+        AttachmentImpl(
+            uri = upgradeUri(checkNotNull(legacyAttachment.getAppFunctionData("uri"))),
+            displayName = checkNotNull(legacyAttachment.getString("displayName")),
+            mimeType = legacyAttachment.getString("mimeType")
+        )
+
+    private fun downgradeAttachment(attachment: AttachmentImpl): AppFunctionData {
+        return AppFunctionData.Builder(qualifiedName = "")
+            .setAppFunctionData("uri", downgradeUri(attachment.uri))
+            .setString("displayName", attachment.displayName)
+            .apply { attachment.mimeType?.let { setString("mimeType", it) } }
             .build()
     }
 }
@@ -108,7 +144,8 @@ internal class CreateNoteTranslator : Translator {
 internal data class CreateNoteAppFunctionParams(
     override val title: String,
     override val content: String? = null,
-    override val externalUuid: String? = null
+    override val externalUuid: String? = null,
+    override val attachments: List<AttachmentImpl> = emptyList()
 ) : CreateNoteAppFunction.Parameters
 
 @AppFunctionSerializable
@@ -119,5 +156,13 @@ internal data class CreateNoteAppFunctionResponse(override val createdNote: AppF
 internal data class AppFunctionNoteImpl(
     override val id: String,
     override val title: String,
-    override val content: String? = null
+    override val content: String? = null,
+    override val attachments: List<AttachmentImpl> = emptyList()
 ) : AppFunctionNote
+
+@AppFunctionSerializable
+internal data class AttachmentImpl(
+    override val uri: Uri,
+    override val displayName: String,
+    override val mimeType: String? = null
+) : Attachment

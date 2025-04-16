@@ -216,9 +216,13 @@ data class AnnotatedAppFunctions(
     fun createAppFunctionMetadataList(
         resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ): List<CompileTimeAppFunctionMetadata> {
-        val sharedDataTypeMap: MutableMap<String, AppFunctionDataTypeMetadata> = mutableMapOf()
-        val seenDataTypeQualifiers: MutableSet<String> = mutableSetOf()
         return appFunctionDeclarations.map { functionDeclaration ->
+            // Defining the shared types locally for this iteration is to isolate the components
+            // used per function. This is done with the expectation that they can be globally
+            // merged without encountering mismatching datatype metadata for the same object key.
+            val sharedDataTypeMap: MutableMap<String, AppFunctionDataTypeMetadata> = mutableMapOf()
+            val seenDataTypeQualifiers: MutableSet<String> = mutableSetOf()
+
             val appFunctionAnnotationProperties =
                 computeAppFunctionAnnotationProperties(functionDeclaration)
             val parameterTypeMetadataList =

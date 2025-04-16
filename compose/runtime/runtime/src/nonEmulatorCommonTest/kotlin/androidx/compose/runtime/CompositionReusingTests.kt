@@ -145,13 +145,13 @@ class CompositionReusingTests {
     @Test
     fun compositeHashCodeReflectsReusableChanges() = compositionTest {
         var key by mutableStateOf(0)
-        var lastCompositeHash = 0
+        var lastCompositeHash = EmptyCompositeKeyHashCode
 
         compose {
             ReusableContent(key) {
                 Linear {
                     Text("Key = $key")
-                    lastCompositeHash = currentCompositeKeyHash
+                    lastCompositeHash = currentCompositeKeyHashCode
                 }
             }
         }
@@ -169,13 +169,13 @@ class CompositionReusingTests {
     fun compositeHashCodeIsConsistent() = compositionTest {
         var key by mutableStateOf(0)
         var localValue by mutableStateOf(0)
-        var lastCompositeHash = 0
+        var lastCompositeHash = EmptyCompositeKeyHashCode
 
         compose {
             ReusableContent(key) {
                 Linear {
                     Text("Key = $key: $localValue")
-                    lastCompositeHash = currentCompositeKeyHash
+                    lastCompositeHash = currentCompositeKeyHashCode
                 }
             }
         }

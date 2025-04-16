@@ -51,7 +51,6 @@ import androidx.wear.compose.foundation.lazy.inverseLerp
  * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
  *
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  * @param backgroundColor Color of the background.
  * @param shape Shape of the background.
@@ -99,7 +98,6 @@ public fun Modifier.scrollTransform(
  * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
  *
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  * @param shape [Shape] of the background.
  * @param painter [Painter] to use for the background.
@@ -149,7 +147,6 @@ public fun Modifier.scrollTransform(
  * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
  *
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  */
 @Composable

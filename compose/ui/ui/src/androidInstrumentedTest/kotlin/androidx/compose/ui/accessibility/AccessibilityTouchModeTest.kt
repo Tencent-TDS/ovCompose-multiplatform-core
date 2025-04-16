@@ -102,6 +102,24 @@ class AccessibilityTouchModeTest(private val param: Param) {
     }
 
     @Test
+    fun accessibilityActionFocus_putsSystemInKeyboardModeWhenViewWasFocused() {
+        // Arrange.
+        rule.setTestContent { Box(Modifier.size(10.dp).testTag("item").focusable()) }
+        val semanticsId = rule.onNodeWithTag("item").semanticsId()
+        rule.runOnUiThread { view.requestFocus() }
+        assertThat(view.isFocused).isTrue()
+
+        // Act.
+        rule.runOnUiThread {
+            view.accessibilityNodeProvider.performAction(semanticsId, ACTION_FOCUS, null)
+        }
+
+        // Assert.
+        rule.onNodeWithTag("item").assertIsFocused()
+        assertThat(inputModeManager.inputMode).isEqualTo(Keyboard)
+    }
+
+    @Test
     fun accessibilityActionFocus_itemFocusableInTouchMode() {
         // Arrange.
         rule.setTestContent {

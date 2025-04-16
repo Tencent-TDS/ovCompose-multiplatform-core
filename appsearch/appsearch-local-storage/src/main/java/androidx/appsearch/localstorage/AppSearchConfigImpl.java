@@ -81,6 +81,11 @@ public class AppSearchConfigImpl implements AppSearchConfig {
     }
 
     @Override
+    public int getCompressionMemLevel() {
+        return mIcingOptionsConfig.getCompressionMemLevel();
+    }
+
+    @Override
     public boolean getAllowCircularSchemaDefinitions() {
         return mIcingOptionsConfig.getAllowCircularSchemaDefinitions();
     }

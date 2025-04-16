@@ -85,6 +85,7 @@ class AndroidXIssueRegistry : IssueRegistry() {
                     TypeMirrorToString.ISSUE,
                     BanNullMarked.ISSUE,
                     AutoValueNullnessOverride.ISSUE,
+                    FlaggedApiDetector.ISSUE,
                 )
             }
     }

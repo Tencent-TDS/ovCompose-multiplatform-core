@@ -937,6 +937,8 @@ sealed class androidx.compose.runtime.snapshots/SnapshotApplyResult { // android
     }
 }
 
+final const val androidx.compose.runtime/EmptyCompositeKeyHashCode // androidx.compose.runtime/EmptyCompositeKeyHashCode|{}EmptyCompositeKeyHashCode[0]
+    final fun <get-EmptyCompositeKeyHashCode>(): kotlin/Long // androidx.compose.runtime/EmptyCompositeKeyHashCode.<get-EmptyCompositeKeyHashCode>|<get-EmptyCompositeKeyHashCode>(){}[0]
 final const val androidx.compose.runtime/compositionLocalMapKey // androidx.compose.runtime/compositionLocalMapKey|{}compositionLocalMapKey[0]
     final fun <get-compositionLocalMapKey>(): kotlin/Int // androidx.compose.runtime/compositionLocalMapKey.<get-compositionLocalMapKey>|<get-compositionLocalMapKey>(){}[0]
 final const val androidx.compose.runtime/invocationKey // androidx.compose.runtime/invocationKey|{}invocationKey[0]
@@ -968,6 +970,8 @@ final val androidx.compose.runtime/currentComposer // androidx.compose.runtime/c
     final fun <get-currentComposer>(): androidx.compose.runtime/Composer // androidx.compose.runtime/currentComposer.<get-currentComposer>|<get-currentComposer>(){}[0]
 final val androidx.compose.runtime/currentCompositeKeyHash // androidx.compose.runtime/currentCompositeKeyHash|{}currentCompositeKeyHash[0]
     final fun <get-currentCompositeKeyHash>(): kotlin/Int // androidx.compose.runtime/currentCompositeKeyHash.<get-currentCompositeKeyHash>|<get-currentCompositeKeyHash>(){}[0]
+final val androidx.compose.runtime/currentCompositeKeyHashCode // androidx.compose.runtime/currentCompositeKeyHashCode|{}currentCompositeKeyHashCode[0]
+    final fun <get-currentCompositeKeyHashCode>(): kotlin/Long // androidx.compose.runtime/currentCompositeKeyHashCode.<get-currentCompositeKeyHashCode>|<get-currentCompositeKeyHashCode>(){}[0]
 final val androidx.compose.runtime/currentCompositionLocalContext // androidx.compose.runtime/currentCompositionLocalContext|{}currentCompositionLocalContext[0]
     final fun <get-currentCompositionLocalContext>(): androidx.compose.runtime/CompositionLocalContext // androidx.compose.runtime/currentCompositionLocalContext.<get-currentCompositionLocalContext>|<get-currentCompositionLocalContext>(){}[0]
 final val androidx.compose.runtime/currentRecomposeScope // androidx.compose.runtime/currentRecomposeScope|{}currentRecomposeScope[0]
@@ -1084,6 +1088,8 @@ final inline fun (androidx.compose.runtime/MutableDoubleState).androidx.compose.
 final inline fun (androidx.compose.runtime/MutableFloatState).androidx.compose.runtime/setValue(kotlin/Any?, kotlin.reflect/KProperty<*>, kotlin/Float) // androidx.compose.runtime/setValue|setValue@androidx.compose.runtime.MutableFloatState(kotlin.Any?;kotlin.reflect.KProperty<*>;kotlin.Float){}[0]
 final inline fun (androidx.compose.runtime/MutableIntState).androidx.compose.runtime/setValue(kotlin/Any?, kotlin.reflect/KProperty<*>, kotlin/Int) // androidx.compose.runtime/setValue|setValue@androidx.compose.runtime.MutableIntState(kotlin.Any?;kotlin.reflect.KProperty<*>;kotlin.Int){}[0]
 final inline fun (androidx.compose.runtime/MutableLongState).androidx.compose.runtime/setValue(kotlin/Any?, kotlin.reflect/KProperty<*>, kotlin/Long) // androidx.compose.runtime/setValue|setValue@androidx.compose.runtime.MutableLongState(kotlin.Any?;kotlin.reflect.KProperty<*>;kotlin.Long){}[0]
+final inline fun (kotlin/Long).androidx.compose.runtime/toLong(): kotlin/Long // androidx.compose.runtime/toLong|toLong@kotlin.Long(){}[0]
+final inline fun (kotlin/Long).androidx.compose.runtime/toString(kotlin/Int): kotlin/String // androidx.compose.runtime/toString|toString@kotlin.Long(kotlin.Int){}[0]
 final inline fun <#A: androidx.compose.runtime.snapshots/StateRecord, #B: kotlin/Any?> (#A).androidx.compose.runtime.snapshots/withCurrent(kotlin/Function1<#A, #B>): #B // androidx.compose.runtime.snapshots/withCurrent|withCurrent@0:0(kotlin.Function1<0:0,0:1>){0§<androidx.compose.runtime.snapshots.StateRecord>;1§<kotlin.Any?>}[0]
 final inline fun <#A: androidx.compose.runtime.snapshots/StateRecord, #B: kotlin/Any?> (#A).androidx.compose.runtime.snapshots/writable(androidx.compose.runtime.snapshots/StateObject, androidx.compose.runtime.snapshots/Snapshot, kotlin/Function1<#A, #B>): #B // androidx.compose.runtime.snapshots/writable|writable@0:0(androidx.compose.runtime.snapshots.StateObject;androidx.compose.runtime.snapshots.Snapshot;kotlin.Function1<0:0,0:1>){0§<androidx.compose.runtime.snapshots.StateRecord>;1§<kotlin.Any?>}[0]
 final inline fun <#A: androidx.compose.runtime.snapshots/StateRecord, #B: kotlin/Any?> (#A).androidx.compose.runtime.snapshots/writable(androidx.compose.runtime.snapshots/StateObject, kotlin/Function1<#A, #B>): #B // androidx.compose.runtime.snapshots/writable|writable@0:0(androidx.compose.runtime.snapshots.StateObject;kotlin.Function1<0:0,0:1>){0§<androidx.compose.runtime.snapshots.StateRecord>;1§<kotlin.Any?>}[0]

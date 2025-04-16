@@ -35,7 +35,9 @@ public interface ParticipantExtension {
     /**
      * Update all of the remote surfaces that the [Participant]s of this call have changed.
      * Participants are displayed on the remote screen according to their order within the
-     * participants list, starting with the first element. Duplicate participants are removed.
+     * participants list, starting with the first element. Duplicate participants are removed. If
+     * the same participant is added to the list more than once, **only the first occurrence of that
+     * participant** will be retained in the list; subsequent duplicates are dropped.
      *
      * @param newParticipants The new set of [Participant]s associated with this call.
      */

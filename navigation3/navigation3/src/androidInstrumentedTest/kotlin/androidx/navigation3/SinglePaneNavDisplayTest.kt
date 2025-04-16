@@ -252,7 +252,7 @@ class SinglePaneNavDisplayTest {
             backStack = remember { mutableStateListOf(first) }
             SinglePaneNavDisplay(
                 backStack = backStack,
-                localProviders = listOf(SavedStateNavLocalProvider)
+                localProviders = listOf(SavedStateNavEntryDecorator)
             ) {
                 when (it) {
                     first ->

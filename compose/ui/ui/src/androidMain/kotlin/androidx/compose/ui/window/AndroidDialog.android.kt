@@ -32,6 +32,8 @@ import android.view.Window
 import android.view.WindowManager
 import androidx.activity.ComponentDialog
 import androidx.activity.addCallback
+import androidx.annotation.DoNotInline
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.DisposableEffect
@@ -334,14 +336,17 @@ private class DialogLayout(context: Context, override val window: Window) :
         setMeasuredDimension(measuredWidth, measuredHeight)
 
         if (
-            !usePlatformDefaultWidth &&
-                !decorFitsSystemWindows &&
+            !decorFitsSystemWindows &&
                 child.measuredHeight + verticalPadding > height &&
                 window.attributes.height == WRAP_CONTENT
         ) {
-            // The size of the window is too small with WRAP_CONTENT for height. Change it
-            // to use MATCH_PARENT to give as much room as possible
-            window.setLayout(MATCH_PARENT, MATCH_PARENT)
+            // We're going to use the full screen, so don't put a background behind the system bars
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            if (!usePlatformDefaultWidth) {
+                // The size of the window is too small with WRAP_CONTENT for height. Change it
+                // to use MATCH_PARENT to give as much room as possible
+                window.setLayout(MATCH_PARENT, MATCH_PARENT)
+            }
         }
     }
 
@@ -452,6 +457,19 @@ private class DialogWrapper(
         window.setBackgroundDrawableResource(android.R.color.transparent)
         WindowCompat.setDecorFitsSystemWindows(window, properties.decorFitsSystemWindows)
         window.setGravity(Gravity.CENTER)
+        if (!properties.decorFitsSystemWindows) {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            )
+            val attrs = window.attributes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Api30Impl.setFitInsetsSides(attrs, 0)
+                Api30Impl.setFitInsetsTypes(attrs, 0)
+            }
+            window.attributes = attrs
+        }
 
         dialogLayout =
             DialogLayout(context, window).apply {
@@ -637,5 +655,18 @@ private fun DialogLayout(modifier: Modifier = Modifier, content: @Composable () 
             maxHeight = constraints.minHeight
         }
         layout(maxWidth, maxHeight) { placeables.fastForEach { it.placeRelative(0, 0) } }
+    }
+}
+
+@RequiresApi(30)
+private object Api30Impl {
+    @DoNotInline
+    fun setFitInsetsSides(attrs: WindowManager.LayoutParams, sides: Int) {
+        attrs.setFitInsetsSides(sides)
+    }
+
+    @DoNotInline
+    fun setFitInsetsTypes(attrs: WindowManager.LayoutParams, types: Int) {
+        attrs.setFitInsetsTypes(types)
     }
 }

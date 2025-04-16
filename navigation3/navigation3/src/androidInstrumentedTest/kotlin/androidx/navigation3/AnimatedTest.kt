@@ -800,13 +800,13 @@ class AnimatedTest {
         lateinit var backstack: MutableList<Any>
         val LocalHasProvidedToEntry = compositionLocalOf { false }
         val provider =
-            createTestNavLocalProvider<String>(
-                provideToBackStack = { _, content ->
+            createTestNavEntryDecorator<String>(
+                decorateBackStack = { _, content ->
                     CompositionLocalProvider(LocalHasProvidedToEntry provides false) {
                         content.invoke()
                     }
                 },
-                provideToEntry = { entry ->
+                decorateEntry = { entry ->
                     CompositionLocalProvider(LocalHasProvidedToEntry provides true) {
                         entry.content.invoke(entry.key)
                     }

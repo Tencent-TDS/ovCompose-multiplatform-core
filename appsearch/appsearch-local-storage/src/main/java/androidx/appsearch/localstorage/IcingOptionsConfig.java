@@ -24,6 +24,7 @@ import androidx.appsearch.flags.Flags;
 import com.google.android.icing.proto.IcingSearchEngineOptions;
 
 import org.jspecify.annotations.NonNull;
+
 /**
  * An interface exposing the optional config flags in {@link IcingSearchEngineOptions} used to
  * instantiate {@link com.google.android.icing.IcingSearchEngine}, as well as other additional
@@ -45,6 +46,12 @@ public interface IcingOptionsConfig {
      * previously-hardcoded document compression level in Icing (which is 3).
      */
     int DEFAULT_COMPRESSION_LEVEL = 3;
+
+    /**
+     * The default compression mem level in IcingSearchEngineOptions proto matches the
+     * previously-hardcoded document compression level in Icing (which is 8).
+     */
+    int DEFAULT_COMPRESSION_MEM_LEVEL = 8;
 
     boolean DEFAULT_USE_PREMAPPING_WITH_FILE_BACKED_VECTOR = false;
 
@@ -133,6 +140,15 @@ public interface IcingOptionsConfig {
      * <p>NO_COMPRESSION = 0, BEST_SPEED = 1, BEST_COMPRESSION = 9
      */
     int getCompressionLevel();
+
+
+    /**
+     * The mem level for gzip compression for documents in the Icing document store.
+     *
+     * <p> 1 uses minimum memory but is slow and reduces compression ratio; 9 uses maximum memory
+     * for optimal speed and compression ratio. Icing historically used a memLevel of 8.
+     */
+    int getCompressionMemLevel();
 
     /**
      * Whether to allow circular references between schema types for the schema definition.
@@ -313,6 +329,9 @@ public interface IcingOptionsConfig {
                 .setCompressionThresholdBytes(
                         (Flags.enableCompressionThreshold() || isVMEnabled)
                                 ? Math.max(0, getCompressionThresholdBytes()) : 0)
+                .setCompressionMemLevel(
+                        (Flags.enableCompressionMemLevelOne() || isVMEnabled) ? 1
+                                : DEFAULT_COMPRESSION_MEM_LEVEL)
                 .build();
     }
 }

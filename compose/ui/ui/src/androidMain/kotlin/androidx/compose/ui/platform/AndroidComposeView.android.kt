@@ -18,6 +18,7 @@
 
 package androidx.compose.ui.platform
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Point
@@ -2910,12 +2911,19 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
+    override fun dispatchOnScrollChanged(delta: Offset) {
+        // TODO(levima) b/402138549: Use viewTreeObserver.dispatchOnScrollChanged()
+        dispatchOnScrollChanged(viewTreeObserver)
+    }
+
     companion object {
         private var systemPropertiesClass: Class<*>? = null
         private var getBooleanMethod: Method? = null
         private var addChangeCallbackMethod: Method? = null
         private val composeViews = mutableObjectListOf<AndroidComposeView>()
         private var systemPropertiesChangedRunnable: Runnable? = null
+        private var dispatchOnScrollChangedMethod: Method? = null
 
         @Suppress("BanUncheckedReflection")
         private fun getIsShowingLayoutBounds(): Boolean =
@@ -2984,6 +2992,20 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
             if (SDK_INT > 28) {
                 synchronized(composeViews) { composeViews -= composeView }
             }
+        }
+
+        // Back compat implementation
+        @SuppressLint("BanUncheckedReflection") // suppress for now, the API is available in MIN_SDK
+        fun dispatchOnScrollChanged(viewTreeObserver: ViewTreeObserver) {
+            try {
+                if (dispatchOnScrollChangedMethod == null) {
+                    dispatchOnScrollChangedMethod =
+                        viewTreeObserver.javaClass
+                            .getDeclaredMethod("dispatchOnScrollChanged")
+                            .also { it.isAccessible = true }
+                }
+                dispatchOnScrollChangedMethod?.invoke(viewTreeObserver)
+            } catch (_: Exception) {}
         }
     }
 
