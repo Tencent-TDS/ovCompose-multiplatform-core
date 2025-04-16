@@ -69,6 +69,7 @@ import com.android.build.gradle.LibraryPlugin
 import com.android.build.gradle.TestPlugin
 import com.android.build.gradle.api.KotlinMultiplatformAndroidPlugin
 import com.android.build.gradle.api.PrivacySandboxSdkPlugin
+import com.android.build.gradle.tasks.factory.AndroidUnitTest
 import com.android.utils.appendCapitalized
 import com.google.devtools.ksp.gradle.KspExtension
 import com.google.devtools.ksp.gradle.KspGradleSubplugin
@@ -700,25 +701,16 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
         project.configureProjectForApiTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
         project.configureProjectForKzipTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
 
-        kotlinMultiplatformAndroidComponentsExtension.onVariant { variant ->
-            variant.hostTests.forEach { (_, hostTest) ->
-                hostTest.configureTestTask { it.configureForRobolectric() }
-            }
-            variant.configureTests()
+        kotlinMultiplatformAndroidComponentsExtension.onVariant { it.configureTests() }
 
+        project.configurePublicResourcesStub(project.multiplatformExtension!!)
+        kotlinMultiplatformAndroidComponentsExtension.onVariant { variant ->
             project.configureMultiplatformSourcesForAndroid(
                 variant.name,
                 kotlinMultiplatformAndroidTarget,
                 androidXExtension.samplesProjects
             )
-
-            project.validateKotlinModuleFiles(
-                variant.name,
-                variant.artifacts.get(SingleArtifact.AAR)
-            )
         }
-
-        project.configurePublicResourcesStub(project.multiplatformExtension!!)
         project.configureVersionFileWriter(project.multiplatformExtension!!, androidXExtension)
         project.configureJavaCompilationWarnings(androidXExtension)
 
@@ -751,6 +743,9 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
         }
         project.setUpCheckDocsTask(androidXExtension)
         project.writeBlankPublicTxtToAar(kotlinMultiplatformAndroidComponentsExtension)
+        kotlinMultiplatformAndroidComponentsExtension.onVariant {
+            project.validateKotlinModuleFiles(it.name, it.artifacts.get(SingleArtifact.AAR))
+        }
     }
 
     private fun Project.writeBlankPublicTxtToAar(
@@ -1197,6 +1192,10 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                 // Include resources in Robolectric tests as a workaround for b/184641296
                 it.isIncludeAndroidResources = true
             }
+
+        project.tasks.withType(AndroidUnitTest::class.java).configureEach { task ->
+            task.configureForRobolectric()
+        }
 
         // validate that SDK versions haven't been altered during evaluation
         project.afterEvaluate {
