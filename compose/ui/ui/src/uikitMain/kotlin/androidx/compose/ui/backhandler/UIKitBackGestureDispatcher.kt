@@ -41,7 +41,6 @@ import platform.UIKit.UIRectEdgeLeft
 import platform.UIKit.UIRectEdgeRight
 import platform.UIKit.UIScreenEdgePanGestureRecognizer
 import platform.UIKit.UIView
-import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 
 private const val BACK_GESTURE_SCREEN_SIZE = 0.3
@@ -91,17 +90,10 @@ internal class UIKitBackGestureDispatcher(
             leftEdgePanGestureRecognizer.state in activeGestureStates ||
                 rightEdgePanGestureRecognizer.state in activeGestureStates
 
-    fun onDidMoveToWindow(window: UIWindow?, composeRootView: UIView) {
+    fun attachToView(view: UIView?) {
         if (enableBackGesture) {
-            if (window == null) {
-                removeGestureListeners()
-            } else {
-                var view: UIView = composeRootView
-                while (view.superview != window) {
-                    view = requireNotNull(view.superview) {
-                        "Window is not null, but superview is null for ${view.debugDescription}"
-                    }
-                }
+            removeGestureListeners()
+            if (view != null) {
                 addGestureListeners(view)
             }
         }
