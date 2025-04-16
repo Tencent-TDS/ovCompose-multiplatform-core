@@ -212,7 +212,7 @@ internal class ComposeHostingViewController(
 
         updateInterfaceOrientationState()
 
-        layers?.window = window
+        layers?.containerView = layersContainerView()
         windowContext.setWindowContainer(windowContainer)
         updateMotionSpeed()
     }
@@ -289,7 +289,7 @@ internal class ComposeHostingViewController(
         metalView.canBeOpaque = configuration.opaque
 
         val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
-        layers.window = rootView.window
+        layers.containerView = layersContainerView()
         this.layers = layers
 
         mediator = ComposeSceneMediator(
@@ -347,6 +347,21 @@ internal class ComposeHostingViewController(
     override fun didReceiveMemoryWarning() {
         GC.collect()
         super.didReceiveMemoryWarning()
+    }
+
+    // The Layers view is a full screen overlay of the current content. To do this, the layers
+    // container view should be placed as close as possible to the current UIWindow.
+    // If another view controller is presented modaly, UIWindow changes accessibility elements,
+    // so the layers view can't be accessed by the iOS accessibility engine.
+    // Find the next view in the hierarchy. This view is unique to the root and each modal
+    // view controller.
+    private fun layersContainerView(): UIView? {
+        val window = view.window ?: return null
+        var iteratingView = view.superview
+        while (iteratingView != null && iteratingView.superview != window) {
+            iteratingView = iteratingView.superview
+        }
+        return iteratingView
     }
 
     /**
