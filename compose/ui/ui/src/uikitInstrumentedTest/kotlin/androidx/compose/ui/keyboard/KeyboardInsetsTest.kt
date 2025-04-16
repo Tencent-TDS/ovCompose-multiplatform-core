@@ -54,7 +54,7 @@ import kotlin.time.TimeSource
 import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import platform.UIKit.UIView
 
-// TODO: Does not work with new Launcher. Rework the test.
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7991 Does not work with new Launcher. Rework the test.
 @Ignore
 internal class KeyboardInsetsTest {
     companion object {
