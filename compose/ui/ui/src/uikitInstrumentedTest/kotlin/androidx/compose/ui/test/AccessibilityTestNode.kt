@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.accessibility.CMPAccessibilityTraitIsEditing
 import androidx.compose.ui.platform.accessibility.CMPAccessibilityTraitTextView
 import androidx.compose.ui.test.utils.DpRectZero
 import androidx.compose.ui.test.utils.intersect
+import androidx.compose.ui.test.utils.toDpRect
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -27,10 +28,7 @@ import androidx.compose.ui.unit.width
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.useContents
-import platform.CoreGraphics.CGRect
 import platform.UIKit.UIAccessibilityElement
 import platform.UIKit.UIAccessibilityTraitAdjustable
 import platform.UIKit.UIAccessibilityTraitAllowsDirectInteraction
@@ -355,14 +353,4 @@ internal fun UIKitInstrumentedTest.assertAccessibilityTree(expected: Accessibili
 
         throw e
     }
-}
-
-@OptIn(ExperimentalForeignApi::class)
-internal fun CValue<CGRect>.toDpRect() = useContents {
-    DpRect(
-        left = origin.x.dp,
-        top = origin.y.dp,
-        right = origin.x.dp + size.width.dp,
-        bottom = origin.y.dp + size.height.dp,
-    )
 }
