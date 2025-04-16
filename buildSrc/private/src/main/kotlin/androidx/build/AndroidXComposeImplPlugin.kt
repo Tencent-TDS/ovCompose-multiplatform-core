@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package androidx.build
 
-import androidx.build.dependencies.KOTLIN_NATIVE_VERSION
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.AppPlugin
@@ -279,10 +278,6 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
          * resolved.
          */
         private fun Project.configureForMultiplatform() {
-            // This is to allow K/N not matching the kotlinVersion
-            (this.rootProject.property("ext") as ExtraPropertiesExtension)
-                .set("kotlin.native.version", KOTLIN_NATIVE_VERSION)
-
             val multiplatformExtension = checkNotNull(multiplatformExtension) {
                 "Unable to configureForMultiplatform() when " +
                     "multiplatformExtension is null (multiplatform plugin not enabled?)"
@@ -447,10 +442,6 @@ private fun Project.configureLintForMultiplatformLibrary(
         // Lint for libraries is split into two tasks - analysis, and reporting. We need to
         // add the new sources to both, so all parts of the pipeline are aware.
         project.tasks.withType<AndroidLintAnalysisTask>().configureEach {
-            it.variantInputs.addSourceSets()
-        }
-
-        project.tasks.withType<AndroidLintTask>().configureEach {
             it.variantInputs.addSourceSets()
         }
 

@@ -44,7 +44,35 @@ abstract class AndroidXComposeMultiplatformExtension {
 
     /**
       * Provides the default target configuration and source set dependencies
+      * for wasm.
+      */
+    abstract fun wasm(): Unit
+
+    /**
+      * Provides the default target configuration and source set dependencies
       * for all darwin native targets.
       */
     abstract fun darwin(): Unit
+
+    /**
+     * Provides the default target configuration and source set dependencies
+     * for all linuxX64 native targets.
+     */
+    abstract fun linuxX64(): Unit
+
+    /**
+     * Provides the default target configuration and source set dependencies
+     * for all linuxArm64 native targets.
+     */
+    abstract fun linuxArm64(): Unit
+
+    /**
+     * Configures native compilation tasks with flags to link required frameworks
+     */
+    abstract fun configureDarwinFlags(): Unit
+
+    /**
+     * Configure instrumented tests to run on an actual iOS simulator.
+     */
+    abstract fun iosInstrumentedTest(): Unit
 }
