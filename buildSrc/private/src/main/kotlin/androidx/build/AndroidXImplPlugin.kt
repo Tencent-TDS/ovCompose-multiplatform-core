@@ -657,7 +657,10 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                 // Sign all the builds (including release) with debug key
                 buildType.signingConfig = debugSigningConfig
             }
-            project.configureTestConfigGeneration(androidXExtension.isIsolatedProjectsEnabled())
+            project.configureTestConfigGeneration(
+                this,
+                androidXExtension.isIsolatedProjectsEnabled()
+            )
             project.addAppApkToTestConfigGeneration(androidXExtension)
             excludeVersionFiles(packaging.resources)
         }
@@ -932,7 +935,10 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
                 buildType.signingConfig = debugSigningConfig
             }
             testBuildType = buildTypeForTests
-            project.configureTestConfigGeneration(androidXExtension.isIsolatedProjectsEnabled())
+            project.configureTestConfigGeneration(
+                this,
+                androidXExtension.isIsolatedProjectsEnabled()
+            )
             project.addAppApkToTestConfigGeneration(androidXExtension)
         }
 
@@ -1220,7 +1226,11 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
             project.enforceBanOnVersionRanges()
         }
 
-        project.configureTestConfigGeneration(buildFeatures.isIsolatedProjectsEnabled())
+        project.configureTestConfigGeneration(
+            this,
+            componentsExtension,
+            buildFeatures.isIsolatedProjectsEnabled()
+        )
         project.configureFtlRunner(componentsExtension)
     }
 
@@ -1314,7 +1324,7 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
             versionName = "1.0"
         }
 
-        project.configureTestConfigGeneration(androidXExtension.isIsolatedProjectsEnabled())
+        project.configureTestConfigGeneration(this, androidXExtension.isIsolatedProjectsEnabled())
         project.addAppApkToTestConfigGeneration(androidXExtension)
         project.addAppApkToFtlRunner()
     }

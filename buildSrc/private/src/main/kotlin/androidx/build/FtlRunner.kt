@@ -22,6 +22,7 @@ import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuiltArtifactsLoader
 import com.android.build.api.variant.HasDeviceTests
+import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
@@ -300,6 +301,14 @@ fun Project.configureFtlRunner(androidComponentsExtension: AndroidComponentsExte
                     registerRunner(variant.name, variant.artifacts, variant.namespace)
                 }
             }
+        }
+    }
+}
+
+fun Project.configureFtlRunner(componentsExtension: KotlinMultiplatformAndroidComponentsExtension) {
+    componentsExtension.onVariants { variant ->
+        variant.deviceTests.forEach { (_, deviceTest) ->
+            registerRunner(deviceTest.name, deviceTest.artifacts, deviceTest.namespace)
         }
     }
 }
