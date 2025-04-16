@@ -20,15 +20,6 @@ import androidx.build.SdkHelperKt
 buildscript {
     SdkHelperKt.setSupportRootFolder(project, project.projectDir)
     SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
-
-    // Needed for atomicfu plugin
-    apply(from: "buildSrc/repos.gradle")
-    repos.addMavenRepositories(repositories)
-    dependencies {
-        classpath(libs.atomicFuPluginz)
-        // This should be removed once https://github.com/Kotlin/kotlinx-atomicfu/issues/399 is fixed
-        classpath("org.jetbrains.kotlin:atomicfu:${libs.versions.kotlin.get()}")
-    }
 }
 
 apply from: "buildSrc/dependencies.gradle"
@@ -39,10 +30,4 @@ apply plugin: AndroidXRootPlugin
 if (project.hasProperty("androidx.update.signatures")) {
     apply plugin: "java-library"
     apply from: "buildSrc/shared-dependencies.gradle"
-}
-
-allprojects {
-    this.tasks.configureEach {
-        if (it.name == "kotlinStoreYarnLock") it.enabled = false
-    }
 }

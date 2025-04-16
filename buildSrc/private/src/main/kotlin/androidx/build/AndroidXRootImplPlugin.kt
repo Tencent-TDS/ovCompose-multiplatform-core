@@ -69,10 +69,9 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
         configureKtlintCheckFile()
         tasks.register(CheckExternalDependencyLicensesTask.TASK_NAME)
 
-        val isJBFork = true
         // If we're running inside Studio, validate the Android Gradle Plugin version.
         val expectedAgpVersion = System.getenv("EXPECTED_AGP_VERSION")
-        if (!isJBFork && properties.containsKey("android.injected.invoked.from.ide")) {
+        if (properties.containsKey("android.injected.invoked.from.ide")) {
             if (expectedAgpVersion != ANDROID_GRADLE_PLUGIN_VERSION) {
                 throw GradleException(
                     """
@@ -167,6 +166,7 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
         AffectedModuleDetector.configure(gradle, this)
 
         // Needs to be called before evaluationDependsOnChildren in usingMaxDepVersions block
+        publishInspectionArtifacts()
         registerOwnersServiceTasks()
 
         // If useMaxDepVersions is set, iterate through all the project and substitute any androidx
@@ -227,6 +227,7 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
 
     private fun Project.setDependencyVersions() {
         androidx.build.dependencies.kotlinVersion = getVersionByName("kotlin")
+        androidx.build.dependencies.kotlinNativeVersion = getVersionByName("kotlinNative")
         androidx.build.dependencies.kspVersion = getVersionByName("ksp")
         androidx.build.dependencies.agpVersion = getVersionByName("androidGradlePlugin")
         androidx.build.dependencies.guavaVersion = getVersionByName("guavaJre")

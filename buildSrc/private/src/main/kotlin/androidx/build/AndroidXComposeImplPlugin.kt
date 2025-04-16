@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package androidx.build
 
+import androidx.build.dependencies.KOTLIN_NATIVE_VERSION
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.AppPlugin
@@ -39,13 +40,11 @@ import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.tooling.core.withClosure
 
 const val composeSourceOption =
@@ -56,12 +55,6 @@ const val composeReportsOption =
     "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination"
 const val enableMetricsArg = "androidx.enableComposeCompilerMetrics"
 const val enableReportsArg = "androidx.enableComposeCompilerReports"
-
-@Suppress("unused") // enabled by default in kotlin 2.1.0 and newer
-const val composeStrongSkippingOption =
-    "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=StrongSkipping"
-const val composeNonSkippingGroupOptimizationOption =
-    "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=OptimizeNonSkippingGroups"
 
 /**
  * Plugin to apply common configuration for Compose projects.
@@ -128,22 +121,9 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 project.configureForKotlinMultiplatformSourceStructure()
             }
 
-            project.afterEvaluate { projectAfterEvaluate ->
-                projectAfterEvaluate.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
-                    // Needed to enable `expect` and `actual` keywords
-                    compile.compilerOptions.freeCompilerArgs.add("-Xmulti-platform")
-
-                    // Suppress a warning that 'expect'/'actual' classes are in Beta.
-                    compile.compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
-                }
-            }
-
-
-            project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
-                it.compilerOptions.freeCompilerArgs.addAll(
-                    "-opt-in=kotlinx.cinterop.ExperimentalForeignApi",
-                    "-opt-in=kotlin.experimental.ExperimentalNativeApi"
-                )
+            project.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
+                // Needed to enable `expect` and `actual` keywords
+                compile.kotlinOptions.freeCompilerArgs += "-Xmulti-platform"
             }
         }
 
@@ -299,6 +279,10 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
          * resolved.
          */
         private fun Project.configureForMultiplatform() {
+            // This is to allow K/N not matching the kotlinVersion
+            (this.rootProject.property("ext") as ExtraPropertiesExtension)
+                .set("kotlin.native.version", KOTLIN_NATIVE_VERSION)
+
             val multiplatformExtension = checkNotNull(multiplatformExtension) {
                 "Unable to configureForMultiplatform() when " +
                     "multiplatformExtension is null (multiplatform plugin not enabled?)"
@@ -358,11 +342,16 @@ private fun configureComposeCompilerPlugin(
         val configuration = project.configurations.create(COMPILER_PLUGIN_CONFIGURATION)
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-
-        val compilerPluginVersion = project.getVersionByName("kotlin")
         project.dependencies.add(
             COMPILER_PLUGIN_CONFIGURATION,
-            "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:$compilerPluginVersion"
+            if (ProjectLayoutType.isPlayground(project)) {
+                AndroidXPlaygroundRootImplPlugin.projectOrArtifact(
+                    project.rootProject,
+                    ":compose:compiler:compiler"
+                )
+            } else {
+                project.rootProject.resolveProject(":compose:compiler:compiler")
+            }
         )
         val kotlinPlugin = configuration.incoming.artifactView { view ->
             view.attributes { attributes ->
@@ -378,7 +367,7 @@ private fun configureComposeCompilerPlugin(
 
         val libraryMetricsDirectory = project.rootProject.getLibraryMetricsDirectory()
         val libraryReportsDirectory = project.rootProject.getLibraryReportsDirectory()
-        project.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
+        project.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
             // Append inputs to KotlinCompile so tasks get invalidated if any of these values change
             compile.inputs.files({ kotlinPlugin })
                 .withPropertyName("composeCompilerExtension")
@@ -388,37 +377,29 @@ private fun configureComposeCompilerPlugin(
 
             // Gradle hack ahead, we use of absolute paths, but is OK here because we do it in
             // doFirst which happens after Gradle task input snapshotting. AGP does the same.
-
-            // JB FORK NOTE (don't upstream):
-            // In upstream it's configured using compile.doFirst {}
-            // But in JB fork we use compile.onlyIf, because since kotlin 1.8.0
-            // `freeCompilerArgs` is immutable in `doFirst` for native compilations.
-            // It used to be configured with `onlyIf` in upstream too.
-            compile.onlyIf {
-                compile.compilerOptions.freeCompilerArgs.add("-Xplugin=${kotlinPlugin.first()}")
-
-                compile.compilerOptions.freeCompilerArgs.addAll(
-                    listOf("-P", composeNonSkippingGroupOptimizationOption)
-                )
+            compile.doFirst {
+                compile.kotlinOptions.freeCompilerArgs += "-Xplugin=${kotlinPlugin.first()}"
 
                 if (enableMetricsProvider.orNull == "true") {
                     val metricsDest = File(libraryMetricsDirectory, "compose")
-                    compile.compilerOptions.freeCompilerArgs.addAll(
-                        listOf("-P", "$composeMetricsOption=${metricsDest.absolutePath}")
-                    )
+                    compile.kotlinOptions.freeCompilerArgs +=
+                        listOf(
+                            "-P",
+                            "$composeMetricsOption=${metricsDest.absolutePath}"
+                        )
                 }
                 if ((enableReportsProvider.orNull == "true")) {
                     val reportsDest = File(libraryReportsDirectory, "compose")
-                    compile.compilerOptions.freeCompilerArgs.addAll(
-                        listOf("-P", "$composeReportsOption=${reportsDest.absolutePath}")
-                    )
+                    compile.kotlinOptions.freeCompilerArgs +=
+                        listOf(
+                            "-P",
+                            "$composeReportsOption=${reportsDest.absolutePath}"
+                        )
                 }
                 if (shouldPublish) {
-                    compile.compilerOptions.freeCompilerArgs.addAll(
+                    compile.kotlinOptions.freeCompilerArgs +=
                         listOf("-P", composeSourceOption)
-                    )
                 }
-                true
             }
         }
     }
@@ -466,6 +447,10 @@ private fun Project.configureLintForMultiplatformLibrary(
         // Lint for libraries is split into two tasks - analysis, and reporting. We need to
         // add the new sources to both, so all parts of the pipeline are aware.
         project.tasks.withType<AndroidLintAnalysisTask>().configureEach {
+            it.variantInputs.addSourceSets()
+        }
+
+        project.tasks.withType<AndroidLintTask>().configureEach {
             it.variantInputs.addSourceSets()
         }
 

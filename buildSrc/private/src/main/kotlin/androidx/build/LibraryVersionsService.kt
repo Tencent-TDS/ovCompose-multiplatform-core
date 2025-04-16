@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package androidx.build
 
-import java.io.Serializable
 import org.gradle.api.GradleException
 import org.gradle.api.provider.Provider
 import org.gradle.api.services.BuildService
@@ -29,14 +28,12 @@ import org.tomlj.TomlTable
  * Loads Library groups and versions from a specified TOML file.
  */
 abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Parameters> {
-
     interface Parameters : BuildServiceParameters {
         var tomlFileName: String
         var tomlFileContents: Provider<String>
         var composeCustomVersion: Provider<String>
         var composeCustomGroup: Provider<String>
         var useMultiplatformGroupVersions: Provider<Boolean>
-        var libsOverrideVersions: Provider<Map<String, String>>
     }
 
     private val parsedTomlFile: TomlParseResult by lazy {
@@ -61,26 +58,14 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
     // map from name of constant to Version
     val libraryVersions: Map<String, Version> by lazy {
         val versions = getTable("versions")
-        val libsGroupsAndVersions = parameters.libsOverrideVersions.get()
         versions.keySet().associateWith { versionName ->
-            val tagName = libsGroupsAndVersions.keys.firstOrNull { versionName == it }
-            val versionForTag = libsGroupsAndVersions[tagName]
             val versionValue =
                 if (versionName.startsWith("COMPOSE") &&
                     parameters.composeCustomVersion.isPresent
                 ) {
                     parameters.composeCustomVersion.get()
-                } else if (tagName != null && versionForTag != null) {
-                    versionForTag
                 } else {
-                    // Do not use version from toml to about accidentally publish "stable" version
-                    //
-                    // We use a big version, so it will win in case of version conflict during
-                    // local runs:
-                    // project("compose:ui") -> lifecycle-runtime-compose:2.8.4 -> compose.runtime:runtime:1.6.11
-                    // project("compose:ui") -> project("compose:runtime")
-                    // project("compose:runtime") should override compose.runtime:runtime:1.6.11 by default
-                    "9999.0.0-SNAPSHOT"
+                    versions.getString(versionName)!!
                 }
             Version.parseOrNull(versionValue)
                 ?: throw GradleException(
@@ -93,7 +78,7 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
     val libraryGroups: Map<String, LibraryGroup> by lazy {
         val result = mutableMapOf<String, LibraryGroup>()
         for (association in libraryGroupAssociations) {
-            result.put(association.declarationName, association.libraryGroup)
+          result.put(association.declarationName, association.libraryGroup)
         }
         result
     }
@@ -109,9 +94,9 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
                 if (association.overrideIncludeInProjectPaths.size < 1) {
                     throw GradleException(
                         "Duplicate library group $groupId defined in " +
-                            "${association.declarationName} does not set overrideInclude. " +
-                            "Declarations beyond the first can only have an effect if they set " +
-                            "overrideInclude")
+                        "${association.declarationName} does not set overrideInclude. " +
+                        "Declarations beyond the first can only have an effect if they set " +
+                        "overrideInclude")
                 }
             } else {
                 result.put(groupId, association.libraryGroup)
@@ -122,13 +107,13 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
 
     // map from project name to group override if applicable
     val overrideLibraryGroupsByProjectPath: Map<String, LibraryGroup> by lazy {
-        val result = mutableMapOf<String, LibraryGroup>()
-        for (association in libraryGroupAssociations) {
-            for (overridePath in association.overrideIncludeInProjectPaths) {
-                result.put(overridePath, association.libraryGroup)
-            }
-        }
-        result
+       val result = mutableMapOf<String, LibraryGroup>()
+       for (association in libraryGroupAssociations) {
+           for (overridePath in association.overrideIncludeInProjectPaths) {
+               result.put(overridePath, association.libraryGroup)
+           }
+       }
+       result
     }
 
     private val libraryGroupAssociations: List<LibraryGroupAssociation> by lazy {
@@ -153,8 +138,7 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
             )
         }
         val result = mutableListOf<LibraryGroupAssociation>()
-        // the toml library returns keySet unsorted, but libraryGroupsByGroupId requires it to be sorted
-        for (name in groups.keySet().sorted()) {
+        for (name in groups.keySet()) {
             // get group name
             val groupDefinition = groups.getTable(name)!!
             val groupName = groupDefinition.getString("group")!!
@@ -162,9 +146,7 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
                 parameters.composeCustomGroup.isPresent
             ) {
                 groupName.replace("androidx.compose", parameters.composeCustomGroup.get())
-            } else {
-                groupName
-            }
+            } else groupName
 
             // get group version, if any
             val atomicGroupVersion = readGroupVersion(
@@ -190,7 +172,7 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
 
             val overrideApplyToProjects = (
                 groupDefinition.getArray("overrideInclude")?.toList() ?: listOf()
-                ).map({ it -> it as String })
+            ).map({ it -> it as String })
 
             val group = LibraryGroup(finalGroupName, groupVersion)
             val association = LibraryGroupAssociation(name, group, overrideApplyToProjects)

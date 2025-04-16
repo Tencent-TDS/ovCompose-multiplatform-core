@@ -1,7 +1,6 @@
 /unbundled-build
 .classpath
 .gradle
-.kotlin
 **/.idea/**
 !**/.idea/codeStyleSettings.xml
 !**/.idea/copyright

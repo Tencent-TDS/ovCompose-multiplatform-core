@@ -166,7 +166,7 @@ class AndroidXPaparazziImplPlugin @Inject constructor(
 
     /** The root of the golden image directory in a standard AndroidX checkout. */
     private val Project.goldenRootDirectory
-        get() = getSupportRootFolder().resolve("golden")
+        get() = getSupportRootFolder().resolve("../../golden")
 
     /** Filesystem path for this module derived from Gradle project path. */
     private val Project.modulePath
