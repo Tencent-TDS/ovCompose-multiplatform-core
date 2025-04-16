@@ -82,8 +82,10 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
@@ -337,14 +339,12 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
     ) {
         project.afterEvaluate {
             project.tasks.withType(KotlinCompile::class.java).configureEach { task ->
-                if (extension.type == LibraryType.COMPILER_PLUGIN) {
-                    task.kotlinOptions.jvmTarget = "11"
-                } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
+                if (extension.type.compilationTarget == CompilationTarget.HOST &&
                     extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
                 ) {
-                    task.kotlinOptions.jvmTarget = "17"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
                 } else {
-                    task.kotlinOptions.jvmTarget = "1.8"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
                 }
                 val kotlinCompilerArgs = mutableListOf(
                     "-Xskip-metadata-version-check",
@@ -552,12 +552,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         // Force Java 1.8 source- and target-compatibility for all Java libraries.
         val javaExtension = project.extensions.getByType<JavaPluginExtension>()
         project.afterEvaluate {
-            if (extension.type == LibraryType.COMPILER_PLUGIN) {
-                javaExtension.apply {
-                    sourceCompatibility = VERSION_11
-                    targetCompatibility = VERSION_11
-                }
-            } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
+            if (extension.type.compilationTarget == CompilationTarget.HOST &&
                 extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
             ) {
                 javaExtension.apply {
@@ -566,8 +561,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 }
             } else {
                 javaExtension.apply {
-                    sourceCompatibility = VERSION_1_8
-                    targetCompatibility = VERSION_1_8
+                    sourceCompatibility = VERSION_11
+                    targetCompatibility = VERSION_11
                 }
             }
             if (!project.plugins.hasPlugin(KotlinBasePluginWrapper::class.java)) {
@@ -653,8 +648,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         androidXExtension: AndroidXExtension
     ) {
         compileOptions.apply {
-            sourceCompatibility = VERSION_1_8
-            targetCompatibility = VERSION_1_8
+            sourceCompatibility = VERSION_11
+            targetCompatibility = VERSION_11
         }
 
         compileSdkVersion(COMPILE_SDK_VERSION)
