@@ -707,7 +707,7 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
         project.configureProjectForApiTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
         project.configureProjectForKzipTasks(AndroidMultiplatformApiTaskConfig, androidXExtension)
 
-        kotlinMultiplatformAndroidComponentsExtension.onVariants { variant ->
+        kotlinMultiplatformAndroidComponentsExtension.onVariant { variant ->
             variant.hostTests.forEach { (_, hostTest) ->
                 hostTest.configureTestTask { it.configureForRobolectric() }
             }
@@ -765,7 +765,7 @@ constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Pro
     ) {
         val blankPublicResourceDir =
             project.getSupportRootFolder().resolve("buildSrc/blank-res-api")
-        componentsExtension.onVariants { variant ->
+        componentsExtension.onVariant { variant ->
             val taskProvider =
                 tasks.register(
                     "repackageAarWithResourceApi".appendCapitalized(variant.name),
