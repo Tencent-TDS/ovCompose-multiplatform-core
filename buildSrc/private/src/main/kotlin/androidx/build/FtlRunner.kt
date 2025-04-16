@@ -306,7 +306,7 @@ fun Project.configureFtlRunner(androidComponentsExtension: AndroidComponentsExte
 }
 
 fun Project.configureFtlRunner(componentsExtension: KotlinMultiplatformAndroidComponentsExtension) {
-    componentsExtension.onVariants { variant ->
+    componentsExtension.onVariant { variant ->
         variant.deviceTests.forEach { (_, deviceTest) ->
             registerRunner(deviceTest.name, deviceTest.artifacts, deviceTest.namespace)
         }
