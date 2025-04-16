@@ -625,7 +625,7 @@ class ComponentsAccessibilitySemanticTest {
         }
     }
 
-    @Ignore
+    @Ignore // TODO https://youtrack.jetbrains.com/issue/CMP-7030
     @ExperimentalComposeUiApi
     @Test
     fun testAccessibilityInterop() = runUIKitInstrumentedTest {
