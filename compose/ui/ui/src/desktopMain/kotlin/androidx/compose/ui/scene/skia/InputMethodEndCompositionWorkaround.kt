@@ -23,11 +23,26 @@ import java.awt.im.InputContext
 import java.util.*
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.hostOs
+import org.jetbrains.skiko.SkiaLayer
 
+/**
+ * The interface for a workaround applied to [SkiaLayer] that commits the input method composition
+ * on focus changes.
+ *
+ * See https://github.com/JetBrains/compose-multiplatform-core/pull/2026 for a discussion of the
+ * issue(s) and the fix.
+ */
 internal interface InputMethodEndCompositionWorkaround {
 
+    /**
+     * The [InputContext] that [SkiaLayer.getInputContext] should return; `null` if it should return
+     * the default one.
+     */
     val inputContext: InputContext?
 
+    /**
+     * An implementation of the workaround for [sun.lwawt.macosx.CInputMethod].
+     */
     class CInputMethodWorkaround(
         val componentInputContext: () -> InputContext?
     ) : InputMethodEndCompositionWorkaround {
@@ -55,6 +70,12 @@ internal interface InputMethodEndCompositionWorkaround {
     }
 
     companion object {
+        /**
+         * Returns the workaround for the current JVM/OS.
+         *
+         * @param componentInputContext A function that returns the [SkiaLayer]s original
+         * [InputContext]
+         */
         fun forCurrentEnvironment(
             componentInputContext: () -> InputContext?
         ): InputMethodEndCompositionWorkaround? = when (hostOs) {
@@ -64,6 +85,9 @@ internal interface InputMethodEndCompositionWorkaround {
     }
 }
 
+/**
+ * An [InputContext] that redirects all calls to [delegate].
+ */
 private abstract class DelegatingInputContext(
     val delegate: () -> InputContext?,
 ) : InputContext() {
