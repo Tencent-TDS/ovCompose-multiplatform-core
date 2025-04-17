@@ -27,6 +27,7 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UIEventTypeTouches
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
+import platform.UIKit.UIWindow
 
 /**
  * A backing ComposeSceneLayer view for each Compose scene layer. Its task is to
@@ -38,6 +39,7 @@ import platform.UIKit.UIView
  * events that start outside the bounds of the layer content or should let them pass through.
  */
 internal class UIKitComposeSceneLayerView(
+    private var onDidMoveToWindow: (UIWindow?) -> Unit,
     private var isInsideInteractionBounds: (point: CValue<CGPoint>) -> Boolean,
     private var isInterceptingOutsideEvents: () -> Boolean
 ): UIView(frame = CGRectZero.readValue()) {
@@ -119,9 +121,15 @@ internal class UIKitComposeSceneLayerView(
     }
 
     fun dispose() {
+        onDidMoveToWindow = {}
         isInsideInteractionBounds = { false }
         isInterceptingOutsideEvents = { false }
         onOutsidePointerEvent = {}
+    }
+
+    override fun didMoveToWindow() {
+        super.didMoveToWindow()
+        onDidMoveToWindow(window)
     }
 }
 
