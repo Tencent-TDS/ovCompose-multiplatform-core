@@ -206,9 +206,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun onDidMoveToWindow(window: UIWindow?) {
-        if (mediator != null) {
-            backGestureDispatcher.attachToView(window)
-        }
+        backGestureDispatcher.onDidMoveToWindow(window, rootView)
         val windowContainer = window ?: return
 
         updateInterfaceOrientationState()
@@ -274,8 +272,6 @@ internal class ComposeHostingViewController(
     override fun viewControllerDidEnterWindowHierarchy() {
         super.viewControllerDidEnterWindowHierarchy()
 
-        backGestureDispatcher.attachToView(view.window)
-
         val metalView = MetalView(
             retrieveInteropTransaction = {
                 mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
@@ -325,8 +321,6 @@ internal class ComposeHostingViewController(
 
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
-
-        backGestureDispatcher.attachToView(null)
 
         // Store the current state in the next SaveableStateRegistry instance. It is used to
         // provide the saved state to the next compose scene when the view controller re-enters
