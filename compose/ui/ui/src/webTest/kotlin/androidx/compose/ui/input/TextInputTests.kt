@@ -42,6 +42,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
@@ -58,34 +59,23 @@ private class InputInteractor(
 }
 
 class TextInputTests : OnCanvasTests {
+    private fun InputInteractor.sendToHtmlInput(vararg events: Event) {
+        dispatchEvents(currentHtmlInput(), *events)
+    }
+
     // delay in web tests called directly will be completely ignored
     private suspend fun waitFor(millis: Long) {
         withContext(Dispatchers.Default) { delay(millis) }
     }
 
-    private fun InputInteractor.sendToHtmlInput(vararg events: Event) {
-        dispatchEvents(currentHtmlInput(), *events)
-    }
-
     private suspend fun waitForHtmlInput(): HTMLTextAreaElement {
-        val htmlChannel: Channel<HTMLTextAreaElement> = Channel<HTMLTextAreaElement>(
-            1, onBufferOverflow = BufferOverflow.SUSPEND
-        )
-
-        withContext(Dispatchers.Default) {
-            coroutineScope {
-                while (true) {
-                    val element = document.querySelector("textarea")
-                    if (element is HTMLTextAreaElement) {
-                        htmlChannel.sendFromScope(element)
-                        return@coroutineScope
-                    }
-                    delay(100)
-                }
+        while (true) {
+            val element = document.querySelector("textarea")
+            if (element is HTMLTextAreaElement) {
+                return element
             }
+            yield()
         }
-
-        return htmlChannel.receive()
     }
 
     private suspend fun InputInteractor.createTextFieldWithChannel(
