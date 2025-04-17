@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.browser.document
-import kotlinx.browser.window
+import org.w3c.dom.AddEventListenerOptions
 
 
 internal interface ComposeCommandCommunicator {
@@ -54,9 +54,16 @@ internal class BackingDomInput(
     }
 
     fun focus() {
-        window.requestAnimationFrame {
+        // we focusing in next frame as a part of fix for https://youtrack.jetbrains.com/issue/CMP-7836/
+        // unfortunately on ios touch devices focus won't happen asynchronously
+        // this leads to https://youtrack.jetbrains.com/issue/CMP-8013
+        // which we are circumventing via focusing in a triggered click event
+        backingElement.addEventListener("click", { evt ->
+            evt.preventDefault()
+            evt.stopPropagation()
             backingElement.focus()
-        }
+        }, AddEventListenerOptions(once = true))
+        backingElement.click()
     }
 
     fun blur() {
