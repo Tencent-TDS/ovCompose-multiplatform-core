@@ -45,6 +45,7 @@ import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGPoint
+import platform.UIKit.UIWindow
 
 internal class UIKitComposeSceneLayer(
     private val onClosed: (UIKitComposeSceneLayer) -> Unit,
@@ -71,6 +72,7 @@ internal class UIKitComposeSceneLayer(
         }
 
     val view = UIKitComposeSceneLayerView(
+        ::onDidMoveToWindow,
         ::isInsideInteractionBounds,
         isInterceptingOutsideEvents = { focusable }
     )
@@ -81,9 +83,7 @@ internal class UIKitComposeSceneLayer(
         enableBackGesture = enableBackGesture,
         density = view.density,
         getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
-    ).also {
-        it.attachToView(view)
-    }
+    )
 
     private val mediator = ComposeSceneMediator(
         parentView = view,
@@ -136,6 +136,10 @@ internal class UIKitComposeSceneLayer(
 
     private val scrimPaint = Paint()
 
+    private fun onDidMoveToWindow(window: UIWindow?) {
+        backGestureDispatcher.onDidMoveToWindow(window, view)
+    }
+
     fun render(canvas: Canvas, nanoTime: Long) {
         if (scrimColor != null) {
             val rect = metalView.bounds.asDpRect().toRect(density)
@@ -161,7 +165,6 @@ internal class UIKitComposeSceneLayer(
         view.removeFromSuperview()
         view.dispose()
         interopContainerView.removeFromSuperview()
-        backGestureDispatcher.attachToView(null)
     }
 
     @Composable
