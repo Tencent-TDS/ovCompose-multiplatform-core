@@ -144,6 +144,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         darwin()
         js()
         wasm()
+        linux()
+
         // TODO: Migrate iosInstrumentedTest to kotlin 2.1.0
         //  https://youtrack.jetbrains.com/issue/CMP-7390/Migrate-iosInstrumentedTest-target-to-kotlin-2.1.0
         //  Kotlin 2.1.0 doesn't support declaring multiple targets of the same type
@@ -229,6 +231,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jsWasmMain.dependsOn(jsNativeMain)
             jsWasmMain.dependsOn(notMobileMain)
             macosMain.dependsOn(notMobileMain)
+            linuxMain.dependsOn(notMobileMain)
 
             jsMain {
                 kotlin.srcDir("src/webCommonW3C/kotlin")
