@@ -1,29 +1,18 @@
 // Use `xcodegen` first, then `open ./SkikoSample.xcodeproj` and then Run button in XCode.
 package androidx.compose.mpp.demo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
 import androidx.compose.mpp.demo.bugs.IosBugs
 import androidx.compose.mpp.demo.bugs.StartRecompositionCheck
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.InterceptPlatformTextInput
 import androidx.compose.ui.window.ComposeUIViewController
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.autoreleasepool
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.toCValues
-import kotlinx.coroutines.awaitCancellation
 import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDelegateProtocol
@@ -54,37 +43,7 @@ fun main(vararg args: String) {
                 parallelRendering = true
             }
         ) {
-            MaterialTheme {
-                // IosDemo(arg)
-                Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                    Text("Hello World!")
-                    Button({}) {
-                        Text("Hello Button!")
-                    }
-
-                    val text = rememberTextFieldState("test")
-                    InterceptPlatformTextInput(
-                        interceptor = { _, _ -> awaitCancellation() }
-                    ) {
-                        TextField(text)
-                    }
-
-                    val text1 = remember { mutableStateOf("test") }
-                    InterceptPlatformTextInput(
-                        interceptor = { _, _ -> awaitCancellation() }
-                    ) {
-                        TextField(text1.value, onValueChange = { text1.value = it})
-                    }
-
-
-                    val text2 = rememberTextFieldState("test")
-                    TextField(text2)
-
-                    val text133 = remember { mutableStateOf("test") }
-                    TextField(text133.value, onValueChange = { text133.value = it})
-
-                }
-            }
+            IosDemo(arg)
         }
     }
 }
