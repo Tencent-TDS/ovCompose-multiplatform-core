@@ -26,6 +26,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
@@ -67,6 +68,7 @@ import androidx.compose.ui.platform.OwnedLayerManager
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.createPlatformClipboard
 import androidx.compose.ui.platform.setLightingInfo
@@ -366,25 +368,41 @@ internal class RootNodeOwner(
         override val softwareKeyboardController =
             DelegatingSoftwareKeyboardController(textInputService)
 
-        @OptIn(InternalTextApi::class)
+        private val textInputSessionMutex = SessionMutex<TextInputSession>()
+        private inner class TextInputSession(
+            coroutineScope: CoroutineScope,
+        ) : PlatformTextInputSessionScope, CoroutineScope by coroutineScope {
+            private val innerSessionMutex = SessionMutex<Nothing?>()
+
+            @OptIn(InternalTextApi::class)
+            override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing {
+                innerSessionMutex.withSessionCancellingPrevious(
+                    sessionInitializer = { null }
+                ) {
+                    // Currently TextInputService is used for keyboard show/hide actions and for
+                    // backward compatibility by the LocalTextInputService.
+                    // startInput and stopInput calls are required to properly configure the service
+                    // and allow it to pass keyboard show/hide calls to the PlatformTextInputService.
+                    textInputService.startInput()
+                    launch {
+                        suspendCancellableCoroutine<Nothing> {
+                            it.invokeOnCancellation {
+                                textInputService.stopInput()
+                            }
+                        }
+                    }
+                    platformContext.startInputMethod(request)
+                }
+            }
+        }
+
         override suspend fun textInputSession(
             session: suspend PlatformTextInputSessionScope.() -> Nothing
         ) : Nothing {
-            coroutineScope {
-                // Currently TextInputService is used for keyboard show/hide actions and for
-                // backward compatibility by the LocalTextInputService.
-                // startInput and stopInput calls are required to properly configure the service
-                // and allow it to pass keyboard show/hide calls to the PlatformTextInputService.
-                textInputService.startInput()
-                launch {
-                    suspendCancellableCoroutine<Nothing> {
-                        it.invokeOnCancellation {
-                            textInputService.stopInput()
-                        }
-                    }
-                }
-                platformContext.textInputSession(session)
-            }
+            textInputSessionMutex.withSessionCancellingPrevious(
+                sessionInitializer = ::TextInputSession,
+                session = session
+            )
         }
 
         override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
