@@ -259,6 +259,8 @@ internal class ComposeHostingViewController(
         mediator?.sceneWillDisappear()
         layers?.viewWillDisappear()
         configuration.delegate.viewWillDisappear(animated)
+
+        backGestureDispatcher.onDidMoveToWindow(null, rootView)
     }
 
     @Suppress("DEPRECATION")
@@ -320,6 +322,7 @@ internal class ComposeHostingViewController(
             }
         }
 
+        backGestureDispatcher.onDidMoveToWindow(view.window, rootView)
         onAccessibilityChanged()
     }
 
@@ -335,6 +338,7 @@ internal class ComposeHostingViewController(
         )
 
         rootView.updateMetalView(metalView = null)
+        backGestureDispatcher.onDidMoveToWindow(null, rootView)
 
         mediator?.dispose()
         mediator = null
