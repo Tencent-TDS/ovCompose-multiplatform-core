@@ -246,6 +246,10 @@ internal class ComposeHostingViewController(
         mediator?.sceneDidAppear()
         layers?.viewDidAppear()
         configuration.delegate.viewDidAppear(animated)
+
+        // Because the container view can change during the modal transition animation,
+        // the gesture handlers are added back when the animation ends.
+        backGestureDispatcher.onDidMoveToWindow(view.window, rootView)
     }
 
     @Suppress("DEPRECATION")
