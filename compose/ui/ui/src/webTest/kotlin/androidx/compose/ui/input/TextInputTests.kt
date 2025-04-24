@@ -19,6 +19,7 @@ package androidx.compose.ui.input
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.TextField
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
@@ -65,8 +66,8 @@ class TextInputTests : OnCanvasTests {
         }
     }
 
-    private fun assertTextEquals(expected: String, actual: MutableState<TextFieldValue>, message: String? = null) {
-        assertEquals(expected = expected, actual = actual.value.text, message = message)
+    private fun State<TextFieldValue>.assertTextEquals(expected: String, message: String? = null) {
+        assertEquals(expected = expected, actual = value.text, message = message)
     }
 
     private suspend fun createTextFieldWithValue(): MutableState<TextFieldValue> {
@@ -102,7 +103,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("step1", textFieldValue)
+        textFieldValue.assertTextEquals("step1")
 
         sendToHtmlInput(
             keyEvent("Backspace", code = "Backspace"),
@@ -110,9 +111,8 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals(
+        textFieldValue.assertTextEquals(
             "stepX",
-            textFieldValue,
             "Backspace should delete last symbol typed"
         )
     }
@@ -136,7 +136,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("啊", textFieldValue)
+        textFieldValue.assertTextEquals("啊")
 
         sendToHtmlInput(
             keyEvent("x"),
@@ -144,7 +144,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("啊x", textFieldValue)
+        textFieldValue.assertTextEquals("啊x")
     }
 
     @Test
@@ -168,7 +168,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("啊", textFieldValue)
+        textFieldValue.assertTextEquals("啊")
 
         // We can not change timestamp for js events, so we just add some delay to enforce it
         waitFor(100)
@@ -178,7 +178,7 @@ class TextInputTests : OnCanvasTests {
             keyEvent("b", type = "keyup")
         )
 
-        assertTextEquals("啊b", textFieldValue)
+        textFieldValue.assertTextEquals("啊b")
     }
 
     @Test
@@ -199,7 +199,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("abc", textFieldValue)
+        textFieldValue.assertTextEquals("abc")
     }
 
     @Ignore
@@ -224,9 +224,8 @@ class TextInputTests : OnCanvasTests {
         )
 
         // TODO: this does not behave as desktop, ideally we should have "abc" here
-        assertTextEquals(
+        textFieldValue.assertTextEquals(
             "bc",
-            textFieldValue,
             "Repeat mode should be resolved as Accent Dialogue"
         )
 
@@ -287,7 +286,7 @@ class TextInputTests : OnCanvasTests {
             keyEvent("1", code = "Digit1", type = "keyup"),
         )
 
-        assertTextEquals("à", textFieldValue, "Choose symbol from Accent Menu")
+        textFieldValue.assertTextEquals("à", "Choose symbol from Accent Menu")
     }
 
     @Test
@@ -310,7 +309,7 @@ class TextInputTests : OnCanvasTests {
             keyEvent("c", type = "keyup"),
         )
 
-        assertTextEquals("abc", textFieldValue, "XXX")
+        textFieldValue.assertTextEquals("abc", "XXX")
     }
 
     fun repeatedAccentMenuClicked() = runApplicationTest {
@@ -327,7 +326,7 @@ class TextInputTests : OnCanvasTests {
             beforeInput(inputType = "insertText", data = "æ"),
         )
 
-        assertTextEquals("æ", textFieldValue, "Choose symbol from Accent Menu")
+        textFieldValue.assertTextEquals("æ", "Choose symbol from Accent Menu")
     }
 
 
@@ -367,7 +366,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("step1", textState1)
+        textState1.assertTextEquals("step1")
 
         focusRequester2.requestFocus()
         waitForHtmlInput()
@@ -381,7 +380,7 @@ class TextInputTests : OnCanvasTests {
         )
 
         awaitIdle()
-        assertTextEquals("step2", textState2)
+        textState2.assertTextEquals("step2")
     }
 }
 
