@@ -29,6 +29,9 @@ import java.awt.Container
 import java.awt.Dimension
 import java.awt.FocusTraversalPolicy
 import java.awt.Window
+import java.awt.event.FocusAdapter
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
@@ -114,13 +117,28 @@ internal class ComposeWindowPanel(
         composeContainer.preferredSize
     }
 
+    private val disableInputMethodsOnFocusGainListener: FocusListener = object : FocusAdapter() {
+        override fun focusGained(e: FocusEvent) {
+            e.component?.enableInputMethods(false)
+            e.component?.removeFocusListener(this)
+        }
+    }
+
     override fun addNotify() {
         super.addNotify()
         _composeContainer?.addNotify()
-        _composeContainer?.contentComponent?.requestFocus()
+        _composeContainer?.contentComponent?.apply {
+            requestFocus()
+            // Initially disable input methods as they will be enabled when a text field becomes
+            // focused, by ComposeSceneMediator.DesktopPlatformComponent.
+            // However, calling enableInputMethods(false) before the focus was actually gained is
+            // simply ignored, so do it in a listener.
+            addFocusListener(disableInputMethodsOnFocusGainListener)
+        }
     }
 
     override fun removeNotify() {
+        _composeContainer?.contentComponent?.removeFocusListener(disableInputMethodsOnFocusGainListener)
         _composeContainer?.removeNotify()
         super.removeNotify()
     }
