@@ -16,7 +16,6 @@
 
 package androidx.compose.ui
 
-import androidx.compose.ui.keyboard.KeyboardInsetsTest
 import androidx.compose.xctest.setupXCTestSuite
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.XCTest.XCTestSuite
