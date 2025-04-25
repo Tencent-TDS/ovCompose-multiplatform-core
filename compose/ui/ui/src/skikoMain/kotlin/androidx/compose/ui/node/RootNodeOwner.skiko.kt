@@ -59,7 +59,6 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
@@ -99,9 +98,9 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -384,7 +383,7 @@ internal class RootNodeOwner(
                     // startInput and stopInput calls are required to properly configure the service
                     // and allow it to pass keyboard show/hide calls to the PlatformTextInputService.
                     textInputService.startInput()
-                    launch {
+                    launch(start = CoroutineStart.UNDISPATCHED) {
                         suspendCancellableCoroutine<Nothing> {
                             it.invokeOnCancellation {
                                 textInputService.stopInput()
