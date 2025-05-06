@@ -17,6 +17,9 @@
 package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,8 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -46,6 +51,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidateLayer
 import androidx.compose.ui.node.invalidateMeasurement
 import androidx.compose.ui.node.invalidateSemantics
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearTextSubstitution
 import androidx.compose.ui.semantics.getTextLayoutResult
@@ -83,6 +89,14 @@ internal class TextAnnotatedStringNode(
     private var selectionController: SelectionController? = null,
     private var overrideColor: ColorProducer? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    private val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
+    private var lastParagraphHashCode = 0
+    private var localBitmap: ImageBitmap? = null
+    private var localCanvas: Canvas? = null
     private var baselineCache: Map<AlignmentLine, Int>? = null
 
     private var _layoutCache: MultiParagraphLayoutCache? = null
@@ -477,23 +491,125 @@ internal class TextAnnotatedStringNode(
     ) {
         return contentDrawScope.draw()
     }
+    // region Tencent Code
+    private inline fun ContentDrawScope.asyncDrawIntoCanvas(textLayoutResult: TextLayoutResult) {
+        selectionController?.draw(this)
+        drawIntoCanvas { canvas ->
+            val localParagraph = textLayoutResult.multiParagraph
+            val width = textLayoutResult.size.width
+            val height = textLayoutResult.size.height
+            val currentParagraphHashCode = paragraphHashCode(this)
+            if (platformTextDelegate?.needRedrawText(canvas, currentParagraphHashCode, width, height) == false) {
+                drawPlaceHolder()
+                return
+            }
+
+            val globalTask: () -> Long = {
+                val newBitmap = ImageBitmap(width, height)
+                val renderCanvas = Canvas(newBitmap)
+
+                val willClip = textLayoutResult.hasVisualOverflow && overflow != TextOverflow.Visible
+                if (willClip) {
+                    val bounds = Rect(Offset.Zero, Size(width.toFloat(), height.toFloat()))
+                    renderCanvas.save()
+                    renderCanvas.clipRect(bounds)
+                }
+                try {
+                    val textDecoration = style.textDecoration ?: TextDecoration.None
+                    val shadow = style.shadow ?: Shadow.None
+                    val drawStyle = style.drawStyle ?: Fill
+                    val brush = style.brush
+                    if (brush != null) {
+                        val alpha = style.alpha
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            brush = brush,
+                            alpha = alpha,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            decoration = textDecoration
+                        )
+                    } else {
+                        val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+                        val color = if (overrideColorVal.isSpecified) {
+                            overrideColorVal
+                        } else if (style.color.isSpecified) {
+                            style.color
+                        } else {
+                            Color.Black
+                        }
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            color = color,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            decoration = textDecoration
+                        )
+                    }
+                    platformTextDelegate?.imageFromImageBitmap(canvas, currentParagraphHashCode, newBitmap) ?: 0
+                } finally {
+                    if (willClip) {
+                        canvas.restore()
+                    }
+                }
+            }
+
+            platformTextDelegate?.asyncDrawIntoCanvas(
+                canvas,
+                globalTask,
+                currentParagraphHashCode,
+                width,
+                height
+            )
+        }
+        drawPlaceHolder()
+    }
+    // endregion
+
     override fun ContentDrawScope.draw() {
         if (!isAttached) {
             // no-up for !isAttached. The node will invalidate when attaching again.
             return
         }
         selectionController?.draw(this)
+
+        if (ComposeTabService.textAsyncPaint) {
+            val layoutCache = getLayoutCache(this)
+            val textLayoutResult = layoutCache.textLayoutResult
+            asyncDrawIntoCanvas(textLayoutResult)
+            return
+        }
         drawIntoCanvas { canvas ->
+            var currentParagraphHashCode = 0
             val layoutCache = getLayoutCache(this)
             val textLayoutResult = layoutCache.textLayoutResult
             val localParagraph = textLayoutResult.multiParagraph
+            // region Tencent Code
+            if (!EnableIosRenderLayerV2 || EnableIOSParagraph) {
+                localCanvas = canvas
+            } else {
+                val width = textLayoutResult.size.width
+                val height = textLayoutResult.size.height
+                ImageBitmap(width, height).let {
+                    localCanvas = Canvas(it)
+                    localBitmap = it
+                }
+                currentParagraphHashCode = paragraphHashCode(this)
+                if (platformTextDelegate?.needRedrawText(canvas, currentParagraphHashCode, width, height) == false) {
+                    drawPlaceHolder()
+                    return
+                }
+            }
+            // endregion
+            val renderCanvas = localCanvas!!
+
             val willClip = textLayoutResult.hasVisualOverflow && overflow != TextOverflow.Visible
             if (willClip) {
                 val width = textLayoutResult.size.width.toFloat()
                 val height = textLayoutResult.size.height.toFloat()
                 val bounds = Rect(Offset.Zero, Size(width, height))
-                canvas.save()
-                canvas.clipRect(bounds)
+                renderCanvas.save()
+                renderCanvas.clipRect(bounds)
             }
             try {
                 val textDecoration = style.textDecoration ?: TextDecoration.None
@@ -503,7 +619,7 @@ internal class TextAnnotatedStringNode(
                 if (brush != null) {
                     val alpha = style.alpha
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         brush = brush,
                         alpha = alpha,
                         shadow = shadow,
@@ -520,21 +636,62 @@ internal class TextAnnotatedStringNode(
                         Color.Black
                     }
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         color = color,
                         shadow = shadow,
                         drawStyle = drawStyle,
                         decoration = textDecoration
                     )
                 }
+                // region Tencent Code
+                if (EnableIosRenderLayerV2 && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        localBitmap,
+                        textLayoutResult.size.width,
+                        textLayoutResult.size.height,
+                        currentParagraphHashCode,
+                        canvas
+                    )
+                }
+                // endregion
             } finally {
                 if (willClip) {
                     canvas.restore()
                 }
             }
         }
+        drawPlaceHolder()
+    }
+
+    private fun ContentDrawScope.drawPlaceHolder() {
         if (!placeholders.isNullOrEmpty()) {
             drawContent()
         }
     }
+
+    // region Tencent Code
+    private fun paragraphHashCode(density: Density): Int {
+        val layoutCache = getLayoutCache(density)
+        val textLayoutResult = layoutCache.textLayoutResult
+        var result = text.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + softWrap.hashCode()
+        result = 31 * result + maxLines
+        result = 31 * result + minLines
+        result = 31 * result + textLayoutResult.hashCode()
+        if (style.brush == null) {
+            val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+            val color = if (overrideColorVal.isSpecified) {
+                overrideColorVal
+            } else if (style.color.isSpecified) {
+                style.color
+            } else {
+                Color.Black
+            }
+            result = 31 * result + color.hashCode()
+        }
+        return result
+    }
+    // endregion
 }

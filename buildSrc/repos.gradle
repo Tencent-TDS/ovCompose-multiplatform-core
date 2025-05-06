@@ -57,6 +57,12 @@ def addMavenRepositories(RepositoryHandler handler) {
             artifact()
         }
     }
+    handler.maven {
+        url("https://mirrors.tencent.com/repository/maven/tencentvideo")
+    }
+    handler.maven {
+        url("https://mirrors.tencent.com/repository/maven/tmm-snapshot")
+    }
     def isJBFork = true
     if (isJBFork) {
         handler.mavenCentral()
@@ -76,6 +82,12 @@ def addMavenRepositories(RepositoryHandler handler) {
             content {
                 includeModule("com.android.tools", "r8")
             }
+        }
+        handler.maven {
+            url = "https://mirrors.tencent.com/repository/maven/tencentvideo"
+        }
+        handler.maven {
+            url = "https://mirrors.tencent.com/repository/maven/thirdparty-snapshots"
         }
     }
     // Ordering appears to be important: b/229733266

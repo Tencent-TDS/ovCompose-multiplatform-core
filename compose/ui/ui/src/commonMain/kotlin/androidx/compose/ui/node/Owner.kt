@@ -25,6 +25,7 @@ import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
@@ -212,6 +213,13 @@ internal interface Owner : PlatformTextInputSessionHandler {
      * transformed relative to the window, this will not be a simple translation.
      */
     fun calculateLocalPosition(positionInWindow: Offset): Offset
+
+    // region Tencent Code
+    /**
+     * clip [bounds] in native container window, when compose scroll in a scrollable component
+     */
+    fun boundsBoxInContainerWindow(bounds: Rect): Rect
+    // endregion
 
     /**
      * Ask the system to provide focus to this owner.

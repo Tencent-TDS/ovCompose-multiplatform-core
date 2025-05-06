@@ -132,6 +132,10 @@ internal open class SnapshotMutableIntStateImpl(
     value: Int
 ) : StateObjectImpl(), MutableIntState, SnapshotMutableState<Int> {
 
+    // region Tencent Code
+    private var sourceFile: String = ""
+    // endregion
+
     private var next = IntStateStateRecord(value)
 
     override val firstStateRecord: StateRecord
@@ -153,6 +157,14 @@ internal open class SnapshotMutableIntStateImpl(
     override fun component1(): Int = intValue
 
     override fun component2(): (Int) -> Unit = { intValue = it }
+
+    // region Tencent Code
+    override fun setSourceFile(sourceFile: String) {
+        this.sourceFile = sourceFile
+    }
+
+    override fun getSourceFile(): String = sourceFile
+    // endregion
 
     override fun prependStateRecord(value: StateRecord) {
         next = value as IntStateStateRecord

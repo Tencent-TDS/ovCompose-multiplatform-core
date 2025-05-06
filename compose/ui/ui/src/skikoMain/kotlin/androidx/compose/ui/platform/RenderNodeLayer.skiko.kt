@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
@@ -224,7 +225,6 @@ internal class RenderNodeLayer(
             performDrawLayer(pictureCanvas.asComposeCanvas(), bounds)
             picture = pictureRecorder.finishRecordingAsPicture()
         }
-
         canvas.save()
         canvas.concat(matrix)
         canvas.translate(position.x.toFloat(), position.y.toFloat())
@@ -271,11 +271,15 @@ internal class RenderNodeLayer(
             } else {
                 canvas.save()
             }
-            canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
-                alpha
-            } else {
-                1.0f
+            // region Tencent Code
+            if (!EnableIosRenderLayerV2) {
+                canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
+                    alpha
+                } else {
+                    1.0f
+                }
             }
+            // endregion
 
             drawBlock(canvas)
             canvas.restore()

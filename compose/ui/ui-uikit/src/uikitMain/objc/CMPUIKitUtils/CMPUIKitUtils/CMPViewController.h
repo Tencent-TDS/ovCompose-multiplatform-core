@@ -18,6 +18,13 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+// region Tencent Code
+typedef NS_ENUM(NSInteger, CMPRenderBackend) {
+    CMPRenderBackendSkia,
+    CMPRenderBackendUIView,
+};
+// endregion
+
 @interface CMPViewController : UIViewController
 
 /// Indicates that view controller is considered alive in terms of structural containment.
@@ -28,6 +35,13 @@ NS_ASSUME_NONNULL_BEGIN
 /// Overriding classes should call super.
 - (void)viewControllerDidLeaveWindowHierarchy;
 
+// region Tencent Code
+/// setting the renderBackend for dispose
+- (void)setRenderBackend:(CMPRenderBackend)renderBackend;
+
+/// Indicates that view controller is considered for reuse
+- (void)viewControllerPrepareForReuse;
+// endregion
 @end
 
 NS_ASSUME_NONNULL_END

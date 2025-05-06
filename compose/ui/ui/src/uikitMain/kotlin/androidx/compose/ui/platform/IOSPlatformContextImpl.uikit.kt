@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
@@ -26,7 +27,12 @@ internal class IOSPlatformContextImpl(
     override val textToolbar: TextToolbar,
     override val windowInfo: WindowInfo,
     density: Density,
-    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
+    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?,
+    // region Tencent Code
+    override val boundsPositionCalculator: ((offset: Rect) -> Rect)?,
+
+    override val nativeReusePool: Long
+    // endregion
 ) : PlatformContext by PlatformContext.Empty {
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {

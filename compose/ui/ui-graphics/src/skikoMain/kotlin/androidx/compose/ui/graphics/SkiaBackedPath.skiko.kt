@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
@@ -24,8 +25,23 @@ import org.jetbrains.skia.PathDirection
 import org.jetbrains.skia.PathFillMode
 import org.jetbrains.skia.PathOp
 
-actual fun Path(): Path = SkiaBackedPath()
+// region Tencent Code
+actual fun Path(): Path {
+    return if (!EnableIosRenderLayerV2) {
+        SkiaBackedPath()
+    } else {
+        pathFactory?.invoke() ?: throw RuntimeException("Native 未注入实现")
+    }
+}
 
+actual fun LocalPath(): Path = SkiaBackedPath()
+
+private var pathFactory: (() -> Path)? = null
+
+fun setNativePathFactory(factory: () -> Path) {
+    pathFactory = factory
+}
+// endregion
 /**
  * Convert the [org.jetbrains.skia.Path] instance into a Compose-compatible Path
  */
@@ -57,7 +73,6 @@ internal class SkiaBackedPath(
                 return PathFillType.NonZero
             }
         }
-
         set(value) {
             internalPath.fillMode =
                 if (value == PathFillType.EvenOdd) {

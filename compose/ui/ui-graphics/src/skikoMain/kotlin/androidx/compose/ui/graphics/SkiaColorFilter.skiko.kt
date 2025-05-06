@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import org.jetbrains.skia.ColorFilter as SkiaColorFilter
 
 actual typealias NativeColorFilter = SkiaColorFilter
@@ -33,11 +34,18 @@ fun org.jetbrains.skia.ColorFilter.asComposeColorFilter(): ColorFilter = ColorFi
 internal actual fun actualTintColorFilter(color: Color, blendMode: BlendMode): NativeColorFilter =
     SkiaColorFilter.makeBlend(color.toArgb(), blendMode.toSkia())
 
+val EMPTY_FILTER = SkiaColorFilter.makeComposed(null, null)
 /**
  * Remaps compose [ColorMatrix] to [org.jetbrains.skia.ColorMatrix] and returns [ColorFilter]
  * applying this matrix to draw color result
  */
 internal actual fun actualColorMatrixColorFilter(colorMatrix: ColorMatrix): NativeColorFilter {
+    // region Tencent Code
+    if (EnableIosRenderLayerV2) {
+        return EMPTY_FILTER
+    }
+    // endregion
+
     val remappedValues = colorMatrix.values.copyOf()
     remappedValues[4] *= (1f / 255f)
     remappedValues[9] *= (1f / 255f)

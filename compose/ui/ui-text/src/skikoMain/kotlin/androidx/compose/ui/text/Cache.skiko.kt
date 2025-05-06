@@ -27,7 +27,9 @@ internal interface Cache<K, V> {
 /**
  * Cache with weak keys.
  */
-internal expect class WeakKeysCache<K : Any, V>() : Cache<K, V>
+internal expect class WeakKeysCache<K : Any, V>() : Cache<K, V> {
+    override fun get(key: K, loader: (K) -> V): V
+}
 
 /**
  * Cache with expiring entries after `expireAfter` after last access.

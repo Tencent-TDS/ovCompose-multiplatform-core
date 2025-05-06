@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.runtime.ComposeEnableCachedThrowable
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.PlatformOptimizedCancellationException
@@ -349,6 +350,10 @@ internal class SuspendPointerInputElement(
 
 private val EmptyPointerEvent = PointerEvent(emptyList())
 
+// region Tencent Code
+private val CachedPointerInputResetException = PointerInputResetException()
+// end region
+
 /**
  * Supports suspending pointer event handling. This is used by [pointerInput], so in most cases you
  * should just use [pointerInput] for suspending pointer input. Creating a
@@ -502,7 +507,11 @@ internal class SuspendingPointerInputModifierNodeImpl(
     override fun resetPointerInputHandler() {
         val localJob = pointerInputJob
         if (localJob != null) {
-            localJob.cancel(PointerInputResetException())
+            // region Tencent Code
+            localJob.cancel(
+                if (ComposeEnableCachedThrowable) CachedPointerInputResetException else PointerInputResetException()
+            )
+            // endregion
             pointerInputJob = null
         }
     }

@@ -2122,11 +2122,26 @@ internal value class SliderRange(
 @Stable
 internal fun SliderRange(start: Float, endInclusive: Float): SliderRange {
     val isUnspecified = start.isNaN() && endInclusive.isNaN()
-    require(isUnspecified || start <= endInclusive) {
+    // region Tencent Code
+    // require(isUnspecified || start <= endInclusive) {
+    require(isUnspecified || start <= endInclusive || start.safeEqual(endInclusive)) {
+    // endregion
         "start($start) must be <= endInclusive($endInclusive)"
     }
     return SliderRange(packFloats(start, endInclusive))
 }
+
+// region Tencent Code
+// 计算用于比较的动态 epsilon
+private fun calculateEpsilon(value: Float): Float =
+    abs(value) * 1e-7f
+
+// 比较两个浮点数在 7 位有效数字精度内是否相等
+private fun Float.safeEqual(another: Float): Boolean {
+    val epsilon = calculateEpsilon(this.coerceAtLeast(another))
+    return abs(this - another) <= epsilon
+}
+// endregion
 
 /**
  * Creates a [SliderRange] from a given [ClosedFloatingPointRange].

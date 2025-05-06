@@ -50,6 +50,19 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
 
+// region Tencent Code
+enum class PopupStyle {
+    InWindow,
+    InView,
+    InViewController,
+}
+
+internal var LocalPopupStyle = PopupStyle.InWindow
+
+fun resetLocalPopupStyle() {
+    LocalPopupStyle = PopupStyle.InWindow
+}
+// endregion
 /**
  * Properties used to customize the behavior of a [Popup].
  *
@@ -422,6 +435,80 @@ fun Popup(
         content = content,
     )
 }
+
+// region Tencent Code
+
+@Composable
+fun Popup(
+    alignment: Alignment = Alignment.TopStart,
+    offset: IntOffset = IntOffset(0, 0),
+    onDismissRequest: (() -> Unit)? = null,
+    properties: PopupProperties = PopupProperties(),
+    onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
+    onKeyEvent: ((KeyEvent) -> Boolean)? = null,
+    content: @Composable () -> Unit,
+    popupStyle: PopupStyle = PopupStyle.InWindow
+) {
+    val popupPositioner = remember(alignment, offset) {
+        AlignmentOffsetPositionProvider(alignment, offset)
+    }
+    Popup(
+        popupPositionProvider = popupPositioner,
+        onDismissRequest = onDismissRequest,
+        properties = properties,
+        onPreviewKeyEvent = onPreviewKeyEvent,
+        onKeyEvent = onKeyEvent,
+        content = content,
+        popupStyle = popupStyle
+    )
+}
+
+@Composable
+fun Popup(
+    popupPositionProvider: PopupPositionProvider,
+    onDismissRequest: (() -> Unit)? = null,
+    properties: PopupProperties = PopupProperties(),
+    onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
+    onKeyEvent: ((KeyEvent) -> Boolean)? = null,
+    content: @Composable () -> Unit,
+    popupStyle: PopupStyle = PopupStyle.InWindow
+) {
+    LocalPopupStyle = popupStyle
+    val overriddenOnKeyEvent = if (properties.dismissOnBackPress && onDismissRequest != null) {
+        { event: KeyEvent ->
+            val consumed = onKeyEvent?.invoke(event) ?: false
+            if (!consumed && event.isDismissRequest()) {
+                onDismissRequest()
+                true
+            } else {
+                consumed
+            }
+        }
+    } else {
+        onKeyEvent
+    }
+    val onOutsidePointerEvent = if (properties.dismissOnClickOutside && onDismissRequest != null) {
+        { eventType: PointerEventType ->
+            if (eventType == PointerEventType.Press) {
+                onDismissRequest()
+            }
+        }
+    } else {
+        null
+    }
+    PopupLayout(
+        popupPositionProvider = popupPositionProvider,
+        properties = properties,
+        modifier = Modifier.semantics { popup() },
+        onPreviewKeyEvent = onPreviewKeyEvent,
+        onKeyEvent = overriddenOnKeyEvent,
+        onOutsidePointerEvent = onOutsidePointerEvent,
+        content = content,
+    )
+
+    resetLocalPopupStyle()
+}
+//endregion
 
 @Composable
 private fun PopupLayout(

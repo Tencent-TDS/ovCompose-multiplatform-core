@@ -64,12 +64,13 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
-        js()
-        wasm()
+//        desktop()
+//        js()
+//        wasm()
         darwin()
 
-        configureDarwinFlags()
+//        configureDarwinFlags()
+        ohos()
     }
 
     kotlin {
@@ -107,28 +108,28 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             jsNativeMain.dependsOn(skikoMain)
 
-            jsWasmMain.dependsOn(jsNativeMain)
+//            jsWasmMain.dependsOn(jsNativeMain)
 
-            jsMain {
-                dependsOn(jsWasmMain)
-            }
+//            jsMain {
+//                dependsOn(jsWasmMain)
+//            }
 
-            wasmJsMain {
-                dependsOn(jsWasmMain)
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                    implementation(libs.create("skikoWasm"))
-                    implementation(libs.create("skikoWasmWasm"))
-                }
-            }
+//            wasmJsMain {
+//                dependsOn(jsWasmMain)
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                    implementation(libs.create("skikoWasm"))
+//                    implementation(libs.create("skikoWasmWasm"))
+//                }
+//            }
 
-            desktopMain {
-                dependsOn skikoExcludingWebMain
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                    implementation(libs.kotlinStdlibJdk8)
-                }
-            }
+//            desktopMain {
+//                dependsOn skikoExcludingWebMain
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                    implementation(libs.kotlinStdlibJdk8)
+//                }
+//            }
 
             commonTest {
                 dependencies {
@@ -138,35 +139,44 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             nativeMain.dependsOn(jsNativeMain)
             nativeMain.dependsOn(skikoExcludingWebMain)
+            ohosArm64Main.dependsOn(nativeMain)
+
+            uikitMain.dependsOn(nativeMain)
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
+//            androidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation(project(":compose:ui:ui-graphics:ui-graphics-samples"))
+//                implementation(project(":compose:ui:ui-test-junit4"))
+//                implementation(project(":compose:test-utils"))
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.espressoCore)
+//                implementation(libs.junit)
+//            }
 
-            androidAndroidTest.dependencies {
-                implementation(project(":compose:ui:ui-graphics:ui-graphics-samples"))
-                implementation(project(":compose:ui:ui-test-junit4"))
-                implementation(project(":compose:test-utils"))
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.espressoCore)
-                implementation(libs.junit)
-            }
+//            desktopTest {
+//                resources.srcDirs += "src/desktopTest/res"
+//                dependencies {
+//                    implementation(project(":compose:ui:ui-test-junit4"))
+//                    implementation(libs.junit)
+//                    implementation(libs.truth)
+//                    implementation(libs.skikoCurrentOs)
+//                }
+//            }
 
-            desktopTest {
-                resources.srcDirs += "src/desktopTest/res"
-                dependencies {
-                    implementation(project(":compose:ui:ui-test-junit4"))
-                    implementation(libs.junit)
-                    implementation(libs.truth)
-                    implementation(libs.skikoCurrentOs)
+            all {
+                if (name.endsWith("Test")) {
+                    kotlin.setSrcDirs(["nonexistent-test-dir-for-$name"])
                 }
             }
         }
@@ -192,11 +202,11 @@ android {
     namespace "androidx.compose.ui.graphics"
 }
 
-if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
-    tasks.findByName("desktopTest").configure {
-        systemProperties["GOLDEN_PATH"] = project.rootDir.absolutePath + "/golden"
-    }
-}
+//if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+//    tasks.findByName("desktopTest").configure {
+//        systemProperties["GOLDEN_PATH"] = project.rootDir.absolutePath + "/golden"
+//    }
+//}
 
 project.tasks.configureEach {
     if (name == "compileJsWasmMainKotlinMetadata") {

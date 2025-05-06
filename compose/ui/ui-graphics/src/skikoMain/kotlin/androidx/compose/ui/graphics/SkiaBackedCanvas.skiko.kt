@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.EnableSkiaBackedCanvasLog
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -63,14 +64,23 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     }.skia
 
     override fun save() {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] save")
+        }
         skia.save()
     }
 
     override fun restore() {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] restore")
+        }
         skia.restore()
     }
 
     override fun saveLayer(bounds: Rect, paint: Paint) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] saveLayer $bounds")
+        }
         skia.saveLayer(
             bounds.left,
             bounds.top,
@@ -81,42 +91,69 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     }
 
     override fun translate(dx: Float, dy: Float) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] translate dx:${dx} dy:${dy}")
+        }
         skia.translate(dx, dy)
     }
 
     override fun scale(sx: Float, sy: Float) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] scale dx dy = ${sx} ${sy}")
+        }
         skia.scale(sx, sy)
     }
 
     override fun rotate(degrees: Float) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] rotate degrees = ${degrees}")
+        }
         skia.rotate(degrees)
     }
 
     override fun skew(sx: Float, sy: Float) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] skew sx = ${sx} sy:${Float}")
+        }
         skia.skew(sx, sy)
     }
 
     override fun concat(matrix: Matrix) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] concat matrix = ${matrix}")
+        }
         if (!matrix.isIdentity()) {
             skia.concat(matrix.toSkia())
         }
     }
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] clipRect left:${left}  top:${top} right:${right} bottom:${bottom} clipOp:${clipOp}")
+        }
         val antiAlias = true
         skia.clipRect(SkRect.makeLTRB(left, top, right, bottom), clipOp.toSkia(), antiAlias)
     }
 
     override fun clipPath(path: Path, clipOp: ClipOp) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] clipPath path:${path} clipOp:${clipOp}")
+        }
         val antiAlias = true
         skia.clipPath(path.asSkiaPath(), clipOp.toSkia(), antiAlias)
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] drawLine p1:${p1} p2:${p2} paint:${paint}")
+        }
         skia.drawLine(p1.x, p1.y, p2.x, p2.y, paint.skia)
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[SkiaBackedCanvas] drawRect left:${left} top:${top} right:${right} bottom:${bottom} paint:${paint}")
+        }
         skia.drawRect(SkRect.makeLTRB(left, top, right, bottom), paint.skia)
     }
 
@@ -129,6 +166,9 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         radiusY: Float,
         paint: Paint
     ) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[drawRoundRect] drawRoundRect left:${left} top:${top} right:${paint} bottom:${bottom} radiusX:${radiusX} radiusY:${radiusY} paint:${paint}")
+        }
         skia.drawRRect(
             SkRRect.makeLTRB(
                 left,
@@ -173,6 +213,9 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     }
 
     override fun drawPath(path: Path, paint: Paint) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[drawRoundRect] drawPath path:${path}  paint:${paint}")
+        }
         skia.drawPath(path.asSkiaPath(), paint.skia)
     }
 
@@ -208,6 +251,9 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         dstSize: Size,
         paint: Paint
     ) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[drawImageRect] srcOffset=$srcOffset, srcSize=$srcSize, dstOffset=$dstOffset, dstSize$dstSize")
+        }
         val bitmap = image.asSkiaBitmap()
         // TODO(gorshenev): need to use skiko's .use() rather than jvm one here.
         // But can't do that as skiko is jvmTarget=11 for now, so can't inline
@@ -237,6 +283,9 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     }
 
     override fun drawPoints(pointMode: PointMode, points: List<Offset>, paint: Paint) {
+        if (EnableSkiaBackedCanvasLog) {
+            kLog("[drawRoundRect] drawPoints pointMode:${pointMode}  points:${points} paint:${paint}")
+        }
         when (pointMode) {
             // Draw a line between each pair of points, each point has at most one line
             // If the number of points is odd, then the last point is ignored.

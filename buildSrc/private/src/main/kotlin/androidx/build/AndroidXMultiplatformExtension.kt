@@ -29,7 +29,6 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinTargetPreset
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
@@ -293,7 +292,7 @@ open class AndroidXMultiplatformExtension(val project: Project) {
         }
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     @JvmOverloads
     fun wasm(
         block: Action<KotlinJsTargetDsl>? = null

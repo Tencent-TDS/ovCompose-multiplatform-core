@@ -32,6 +32,7 @@ internal fun Paint.applyBrush(brush: Brush?, size: Size, alpha: Float = Float.Na
         (brush is ShaderBrush && size.isSpecified)) {
         // alpha is always applied even if Float.NaN is passed to applyTo function.
         // if it's actually Float.NaN, we simply send the current value
+        brush.useSkia = true
         brush.applyTo(
             size,
             this,

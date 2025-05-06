@@ -226,6 +226,11 @@ value class ImageBitmapConfig internal constructor(val value: Int) {
          * screen.
          */
         val Gpu = ImageBitmapConfig(4)
+
+        /**
+         * // TODO，未来删除，未知类型
+         */
+        val Unknown = ImageBitmapConfig(-1)
     }
 
     override fun toString() = when (this) {

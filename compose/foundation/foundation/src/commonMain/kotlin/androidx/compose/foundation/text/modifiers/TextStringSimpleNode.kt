@@ -17,6 +17,9 @@
 package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,8 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -46,6 +51,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidateLayer
 import androidx.compose.ui.node.invalidateMeasurement
 import androidx.compose.ui.node.invalidateSemantics
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearTextSubstitution
 import androidx.compose.ui.semantics.getTextLayoutResult
@@ -55,6 +61,7 @@ import androidx.compose.ui.semantics.showTextSubstitution
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.semantics.textSubstitution
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -81,8 +88,16 @@ internal class TextStringSimpleNode(
     private var minLines: Int = DefaultMinLines,
     private var overrideColor: ColorProducer? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    // region Tencent Code
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    private val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
+    private var localBitmap: ImageBitmap? = null
+    private var localCanvas: Canvas? = null
+    // endregion
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
-
     private var _layoutCache: ParagraphLayoutCache? = null
     private val layoutCache: ParagraphLayoutCache
         get() {
@@ -322,7 +337,6 @@ internal class TextStringSimpleNode(
         constraints: Constraints
     ): MeasureResult {
         val layoutCache = getLayoutCache(this)
-
         val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
         // ensure measure restarts when hasStaleResolvedFonts by reading in measure
         layoutCache.observeFontChanges
@@ -367,17 +381,101 @@ internal class TextStringSimpleNode(
     override fun IntrinsicMeasureScope.minIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int =
+        getLayoutCache(this).intrinsicHeight(width, layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicWidth(
         measurable: IntrinsicMeasurable,
         height: Int
-    ): Int = getLayoutCache(this).maxIntrinsicWidth(layoutDirection)
+    ): Int =
+        getLayoutCache(this).maxIntrinsicWidth(layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int =
+        getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+
+    // region Tencent Code
+    private fun ensureTextBitmap() {
+        val newBitmap = ImageBitmap(layoutCache.layoutSize.width, layoutCache.layoutSize.height)
+        localCanvas = Canvas(newBitmap)
+        localBitmap = newBitmap
+    }
+
+    private inline fun ContentDrawScope.asyncDrawIntoCanvas(localParagraph: Paragraph) {
+        drawIntoCanvas { canvas ->
+            val currentParagraphHashCode = paragraphHashCode()
+            if (platformTextDelegate?.needRedrawText(
+                    nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutCache.layoutSize.width,
+                    height = layoutCache.layoutSize.height
+                ) == false
+            ) return
+
+            val willClip = layoutCache.didOverflow
+            val layoutSizeWidth = layoutCache.layoutSize.width
+            val layoutSizeHeight = layoutCache.layoutSize.height
+
+            val globalTask: () -> Long = {
+                val newBitmap = ImageBitmap(layoutSizeWidth, layoutSizeHeight)
+                val renderCanvas = Canvas(newBitmap)
+                if (willClip) {
+                    val bounds = Rect(Offset.Zero, Size(layoutSizeWidth.toFloat(), layoutSizeHeight.toFloat()))
+                    renderCanvas.save()
+                    renderCanvas.clipRect(bounds)
+                }
+                try {
+                    val textDecoration = style.textDecoration ?: TextDecoration.None
+                    val shadow = style.shadow ?: Shadow.None
+                    val drawStyle = style.drawStyle ?: Fill
+                    val brush = style.brush
+                    if (brush != null) {
+                        val alpha = style.alpha
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            brush = brush,
+                            alpha = alpha,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    } else {
+                        val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+                        val color = if (overrideColorVal.isSpecified) {
+                            overrideColorVal
+                        } else if (style.color.isSpecified) {
+                            style.color
+                        } else {
+                            Color.Black
+                        }
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            color = color,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    }
+                    platformTextDelegate?.imageFromImageBitmap(canvas, currentParagraphHashCode, newBitmap) ?: 0
+                } finally {
+                    if (willClip) {
+                        renderCanvas.restore()
+                    }
+                }
+            }
+
+            platformTextDelegate?.asyncDrawIntoCanvas(
+                canvas,
+                globalTask,
+                currentParagraphHashCode,
+                layoutSizeWidth,
+                layoutSizeHeight
+            )
+        }
+    }
+    // endregion
 
     /**
      * Optimized Text draw.
@@ -387,15 +485,40 @@ internal class TextStringSimpleNode(
             // no-up for !isAttached. The node will invalidate when attaching again.
             return
         }
+
         val localParagraph = requireNotNull(layoutCache.paragraph) { "no paragraph" }
+        // region Tencent Code
+        if (ComposeTabService.textAsyncPaint) {
+            asyncDrawIntoCanvas(localParagraph)
+            return
+        }
+        // endregion
         drawIntoCanvas { canvas ->
+            var currentParagraphHashCode = 0
+            // region Tencent Code
+            if (!EnableIosRenderLayerV2 || EnableIOSParagraph) {
+                localCanvas = canvas
+            } else {
+                currentParagraphHashCode = paragraphHashCode()
+                if (platformTextDelegate?.needRedrawText(
+                        nativeCanvas = canvas,
+                        paragraphHashKey = currentParagraphHashCode,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height
+                    ) == false
+                ) return
+                ensureTextBitmap()
+            }
+            // endregion
+
+            val renderCanvas = localCanvas!!
             val willClip = layoutCache.didOverflow
             if (willClip) {
                 val width = layoutCache.layoutSize.width.toFloat()
                 val height = layoutCache.layoutSize.height.toFloat()
                 val bounds = Rect(Offset.Zero, Size(width, height))
-                canvas.save()
-                canvas.clipRect(bounds)
+                renderCanvas.save()
+                renderCanvas.clipRect(bounds)
             }
             try {
                 val textDecoration = style.textDecoration ?: TextDecoration.None
@@ -405,7 +528,7 @@ internal class TextStringSimpleNode(
                 if (brush != null) {
                     val alpha = style.alpha
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         brush = brush,
                         alpha = alpha,
                         shadow = shadow,
@@ -422,18 +545,53 @@ internal class TextStringSimpleNode(
                         Color.Black
                     }
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         color = color,
                         shadow = shadow,
                         drawStyle = drawStyle,
                         textDecoration = textDecoration
                     )
                 }
+                // region Tencent Code
+                if (EnableIosRenderLayerV2 && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        imageBitmap = localBitmap,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height,
+                        paragraphHashCode = currentParagraphHashCode,
+                        nativeCanvas = canvas
+                    )
+                    localBitmap = null
+                    localCanvas = null
+                }
+                // endregion
             } finally {
                 if (willClip) {
-                    canvas.restore()
+                    renderCanvas.restore()
                 }
             }
         }
     }
+    private fun paragraphHashCode(): Int {
+        var result = text.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + softWrap.hashCode()
+        result = 31 * result + maxLines
+        result = 31 * result + minLines
+        result = 31 * result + (layoutCache.layoutSize.hashCode() ?: 0)
+        if (style.brush == null) {
+            val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+            val color = if (overrideColorVal.isSpecified) {
+                overrideColorVal
+            } else if (style.color.isSpecified) {
+                style.color
+            } else {
+                Color.Black
+            }
+            result = 31 * result + color.hashCode()
+        }
+        return result
+    }
+    // endregion
 }

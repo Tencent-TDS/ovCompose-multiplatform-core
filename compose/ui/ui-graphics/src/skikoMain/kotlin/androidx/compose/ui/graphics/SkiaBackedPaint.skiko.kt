@@ -45,7 +45,8 @@ internal class SkiaBackedPaint(
         }
 
     private fun updateAlpha(alpha: Float = this.alpha, multiplier: Float = this.mAlphaMultiplier) {
-        skia.color = Color(skia.color).copy(alpha = alpha * multiplier).toArgb()
+        val color = Color(skia.color).copy(alpha = alpha * multiplier)
+        skia.color = color.toArgb()
     }
 
     override var alpha: Float
@@ -106,7 +107,7 @@ internal class SkiaBackedPaint(
 
     override var shader: Shader? = null
         set(value) {
-            skia.shader = value
+            skia.shader = value?.skiaShader
             field = value
         }
 

@@ -206,6 +206,12 @@ abstract class PagerState(
 
         val consumedInt = consumed.roundToInt()
 
+        // region Tencent Code Modify
+        accumulator = consumed - consumedInt
+        // nothing to scroll
+        if (delta.absoluteValue < 1e-4f) return delta
+        // end region
+
         val layoutInfo = pagerLayoutInfoState.value
 
         if (layoutInfo.tryToApplyScrollWithoutRemeasure(-consumedInt)) {
@@ -221,7 +227,9 @@ abstract class PagerState(
             scrollPosition.applyScrollDelta(consumedInt)
             remeasurement?.forceRemeasure()
         }
-        accumulator = consumed - consumedInt
+        // region Tencent Code Modify
+        /*accumulator = consumed - consumedInt*/
+        // end region
 
         // Avoid floating-point rounding error
         return if (changed) consumed else delta

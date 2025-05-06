@@ -17,6 +17,7 @@
 package androidx.compose.foundation.lazy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
@@ -261,6 +262,7 @@ inline fun <T> LazyListScope.itemsIndexed(
     crossinline itemContent: @Composable LazyItemScope.(index: Int, item: T) -> Unit
 ) = itemsIndexed(items, key, itemContent = itemContent)
 
+// region Tencent Code
 /**
  * The horizontally scrolling list that only composes and lays out the currently visible items.
  * The [content] block defines a DSL which allows you to emit items of different types. For
@@ -301,6 +303,61 @@ fun LazyRow(
     flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     userScrollEnabled: Boolean = true,
     content: LazyListScope.() -> Unit
+) = LazyRow(
+    modifier = modifier,
+    state = state,
+    contentPadding = contentPadding,
+    reverseLayout = reverseLayout,
+    horizontalArrangement = horizontalArrangement,
+    verticalAlignment = verticalAlignment,
+    flingBehavior = flingBehavior,
+    userScrollEnabled = userScrollEnabled,
+    overscrollEffect = null,
+    content = content
+)
+
+/**
+ * The horizontally scrolling list that only composes and lays out the currently visible items.
+ * The [content] block defines a DSL which allows you to emit items of different types. For
+ * example you can use [LazyListScope.item] to add a single item and [LazyListScope.items] to add
+ * a list of items.
+ *
+ * @sample androidx.compose.foundation.samples.LazyRowSample
+ *
+ * @param modifier the modifier to apply to this layout
+ * @param state the state object to be used to control or observe the list's state
+ * @param contentPadding a padding around the whole content. This will add padding for the
+ * content after it has been clipped, which is not possible via [modifier] param. You can use it
+ * to add a padding before the first item or after the last one. If you want to add a spacing
+ * between each item use [horizontalArrangement].
+ * @param reverseLayout reverse the direction of scrolling and layout. When `true`, items are
+ * laid out in the reverse order and [LazyListState.firstVisibleItemIndex] == 0 means
+ * that row is scrolled to the end. Note that [reverseLayout] does not change the behavior of
+ * [horizontalArrangement], e.g. with [Arrangement.Start] [123###] becomes [321###].
+ * @param horizontalArrangement The horizontal arrangement of the layout's children. This allows
+ * to add a spacing between items and specify the arrangement of the items when we have not enough
+ * of them to fill the whole minimum size.
+ * @param verticalAlignment the vertical alignment applied to the items
+ * @param flingBehavior logic describing fling behavior.
+ * @param userScrollEnabled whether the scrolling via the user gestures or accessibility actions
+ * is allowed. You can still scroll programmatically using the state even when it is disabled.
+ * @param overscrollEffect the overscroll effect applied to the LazyRow.
+ * @param content a block which describes the content. Inside this block you can use methods like
+ * [LazyListScope.item] to add a single item or [LazyListScope.items] to add a list of items.
+ */
+@Composable
+fun LazyRow(
+    modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    horizontalArrangement: Arrangement.Horizontal =
+        if (!reverseLayout) Arrangement.Start else Arrangement.End,
+    verticalAlignment: Alignment.Vertical = Alignment.Top,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = null,
+    content: LazyListScope.() -> Unit
 ) {
     LazyList(
         modifier = modifier,
@@ -312,6 +369,7 @@ fun LazyRow(
         flingBehavior = flingBehavior,
         reverseLayout = reverseLayout,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 }
@@ -357,6 +415,62 @@ fun LazyColumn(
     flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     userScrollEnabled: Boolean = true,
     content: LazyListScope.() -> Unit
+) = LazyColumn(
+    modifier = modifier,
+    state = state,
+    contentPadding = contentPadding,
+    reverseLayout = reverseLayout,
+    verticalArrangement = verticalArrangement,
+    horizontalAlignment = horizontalAlignment,
+    flingBehavior = flingBehavior,
+    userScrollEnabled = userScrollEnabled,
+    overscrollEffect = null,
+    content = content
+)
+
+/**
+ * The vertically scrolling list that only composes and lays out the currently visible items.
+ * The [content] block defines a DSL which allows you to emit items of different types. For
+ * example you can use [LazyListScope.item] to add a single item and [LazyListScope.items] to add
+ * a list of items.
+ *
+ * @sample androidx.compose.foundation.samples.LazyColumnSample
+ *
+ * @param modifier the modifier to apply to this layout.
+ * @param state the state object to be used to control or observe the list's state.
+ * @param contentPadding a padding around the whole content. This will add padding for the.
+ * content after it has been clipped, which is not possible via [modifier] param. You can use it
+ * to add a padding before the first item or after the last one. If you want to add a spacing
+ * between each item use [verticalArrangement].
+ * @param reverseLayout reverse the direction of scrolling and layout. When `true`, items are
+ * laid out in the reverse order and [LazyListState.firstVisibleItemIndex] == 0 means
+ * that column is scrolled to the bottom. Note that [reverseLayout] does not change the behavior of
+ * [verticalArrangement],
+ * e.g. with [Arrangement.Top] (top) 123### (bottom) becomes (top) 321### (bottom).
+ * @param verticalArrangement The vertical arrangement of the layout's children. This allows
+ * to add a spacing between items and specify the arrangement of the items when we have not enough
+ * of them to fill the whole minimum size.
+ * @param horizontalAlignment the horizontal alignment applied to the items.
+ * @param flingBehavior logic describing fling behavior.
+ * @param userScrollEnabled whether the scrolling via the user gestures or accessibility actions
+ * is allowed. You can still scroll programmatically using the state even when it is disabled
+ * @param overscrollEffect the overscroll effect applied to the LazyColumn.
+ * @param content a block which describes the content. Inside this block you can use methods like
+ * [LazyListScope.item] to add a single item or [LazyListScope.items] to add a list of items.
+ */
+@Composable
+fun LazyColumn(
+    modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    verticalArrangement: Arrangement.Vertical =
+        if (!reverseLayout) Arrangement.Top else Arrangement.Bottom,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = null,
+    content: LazyListScope.() -> Unit
 ) {
     LazyList(
         modifier = modifier,
@@ -368,9 +482,11 @@ fun LazyColumn(
         isVertical = true,
         reverseLayout = reverseLayout,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 }
+// endregion
 
 @Deprecated("Use the non deprecated overload", level = DeprecationLevel.HIDDEN)
 @Composable

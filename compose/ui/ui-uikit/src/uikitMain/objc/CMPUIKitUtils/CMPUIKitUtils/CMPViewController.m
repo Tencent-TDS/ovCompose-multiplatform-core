@@ -77,6 +77,9 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 
 @implementation CMPViewController {
     CMPViewControllerLifecycleState _lifecycleState;
+    // region Tencent Code
+    CMPRenderBackend _renderBackend;
+    // endregion
 }
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
@@ -84,6 +87,7 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
     
     if (self) {
         _lifecycleState = CMPViewControllerLifecycleStateInitalized;
+        _renderBackend = CMPRenderBackendSkia;
     }
     
     return self;
@@ -98,9 +102,15 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 - (void)transitLifecycleToStarted {
     switch (_lifecycleState) {
         case CMPViewControllerLifecycleStateDestroyed:
-            @throw [NSException exceptionWithName:@"CMPViewControllerMisuse"
-                                           reason:@"CMPViewController shouldn't be reused after completely removed from hierarchy, because it's logically marked as Destroyed. You must create a new CMPViewController and use it instead."
-                                         userInfo:nil];
+            // region Tencent Code Modify
+            /*
+             @throw [NSException exceptionWithName:@"CMPViewControllerMisuse"
+                                            reason:@"CMPViewController shouldn't be reused after completely removed from hierarchy, because it's logically marked as Destroyed. You must create a new CMPViewController and use it instead."
+                                          userInfo:nil];
+             */
+            [self viewControllerPrepareForReuseInternal];
+            // endregion
+            break;
         case CMPViewControllerLifecycleStateInitalized:
             _lifecycleState = CMPViewControllerLifecycleStateStarted;
             [self viewControllerDidEnterWindowHierarchy];
@@ -141,5 +151,27 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 
 - (void)viewControllerDidLeaveWindowHierarchy {
 }
+
+// region Tencent Code
+- (void)setRenderBackend:(CMPRenderBackend)renderBackend {
+    _renderBackend = renderBackend;
+}
+
+- (void)viewControllerPrepareForReuseInternal {
+    if (_renderBackend == CMPRenderBackendUIView) {
+        _lifecycleState = CMPViewControllerLifecycleStateStarted;
+        [self viewControllerPrepareForReuse];
+        [self scheduleHierarchyContainmentCheck];
+    } else {
+        @throw [NSException exceptionWithName:@"CMPViewControllerMisuse"
+                                       reason:@"CMPViewController which using CMPRenderBackendSkia shouldn't be reused after completely removed from hierarchy, because it's logically marked as Destroyed. You must create a new one and use it instead."
+                                     userInfo:nil];
+    }
+}
+
+- (void)viewControllerPrepareForReuse {
+}
+
+// endregion
 
 @end

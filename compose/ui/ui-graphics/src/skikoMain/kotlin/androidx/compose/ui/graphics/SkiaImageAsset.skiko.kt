@@ -71,7 +71,7 @@ fun ImageBitmap.asSkiaBitmap(): Bitmap =
         else -> throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Image")
     }
 
-private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
+internal class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
     override val colorSpace = bitmap.colorSpace.toComposeColorSpace()
     override val config = bitmap.colorType.toComposeConfig()
     override val hasAlpha = !bitmap.isOpaque

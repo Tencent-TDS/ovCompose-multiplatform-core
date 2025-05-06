@@ -42,6 +42,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.setContent
@@ -199,6 +200,26 @@ private class MultiLayerComposeSceneImpl(
         return mainOwner.measureInConstraints(Constraints())
     }
 
+    // region Tencent Code
+    override fun setLayerFactory(factory: OwnedLayerFactory) {
+        mainOwner.layerFactory = factory
+    }
+
+    override fun outerContainerOffsetChange(x: Float, y: Float) {
+        mainOwner.outerContainerOffsetChange(x, y)
+    }
+
+    override fun getMeasuredContentSize(): IntSize {
+        check(!isClosed) { "ComposeScene is closed" }
+        // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
+        val children = mainOwner.owner.root.children
+        return IntSize(
+            width = children.maxOfOrNull { it.outerCoordinator.measuredWidth } ?: 0,
+            height = children.maxOfOrNull { it.outerCoordinator.measuredHeight } ?: 0,
+        )
+    }
+    // endregion
+
     override fun createComposition(content: @Composable () -> Unit): Composition {
         return mainOwner.setContent(
             compositionContext,
@@ -206,7 +227,7 @@ private class MultiLayerComposeSceneImpl(
             content = content
         )
     }
-
+    // region Tencent Code
     @Deprecated("To be removed. Temporary hack for iOS interop")
     override fun hitTestInteropView(position: Offset): Boolean {
         // TODO:
@@ -216,14 +237,41 @@ private class MultiLayerComposeSceneImpl(
         //  instead of using [pointInside].
         forEachLayerReversed { layer ->
             if (layer.isInBounds(position)) {
-                return layer.owner.hitTestInteropView(position)
+                return layer.owner.hitTestInteropView(position, null)
             } else if (layer == focusedLayer) {
                 return false
             }
         }
-        return mainOwner.hitTestInteropView(position)
+        return mainOwner.hitTestInteropView(position, null)
+    }
+    @Deprecated("To be removed. Temporary hack for iOS interop")
+    override fun hitTestInteropView(position: Offset, event: Any?): Boolean {
+        // TODO:
+        //  Temporary solution copying control flow from [processPress].
+        //  A proper solution is to send touches to scene as black box
+        //  and handle only that ones that were received in interop view
+        //  instead of using [pointInside].
+        forEachLayerReversed { layer ->
+            if (layer.isInBounds(position)) {
+                return layer.owner.hitTestInteropView(position, event)
+            } else if (layer == focusedLayer) {
+                return false
+            }
+        }
+        return mainOwner.hitTestInteropView(position, event)
     }
 
+    override fun hitTestComposeView(position: Offset, event: Any?): Boolean {
+        forEachLayerReversed { layer ->
+            if (layer.isInBounds(position)) {
+                return layer.owner.hitTestComposeView(position, event)
+            } else if (layer == focusedLayer) {
+                return false
+            }
+        }
+        return mainOwner.hitTestComposeView(position, event)
+    }
+    //endregion
     override fun processPointerInputEvent(event: PointerInputEvent) {
         when (event.eventType) {
             PointerEventType.Press -> processPress(event)

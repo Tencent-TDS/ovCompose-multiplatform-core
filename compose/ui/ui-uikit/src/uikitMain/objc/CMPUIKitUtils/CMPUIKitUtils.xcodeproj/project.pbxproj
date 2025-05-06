@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D39C7D62CC27628009946F8 /* TMMNativeArcLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 0D39C7D52CC27628009946F8 /* TMMNativeArcLayer.m */; };
+		0D59BEDE2C7F391E002528A4 /* TMMComposeNativeColorFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0D59BEDD2C7F391E002528A4 /* TMMComposeNativeColorFilter.m */; };
+		20163FBA2C81CDDF00FA4FCE /* TMMComposeTextAttributes.m in Sources */ = {isa = PBXBuildFile; fileRef = 20163FB82C81CDDF00FA4FCE /* TMMComposeTextAttributes.m */; };
+		201640342C85BE8200FA4FCE /* TMMComposeTextSpanAttributes.m in Sources */ = {isa = PBXBuildFile; fileRef = 201640332C85BE8200FA4FCE /* TMMComposeTextSpanAttributes.m */; };
 		997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCDD2B18D135000B56B5 /* CMPViewController.m */; };
 		997DFCE62B18D99E000B56B5 /* CMPViewControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCE52B18D99E000B56B5 /* CMPViewControllerTests.swift */; };
 		997DFCE72B18D99E000B56B5 /* libCMPUIKitUtils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 996EFEEA2B02CE5D0000FE0F /* libCMPUIKitUtils.a */; };
@@ -14,8 +18,62 @@
 		997DFCF32B18DE59000B56B5 /* MockAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCF22B18DE59000B56B5 /* MockAppDelegate.swift */; };
 		997DFCF52B18E276000B56B5 /* XCTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCF42B18E276000B56B5 /* XCTestCase.swift */; };
 		997DFCFD2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCFC2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift */; };
+		B2F02D5F2D881F3500D229EE /* TMMNativeLineGradientLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = B2F02D5E2D881F3500D229EE /* TMMNativeLineGradientLayer.m */; };
+		B2F0F0A52C7F40D7004B7684 /* TMMInteropWrapView.m in Sources */ = {isa = PBXBuildFile; fileRef = B2F0F0A22C7F4011004B7684 /* TMMInteropWrapView.m */; };
 		EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */; };
-		EA70A7EC2B27106100300068 /* CMPAccessibilityContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */; };
+		F10EC03B2C88048700E86940 /* TMMTextKitShadower.m in Sources */ = {isa = PBXBuildFile; fileRef = F10EC03A2C88048700E86940 /* TMMTextKitShadower.m */; };
+		F10EC03E2C88049B00E86940 /* TMMTextKitTailTruncater.m in Sources */ = {isa = PBXBuildFile; fileRef = F10EC03D2C88049B00E86940 /* TMMTextKitTailTruncater.m */; };
+		F14C32962D939F020085F1FE /* TMMNativeInteractiveView.m in Sources */ = {isa = PBXBuildFile; fileRef = F14C32952D939F020085F1FE /* TMMNativeInteractiveView.m */; };
+		F1A1F9D82CDA4C2E00CA15A8 /* TMMInteropBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = F1A1F9D72CDA4C2E00CA15A8 /* TMMInteropBaseView.m */; };
+		F1AD65232C85DAD2000C57E9 /* TMMTextKitRender.m in Sources */ = {isa = PBXBuildFile; fileRef = F1AD65222C85DAD2000C57E9 /* TMMTextKitRender.m */; };
+		F1AD65262C85DAE8000C57E9 /* TMMTextKitContext.m in Sources */ = {isa = PBXBuildFile; fileRef = F1AD65252C85DAE8000C57E9 /* TMMTextKitContext.m */; };
+		F1B658842D9C1305008FA0D4 /* UIView+TMMDispatchEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = F1B658822D9C1305008FA0D4 /* UIView+TMMDispatchEvent.m */; };
+		F82BC5A02C7DBB32003878A6 /* TMMComposeSignPost.m in Sources */ = {isa = PBXBuildFile; fileRef = F82BC59F2C7DBB32003878A6 /* TMMComposeSignPost.m */; };
+		F85774FE2CEDDB6D00C9150C /* UIImage+TMMBlendMode.m in Sources */ = {isa = PBXBuildFile; fileRef = F85774FD2CEDDB6D00C9150C /* UIImage+TMMBlendMode.m */; };
+		F85FA0E32D8990C0001F40DD /* TMMFastTintColorImageContentLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F85FA0DA2D8990C0001F40DD /* TMMFastTintColorImageContentLayer.m */; };
+		F85FA0E42D8990C0001F40DD /* TMMImageDisplayLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = F85FA0DE2D8990C0001F40DD /* TMMImageDisplayLayer.mm */; };
+		F85FA0E52D8990C0001F40DD /* TMMImageClipLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = F85FA0DC2D8990C0001F40DD /* TMMImageClipLayer.mm */; };
+		F86815AB2C7C9BBF00310F5E /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F86815AA2C7C9BBF00310F5E /* UIKit.framework */; };
+		F86816FB2C7CB50500310F5E /* TMMComposeMemoryCache.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816AD2C7CB50500310F5E /* TMMComposeMemoryCache.m */; };
+		F86816FC2C7CB50500310F5E /* TMMGaussianBlurFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816B12C7CB50500310F5E /* TMMGaussianBlurFilter.m */; };
+		F86816FD2C7CB50500310F5E /* TMMNativeCircleLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816B32C7CB50500310F5E /* TMMNativeCircleLayer.m */; };
+		F86816FE2C7CB50500310F5E /* TMMNativeRoundRectLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816B52C7CB50500310F5E /* TMMNativeRoundRectLayer.m */; };
+		F86816FF2C7CB50500310F5E /* TMMNativeComposeGradientLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816B72C7CB50500310F5E /* TMMNativeComposeGradientLayer.m */; };
+		F86817002C7CB50500310F5E /* TMMNativeLineLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816B92C7CB50500310F5E /* TMMNativeLineLayer.m */; };
+		F86817042C7CB50500310F5E /* TMMNativeBaseLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816C02C7CB50500310F5E /* TMMNativeBaseLayer.m */; };
+		F86817052C7CB50500310F5E /* TMMComposeNativePaint.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816C32C7CB50500310F5E /* TMMComposeNativePaint.m */; };
+		F86817062C7CB50500310F5E /* TMMNativeBezierPathUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816C62C7CB50500310F5E /* TMMNativeBezierPathUtil.m */; };
+		F86817072C7CB50500310F5E /* TMMNativeRoundRect.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816C92C7CB50500310F5E /* TMMNativeRoundRect.m */; };
+		F86817082C7CB50500310F5E /* TMMDrawUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816CA2C7CB50500310F5E /* TMMDrawUtils.m */; };
+		F86817092C7CB50500310F5E /* TMMNativeLinearGradientShader.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816CF2C7CB50500310F5E /* TMMNativeLinearGradientShader.m */; };
+		F868170A2C7CB50500310F5E /* TMMNativeSweepGradientShader.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816D12C7CB50500310F5E /* TMMNativeSweepGradientShader.m */; };
+		F868170B2C7CB50500310F5E /* TMMNativeBasicShader.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816D22C7CB50500310F5E /* TMMNativeBasicShader.m */; };
+		F868170C2C7CB50500310F5E /* TMMNativeImageShader.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816D32C7CB50500310F5E /* TMMNativeImageShader.m */; };
+		F868170D2C7CB50500310F5E /* TMMNativeRadialGradientShader.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816D52C7CB50500310F5E /* TMMNativeRadialGradientShader.m */; };
+		F868170E2C7CB50500310F5E /* TMMComposeNativePath.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816D82C7CB50500310F5E /* TMMComposeNativePath.m */; };
+		F86817152C7CB50500310F5E /* TMMComposeTextLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F86816ED2C7CB50500310F5E /* TMMComposeTextLayer.m */; };
+		F89161632D2D514200EB3EAB /* TMMAsyncTaskLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F89161622D2D514200EB3EAB /* TMMAsyncTaskLayer.m */; };
+		F8A852422D1BF84600E58B40 /* TMMRenderReuseCache.m in Sources */ = {isa = PBXBuildFile; fileRef = F8A852412D1BF84600E58B40 /* TMMRenderReuseCache.m */; };
+		F8AD99352D0AFB540093716A /* TMMImageBitmapUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = F8AD99342D0AFB540093716A /* TMMImageBitmapUtil.m */; };
+		F8BBF4902D191769003ACD11 /* UIViewUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = F8BBF48F2D191769003ACD11 /* UIViewUtils.m */; };
+		F8C73E932D939BAB003A6CDE /* TMMComposeAspects.m in Sources */ = {isa = PBXBuildFile; fileRef = F8C73E8F2D939BAB003A6CDE /* TMMComposeAspects.m */; };
+		F8C73E942D939BAB003A6CDE /* TMMInteropScrollView.m in Sources */ = {isa = PBXBuildFile; fileRef = F8C73E912D939BAB003A6CDE /* TMMInteropScrollView.m */; };
+		F8DE706A2DA65DDE006BB0D5 /* TVComposePointLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F8DE70692DA65DDE006BB0D5 /* TVComposePointLayer.m */; };
+		F8E1E5052D78550D0003C334 /* CALayer+TMMPictureRecorder.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E4F62D78550D0003C334 /* CALayer+TMMPictureRecorder.m */; };
+		F8E1E5062D78550D0003C334 /* TMMPictureRecorderDrawingItem.mm in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E4FC2D78550D0003C334 /* TMMPictureRecorderDrawingItem.mm */; };
+		F8E1E5072D78550D0003C334 /* TMMUIKitPictureRecorder.mm in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E4FF2D78550D0003C334 /* TMMUIKitPictureRecorder.mm */; };
+		F8E1E5082D78550D0003C334 /* xxhash.c in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E5032D78550D0003C334 /* xxhash.c */; };
+		F8E1E5092D78550D0003C334 /* TMMCALayerSaveState.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E4F82D78550D0003C334 /* TMMCALayerSaveState.m */; };
+		F8E1E50A2D78550D0003C334 /* TMMXXHashFuncs.mm in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E5012D78550D0003C334 /* TMMXXHashFuncs.mm */; };
+		F8E1E50B2D78550D0003C334 /* TMMPictureRecorderDiffer.mm in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E4FA2D78550D0003C334 /* TMMPictureRecorderDiffer.mm */; };
+		F8E1E5152D7855160003C334 /* TMMCanvasLayerDrawer.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E50D2D7855160003C334 /* TMMCanvasLayerDrawer.m */; };
+		F8E1E5162D7855160003C334 /* TMMCanvasViewProxyV2.mm in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E50F2D7855160003C334 /* TMMCanvasViewProxyV2.mm */; };
+		F8E1E5172D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E5112D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.m */; };
+		F8E1E5182D7855160003C334 /* TMMUIKitCanvasLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E5132D7855160003C334 /* TMMUIKitCanvasLayer.m */; };
+		F8E1E51B2D78569F0003C334 /* TMMNativeClipLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E51A2D78569F0003C334 /* TMMNativeClipLayer.m */; };
+		F8E1E6592D7AF67F0003C334 /* TMMCanvasDrawerUitls.m in Sources */ = {isa = PBXBuildFile; fileRef = F8E1E6582D7AF67F0003C334 /* TMMCanvasDrawerUitls.m */; };
+		F8EF41E42D1BC04D00AC170D /* TMMComposeRenderReuseUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = F8EF41E32D1BC04D00AC170D /* TMMComposeRenderReuseUtils.m */; };
+		F8FDB7DB2CA2612E006E7930 /* TMMReportUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = F8FDB7DA2CA2612E006E7930 /* TMMReportUtil.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +106,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0D3439742C7F212B0000ED34 /* TMMComposeNativeColorFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeNativeColorFilter.h; sourceTree = "<group>"; };
+		0D39C7D52CC27628009946F8 /* TMMNativeArcLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMNativeArcLayer.m; sourceTree = "<group>"; };
+		0D39C7D72CC27652009946F8 /* TMMNativeArcLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMNativeArcLayer.h; sourceTree = "<group>"; };
+		0D59BEDD2C7F391E002528A4 /* TMMComposeNativeColorFilter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMComposeNativeColorFilter.m; sourceTree = "<group>"; };
+		20163FB82C81CDDF00FA4FCE /* TMMComposeTextAttributes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeTextAttributes.m; sourceTree = "<group>"; };
+		20163FB92C81CDDF00FA4FCE /* TMMComposeTextAttributes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeTextAttributes.h; sourceTree = "<group>"; };
+		201640322C85BE6700FA4FCE /* TMMComposeTextSpanAttributes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMComposeTextSpanAttributes.h; sourceTree = "<group>"; };
+		201640332C85BE8200FA4FCE /* TMMComposeTextSpanAttributes.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMComposeTextSpanAttributes.m; sourceTree = "<group>"; };
 		996EFEEA2B02CE5D0000FE0F /* libCMPUIKitUtils.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCMPUIKitUtils.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		996EFEF52B02CE8A0000FE0F /* CMPUIKitUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPUIKitUtils.h; sourceTree = "<group>"; };
 		997DFCDC2B18D135000B56B5 /* CMPViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPViewController.h; sourceTree = "<group>"; };
@@ -59,11 +125,125 @@
 		997DFCF42B18E276000B56B5 /* XCTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestCase.swift; sourceTree = "<group>"; };
 		997DFCFA2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CMPUIKitUtilsTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		997DFCFC2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMPUIKitUtilsTestApp.swift; sourceTree = "<group>"; };
+		B2F02D5D2D881F3500D229EE /* TMMNativeLineGradientLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMNativeLineGradientLayer.h; sourceTree = "<group>"; };
+		B2F02D5E2D881F3500D229EE /* TMMNativeLineGradientLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMNativeLineGradientLayer.m; sourceTree = "<group>"; };
+		B2F0F0A12C7F4011004B7684 /* TMMInteropWrapView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMInteropWrapView.h; sourceTree = "<group>"; };
+		B2F0F0A22C7F4011004B7684 /* TMMInteropWrapView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMInteropWrapView.m; sourceTree = "<group>"; };
 		EA70A7E62B27106100300068 /* CMPAccessibilityElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMPAccessibilityElement.h; sourceTree = "<group>"; };
 		EA70A7E72B27106100300068 /* CMPMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMPMacros.h; sourceTree = "<group>"; };
 		EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMPAccessibilityElement.m; sourceTree = "<group>"; };
-		EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMPAccessibilityContainer.m; sourceTree = "<group>"; };
-		EA70A7EA2B27106100300068 /* CMPAccessibilityContainer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMPAccessibilityContainer.h; sourceTree = "<group>"; };
+		F10EC0392C88048700E86940 /* TMMTextKitShadower.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMTextKitShadower.h; sourceTree = "<group>"; };
+		F10EC03A2C88048700E86940 /* TMMTextKitShadower.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMTextKitShadower.m; sourceTree = "<group>"; };
+		F10EC03C2C88049B00E86940 /* TMMTextKitTailTruncater.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMTextKitTailTruncater.h; sourceTree = "<group>"; };
+		F10EC03D2C88049B00E86940 /* TMMTextKitTailTruncater.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMTextKitTailTruncater.m; sourceTree = "<group>"; };
+		F10EC03F2C8805FA00E86940 /* TMMTextKitTruncating.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMTextKitTruncating.h; sourceTree = "<group>"; };
+		F14C32942D939F020085F1FE /* TMMNativeInteractiveView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMNativeInteractiveView.h; sourceTree = "<group>"; };
+		F14C32952D939F020085F1FE /* TMMNativeInteractiveView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMNativeInteractiveView.m; sourceTree = "<group>"; };
+		F1A1F9D62CDA4C2E00CA15A8 /* TMMInteropBaseView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMInteropBaseView.h; sourceTree = "<group>"; };
+		F1A1F9D72CDA4C2E00CA15A8 /* TMMInteropBaseView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMInteropBaseView.m; sourceTree = "<group>"; };
+		F1AD65212C85DAD2000C57E9 /* TMMTextKitRender.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMTextKitRender.h; sourceTree = "<group>"; };
+		F1AD65222C85DAD2000C57E9 /* TMMTextKitRender.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMTextKitRender.m; sourceTree = "<group>"; };
+		F1AD65242C85DAE8000C57E9 /* TMMTextKitContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMTextKitContext.h; sourceTree = "<group>"; };
+		F1AD65252C85DAE8000C57E9 /* TMMTextKitContext.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMTextKitContext.m; sourceTree = "<group>"; };
+		F1B658812D9C1305008FA0D4 /* UIView+TMMDispatchEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIView+TMMDispatchEvent.h"; sourceTree = "<group>"; };
+		F1B658822D9C1305008FA0D4 /* UIView+TMMDispatchEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIView+TMMDispatchEvent.m"; sourceTree = "<group>"; };
+		F82BC59E2C7DBB31003878A6 /* TMMComposeSignPost.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeSignPost.h; sourceTree = "<group>"; };
+		F82BC59F2C7DBB32003878A6 /* TMMComposeSignPost.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeSignPost.m; sourceTree = "<group>"; };
+		F85774FC2CEDDB6D00C9150C /* UIImage+TMMBlendMode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+TMMBlendMode.h"; sourceTree = "<group>"; };
+		F85774FD2CEDDB6D00C9150C /* UIImage+TMMBlendMode.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIImage+TMMBlendMode.m"; sourceTree = "<group>"; };
+		F85FA0D92D8990C0001F40DD /* TMMFastTintColorImageContentLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMFastTintColorImageContentLayer.h; sourceTree = "<group>"; };
+		F85FA0DA2D8990C0001F40DD /* TMMFastTintColorImageContentLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMFastTintColorImageContentLayer.m; sourceTree = "<group>"; };
+		F85FA0DB2D8990C0001F40DD /* TMMImageClipLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMImageClipLayer.h; sourceTree = "<group>"; };
+		F85FA0DC2D8990C0001F40DD /* TMMImageClipLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMImageClipLayer.mm; sourceTree = "<group>"; };
+		F85FA0DD2D8990C0001F40DD /* TMMImageDisplayLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMImageDisplayLayer.h; sourceTree = "<group>"; };
+		F85FA0DE2D8990C0001F40DD /* TMMImageDisplayLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMImageDisplayLayer.mm; sourceTree = "<group>"; };
+		F86815AA2C7C9BBF00310F5E /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		F86816AC2C7CB50500310F5E /* TMMComposeMemoryCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeMemoryCache.h; sourceTree = "<group>"; };
+		F86816AD2C7CB50500310F5E /* TMMComposeMemoryCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeMemoryCache.m; sourceTree = "<group>"; };
+		F86816B02C7CB50500310F5E /* TMMGaussianBlurFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMGaussianBlurFilter.h; sourceTree = "<group>"; };
+		F86816B12C7CB50500310F5E /* TMMGaussianBlurFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMGaussianBlurFilter.m; sourceTree = "<group>"; };
+		F86816B32C7CB50500310F5E /* TMMNativeCircleLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeCircleLayer.m; sourceTree = "<group>"; };
+		F86816B52C7CB50500310F5E /* TMMNativeRoundRectLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeRoundRectLayer.m; sourceTree = "<group>"; };
+		F86816B72C7CB50500310F5E /* TMMNativeComposeGradientLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeComposeGradientLayer.m; sourceTree = "<group>"; };
+		F86816B82C7CB50500310F5E /* TMMNativeBaseLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeBaseLayer.h; sourceTree = "<group>"; };
+		F86816B92C7CB50500310F5E /* TMMNativeLineLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeLineLayer.m; sourceTree = "<group>"; };
+		F86816BB2C7CB50500310F5E /* TMMNativeRoundRectLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeRoundRectLayer.h; sourceTree = "<group>"; };
+		F86816BD2C7CB50500310F5E /* TMMNativeCircleLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeCircleLayer.h; sourceTree = "<group>"; };
+		F86816BE2C7CB50500310F5E /* TMMNativeComposeGradientLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeComposeGradientLayer.h; sourceTree = "<group>"; };
+		F86816C02C7CB50500310F5E /* TMMNativeBaseLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeBaseLayer.m; sourceTree = "<group>"; };
+		F86816C22C7CB50500310F5E /* TMMNativeLineLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeLineLayer.h; sourceTree = "<group>"; };
+		F86816C32C7CB50500310F5E /* TMMComposeNativePaint.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeNativePaint.m; sourceTree = "<group>"; };
+		F86816C52C7CB50500310F5E /* TMMNativeBezierPathUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeBezierPathUtil.h; sourceTree = "<group>"; };
+		F86816C62C7CB50500310F5E /* TMMNativeBezierPathUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeBezierPathUtil.m; sourceTree = "<group>"; };
+		F86816C82C7CB50500310F5E /* TMMComposeNativePath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeNativePath.h; sourceTree = "<group>"; };
+		F86816C92C7CB50500310F5E /* TMMNativeRoundRect.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeRoundRect.m; sourceTree = "<group>"; };
+		F86816CA2C7CB50500310F5E /* TMMDrawUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMDrawUtils.m; sourceTree = "<group>"; };
+		F86816CB2C7CB50500310F5E /* TMMComposeNativePaint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeNativePaint.h; sourceTree = "<group>"; };
+		F86816CD2C7CB50500310F5E /* TMMNativeBasicShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeBasicShader.h; sourceTree = "<group>"; };
+		F86816CE2C7CB50500310F5E /* TMMNativeRadialGradientShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeRadialGradientShader.h; sourceTree = "<group>"; };
+		F86816CF2C7CB50500310F5E /* TMMNativeLinearGradientShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeLinearGradientShader.m; sourceTree = "<group>"; };
+		F86816D02C7CB50500310F5E /* TMMNativeImageShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeImageShader.h; sourceTree = "<group>"; };
+		F86816D12C7CB50500310F5E /* TMMNativeSweepGradientShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeSweepGradientShader.m; sourceTree = "<group>"; };
+		F86816D22C7CB50500310F5E /* TMMNativeBasicShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeBasicShader.m; sourceTree = "<group>"; };
+		F86816D32C7CB50500310F5E /* TMMNativeImageShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeImageShader.m; sourceTree = "<group>"; };
+		F86816D42C7CB50500310F5E /* TMMNativeLinearGradientShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeLinearGradientShader.h; sourceTree = "<group>"; };
+		F86816D52C7CB50500310F5E /* TMMNativeRadialGradientShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMNativeRadialGradientShader.m; sourceTree = "<group>"; };
+		F86816D62C7CB50500310F5E /* TMMNativeSweepGradientShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeSweepGradientShader.h; sourceTree = "<group>"; };
+		F86816D72C7CB50500310F5E /* TMMNativeEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeEnums.h; sourceTree = "<group>"; };
+		F86816D82C7CB50500310F5E /* TMMComposeNativePath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeNativePath.m; sourceTree = "<group>"; };
+		F86816DF2C7CB50500310F5E /* TMMDrawUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMDrawUtils.h; sourceTree = "<group>"; };
+		F86816EA2C7CB50500310F5E /* TMMNativeComposeAdaptivedCanvas.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeComposeAdaptivedCanvas.h; sourceTree = "<group>"; };
+		F86816EB2C7CB50500310F5E /* ITMMNativePictureRecorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ITMMNativePictureRecorder.h; sourceTree = "<group>"; };
+		F86816ED2C7CB50500310F5E /* TMMComposeTextLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TMMComposeTextLayer.m; sourceTree = "<group>"; };
+		F86816EE2C7CB50500310F5E /* TMMComposeTextLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMComposeTextLayer.h; sourceTree = "<group>"; };
+		F86816FA2C7CB50500310F5E /* TMMNativeRoundRect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TMMNativeRoundRect.h; sourceTree = "<group>"; };
+		F89161612D2D514200EB3EAB /* TMMAsyncTaskLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMAsyncTaskLayer.h; sourceTree = "<group>"; };
+		F89161622D2D514200EB3EAB /* TMMAsyncTaskLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMAsyncTaskLayer.m; sourceTree = "<group>"; };
+		F8A852402D1BF84600E58B40 /* TMMRenderReuseCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMRenderReuseCache.h; sourceTree = "<group>"; };
+		F8A852412D1BF84600E58B40 /* TMMRenderReuseCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMRenderReuseCache.m; sourceTree = "<group>"; };
+		F8AD99332D0AFB540093716A /* TMMImageBitmapUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMImageBitmapUtil.h; sourceTree = "<group>"; };
+		F8AD99342D0AFB540093716A /* TMMImageBitmapUtil.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMImageBitmapUtil.m; sourceTree = "<group>"; };
+		F8B411DA2D7ED72100D25155 /* ITMMCanvasViewProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ITMMCanvasViewProxy.h; sourceTree = "<group>"; };
+		F8BBF48E2D191769003ACD11 /* UIViewUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UIViewUtils.h; sourceTree = "<group>"; };
+		F8BBF48F2D191769003ACD11 /* UIViewUtils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UIViewUtils.m; sourceTree = "<group>"; };
+		F8C73E8E2D939BAB003A6CDE /* TMMComposeAspects.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMComposeAspects.h; sourceTree = "<group>"; };
+		F8C73E8F2D939BAB003A6CDE /* TMMComposeAspects.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMComposeAspects.m; sourceTree = "<group>"; };
+		F8C73E902D939BAB003A6CDE /* TMMInteropScrollView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMInteropScrollView.h; sourceTree = "<group>"; };
+		F8C73E912D939BAB003A6CDE /* TMMInteropScrollView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMInteropScrollView.m; sourceTree = "<group>"; };
+		F8DE70682DA65DDE006BB0D5 /* TVComposePointLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TVComposePointLayer.h; sourceTree = "<group>"; };
+		F8DE70692DA65DDE006BB0D5 /* TVComposePointLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TVComposePointLayer.m; sourceTree = "<group>"; };
+		F8DE70BD2DA6736B006BB0D5 /* TMMCMPUIViewMixEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMCMPUIViewMixEvent.h; sourceTree = "<group>"; };
+		F8E1E4F52D78550D0003C334 /* CALayer+TMMPictureRecorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CALayer+TMMPictureRecorder.h"; sourceTree = "<group>"; };
+		F8E1E4F62D78550D0003C334 /* CALayer+TMMPictureRecorder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "CALayer+TMMPictureRecorder.m"; sourceTree = "<group>"; };
+		F8E1E4F72D78550D0003C334 /* TMMCALayerSaveState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMCALayerSaveState.h; sourceTree = "<group>"; };
+		F8E1E4F82D78550D0003C334 /* TMMCALayerSaveState.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMCALayerSaveState.m; sourceTree = "<group>"; };
+		F8E1E4F92D78550D0003C334 /* TMMPictureRecorderDiffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMPictureRecorderDiffer.h; sourceTree = "<group>"; };
+		F8E1E4FA2D78550D0003C334 /* TMMPictureRecorderDiffer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMPictureRecorderDiffer.mm; sourceTree = "<group>"; };
+		F8E1E4FB2D78550D0003C334 /* TMMPictureRecorderDrawingItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMPictureRecorderDrawingItem.h; sourceTree = "<group>"; };
+		F8E1E4FC2D78550D0003C334 /* TMMPictureRecorderDrawingItem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMPictureRecorderDrawingItem.mm; sourceTree = "<group>"; };
+		F8E1E4FD2D78550D0003C334 /* TMMPictureRecorderUnitTest.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMPictureRecorderUnitTest.h; sourceTree = "<group>"; };
+		F8E1E4FE2D78550D0003C334 /* TMMUIKitPictureRecorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMUIKitPictureRecorder.h; sourceTree = "<group>"; };
+		F8E1E4FF2D78550D0003C334 /* TMMUIKitPictureRecorder.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMUIKitPictureRecorder.mm; sourceTree = "<group>"; };
+		F8E1E5002D78550D0003C334 /* TMMXXHashFuncs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMXXHashFuncs.h; sourceTree = "<group>"; };
+		F8E1E5012D78550D0003C334 /* TMMXXHashFuncs.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMXXHashFuncs.mm; sourceTree = "<group>"; };
+		F8E1E5022D78550D0003C334 /* xxhash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xxhash.h; sourceTree = "<group>"; };
+		F8E1E5032D78550D0003C334 /* xxhash.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xxhash.c; sourceTree = "<group>"; };
+		F8E1E50C2D7855160003C334 /* TMMCanvasLayerDrawer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMCanvasLayerDrawer.h; sourceTree = "<group>"; };
+		F8E1E50D2D7855160003C334 /* TMMCanvasLayerDrawer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMCanvasLayerDrawer.m; sourceTree = "<group>"; };
+		F8E1E50E2D7855160003C334 /* TMMCanvasViewProxyV2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMCanvasViewProxyV2.h; sourceTree = "<group>"; };
+		F8E1E50F2D7855160003C334 /* TMMCanvasViewProxyV2.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TMMCanvasViewProxyV2.mm; sourceTree = "<group>"; };
+		F8E1E5102D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMComposeAdaptivedCanvasViewV2.h; sourceTree = "<group>"; };
+		F8E1E5112D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMComposeAdaptivedCanvasViewV2.m; sourceTree = "<group>"; };
+		F8E1E5122D7855160003C334 /* TMMUIKitCanvasLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMUIKitCanvasLayer.h; sourceTree = "<group>"; };
+		F8E1E5132D7855160003C334 /* TMMUIKitCanvasLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMUIKitCanvasLayer.m; sourceTree = "<group>"; };
+		F8E1E5192D78569F0003C334 /* TMMNativeClipLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMNativeClipLayer.h; sourceTree = "<group>"; };
+		F8E1E51A2D78569F0003C334 /* TMMNativeClipLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMNativeClipLayer.m; sourceTree = "<group>"; };
+		F8E1E6572D7AF67F0003C334 /* TMMCanvasDrawerUitls.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMCanvasDrawerUitls.h; sourceTree = "<group>"; };
+		F8E1E6582D7AF67F0003C334 /* TMMCanvasDrawerUitls.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMCanvasDrawerUitls.m; sourceTree = "<group>"; };
+		F8EF41E22D1BC04D00AC170D /* TMMComposeRenderReuseUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMComposeRenderReuseUtils.h; sourceTree = "<group>"; };
+		F8EF41E32D1BC04D00AC170D /* TMMComposeRenderReuseUtils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMComposeRenderReuseUtils.m; sourceTree = "<group>"; };
+		F8FDB7D92CA2612E006E7930 /* TMMReportUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TMMReportUtil.h; sourceTree = "<group>"; };
+		F8FDB7DA2CA2612E006E7930 /* TMMReportUtil.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TMMReportUtil.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +251,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F86815AB2C7C9BBF00310F5E /* UIKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,8 +276,7 @@
 		996EFEEB2B02CE5D0000FE0F /* CMPUIKitUtils */ = {
 			isa = PBXGroup;
 			children = (
-				EA70A7EA2B27106100300068 /* CMPAccessibilityContainer.h */,
-				EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */,
+				F86816A92C7CB50500310F5E /* NativeComposeCore */,
 				EA70A7E62B27106100300068 /* CMPAccessibilityElement.h */,
 				EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */,
 				EA70A7E72B27106100300068 /* CMPMacros.h */,
@@ -114,6 +294,7 @@
 				997DFCE42B18D99E000B56B5 /* CMPUIKitUtilsTests */,
 				997DFCFB2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp */,
 				9975AACB2AEABB5600AF155F /* Products */,
+				F86815A92C7C9BBF00310F5E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -152,6 +333,280 @@
 				997DFCFC2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift */,
 			);
 			path = CMPUIKitUtilsTestApp;
+			sourceTree = "<group>";
+		};
+		B2F0F0932C7F3E60004B7684 /* Interop */ = {
+			isa = PBXGroup;
+			children = (
+				F8C73E922D939BAB003A6CDE /* NestedScroll */,
+				B2F0F0A12C7F4011004B7684 /* TMMInteropWrapView.h */,
+				B2F0F0A22C7F4011004B7684 /* TMMInteropWrapView.m */,
+				F1A1F9D62CDA4C2E00CA15A8 /* TMMInteropBaseView.h */,
+				F1A1F9D72CDA4C2E00CA15A8 /* TMMInteropBaseView.m */,
+				F14C32942D939F020085F1FE /* TMMNativeInteractiveView.h */,
+				F14C32952D939F020085F1FE /* TMMNativeInteractiveView.m */,
+			);
+			path = Interop;
+			sourceTree = "<group>";
+		};
+		F85774FA2CEDDB4100C9150C /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				F1B658812D9C1305008FA0D4 /* UIView+TMMDispatchEvent.h */,
+				F1B658822D9C1305008FA0D4 /* UIView+TMMDispatchEvent.m */,
+				F8E1E4F52D78550D0003C334 /* CALayer+TMMPictureRecorder.h */,
+				F8E1E4F62D78550D0003C334 /* CALayer+TMMPictureRecorder.m */,
+				F85774FC2CEDDB6D00C9150C /* UIImage+TMMBlendMode.h */,
+				F85774FD2CEDDB6D00C9150C /* UIImage+TMMBlendMode.m */,
+			);
+			path = Extension;
+			sourceTree = "<group>";
+		};
+		F85FA0E12D8990C0001F40DD /* ImageLayers */ = {
+			isa = PBXGroup;
+			children = (
+				F85FA0D92D8990C0001F40DD /* TMMFastTintColorImageContentLayer.h */,
+				F85FA0DA2D8990C0001F40DD /* TMMFastTintColorImageContentLayer.m */,
+				F85FA0DB2D8990C0001F40DD /* TMMImageClipLayer.h */,
+				F85FA0DC2D8990C0001F40DD /* TMMImageClipLayer.mm */,
+				F85FA0DD2D8990C0001F40DD /* TMMImageDisplayLayer.h */,
+				F85FA0DE2D8990C0001F40DD /* TMMImageDisplayLayer.mm */,
+			);
+			path = ImageLayers;
+			sourceTree = "<group>";
+		};
+		F86815A92C7C9BBF00310F5E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F86815AA2C7C9BBF00310F5E /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F86816A92C7CB50500310F5E /* NativeComposeCore */ = {
+			isa = PBXGroup;
+			children = (
+				F86816AA2C7CB50500310F5E /* Classes */,
+			);
+			path = NativeComposeCore;
+			sourceTree = "<group>";
+		};
+		F86816AA2C7CB50500310F5E /* Classes */ = {
+			isa = PBXGroup;
+			children = (
+				F8DE70932DA67004006BB0D5 /* TextKit */,
+				F85774FA2CEDDB4100C9150C /* Extension */,
+				B2F0F0932C7F3E60004B7684 /* Interop */,
+				F86816AB2C7CB50500310F5E /* Cache */,
+				F86816AE2C7CB50500310F5E /* LayerExtension */,
+			);
+			path = Classes;
+			sourceTree = "<group>";
+		};
+		F86816AB2C7CB50500310F5E /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				F86816AC2C7CB50500310F5E /* TMMComposeMemoryCache.h */,
+				F86816AD2C7CB50500310F5E /* TMMComposeMemoryCache.m */,
+			);
+			path = Cache;
+			sourceTree = "<group>";
+		};
+		F86816AE2C7CB50500310F5E /* LayerExtension */ = {
+			isa = PBXGroup;
+			children = (
+				F86816AF2C7CB50500310F5E /* Filters */,
+				F86816B22C7CB50500310F5E /* Layers */,
+				F86816C42C7CB50500310F5E /* Utils */,
+				F86816CC2C7CB50500310F5E /* Shader */,
+				F86816CB2C7CB50500310F5E /* TMMComposeNativePaint.h */,
+				F86816C32C7CB50500310F5E /* TMMComposeNativePaint.m */,
+				F86816C82C7CB50500310F5E /* TMMComposeNativePath.h */,
+				F86816D82C7CB50500310F5E /* TMMComposeNativePath.m */,
+				F86816E02C7CB50500310F5E /* TMMComposeRenderItem */,
+				F82BC59E2C7DBB31003878A6 /* TMMComposeSignPost.h */,
+				F82BC59F2C7DBB32003878A6 /* TMMComposeSignPost.m */,
+				F86816D72C7CB50500310F5E /* TMMNativeEnums.h */,
+				F86816FA2C7CB50500310F5E /* TMMNativeRoundRect.h */,
+				F86816C92C7CB50500310F5E /* TMMNativeRoundRect.m */,
+			);
+			path = LayerExtension;
+			sourceTree = "<group>";
+		};
+		F86816AF2C7CB50500310F5E /* Filters */ = {
+			isa = PBXGroup;
+			children = (
+				0D3439742C7F212B0000ED34 /* TMMComposeNativeColorFilter.h */,
+				0D59BEDD2C7F391E002528A4 /* TMMComposeNativeColorFilter.m */,
+				F86816B02C7CB50500310F5E /* TMMGaussianBlurFilter.h */,
+				F86816B12C7CB50500310F5E /* TMMGaussianBlurFilter.m */,
+			);
+			path = Filters;
+			sourceTree = "<group>";
+		};
+		F86816B22C7CB50500310F5E /* Layers */ = {
+			isa = PBXGroup;
+			children = (
+				F8DE70942DA67032006BB0D5 /* TextLayers */,
+				F8DE70682DA65DDE006BB0D5 /* TVComposePointLayer.h */,
+				F8DE70692DA65DDE006BB0D5 /* TVComposePointLayer.m */,
+				F85FA0E12D8990C0001F40DD /* ImageLayers */,
+				F8E1E5192D78569F0003C334 /* TMMNativeClipLayer.h */,
+				F8E1E51A2D78569F0003C334 /* TMMNativeClipLayer.m */,
+				F86816B82C7CB50500310F5E /* TMMNativeBaseLayer.h */,
+				F86816C02C7CB50500310F5E /* TMMNativeBaseLayer.m */,
+				F86816BD2C7CB50500310F5E /* TMMNativeCircleLayer.h */,
+				F86816B32C7CB50500310F5E /* TMMNativeCircleLayer.m */,
+				F86816BE2C7CB50500310F5E /* TMMNativeComposeGradientLayer.h */,
+				F86816B72C7CB50500310F5E /* TMMNativeComposeGradientLayer.m */,
+				F86816C22C7CB50500310F5E /* TMMNativeLineLayer.h */,
+				F86816B92C7CB50500310F5E /* TMMNativeLineLayer.m */,
+				F86816BB2C7CB50500310F5E /* TMMNativeRoundRectLayer.h */,
+				F86816B52C7CB50500310F5E /* TMMNativeRoundRectLayer.m */,
+				0D39C7D72CC27652009946F8 /* TMMNativeArcLayer.h */,
+				0D39C7D52CC27628009946F8 /* TMMNativeArcLayer.m */,
+				B2F02D5D2D881F3500D229EE /* TMMNativeLineGradientLayer.h */,
+				B2F02D5E2D881F3500D229EE /* TMMNativeLineGradientLayer.m */,
+			);
+			path = Layers;
+			sourceTree = "<group>";
+		};
+		F86816C42C7CB50500310F5E /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				F86816DF2C7CB50500310F5E /* TMMDrawUtils.h */,
+				F86816CA2C7CB50500310F5E /* TMMDrawUtils.m */,
+				F86816C52C7CB50500310F5E /* TMMNativeBezierPathUtil.h */,
+				F86816C62C7CB50500310F5E /* TMMNativeBezierPathUtil.m */,
+				F8FDB7D92CA2612E006E7930 /* TMMReportUtil.h */,
+				F8FDB7DA2CA2612E006E7930 /* TMMReportUtil.m */,
+				F8AD99332D0AFB540093716A /* TMMImageBitmapUtil.h */,
+				F8AD99342D0AFB540093716A /* TMMImageBitmapUtil.m */,
+				F8BBF48E2D191769003ACD11 /* UIViewUtils.h */,
+				F8BBF48F2D191769003ACD11 /* UIViewUtils.m */,
+				F8EF41E22D1BC04D00AC170D /* TMMComposeRenderReuseUtils.h */,
+				F8EF41E32D1BC04D00AC170D /* TMMComposeRenderReuseUtils.m */,
+				F8DE70BD2DA6736B006BB0D5 /* TMMCMPUIViewMixEvent.h */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		F86816CC2C7CB50500310F5E /* Shader */ = {
+			isa = PBXGroup;
+			children = (
+				F86816CD2C7CB50500310F5E /* TMMNativeBasicShader.h */,
+				F86816D22C7CB50500310F5E /* TMMNativeBasicShader.m */,
+				F86816D02C7CB50500310F5E /* TMMNativeImageShader.h */,
+				F86816D32C7CB50500310F5E /* TMMNativeImageShader.m */,
+				F86816D42C7CB50500310F5E /* TMMNativeLinearGradientShader.h */,
+				F86816CF2C7CB50500310F5E /* TMMNativeLinearGradientShader.m */,
+				F86816CE2C7CB50500310F5E /* TMMNativeRadialGradientShader.h */,
+				F86816D52C7CB50500310F5E /* TMMNativeRadialGradientShader.m */,
+				F86816D62C7CB50500310F5E /* TMMNativeSweepGradientShader.h */,
+				F86816D12C7CB50500310F5E /* TMMNativeSweepGradientShader.m */,
+			);
+			path = Shader;
+			sourceTree = "<group>";
+		};
+		F86816E02C7CB50500310F5E /* TMMComposeRenderItem */ = {
+			isa = PBXGroup;
+			children = (
+				F8E1E5142D7855160003C334 /* CanvasLayerV2 */,
+				F8E1E5042D78550D0003C334 /* PictureRecorderV2 */,
+				F8EF41E12D1BC00400AC170D /* Reuse */,
+				F86816EA2C7CB50500310F5E /* TMMNativeComposeAdaptivedCanvas.h */,
+				F86816EB2C7CB50500310F5E /* ITMMNativePictureRecorder.h */,
+			);
+			path = TMMComposeRenderItem;
+			sourceTree = "<group>";
+		};
+		F8C73E922D939BAB003A6CDE /* NestedScroll */ = {
+			isa = PBXGroup;
+			children = (
+				F8C73E8E2D939BAB003A6CDE /* TMMComposeAspects.h */,
+				F8C73E8F2D939BAB003A6CDE /* TMMComposeAspects.m */,
+				F8C73E902D939BAB003A6CDE /* TMMInteropScrollView.h */,
+				F8C73E912D939BAB003A6CDE /* TMMInteropScrollView.m */,
+			);
+			path = NestedScroll;
+			sourceTree = "<group>";
+		};
+		F8DE70932DA67004006BB0D5 /* TextKit */ = {
+			isa = PBXGroup;
+			children = (
+				F1AD65212C85DAD2000C57E9 /* TMMTextKitRender.h */,
+				F1AD65222C85DAD2000C57E9 /* TMMTextKitRender.m */,
+				F10EC0392C88048700E86940 /* TMMTextKitShadower.h */,
+				F10EC03A2C88048700E86940 /* TMMTextKitShadower.m */,
+				F10EC03C2C88049B00E86940 /* TMMTextKitTailTruncater.h */,
+				F10EC03D2C88049B00E86940 /* TMMTextKitTailTruncater.m */,
+				F10EC03F2C8805FA00E86940 /* TMMTextKitTruncating.h */,
+				F1AD65242C85DAE8000C57E9 /* TMMTextKitContext.h */,
+				F1AD65252C85DAE8000C57E9 /* TMMTextKitContext.m */,
+				20163FB92C81CDDF00FA4FCE /* TMMComposeTextAttributes.h */,
+				20163FB82C81CDDF00FA4FCE /* TMMComposeTextAttributes.m */,
+			);
+			path = TextKit;
+			sourceTree = "<group>";
+		};
+		F8DE70942DA67032006BB0D5 /* TextLayers */ = {
+			isa = PBXGroup;
+			children = (
+				F86816EE2C7CB50500310F5E /* TMMComposeTextLayer.h */,
+				F86816ED2C7CB50500310F5E /* TMMComposeTextLayer.m */,
+				201640322C85BE6700FA4FCE /* TMMComposeTextSpanAttributes.h */,
+				201640332C85BE8200FA4FCE /* TMMComposeTextSpanAttributes.m */,
+				F89161612D2D514200EB3EAB /* TMMAsyncTaskLayer.h */,
+				F89161622D2D514200EB3EAB /* TMMAsyncTaskLayer.m */,
+			);
+			path = TextLayers;
+			sourceTree = "<group>";
+		};
+		F8E1E5042D78550D0003C334 /* PictureRecorderV2 */ = {
+			isa = PBXGroup;
+			children = (
+				F8E1E4F72D78550D0003C334 /* TMMCALayerSaveState.h */,
+				F8E1E4F82D78550D0003C334 /* TMMCALayerSaveState.m */,
+				F8E1E4F92D78550D0003C334 /* TMMPictureRecorderDiffer.h */,
+				F8E1E4FA2D78550D0003C334 /* TMMPictureRecorderDiffer.mm */,
+				F8E1E4FB2D78550D0003C334 /* TMMPictureRecorderDrawingItem.h */,
+				F8E1E4FC2D78550D0003C334 /* TMMPictureRecorderDrawingItem.mm */,
+				F8E1E4FD2D78550D0003C334 /* TMMPictureRecorderUnitTest.h */,
+				F8E1E4FE2D78550D0003C334 /* TMMUIKitPictureRecorder.h */,
+				F8E1E4FF2D78550D0003C334 /* TMMUIKitPictureRecorder.mm */,
+				F8E1E5002D78550D0003C334 /* TMMXXHashFuncs.h */,
+				F8E1E5012D78550D0003C334 /* TMMXXHashFuncs.mm */,
+				F8E1E5022D78550D0003C334 /* xxhash.h */,
+				F8E1E5032D78550D0003C334 /* xxhash.c */,
+			);
+			path = PictureRecorderV2;
+			sourceTree = "<group>";
+		};
+		F8E1E5142D7855160003C334 /* CanvasLayerV2 */ = {
+			isa = PBXGroup;
+			children = (
+				F8E1E6572D7AF67F0003C334 /* TMMCanvasDrawerUitls.h */,
+				F8E1E6582D7AF67F0003C334 /* TMMCanvasDrawerUitls.m */,
+				F8E1E50C2D7855160003C334 /* TMMCanvasLayerDrawer.h */,
+				F8E1E50D2D7855160003C334 /* TMMCanvasLayerDrawer.m */,
+				F8E1E50E2D7855160003C334 /* TMMCanvasViewProxyV2.h */,
+				F8E1E50F2D7855160003C334 /* TMMCanvasViewProxyV2.mm */,
+				F8E1E5102D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.h */,
+				F8E1E5112D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.m */,
+				F8E1E5122D7855160003C334 /* TMMUIKitCanvasLayer.h */,
+				F8E1E5132D7855160003C334 /* TMMUIKitCanvasLayer.m */,
+				F8B411DA2D7ED72100D25155 /* ITMMCanvasViewProxy.h */,
+			);
+			path = CanvasLayerV2;
+			sourceTree = "<group>";
+		};
+		F8EF41E12D1BC00400AC170D /* Reuse */ = {
+			isa = PBXGroup;
+			children = (
+				F8A852402D1BF84600E58B40 /* TMMRenderReuseCache.h */,
+				F8A852412D1BF84600E58B40 /* TMMRenderReuseCache.m */,
+			);
+			path = Reuse;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -274,9 +729,66 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				201640342C85BE8200FA4FCE /* TMMComposeTextSpanAttributes.m in Sources */,
+				F85FA0E32D8990C0001F40DD /* TMMFastTintColorImageContentLayer.m in Sources */,
+				F85FA0E42D8990C0001F40DD /* TMMImageDisplayLayer.mm in Sources */,
+				F85FA0E52D8990C0001F40DD /* TMMImageClipLayer.mm in Sources */,
+				B2F0F0A52C7F40D7004B7684 /* TMMInteropWrapView.m in Sources */,
+				F868170C2C7CB50500310F5E /* TMMNativeImageShader.m in Sources */,
+				F868170E2C7CB50500310F5E /* TMMComposeNativePath.m in Sources */,
+				F10EC03E2C88049B00E86940 /* TMMTextKitTailTruncater.m in Sources */,
 				997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */,
-				EA70A7EC2B27106100300068 /* CMPAccessibilityContainer.m in Sources */,
+				F14C32962D939F020085F1FE /* TMMNativeInteractiveView.m in Sources */,
+				F86816FF2C7CB50500310F5E /* TMMNativeComposeGradientLayer.m in Sources */,
+				F86817072C7CB50500310F5E /* TMMNativeRoundRect.m in Sources */,
+				F8DE706A2DA65DDE006BB0D5 /* TVComposePointLayer.m in Sources */,
+				F86817052C7CB50500310F5E /* TMMComposeNativePaint.m in Sources */,
+				F86816FB2C7CB50500310F5E /* TMMComposeMemoryCache.m in Sources */,
+				F8E1E6592D7AF67F0003C334 /* TMMCanvasDrawerUitls.m in Sources */,
+				F8FDB7DB2CA2612E006E7930 /* TMMReportUtil.m in Sources */,
+				0D59BEDE2C7F391E002528A4 /* TMMComposeNativeColorFilter.m in Sources */,
+				F1AD65262C85DAE8000C57E9 /* TMMTextKitContext.m in Sources */,
+				F86817062C7CB50500310F5E /* TMMNativeBezierPathUtil.m in Sources */,
+				F868170B2C7CB50500310F5E /* TMMNativeBasicShader.m in Sources */,
+				F86816FC2C7CB50500310F5E /* TMMGaussianBlurFilter.m in Sources */,
+				F86816FD2C7CB50500310F5E /* TMMNativeCircleLayer.m in Sources */,
+				F8AD99352D0AFB540093716A /* TMMImageBitmapUtil.m in Sources */,
+				F86817092C7CB50500310F5E /* TMMNativeLinearGradientShader.m in Sources */,
+				F8EF41E42D1BC04D00AC170D /* TMMComposeRenderReuseUtils.m in Sources */,
+				F868170D2C7CB50500310F5E /* TMMNativeRadialGradientShader.m in Sources */,
+				F86816FE2C7CB50500310F5E /* TMMNativeRoundRectLayer.m in Sources */,
+				F8E1E5152D7855160003C334 /* TMMCanvasLayerDrawer.m in Sources */,
+				F8E1E5162D7855160003C334 /* TMMCanvasViewProxyV2.mm in Sources */,
+				F8E1E5172D7855160003C334 /* TMMComposeAdaptivedCanvasViewV2.m in Sources */,
+				F8E1E5182D7855160003C334 /* TMMUIKitCanvasLayer.m in Sources */,
+				F1A1F9D82CDA4C2E00CA15A8 /* TMMInteropBaseView.m in Sources */,
+				F86817042C7CB50500310F5E /* TMMNativeBaseLayer.m in Sources */,
+				20163FBA2C81CDDF00FA4FCE /* TMMComposeTextAttributes.m in Sources */,
+				F10EC03B2C88048700E86940 /* TMMTextKitShadower.m in Sources */,
+				F8C73E932D939BAB003A6CDE /* TMMComposeAspects.m in Sources */,
+				F8C73E942D939BAB003A6CDE /* TMMInteropScrollView.m in Sources */,
+				F86817002C7CB50500310F5E /* TMMNativeLineLayer.m in Sources */,
+				F86817152C7CB50500310F5E /* TMMComposeTextLayer.m in Sources */,
+				F86817082C7CB50500310F5E /* TMMDrawUtils.m in Sources */,
+				0D39C7D62CC27628009946F8 /* TMMNativeArcLayer.m in Sources */,
+				F89161632D2D514200EB3EAB /* TMMAsyncTaskLayer.m in Sources */,
+				F8A852422D1BF84600E58B40 /* TMMRenderReuseCache.m in Sources */,
+				B2F02D5F2D881F3500D229EE /* TMMNativeLineGradientLayer.m in Sources */,
+				F82BC5A02C7DBB32003878A6 /* TMMComposeSignPost.m in Sources */,
+				F8E1E51B2D78569F0003C334 /* TMMNativeClipLayer.m in Sources */,
+				F8E1E5052D78550D0003C334 /* CALayer+TMMPictureRecorder.m in Sources */,
+				F8E1E5062D78550D0003C334 /* TMMPictureRecorderDrawingItem.mm in Sources */,
+				F8E1E5072D78550D0003C334 /* TMMUIKitPictureRecorder.mm in Sources */,
+				F8E1E5082D78550D0003C334 /* xxhash.c in Sources */,
+				F8E1E5092D78550D0003C334 /* TMMCALayerSaveState.m in Sources */,
+				F8E1E50A2D78550D0003C334 /* TMMXXHashFuncs.mm in Sources */,
+				F1B658842D9C1305008FA0D4 /* UIView+TMMDispatchEvent.m in Sources */,
+				F8E1E50B2D78550D0003C334 /* TMMPictureRecorderDiffer.mm in Sources */,
+				F8BBF4902D191769003ACD11 /* UIViewUtils.m in Sources */,
 				EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */,
+				F1AD65232C85DAD2000C57E9 /* TMMTextKitRender.m in Sources */,
+				F868170A2C7CB50500310F5E /* TMMNativeSweepGradientShader.m in Sources */,
+				F85774FE2CEDDB6D00C9150C /* UIImage+TMMBlendMode.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -322,6 +834,10 @@
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(BUILT_SOURCES_DIR)/NativeComposeCore/**",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -336,6 +852,10 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = NO;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(BUILT_SOURCES_DIR)/NativeComposeCore/**",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

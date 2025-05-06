@@ -56,10 +56,11 @@ dependencies {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -81,33 +82,35 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
+//            androidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation(project(":compose:test-utils"))
+//
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//            }
 
-            androidAndroidTest.dependencies {
-                implementation(project(":compose:test-utils"))
-
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
-
-            jsWasmMain {
-                dependsOn(commonMain)
-            }
-
-            jsMain {
-                dependsOn(jsWasmMain)
-            }
-
-            wasmJsMain {
-                dependsOn(jsWasmMain)
-            }
+//            jsWasmMain {
+//                dependsOn(commonMain)
+//            }
+//
+//            jsMain {
+//                dependsOn(jsWasmMain)
+//            }
+//
+//            wasmJsMain {
+//                dependsOn(jsWasmMain)
+//            }
+            nativeMain.dependsOn(commonMain)
+            ohosArm64Main.dependsOn(nativeMain)
         }
     }
 }

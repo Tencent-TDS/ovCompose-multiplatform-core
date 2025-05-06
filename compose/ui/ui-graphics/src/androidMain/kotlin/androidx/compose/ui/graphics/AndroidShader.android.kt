@@ -46,7 +46,16 @@ internal actual fun ActualLinearGradientShader(
         tileMode.toAndroidTileMode()
     )
 }
-
+// region Tencent Code
+internal actual fun ActualLinearGradientShader(
+    from: Offset,
+    to: Offset,
+    colors: List<Color>,
+    colorStops: List<Float>?,
+    tileMode: TileMode,
+    forceUseSkia: Boolean
+): Shader = ActualLinearGradientShader(from, to, colors, colorStops, tileMode)
+// endregion
 internal actual fun ActualRadialGradientShader(
     center: Offset,
     radius: Float,

@@ -67,3 +67,13 @@ https://android-review.googlesource.com/settings/new-agreement
 
 ## Handling binary dependencies
 AndroidX uses git to store all the binary Gradle dependencies. They are stored in `prebuilts/androidx/internal` and `prebuilts/androidx/external` directories in your checkout. All the dependencies in these directories are also available from `google()`, or `mavenCentral()`. We store copies of these dependencies to have hermetic builds. You can pull in [a new dependency using our importMaven tool](development/importMaven/README.md).
+
+
+
+## Publish
+
+```
+./gradlew :mpp:publishComposeJb -Pcompose.platforms=android,ohosArm64,uikit
+./gradlew :mpp:publishComposeJbToMavenLocal -Pcompose.platforms=android,ohosArm64,uikit
+```
+

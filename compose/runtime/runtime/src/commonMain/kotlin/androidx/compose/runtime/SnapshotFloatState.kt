@@ -129,6 +129,10 @@ internal open class SnapshotMutableFloatStateImpl(
     value: Float
 ) : StateObjectImpl(), MutableFloatState, SnapshotMutableState<Float> {
 
+    // region Tencent Code
+    private var sourceFile: String = ""
+    // endregion
+
     private var next = FloatStateStateRecord(value)
 
     override val firstStateRecord: StateRecord
@@ -150,6 +154,14 @@ internal open class SnapshotMutableFloatStateImpl(
     override fun component1(): Float = floatValue
 
     override fun component2(): (Float) -> Unit = { floatValue = it }
+
+    // region Tencent Code
+    override fun setSourceFile(sourceFile: String) {
+        this.sourceFile = sourceFile
+    }
+
+    override fun getSourceFile(): String = sourceFile
+    // endregion
 
     override fun prependStateRecord(value: StateRecord) {
         next = value as FloatStateStateRecord

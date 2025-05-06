@@ -95,6 +95,10 @@ interface MutableState<T> : State<T> {
     override var value: T
     operator fun component1(): T
     operator fun component2(): (T) -> Unit
+    // region Tencent Code
+    fun setSourceFile(sourceFile: String)
+    fun getSourceFile(): String
+    // endregion
 }
 
 /**
@@ -130,6 +134,11 @@ internal open class SnapshotMutableStateImpl<T>(
     value: T,
     override val policy: SnapshotMutationPolicy<T>
 ) : StateObjectImpl(), SnapshotMutableState<T> {
+
+    // region Tencent Code
+    private var sourceFile: String = ""
+    // endregion
+
     @Suppress("UNCHECKED_CAST")
     override var value: T
         get() = next.readable(this).value
@@ -143,6 +152,14 @@ internal open class SnapshotMutableStateImpl<T>(
 
     override val firstStateRecord: StateRecord
         get() = next
+
+    // region Tencent Code
+    override fun setSourceFile(sourceFile: String) {
+        this.sourceFile = sourceFile
+    }
+
+    override fun getSourceFile(): String = sourceFile
+    // endregion
 
     override fun prependStateRecord(value: StateRecord) {
         @Suppress("UNCHECKED_CAST")

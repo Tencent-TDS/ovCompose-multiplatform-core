@@ -66,13 +66,14 @@ dependencies {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
 
-        linuxX64()
-        linuxArm64()
+//        linuxX64()
+//        linuxArm64()
+        ohos()
     }
 
     kotlin {
@@ -80,14 +81,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         // We can support the kotlin-native targets supported by kotlin coroutines:
         // https://github.com/Kotlin/kotlinx.coroutines/blob/master/buildSrc/src/main/kotlin/kotlin-multiplatform-conventions.gradle.kts
         // NOTE: Keep this list in sync with runtime's targets.
-        watchosArm64()
-        watchosArm32()
-        watchosX64()
-        watchosSimulatorArm64()
-        tvosArm64()
-        tvosX64()
-        tvosSimulatorArm64()
-        mingwX64()
+//        watchosArm64()
+//        watchosArm32()
+//        watchosX64()
+//        watchosSimulatorArm64()
+//        tvosArm64()
+//        tvosX64()
+//        tvosSimulatorArm64()
+//        mingwX64()
 
         /* When updating dependencies, make sure to make the an an analogous update in the
             corresponding block above */
@@ -103,41 +104,41 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api "androidx.annotation:annotation:1.1.0"
             }
 
-            jsMain {}
+//            jsMain {}
 
-            wasmJsMain {
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+//            wasmJsMain {
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
-
-            androidAndroidTest.dependencies {
-                implementation project(':compose:ui:ui')
-                implementation project(":compose:ui:ui-test-junit4")
-                implementation project(":compose:test-utils")
-                implementation "androidx.fragment:fragment:1.3.0"
-                implementation "androidx.activity:activity-compose:1.3.1"
-                implementation(libs.testUiautomator)
-                implementation(libs.testCore)
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.espressoCore)
-                implementation(libs.junit)
-                implementation(libs.truth)
-                implementation(libs.dexmakerMockito)
-                implementation(libs.mockitoCore)
-            }
+//            androidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation project(':compose:ui:ui')
+//                implementation project(":compose:ui:ui-test-junit4")
+//                implementation project(":compose:test-utils")
+//                implementation "androidx.fragment:fragment:1.3.0"
+//                implementation "androidx.activity:activity-compose:1.3.1"
+//                implementation(libs.testUiautomator)
+//                implementation(libs.testCore)
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.espressoCore)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//                implementation(libs.dexmakerMockito)
+//                implementation(libs.mockitoCore)
+//            }
         }
     }
     dependencies {

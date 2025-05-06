@@ -16,11 +16,11 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.toDpOffset
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.ui.uikit.utils.TMMInteropBaseView
 import androidx.compose.ui.unit.DpOffset
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
-import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoInputModifiers
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -36,8 +36,13 @@ import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIView
 
-internal enum class UITouchesEventPhase {
-    BEGAN, MOVED, ENDED, CANCELLED
+// region Tencent Code
+enum class UITouchesEventPhase {
+    BEGAN, MOVED, ENDED, CANCELLED,REDIRECTED
+}
+
+enum class HitTestViewType {
+    NONE, NATIVEVIEW, COMPOSEVIEW
 }
 
 internal class InteractionUIView(
@@ -45,12 +50,14 @@ internal class InteractionUIView(
     private var touchesDelegate: Delegate,
     private var updateTouchesCount: (count: Int) -> Unit,
     private var checkBounds: (point: DpOffset) -> Boolean,
-) : UIView(CGRectZero.readValue()) {
+    private var becomeFirstResponder: Boolean = true,
+) : TMMInteropBaseView(CGRectZero.readValue()) {
 
     interface Delegate {
-        fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
+        fun pointInside(point: CValue<CGPoint>, event: UIEvent?): HitTestViewType
         fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
     }
+// endregion
 
     /**
      * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
@@ -67,7 +74,9 @@ internal class InteractionUIView(
         userInteractionEnabled = true
     }
 
-    override fun canBecomeFirstResponder() = true
+    // region Tencent Code
+    override fun canBecomeFirstResponder() = becomeFirstResponder
+    // endregion
 
     override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
         handleUIViewPressesBegan(keyboardEventHandler, presses, withEvent)
@@ -79,47 +88,94 @@ internal class InteractionUIView(
         super.pressesEnded(presses, withEvent)
     }
 
-    /**
-     * https://developer.apple.com/documentation/uikit/uiview/1622533-point
-     */
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-        val pointOffset = point.useContents { this.toDpOffset() }
-        return checkBounds(pointOffset) && touchesDelegate.pointInside(point, withEvent)
+    // region Tencent Code
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        if (!pointInside(point, withEvent)) return null
+        var view: UIView? = null
+        val hitTestViewType = touchesDelegate.pointInside(point, withEvent)
+        view = when (hitTestViewType) {
+            HitTestViewType.NATIVEVIEW -> super.hitTest(point, withEvent)
+            HitTestViewType.COMPOSEVIEW -> this
+            HitTestViewType.NONE -> null
+        }
+
+        return view
     }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        if (!ComposeTabService.composeGestureEnable) {
+            return originalTouchesBegan(touches, withEvent)
+        }
+
         super.touchesBegan(touches, withEvent)
-
+        if (this.disableTouch.boolValue) return
         _touchesCount += touches.size
-
         withEvent?.let { event ->
             touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
         }
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        if (!ComposeTabService.composeGestureEnable) {
+            return originalTouchesEnded(touches, withEvent)
+        }
         super.touchesEnded(touches, withEvent)
-
+        if (this.disableTouch.boolValue) return
         _touchesCount -= touches.size
-
         withEvent?.let { event ->
             touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
         }
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        if (!ComposeTabService.composeGestureEnable) {
+            return originalTouchesMoved(touches, withEvent)
+        }
         super.touchesMoved(touches, withEvent)
-
+        if (this.disableTouch.boolValue) return
         withEvent?.let { event ->
             touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
         }
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesCancelled(touches, withEvent)
+        if (!ComposeTabService.composeGestureEnable) {
+            return originalTouchesCancelled(touches, withEvent)
+        }
+        if (!this.disableTouch.boolValue) {
+            super.touchesCancelled(touches, withEvent)
+        }
 
         _touchesCount -= touches.size
+        withEvent?.let { event ->
+            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
+        }
+    }
 
+    private fun originalTouchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesBegan(touches, withEvent)
+        _touchesCount += touches.size
+        withEvent?.let { event ->
+            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
+        }
+    }
+    private fun originalTouchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesEnded(touches, withEvent)
+        _touchesCount -= touches.size
+        withEvent?.let { event ->
+            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
+        }
+    }
+    private fun originalTouchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesMoved(touches, withEvent)
+        withEvent?.let { event ->
+            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
+        }
+    }
+
+    private fun originalTouchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesCancelled(touches, withEvent)
+        _touchesCount -= touches.size
         withEvent?.let { event ->
             touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
         }
@@ -131,7 +187,7 @@ internal class InteractionUIView(
      */
     fun dispose() {
         touchesDelegate = object : Delegate {
-            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean = false
+            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): HitTestViewType = HitTestViewType.NONE
             override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {}
         }
         updateTouchesCount = {}
@@ -140,6 +196,7 @@ internal class InteractionUIView(
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {}
         }
     }
+    // endregion
 }
 
 internal fun handleUIViewPressesBegan(

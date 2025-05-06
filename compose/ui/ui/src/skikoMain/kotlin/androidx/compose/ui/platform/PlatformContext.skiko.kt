@@ -80,6 +80,18 @@ interface PlatformContext {
      */
     val semanticsOwnerListener: SemanticsOwnerListener? get() = null
 
+    // region Tencent Code
+    /**
+     * block of calculating compose bounds in outer scrollable container window
+     */
+    val boundsPositionCalculator: ((offset: Rect) -> Rect)? get() = null
+
+    /*
+    * native objects reusePool pointer
+    */
+    val nativeReusePool: Long
+    // endregion
+
     interface RootForTestListener {
         fun onRootForTestCreated(root: PlatformRootForTest)
         fun onRootForTestDisposed(root: PlatformRootForTest)
@@ -118,6 +130,10 @@ interface PlatformContext {
                 isWindowFocused = true
             }
             override val inputModeManager: InputModeManager = DefaultInputModeManager()
+
+            // region Tencent Code
+            override val nativeReusePool: Long = 0
+            // end region
         }
     }
 }

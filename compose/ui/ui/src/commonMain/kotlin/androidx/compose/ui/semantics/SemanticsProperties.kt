@@ -19,6 +19,7 @@ package androidx.compose.ui.semantics
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
@@ -120,6 +121,13 @@ object SemanticsProperties {
         }
     )
 
+    /** @see SemanticsPropertyReceiver.hideFromAccessibility */
+    val HideFromAccessibility =
+        SemanticsPropertyKey<Unit>(
+            name = "HideFromAccessibility",
+            mergePolicy = { parentValue, _ -> parentValue }
+        )
+
     /**
      * @see SemanticsPropertyReceiver.traversalIndex
      */
@@ -191,6 +199,18 @@ object SemanticsProperties {
             parentValue
         }
     )
+
+    /**
+     * Marks a link within a text node (a link is represented by a
+     * [androidx.compose.ui.text.LinkAnnotation]) for identification during automated testing. This
+     * property is for internal use only and not intended for general use by developers.
+     */
+    val LinkTestMarker =
+        SemanticsPropertyKey<Unit>(
+            name = "LinkTestMarker",
+            isImportantForAccessibility = false,
+            mergePolicy = { parentValue, _ -> parentValue }
+        )
 
     /**
      * @see SemanticsPropertyReceiver.text
@@ -282,6 +302,9 @@ object SemanticsActions {
      * @see SemanticsPropertyReceiver.scrollBy
      */
     val ScrollBy = ActionPropertyKey<(x: Float, y: Float) -> Boolean>("ScrollBy")
+
+    /** @see SemanticsPropertyReceiver.scrollByOffset */
+    val ScrollByOffset = SemanticsPropertyKey<suspend (offset: Offset) -> Offset>("ScrollByOffset")
 
     /**
      * @see SemanticsPropertyReceiver.scrollToIndex

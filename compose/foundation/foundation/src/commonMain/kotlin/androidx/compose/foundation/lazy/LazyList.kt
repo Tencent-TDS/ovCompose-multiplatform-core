@@ -17,6 +17,7 @@
 package androidx.compose.foundation.lazy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.checkScrollableContainerConstraints
 import androidx.compose.foundation.clipScrollableContainer
 import androidx.compose.foundation.gestures.FlingBehavior
@@ -75,6 +76,10 @@ internal fun LazyList(
     verticalAlignment: Alignment.Vertical? = null,
     /** The horizontal arrangement for items. Required when isVertical is false */
     horizontalArrangement: Arrangement.Horizontal? = null,
+    // region Tencent Code
+    /** OverscrollEffect applied to this list */
+    overscrollEffect: OverscrollEffect? = null,
+    // endregion
     /** The content of the list */
     content: LazyListScope.() -> Unit
 ) {
@@ -97,7 +102,15 @@ internal fun LazyList(
         verticalArrangement
     )
 
-    val overscrollEffect = ScrollableDefaults.overscrollEffect()
+    // region Tencent Code
+    // Preserve the original var name to make less changes
+    @Suppress("NAME_SHADOWING")
+    val overscrollEffect = if (overscrollEffect == null) {
+        ScrollableDefaults.overscrollEffect()
+    } else {
+        remember { overscrollEffect }
+    }
+    // endregion
     val orientation = if (isVertical) Orientation.Vertical else Orientation.Horizontal
     LazyLayout(
         modifier = modifier

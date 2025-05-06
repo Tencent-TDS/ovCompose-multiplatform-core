@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.staggeredgrid
 
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
+// region Tencent Code
 /**
  * Vertical staggered grid layout that composes and lays out only items currently visible on screen.
  *
@@ -71,6 +73,62 @@ fun LazyVerticalStaggeredGrid(
     userScrollEnabled: Boolean = true,
     content: LazyStaggeredGridScope.() -> Unit
 ) {
+    LazyVerticalStaggeredGrid(
+        columns = columns,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        reverseLayout = reverseLayout,
+        verticalItemSpacing = verticalItemSpacing,
+        horizontalArrangement = horizontalArrangement,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        overscrollEffect = null,
+        content = content
+    )
+}
+
+/**
+ * Vertical staggered grid layout that composes and lays out only items currently visible on screen.
+ *
+ * Sample:
+ * @sample androidx.compose.foundation.samples.LazyVerticalStaggeredGridSample
+ *
+ * Sample with custom item spans:
+ * @sample androidx.compose.foundation.samples.LazyVerticalStaggeredGridSpanSample
+ *
+ * @param columns description of the size and number of staggered grid columns.
+ * @param modifier modifier to apply to the layout.
+ * @param state state object that can be used to control and observe staggered grid state.
+ * @param contentPadding padding around the content.
+ * @param reverseLayout reverse the direction of scrolling and layout. When `true`, items are
+ * laid out in the reverse order and [LazyStaggeredGridState.firstVisibleItemIndex] == 0 means
+ * that grid is scrolled to the bottom.
+ * @param verticalItemSpacing vertical spacing between items.
+ * @param horizontalArrangement arrangement specifying horizontal spacing between items. The item
+ *  arrangement specifics are ignored for now.
+ * @param flingBehavior logic responsible for handling fling.
+ * @param userScrollEnabled whether scroll with gestures or accessibility actions are allowed. It is
+ *  still possible to scroll programmatically through state when [userScrollEnabled] is set to false
+ * @param overscrollEffect the overscroll effect applied to the LazyRow.
+ * @param content a lambda describing the staggered grid content. Inside this block you can use
+ *  [LazyStaggeredGridScope.items] to present list of items or [LazyStaggeredGridScope.item] for a
+ *  single one.
+ */
+@Composable
+fun LazyVerticalStaggeredGrid(
+    columns: StaggeredGridCells,
+    modifier: Modifier = Modifier,
+    state: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    verticalItemSpacing: Dp = 0.dp,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(0.dp),
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = null,
+    content: LazyStaggeredGridScope.() -> Unit
+) {
     LazyStaggeredGrid(
         modifier = modifier,
         orientation = Orientation.Vertical,
@@ -82,9 +140,11 @@ fun LazyVerticalStaggeredGrid(
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
         slots = rememberColumnSlots(columns, horizontalArrangement, contentPadding),
+        overscrollEffect = overscrollEffect,
         content = content
     )
 }
+// endregion
 
 /** calculates sizes for columns used in staggered grid measure */
 @Composable
@@ -121,6 +181,7 @@ private fun rememberColumnSlots(
     }
 }
 
+// region Tencent Code
 /**
  * Horizontal staggered grid layout that composes and lays out only items currently
  * visible on screen.
@@ -161,6 +222,63 @@ fun LazyHorizontalStaggeredGrid(
     userScrollEnabled: Boolean = true,
     content: LazyStaggeredGridScope.() -> Unit
 ) {
+    LazyHorizontalStaggeredGrid(
+        rows = rows,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        reverseLayout = reverseLayout,
+        verticalArrangement = verticalArrangement,
+        horizontalItemSpacing = horizontalItemSpacing,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        overscrollEffect = null,
+        content = content
+    )
+}
+
+/**
+ * Horizontal staggered grid layout that composes and lays out only items currently
+ * visible on screen.
+ *
+ * Sample:
+ * @sample androidx.compose.foundation.samples.LazyHorizontalStaggeredGridSample
+ *
+ * Sample with custom item spans:
+ * @sample androidx.compose.foundation.samples.LazyHorizontalStaggeredGridSpanSample
+ *
+ * @param rows description of the size and number of staggered grid columns.
+ * @param modifier modifier to apply to the layout.
+ * @param state state object that can be used to control and observe staggered grid state.
+ * @param contentPadding padding around the content.
+ * @param reverseLayout reverse the direction of scrolling and layout. When `true`, items are
+ * laid out in the reverse order and [LazyStaggeredGridState.firstVisibleItemIndex] == 0 means
+ * that grid is scrolled to the end.
+ * @param verticalArrangement arrangement specifying vertical spacing between items. The item
+ *  arrangement specifics are ignored for now.
+ * @param horizontalItemSpacing horizontal spacing between items.
+ * @param flingBehavior logic responsible for handling fling.
+ * @param userScrollEnabled whether scroll with gestures or accessibility actions are allowed. It is
+ *  still possible to scroll programmatically through state when [userScrollEnabled] is set to false
+ * @param overscrollEffect the overscroll effect applied to the LazyRow.
+ * @param content a lambda describing the staggered grid content. Inside this block you can use
+ *  [LazyStaggeredGridScope.items] to present list of items or [LazyStaggeredGridScope.item] for a
+ *  single one.
+ */
+@Composable
+fun LazyHorizontalStaggeredGrid(
+    rows: StaggeredGridCells,
+    modifier: Modifier = Modifier,
+    state: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(0.dp),
+    horizontalItemSpacing: Dp = 0.dp,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = null,
+    content: LazyStaggeredGridScope.() -> Unit
+) {
     LazyStaggeredGrid(
         modifier = modifier,
         orientation = Orientation.Horizontal,
@@ -172,9 +290,11 @@ fun LazyHorizontalStaggeredGrid(
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
         slots = rememberRowSlots(rows, verticalArrangement, contentPadding),
+        overscrollEffect = overscrollEffect,
         content = content
     )
 }
+// endregion
 
 /** calculates sizes for rows used in staggered grid measure */
 @Composable

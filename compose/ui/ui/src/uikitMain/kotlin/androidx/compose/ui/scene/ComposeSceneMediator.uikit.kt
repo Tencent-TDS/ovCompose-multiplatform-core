@@ -17,13 +17,15 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.kLog
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.HistoricalChange
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -42,26 +44,33 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
+import androidx.compose.ui.platform.v2.UIViewLayerFactory
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.toDpOffset
 import androidx.compose.ui.toDpRect
+import androidx.compose.ui.uikit.ComposeConfiguration
+import androidx.compose.ui.uikit.ComposeUIViewConfiguration
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.uikit.RenderBackend
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.HitTestViewType
 import androidx.compose.ui.window.InteractionUIView
 import androidx.compose.ui.window.InteropContainer
 import androidx.compose.ui.window.KeyboardEventHandler
 import androidx.compose.ui.window.KeyboardVisibilityListenerImpl
-import androidx.compose.ui.window.RenderingUIView
+import androidx.compose.ui.window.RenderingComponent
 import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
@@ -70,7 +79,9 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import org.jetbrains.skia.Canvas
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
@@ -114,10 +125,13 @@ private class SemanticsOwnerListenerImpl(
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (current == null) {
             current = semanticsOwner to AccessibilityMediator(
-                container,
-                semanticsOwner,
-                coroutineContext,
-                getAccessibilitySyncOptions
+                view = container,
+                owner = semanticsOwner,
+                coroutineContext = coroutineContext,
+                performEscape = { false },
+                onKeyboardPresses = {},
+                onScreenReaderActive = {},
+                getAccessibilitySyncOptions()
             )
         }
     }
@@ -143,18 +157,34 @@ private class SemanticsOwnerListenerImpl(
 private class RenderingUIViewDelegateImpl(
     private val interopContext: UIKitInteropContext,
     private val getBoundsInPx: () -> IntRect,
-    private val scene: ComposeScene
-) : RenderingUIView.Delegate {
+    private val scene: ComposeScene,
+// region Tencent Code
+    private val onContentSizeChanged: ((IntSize) -> Unit)?
+) : RenderingComponent.Delegate {
+
+    private var contentSize: IntSize? = null
+// endregion
+
     override fun retrieveInteropTransaction(): UIKitInteropTransaction =
         interopContext.retrieve()
 
+    // region Tencent Code
     override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-        val composeCanvas = canvas.asComposeCanvas()
         val topLeft = getBoundsInPx().topLeft.toOffset()
-        composeCanvas.translate(-topLeft.x, -topLeft.y)
-        scene.render(composeCanvas, targetTimestamp.toNanoSeconds())
-        composeCanvas.translate(topLeft.x, topLeft.y)
+        canvas.translate(-topLeft.x, -topLeft.y)
+        scene.render(canvas, targetTimestamp.toNanoSeconds())
+        canvas.translate(topLeft.x, topLeft.y)
+
+        if (onContentSizeChanged != null) {
+            val contentSize = scene.getMeasuredContentSize()
+            if (contentSize != this.contentSize) {
+                // onContentSizeChanged(contentSize) is not possible due to compiler issue.
+                onContentSizeChanged.invoke(contentSize)
+                this.contentSize = contentSize
+            }
+        }
     }
+    // endregion
 }
 
 private class NativeKeyboardVisibilityListener(
@@ -177,7 +207,9 @@ private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         // forwards touches forward to the children, is never a target for a touch
         val result = super.hitTest(point, withEvent)
-
+        // region Tencent Code
+        ComposeTabService.composeHitTestLog("ComposeSceneMediatorRootUIView result:${result.toString()}")
+        // endregion
         return if (result == this) {
             null
         } else {
@@ -186,19 +218,27 @@ private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
     }
 }
 
+// region Tencent Code
 internal class ComposeSceneMediator(
     private val container: UIView,
-    private val configuration: ComposeUIViewControllerConfiguration,
+    private val configuration: ComposeConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowContext: PlatformWindowContext,
     val coroutineContext: CoroutineContext,
-    private val renderingUIViewFactory: (RenderingUIView.Delegate) -> RenderingUIView,
+    private val renderingComponentFactory: (RenderingComponent.Delegate) -> RenderingComponent<*>,
+    private val boundsInWindow: (() -> IntRect)?,
+    private val onContentSizeChanged: ((IntSize) -> Unit)?,
+    private val nativeReusePool: Long = 0,
+// endregion
     composeSceneFactory: (
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext
     ) -> ComposeScene,
 ) {
+    // region Tencent Code
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    // endregion
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
@@ -225,9 +265,16 @@ internal class ComposeSceneMediator(
         }
     private val focusManager get() = scene.focusManager
 
-    private val renderingView by lazy {
-        renderingUIViewFactory(renderDelegate)
+    // region Tencent Code
+    private val renderingComponent by lazy {
+        renderingComponentFactory(renderDelegate)
     }
+
+    @OptIn(ExperimentalComposeApi::class)
+    private val renderingView by lazy {
+        renderingComponent.view.also { it.opaque = configuration.opaque }
+    }
+    // endregion
 
     /**
      * view, that contains [interopViewContainer] and [interactionView] and is added to [container]
@@ -245,19 +292,27 @@ internal class ComposeSceneMediator(
             touchesDelegate = touchesDelegate,
             updateTouchesCount = { count ->
                 val needHighFrequencyPolling = count > 0
-                renderingView.redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
+                // region Tencent Code
+                renderingComponent.redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
+                // endregion
             },
             checkBounds = { dpPoint: DpOffset ->
                 val point = dpPoint.toOffset(container.systemDensity)
                 getBoundsInPx().contains(point.round())
-            }
+            },
+            // region Tencent Code
+            becomeFirstResponder = configuration.canBecomeFirstResponder
+            // endregion
         )
     }
 
     private val interopContext: UIKitInteropContext by lazy {
+        // region Tencent Code
         UIKitInteropContext(
-            requestRedraw = { onComposeSceneInvalidate() }
+            requestRedraw = { onComposeSceneInvalidate() },
+            interactionUIView = interactionView
         )
+        // endregion
     }
 
     @OptIn(ExperimentalComposeApi::class)
@@ -273,7 +328,11 @@ internal class ComposeSceneMediator(
             textToolbar = uiKitTextInputService,
             windowInfo = windowContext.windowInfo,
             density = container.systemDensity,
-            semanticsOwnerListener = semanticsOwnerListener
+            semanticsOwnerListener = semanticsOwnerListener,
+            // region Tencent Code
+            boundsPositionCalculator = configuration.boundsPositionCalculator,
+            nativeReusePool = nativeReusePool
+            // endregion
         )
     }
 
@@ -314,16 +373,49 @@ internal class ComposeSceneMediator(
 
     private val touchesDelegate: InteractionUIView.Delegate by lazy {
         object : InteractionUIView.Delegate {
-            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
+            // region Tencent Code
+            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): HitTestViewType =
                 point.useContents {
                     val position = this.toDpOffset().toOffset(density)
-                    !scene.hitTestInteropView(position)
+                    val hitInteropView = scene.hitTestInteropView(position, event)
+                    if (hitInteropView) return@useContents HitTestViewType.NATIVEVIEW
+                    val hitComposeView = scene.hitTestComposeView(position, event)
+                    if (hitComposeView) return@useContents  HitTestViewType.COMPOSEVIEW
+                    return HitTestViewType.NONE
                 }
+            // endregion
 
             override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
+                // region Tencent Code
+                // scene.sendPointerEvent(
+                //     eventType = phase.toPointerEventType(),
+                //     pointers = event.touchesForView(view)?.map {
+                //         val touch = it as UITouch
+                //         val id = touch.hashCode().toLong()
+                //         val position = touch.offsetInView(view, density.density)
+                //         ComposeScenePointer(
+                //             id = PointerId(id),
+                //             position = position,
+                //             pressed = touch.isPressed,
+                //             type = PointerType.Touch,
+                //             pressure = touch.force.toFloat(),
+                //             historical = event.historicalChangesForTouch(
+                //                 touch,
+                //                 view,
+                //                 density.density
+                //             )
+                //         )
+                //     } ?: emptyList(),
+                //     timeMillis = (event.timestamp * 1e3).toLong(),
+                //     nativeEvent = event
+                // )
+                val finalPhase =
+                    if (ComposeTabService.composeGestureEnable && phase == UITouchesEventPhase.CANCELLED) {
+                        PointerEventType.Unknown
+                    } else phase.toPointerEventType()
                 scene.sendPointerEvent(
-                    eventType = phase.toPointerEventType(),
-                    pointers = event.touchesForView(view)?.map {
+                    eventType = finalPhase,
+                    pointers = (event.touchesForView(view) ?: event.allTouches)?.map {
                         val touch = it as UITouch
                         val id = touch.hashCode().toLong()
                         val position = touch.offsetInView(view, density.density)
@@ -343,6 +435,7 @@ internal class ComposeSceneMediator(
                     timeMillis = (event.timestamp * 1e3).toLong(),
                     nativeEvent = event
                 )
+                // endregion
             }
         }
     }
@@ -351,7 +444,8 @@ internal class ComposeSceneMediator(
         RenderingUIViewDelegateImpl(
             interopContext = interopContext,
             getBoundsInPx = ::getBoundsInPx,
-            scene = scene
+            scene = scene,
+            onContentSizeChanged = onContentSizeChanged
         )
     }
 
@@ -367,16 +461,42 @@ internal class ComposeSceneMediator(
         }
     }
 
+    // region Tencent Code
+    var density: Density
+        get() = scene.density
+        set(value) {
+            scene.density = value
+        }
+    var layoutDirection: LayoutDirection
+        get() = scene.layoutDirection
+        set(value) {
+            scene.layoutDirection = value
+        }
+    // endregion
+
     fun hitTestInteractionView(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
         interactionView.hitTest(point, withEvent)
 
     init {
-        renderingView.onAttachedToWindow = {
-            renderingView.onAttachedToWindow = null
+        // region Tencent Code
+        renderingComponent.onAttachedToWindow = {
+            renderingComponent.onAttachedToWindow = null
+        // endregion
             viewWillLayoutSubviews()
             this.onAttachedToWindow?.invoke()
             focusStack?.pushAndFocus(interactionView)
         }
+
+        // region Tencent Code
+        if (configuration.renderBackend == RenderBackend.UIView) {
+            val clipChildren = when (configuration) {
+                is ComposeUIViewControllerConfiguration ->  configuration.clipChildren
+                is ComposeUIViewConfiguration -> configuration.clipChildren
+                else -> true
+            }
+            scene.setLayerFactory(UIViewLayerFactory(renderingView, nativeReusePool, clipChildren))
+        }
+        // endregion
 
         rootView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(rootView)
@@ -398,6 +518,11 @@ internal class ComposeSceneMediator(
         interactionView.addSubview(renderingView)
     }
 
+    // region Tencent Code
+    internal fun accessibilityMediator(): AccessibilityMediator? =
+        semanticsOwnerListener.current?.second
+    // endregion
+
     fun setContent(content: @Composable () -> Unit) {
         runOnceViewAttached {
             scene.setContent {
@@ -410,11 +535,19 @@ internal class ComposeSceneMediator(
                  *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
                  *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
                  */
-                if (renderingView.isReadyToShowContent.value) {
+                if (renderingComponent.isReadyToShowContent.value) {
                     ProvideComposeSceneMediatorCompositionLocals {
                         content()
                     }
                 }
+            }
+        }
+    }
+
+    fun setContentImmediately(content: @Composable () -> Unit) {
+        scene.setContent {
+            ProvideComposeSceneMediatorCompositionLocals {
+                content()
             }
         }
     }
@@ -446,17 +579,36 @@ internal class ComposeSceneMediator(
         )
 
     fun dispose() {
-        focusStack?.popUntilNext(renderingView)
-        renderingView.dispose()
+        // region Tencent Code
+        // focusStack?.popUntilNext(renderingView)
+        // renderingView.dispose()
+        // interactionView.dispose()
+        // rootView.removeFromSuperview()
+        // scene.close()
+        // // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
+        // // Thus they need to be executed now.
+        // interopContext.retrieve().actions.forEach { it.invoke() }
+
+        coroutineScope.cancel()
+        focusStack?.popUntilNext(interactionView)
+        renderingComponent.dispose()
         interactionView.dispose()
         rootView.removeFromSuperview()
+        // 漏掉 interactionView 和 renderingView 的 removeFromSuperview() 调用将会导致整个 vc 内存泄漏
+        interactionView.removeFromSuperview()
+        renderingView.removeFromSuperview()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
         interopContext.retrieve().actions.forEach { it.invoke() }
+        // endregion
     }
 
-    fun onComposeSceneInvalidate() = renderingView.needRedraw()
+    fun onComposeSceneInvalidate() = renderingComponent.needRedraw()
+
+    // region Tencent Code
+    fun outerContainerOffsetChange(x: Float, y: Float) = scene.outerContainerOffsetChange(x, y)
+    // endregion
 
     fun setLayout(value: SceneLayout) {
         _layout = value
@@ -499,23 +651,31 @@ internal class ComposeSceneMediator(
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
 
+        scene.density = density // TODO: Maybe it is wrong to set density to scene here?
+        // TODO: it should be updated on any container bounds change: resize or move itself or any parent
+        val newBounds = boundsInWindow?.invoke() ?: calcBoundsInWindow()
+        // Redraw on bounds changed only.
+        // It will be always true for the first time layout.
+        if (scene.boundsInWindow != newBounds) {
+            renderingComponent.needRedrawSynchronously()
+            scene.boundsInWindow = newBounds
+        }
+    }
+
+    private fun calcBoundsInWindow(): IntRect {
         val offsetInWindow = windowContext.offsetInWindow(container)
         val size = container.bounds.useContents {
             with(density) {
                 toDpRect().toRect().roundToIntRect()
             }
         }
-        val boundsInWindow = IntRect(
+        return IntRect(
             offset = offsetInWindow,
             size = IntSize(
                 width = size.width,
                 height = size.height,
             )
         )
-        scene.density = density // TODO: Maybe it is wrong to set density to scene here?
-        // TODO: it should be updated on any container bounds change: resize or move itself or any parent
-        scene.boundsInWindow = boundsInWindow
-        onComposeSceneInvalidate()
     }
 
     private fun calcSafeArea(): PlatformInsets =
@@ -567,7 +727,7 @@ internal class ComposeSceneMediator(
             )
         }
 
-        renderingView.isForcedToPresentWithTransactionEveryFrame = true
+        renderingComponent.isForcedToPresentWithTransactionEveryFrame = true
 
         setLayout(SceneLayout.UseConstraintsToCenter(size = targetSize))
         renderingView.transform = coordinator.targetTransform
@@ -581,7 +741,7 @@ internal class ComposeSceneMediator(
             completion = {
                 startSnapshotView.removeFromSuperview()
                 setLayout(SceneLayout.UseConstraintsToFillContainer)
-                renderingView.isForcedToPresentWithTransactionEveryFrame = false
+                renderingComponent.isForcedToPresentWithTransactionEveryFrame = false
             }
         )
     }
@@ -623,8 +783,12 @@ internal class ComposeSceneMediator(
         size.height
     }
 
-    var density by scene::density
-    var layoutDirection by scene::layoutDirection
+    // region Tencent Code
+    /**
+     * Keep this for later use of measuring size from outside.
+     */
+    fun calculateContentSize(): IntSize = scene.calculateContentSize()
+    // endregion
 
 }
 
@@ -649,15 +813,16 @@ private fun getConstraintsToCenterInParent(
     )
 }
 
-private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
+fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
     when (this) {
         UITouchesEventPhase.BEGAN -> PointerEventType.Press
         UITouchesEventPhase.MOVED -> PointerEventType.Move
         UITouchesEventPhase.ENDED -> PointerEventType.Release
         UITouchesEventPhase.CANCELLED -> PointerEventType.Release
+        UITouchesEventPhase.REDIRECTED -> PointerEventType.Release
     }
 
-private fun UIEvent.historicalChangesForTouch(
+fun UIEvent.historicalChangesForTouch(
     touch: UITouch,
     view: UIView,
     density: Float
@@ -681,18 +846,18 @@ private fun UIEvent.historicalChangesForTouch(
     }
 }
 
-private val UITouch.isPressed
+val UITouch.isPressed
     get() = when (phase) {
         UITouchPhase.UITouchPhaseEnded, UITouchPhase.UITouchPhaseCancelled -> false
         else -> true
     }
 
-private fun UITouch.offsetInView(view: UIView, density: Float): Offset =
+fun UITouch.offsetInView(view: UIView, density: Float): Offset =
     locationInView(view).useContents {
         Offset(x.toFloat() * density, y.toFloat() * density)
     }
 
-private fun NSTimeInterval.toNanoSeconds(): Long {
+fun NSTimeInterval.toNanoSeconds(): Long {
     // The calculation is split in two instead of
     // `(targetTimestamp * 1e9).toLong()`
     // to avoid losing precision for fractional part

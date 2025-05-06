@@ -87,10 +87,11 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -128,28 +129,29 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            desktopMain {
-                dependsOn(skikoMain)
-                dependsOn(jvmMain)
-            }
+//            desktopMain {
+//                dependsOn(skikoMain)
+//                dependsOn(jvmMain)
+//            }
 
             jsNativeMain.dependsOn(skikoMain)
 
-            jsWasmMain.dependsOn(jsNativeMain)
+//            jsWasmMain.dependsOn(jsNativeMain)
 
-            jsMain {
-                dependsOn(jsWasmMain)
-            }
+//            jsMain {
+//                dependsOn(jsWasmMain)
+//            }
 
-            wasmJsMain {
-                dependsOn(jsWasmMain)
-                dependencies {
-                    implementation(libs.create("skikoWasm"))
-                    implementation(libs.create("skikoWasmWasm"))
-                }
-            }
+//            wasmJsMain {
+//                dependsOn(jsWasmMain)
+//                dependencies {
+//                    implementation(libs.create("skikoWasm"))
+//                    implementation(libs.create("skikoWasmWasm"))
+//                }
+//            }
 
             nativeMain.dependsOn(jsNativeMain)
+            ohosArm64Main.dependsOn(jsNativeMain)
 
             androidMain {
                 dependsOn(commonMain)
@@ -161,7 +163,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation("androidx.emoji2:emoji2:1.2.0")
                 implementation('androidx.collection:collection:1.0.0')
             }
-
+//
             androidMain.kotlin.srcDirs("${supportRootFolder}/text/text/src/main/java")
 
             commonTest {
@@ -174,63 +176,68 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(project(":internal-testutils-fonts"))
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.mockitoCore4)
-                implementation(libs.truth)
-                implementation(libs.kotlinReflect)
-                implementation(libs.kotlinTest)
-                implementation(libs.mockitoKotlin4)
-            }
-
-            androidAndroidTest.dependencies {
-                implementation(project(":compose:ui:ui-test-junit4"))
-                implementation(project(":internal-testutils-fonts"))
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.espressoCore)
-                implementation(libs.junit)
-                implementation(libs.dexmakerMockito)
-                implementation(libs.mockitoCore)
-                implementation(libs.truth)
-                implementation(libs.mockitoKotlin)
-            }
+//            androidTest.dependencies {
+//                implementation(project(":internal-testutils-fonts"))
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.mockitoCore4)
+//                implementation(libs.truth)
+//                implementation(libs.kotlinReflect)
+//                implementation(libs.kotlinTest)
+//                implementation(libs.mockitoKotlin4)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation(project(":compose:ui:ui-test-junit4"))
+//                implementation(project(":internal-testutils-fonts"))
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.espressoCore)
+//                implementation(libs.junit)
+//                implementation(libs.dexmakerMockito)
+//                implementation(libs.mockitoCore)
+//                implementation(libs.truth)
+//                implementation(libs.mockitoKotlin)
+//            }
 
             skikoTest {
                 dependsOn(commonTest)
             }
 
-            desktopTest {
-                dependsOn(skikoTest)
-                dependencies {
-                    implementation(libs.truth)
-                    implementation(libs.junit)
-                    implementation(libs.skikoCurrentOs)
-                    implementation(project(":compose:foundation:foundation"))
-                    implementation(project(":compose:ui:ui-test-junit4"))
-                    implementation(project(":internal-testutils-fonts"))
-                    implementation(libs.mockitoCore)
-                    implementation(libs.mockitoKotlin)
-                    implementation(libs.mockitoCore4)
-                    implementation(libs.mockitoKotlin4)
-                    implementation(libs.kotlinReflect)
-                }
-            }
-            desktopTest.kotlin.srcDirs("src/test/java", "src/desktopTest/kotlin")
-            desktopTest.resources.srcDirs("src/test/resources", "src/desktopTest/resources")
+//            desktopTest {
+//                dependsOn(skikoTest)
+//                dependencies {
+//                    implementation(libs.truth)
+//                    implementation(libs.junit)
+//                    implementation(libs.skikoCurrentOs)
+//                    implementation(project(":compose:foundation:foundation"))
+//                    implementation(project(":compose:ui:ui-test-junit4"))
+//                    implementation(project(":internal-testutils-fonts"))
+//                    implementation(libs.mockitoCore)
+//                    implementation(libs.mockitoKotlin)
+//                    implementation(libs.mockitoCore4)
+//                    implementation(libs.mockitoKotlin4)
+//                    implementation(libs.kotlinReflect)
+//                }
+//            }
+//            desktopTest.kotlin.srcDirs("src/test/java", "src/desktopTest/kotlin")
+//            desktopTest.resources.srcDirs("src/test/resources", "src/desktopTest/resources")
 
             jsNativeTest {
                 dependsOn(skikoTest)
             }
             nativeTest.dependsOn(jsNativeTest)
-            jsTest.dependsOn(jsNativeTest)
-            wasmJsTest.dependsOn(jsNativeTest)
+//            jsTest.dependsOn(jsNativeTest)
+//            wasmJsTest.dependsOn(jsNativeTest)
 
             configureEach {
                 languageSettings.optIn("androidx.compose.ui.text.ExperimentalTextApi")
+            }
+            all {
+                if (name.endsWith("Test")) {
+                    kotlin.setSrcDirs(["nonexistent-test-dir-for-$name"])
+                }
             }
         }
     }

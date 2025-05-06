@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +31,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.InputMode
@@ -118,6 +121,15 @@ internal class RootNodeOwner(
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
     val semanticsOwner = SemanticsOwner(owner.root)
 
+    // region Tencent Code
+    var layerFactory: OwnedLayerFactory? = null
+
+    /**
+     * record outer container's scroll offset
+     */
+    private var outerContainerOffset = Offset.Zero
+    // endregion
+
     /**
      * Bounds of [Owner] in window coordinates.
      */
@@ -205,26 +217,60 @@ internal class RootNodeOwner(
             val positionInWindow = owner.calculatePositionInWindow(it.position)
             bounds?.contains(positionInWindow.round()) ?: true
         }
-        pointerInputEventProcessor.process(
-            event,
-            IdentityPositionCalculator,
-            isInBounds = isInBounds
-        )
+        // region Tencent Code
+        if (ComposeTabService.composeGestureEnable && event.eventType == PointerEventType.Unknown) {
+            pointerInputEventProcessor.processCancel()
+        } else {
+            pointerInputEventProcessor.process(
+                event,
+                IdentityPositionCalculator,
+                isInBounds = isInBounds
+            )
+        }
+        // endregion
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {
         return focusOwner.dispatchKeyEvent(keyEvent)
     }
 
-    /**
+        /**
      * If pointerPosition is inside UIKitView, then Compose skip touches. And touches goes to UIKit.
      */
-    fun hitTestInteropView(position: Offset): Boolean {
+    fun hitTestInteropView(position: Offset, event: Any?): Boolean {
+        val result = HitTestResult()
+        owner.root.hitTest(position, result, true)
+        // region Tencent Code
+        result.forEach {
+            ComposeTabService.composeHitTestLog("hitTestInteropView hit result: ${it.toString()}")
+        }
+
+        if (EnableIosRenderLayerV2) {
+            val last = result.lastOrNull()
+            val element = (last as? BackwardsCompatNode)?.element
+            return element is InteropViewCatchPointerModifier
+        } else {
+            val last = result.lastOrNull()
+            return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+        }
+        // endregion
+    }
+    // region Tencent Code
+    fun hitTestComposeView(position: Offset, event: Any?): Boolean {
         val result = HitTestResult()
         owner.root.hitTest(position, result, true)
         val last = result.lastOrNull()
-        return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+        return last != null
     }
+
+    fun outerContainerOffsetChange(x: Float, y: Float) {
+        if (outerContainerOffset.y != y || outerContainerOffset.x != x) {
+            outerContainerOffset = Offset(x, y)
+            owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
+            measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+        }
+    }
+    // endregion
 
     private inner class OwnerImpl(
         layoutDirection: LayoutDirection,
@@ -343,7 +389,14 @@ internal class RootNodeOwner(
         override fun createLayer(
             drawBlock: (Canvas) -> Unit,
             invalidateParentLayer: () -> Unit
-        ) = RenderNodeLayer(
+        // region Tencent Code
+        ) = layerFactory?.createLayer(
+            Snapshot.withoutReadObservation { density },
+            drawBlock,
+            invalidateParentLayer,
+            { needClearObservations = true }
+        ) ?: RenderNodeLayer(
+        // endregion
             Snapshot.withoutReadObservation {
                 // density is a mutable state that is observed whenever layer is created. the layer
                 // is updated manually on draw, so not observing the density changes here helps with
@@ -384,6 +437,12 @@ internal class RootNodeOwner(
             val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
             return positionInWindow - offset
         }
+
+        // region Tencent Code
+        override fun boundsBoxInContainerWindow(bounds: Rect): Rect {
+            return platformContext.boundsPositionCalculator?.invoke(bounds) ?: bounds
+        }
+        // endregion
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 

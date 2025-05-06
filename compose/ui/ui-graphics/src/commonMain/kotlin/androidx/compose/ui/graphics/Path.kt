@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.internal.JvmDefaultWithCompatibility
 
 expect fun Path(): Path
 
+/**
+ * 原生的Path，不进行注入
+ */
+expect fun LocalPath(): Path
+
 @JvmDefaultWithCompatibility
 /* expect class */ interface Path {
 

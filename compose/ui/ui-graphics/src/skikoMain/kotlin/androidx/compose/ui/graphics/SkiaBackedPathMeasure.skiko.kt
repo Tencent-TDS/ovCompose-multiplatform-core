@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.EnableIosRenderLayerV2
 import androidx.compose.ui.geometry.Offset
 /**
  * Convert the [org.jetbrains.skia.PathMeasure] instance into a Compose-compatible PathMeasure
@@ -73,6 +74,6 @@ internal class SkiaBackedPathMeasure(
         }
     }
 }
-
-actual fun PathMeasure(): PathMeasure =
-    SkiaBackedPathMeasure()
+// region Tencent Code
+actual fun PathMeasure(): PathMeasure = if (!EnableIosRenderLayerV2) SkiaBackedPathMeasure() else NativePathMeasure()
+// endregion

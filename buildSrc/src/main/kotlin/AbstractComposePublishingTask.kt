@@ -52,6 +52,8 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
         // To make ArtifactRedirecting publishing work properly with kotlin >= 1.9.0,
         // we use decorated `KotlinMultiplatform` publication named - 'KotlinMultiplatformDecorated'.
         // see AndroidXComposeMultiplatformExtensionImpl.publishAndroidxReference for details.
+        // 重定向指的是对于 Android 等平台，重定向依赖到 Google 的 Jetpack Compose
+        println("GavinTag: 配置 Publish 依赖 Task: project=$project component=${component.path} component.support.platform=${component.supportedPlatforms} redirecting.platform=$artifactRedirectingTargetNames useRedirecting=$useArtifactRedirectingPublication")
         if (useArtifactRedirectingPublication) {
             val kotlinCommonPublicationName = "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
             dependsOnComposeTask("${component.path}:publish${kotlinCommonPublicationName}PublicationTo$repository")
