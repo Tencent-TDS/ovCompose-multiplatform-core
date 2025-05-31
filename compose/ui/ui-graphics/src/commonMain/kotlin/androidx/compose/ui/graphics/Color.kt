@@ -407,6 +407,10 @@ fun Color(
     alpha: Float = 1f,
     colorSpace: ColorSpace = ColorSpaces.Srgb
 ): Color {
+    // region Tencent Code
+    @Suppress("NAME_SHADOWING")
+    val alpha = max(0.0f, min(alpha, 1.0f))
+    // endregion
     require(
         red in colorSpace.getMinValue(0)..colorSpace.getMaxValue(0) &&
             green in colorSpace.getMinValue(1)..colorSpace.getMaxValue(1) &&

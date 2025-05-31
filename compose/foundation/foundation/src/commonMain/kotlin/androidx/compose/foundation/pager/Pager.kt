@@ -138,6 +138,47 @@ fun HorizontalPager(
         reverseLayout = reverseLayout,
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = false,
+        pageContent = pageContent
+    )
+}
+
+@Composable
+@ExperimentalFoundationApi
+fun HorizontalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondBoundsPageCount: Int = PagerDefaults.BeyondBoundsPageCount,
+    pageSpacing: Dp = 0.dp,
+    verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    flingBehavior: SnapFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection = remember(state) {
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal)
+    },
+    disableScrollLoading: Boolean = false,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    Pager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondBoundsPageCount = beyondBoundsPageCount,
+        pageSpacing = pageSpacing,
+        orientation = Orientation.Horizontal,
+        verticalAlignment = verticalAlignment,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = disableScrollLoading,
         pageContent = pageContent
     )
 }
@@ -218,6 +259,47 @@ fun VerticalPager(
         reverseLayout = reverseLayout,
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = false,
+        pageContent = pageContent
+    )
+}
+
+@Composable
+@ExperimentalFoundationApi
+fun VerticalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondBoundsPageCount: Int = PagerDefaults.BeyondBoundsPageCount,
+    pageSpacing: Dp = 0.dp,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    flingBehavior: SnapFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection = remember(state) {
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Vertical)
+    },
+    disableScrollLoading: Boolean = false,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    Pager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondBoundsPageCount = beyondBoundsPageCount,
+        pageSpacing = pageSpacing,
+        orientation = Orientation.Vertical,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = horizontalAlignment,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = disableScrollLoading,
         pageContent = pageContent
     )
 }

@@ -73,6 +73,10 @@ internal class SnapFlingBehavior(
             0f
         }
 
+    // region Tencent Code
+    // fix : Variable 'MinFlingVelocityDp' must be initialized.
+    private val MinFlingVelocityDp = 400.dp
+    // endregion
     private val velocityThreshold = with(density) { MinFlingVelocityDp.toPx() }
     private var motionScaleDuration = object : MotionDurationScale {
         override val scaleFactor: Float
@@ -342,8 +346,6 @@ internal class SnapFlingBehavior(
         get() = if (orientation == Orientation.Vertical) viewportSize.height else viewportSize.width
 
     private val DefaultScrollMotionDurationScaleFactor = 1f
-
-    private val MinFlingVelocityDp = 400.dp
 }
 
 private class AnimationResult<T, V : AnimationVector>(

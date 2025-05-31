@@ -19,21 +19,42 @@ package androidx.compose.ui.graphics
 import androidx.compose.ui.geometry.Offset
 import org.jetbrains.skia.GradientStyle
 
-actual typealias Shader = org.jetbrains.skia.Shader
+actual typealias Shader = PlatformShader
+// actual typealias Shader = org.jetbrains.skia.Shader
 
+// region Tencent Code
 internal actual fun ActualLinearGradientShader(
     from: Offset,
     to: Offset,
     colors: List<Color>,
     colorStops: List<Float>?,
     tileMode: TileMode
+): Shader = ActualLinearGradientShader(from, to, colors, colorStops, tileMode, false)
+
+internal actual fun ActualLinearGradientShader(
+    from: Offset,
+    to: Offset,
+    colors: List<Color>,
+    colorStops: List<Float>?,
+    tileMode: TileMode,
+    forceUseSkia: Boolean
 ): Shader {
     validateColorStops(colors, colorStops)
-    return Shader.makeLinearGradient(
-        from.x, from.y, to.x, to.y, colors.toIntArray(), colorStops?.toFloatArray(),
-        GradientStyle(tileMode.toSkiaTileMode(), true, identityMatrix33())
-    )
+    return PlatformShader(
+            nativeShader = NativeShaderFactory()?.makeLinearGradientShader(
+                from,
+                to,
+                colors,
+                colorStops,
+                tileMode
+            ),
+            skiaShader = org.jetbrains.skia.Shader.makeLinearGradient(
+                from.x, from.y, to.x, to.y, colors.toIntArray(), colorStops?.toFloatArray(),
+                GradientStyle(tileMode.toSkiaTileMode(), true, identityMatrix33())
+            )
+        )
 }
+// endregion
 
 internal actual fun ActualRadialGradientShader(
     center: Offset,
@@ -43,13 +64,22 @@ internal actual fun ActualRadialGradientShader(
     tileMode: TileMode
 ): Shader {
     validateColorStops(colors, colorStops)
-    return Shader.makeRadialGradient(
-        center.x,
-        center.y,
-        radius,
-        colors.toIntArray(),
-        colorStops?.toFloatArray(),
-        GradientStyle(tileMode.toSkiaTileMode(), true, identityMatrix33())
+    return PlatformShader(
+                nativeShader = NativeShaderFactory()?.makeRadialGradientShader(
+                    center,
+                    radius,
+                    colors,
+                    colorStops,
+                    tileMode
+                ),
+                skiaShader = org.jetbrains.skia.Shader.makeRadialGradient(
+                    center.x,
+                    center.y,
+                    radius,
+                    colors.toIntArray(),
+                    colorStops?.toFloatArray(),
+                    GradientStyle(tileMode.toSkiaTileMode(), true, identityMatrix33())
+                )
     )
 }
 
@@ -59,12 +89,19 @@ internal actual fun ActualSweepGradientShader(
     colorStops: List<Float>?
 ): Shader {
     validateColorStops(colors, colorStops)
-    return Shader.makeSweepGradient(
-        center.x,
-        center.y,
-        colors.toIntArray(),
-        colorStops?.toFloatArray()
-    )
+    return  PlatformShader(
+                nativeShader = NativeShaderFactory()?.makeSweepGradientShader(
+                    center,
+                    colors,
+                    colorStops
+                ),
+                skiaShader = org.jetbrains.skia.Shader.makeSweepGradient(
+                    center.x,
+                    center.y,
+                    colors.toIntArray(),
+                    colorStops?.toFloatArray()
+                )
+        )
 }
 
 internal actual fun ActualImageShader(
@@ -72,10 +109,18 @@ internal actual fun ActualImageShader(
     tileModeX: TileMode,
     tileModeY: TileMode
 ): Shader {
-    return image.asSkiaBitmap().makeShader(
-        tileModeX.toSkiaTileMode(),
-        tileModeY.toSkiaTileMode()
-    )
+    // 现在缺少了ImageShader，先解决crash问题，后续补充能力
+    return PlatformShader(
+                nativeShader = NativeShaderFactory()?.makeImageShader(
+                    image,
+                    tileModeX,
+                    tileModeY
+                ),
+                skiaShader = image.asSkiaBitmap().makeShader(
+                    tileModeX.toSkiaTileMode(),
+                    tileModeY.toSkiaTileMode()
+                )
+        )
 }
 
 private fun List<Color>.toIntArray(): IntArray =
@@ -86,13 +131,13 @@ private fun validateColorStops(colors: List<Color>, colorStops: List<Float>?) {
         if (colors.size < 2) {
             throw IllegalArgumentException(
                 "colors must have length of at least 2 if colorStops " +
-                    "is omitted."
+                        "is omitted."
             )
         }
     } else if (colors.size != colorStops.size) {
         throw IllegalArgumentException(
             "colors and colorStops arguments must have" +
-                " equal length."
+                    " equal length."
         )
     }
 }

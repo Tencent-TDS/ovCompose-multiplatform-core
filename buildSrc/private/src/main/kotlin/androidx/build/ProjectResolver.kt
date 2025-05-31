@@ -48,6 +48,8 @@ fun Project.getProjectSubset(): String? {
     val envProp = project.providers.environmentVariable("ANDROIDX_PROJECTS")
     if (envProp.isPresent) {
         return envProp.get().uppercase()
+    } else {
+        // Make COMPOSE the default project subset.
+        return "COMPOSE"
     }
-    return null
 }

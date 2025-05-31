@@ -143,7 +143,20 @@ private fun Project.configureComponentPublishing(
     configure<PublishingExtension> {
         repositories {
             it.maven { repo ->
-                repo.setUrl(getRepositoryDirectory())
+                repo.apply {
+                    setUrl(findProperty("maven.remote.url").toString())
+                    credentials {
+                        it.username = findProperty("maven.remote.username")?.toString()
+                        it.password = findProperty("maven.remote.password")?.toString()
+
+                        if (it.username.isNullOrBlank() || it.password.isNullOrBlank()) {
+                            logger.warn("""
+                                |Maven credentials are not properly configured.
+                                |Get them here: ${findProperty("maven.remote.manager.url")}.
+                            """.trimMargin())
+                        }
+                    }
+                }
             }
         }
         publications {
@@ -485,20 +498,6 @@ private fun Project.addInformativeMetadata(extension: AndroidXExtension, pom: Ma
         }
     )
     pom.inceptionYear.set(provider { extension.inceptionYear })
-    pom.licenses { licenses ->
-        licenses.license { license ->
-            license.name.set("The Apache Software License, Version 2.0")
-            license.url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-            license.distribution.set("repo")
-        }
-        for (extraLicense in extension.getLicenses()) {
-            licenses.license { license ->
-                license.name.set(provider { extraLicense.name })
-                license.url.set(provider { extraLicense.url })
-                license.distribution.set("repo")
-            }
-        }
-    }
     pom.scm { scm ->
         scm.url.set("https://cs.android.com/androidx/platform/frameworks/support")
         scm.connection.set(ANDROID_GIT_URL)

@@ -265,6 +265,7 @@ internal enum class Platform {
     TvOS,
     WatchOS,
     Android, // use case: a web app running in Chrome Android
+    OHOS
 }
 
 internal expect fun currentPlatform(): Platform
@@ -308,6 +309,13 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
                 FontFamily.Serif.name to listOf("Roboto Serif", "Noto Serif"),
                 FontFamily.Monospace.name to listOf("Roboto Mono", "Noto Sans Mono"),
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
+            )
+        Platform.OHOS ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("HarmonyOS Sans SC"),
+                FontFamily.Serif.name to listOf("HarmonyOS Sans SC"),
+                FontFamily.Monospace.name to listOf("Noto Sans Mono"),
+                FontFamily.Cursive.name to listOf("HarmonyOS Sans SC")
             )
         Platform.Unknown ->
             mapOf(

@@ -66,20 +66,9 @@ public expect open class SparseArrayCompat<E>
 @JvmOverloads public constructor(
     initialCapacity: Int = 10
 ) {
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var garbage: Boolean
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var keys: IntArray
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var values: Array<Any?>
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var size: Int
 
     /**

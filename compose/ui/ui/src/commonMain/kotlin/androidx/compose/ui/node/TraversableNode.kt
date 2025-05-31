@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.node
 
+import androidx.compose.ui.ExperimentalTencentComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.areObjectsOfSameType
 import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction
@@ -63,6 +64,23 @@ fun DelegatableNode.findNearestAncestor(
     return null
 }
 
+// region Tencent Code
+/**
+ * Finds the nearest traversable ancestor with a matching key based on the given [predicate].
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.findNearestAncestor(
+    predicate: (key: Any?) -> Boolean
+): TraversableNode? {
+    visitAncestors(Nodes.Traversable) {
+        if (predicate(it.traverseKey)) {
+            return it
+        }
+    }
+    return null
+}
+// endregion
+
 /**
  * Finds the nearest ancestor of the same class and key.
  */
@@ -75,6 +93,53 @@ fun <T> T.findNearestAncestor(): T? where T : TraversableNode {
     }
     return null
 }
+
+// region Tencent Code
+// *********** Nearest Local Traversable Ancestor methods ***********
+/**
+ * Finds the nearest local traversable ancestor with a matching [key].
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.findNearestLocalAncestor(
+    key: Any?
+): TraversableNode? {
+    visitLocalAncestors(Nodes.Traversable) {
+        if (key == it.traverseKey) {
+            return it
+        }
+    }
+    return null
+}
+
+/**
+ * Finds the nearest local traversable ancestor with a matching key based on the given [predicate].
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.findNearestLocalAncestor(
+    predicate: (key: Any?) -> Boolean
+): TraversableNode? {
+    visitLocalAncestors(Nodes.Traversable) {
+        if (predicate(it.traverseKey)) {
+            return it
+        }
+    }
+    return null
+}
+
+/**
+ * Finds the nearest local ancestor of the same class and key.
+ */
+@ExperimentalTencentComposeUiApi
+fun <T> T.findNearestLocalAncestor(): T? where T : TraversableNode {
+    visitLocalAncestors(Nodes.Traversable) {
+        if (this.traverseKey == it.traverseKey && areObjectsOfSameType(this, it)) {
+            @Suppress("UNCHECKED_CAST")
+            return it as T
+        }
+    }
+    return null
+}
+// endregion
 
 // *********** Traverse Ancestors methods ***********
 /**
@@ -119,6 +184,90 @@ fun <T> T.traverseAncestors(block: (T) -> Boolean) where T : TraversableNode {
         if (!continueTraversal) return
     }
 }
+
+// region Tencent Code
+/**
+ * Executes [block] for all ancestors.
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ *
+ *  @sample androidx.compose.ui.samples.traverseAncestorsWithKeyDemo
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseAllAncestors(
+    block: (TraversableNode) -> Boolean
+) {
+    visitAncestors(Nodes.Traversable) {
+        val continueTraversal = block(it)
+        if (!continueTraversal) return
+    }
+}
+// endregion
+
+// region Tencent Code
+// *********** Traverse Local Ancestors methods ***********
+/**
+ * Executes [block] for all local ancestors with a matching [key].
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ *
+ *  @sample androidx.compose.ui.samples.traverseAncestorsWithKeyDemo
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseLocalAncestors(
+    key: Any?,
+    block: (TraversableNode) -> Boolean
+) {
+    visitLocalAncestors(Nodes.Traversable) {
+        val continueTraversal = if (key == it.traverseKey) {
+            block(it)
+        } else {
+            true
+        }
+        if (!continueTraversal) return
+    }
+}
+
+/**
+ * Executes [block] for all local ancestors of the same class and key.
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ */
+@ExperimentalTencentComposeUiApi
+fun <T> T.traverseLocalAncestors(block: (T) -> Boolean) where T : TraversableNode {
+    visitLocalAncestors(Nodes.Traversable) {
+        val continueTraversal =
+            if (this.traverseKey == it.traverseKey && areObjectsOfSameType(this, it)) {
+                @Suppress("UNCHECKED_CAST")
+                block(it as T)
+            } else {
+                true
+            }
+        if (!continueTraversal) return
+    }
+}
+
+/**
+ * Executes [block] for all local ancestors.
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ *
+ *  @sample androidx.compose.ui.samples.traverseAncestorsWithKeyDemo
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseAllLocalAncestors(
+    block: (TraversableNode) -> Boolean
+) {
+    visitLocalAncestors(Nodes.Traversable) {
+        val continueTraversal = block(it)
+        if (!continueTraversal) return
+    }
+}
+// endregion
 
 // *********** Traverse Children methods ***********
 /**
@@ -167,6 +316,28 @@ fun <T> T.traverseChildren(block: (T) -> Boolean) where T : TraversableNode {
         if (!continueTraversal) return
     }
 }
+
+// region Tencent Code
+/**
+ * Executes [block] for all direct children of the node.
+ *
+ * Note 1: This stops at the children and does not include grandchildren and so on down the tree.
+ *
+ * Note 2: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ *
+ *  @sample androidx.compose.ui.samples.traverseChildrenWithKeyDemo
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseAllChildren(
+    block: (TraversableNode) -> Boolean
+) {
+    visitChildren(Nodes.Traversable) {
+        val continueTraversal = block(it)
+        if (!continueTraversal) return
+    }
+}
+// endregion
 
 // *********** Traverse Descendants methods ***********
 /**
@@ -227,3 +398,88 @@ fun <T> T.traverseDescendants(block: (T) -> TraverseDescendantsAction) where T :
         action != TraverseDescendantsAction.SkipSubtreeAndContinueTraversal
     }
 }
+
+// region Tencent Code
+/**
+ * Conditionally executes [block] for each descendant.
+ *
+ * Note: The parameter [block]'s return value [TraverseDescendantsAction] will determine the next
+ * step in the traversal.
+ *
+ *  @sample androidx.compose.ui.samples.traverseDescendantsWithKeyDemo
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseAllDescendants(
+    block: (TraversableNode) -> TraverseDescendantsAction
+) {
+    visitSubtreeIf(Nodes.Traversable) {
+        val action = block(it)
+        if (action == TraverseDescendantsAction.CancelTraversal) return
+
+        // visitSubtreeIf() requires a true to continue down the subtree and a false if you
+        // want to skip the subtree, so we check if the action is NOT EQUAL to the subtree
+        // to trigger false if the action is Skip subtree and true otherwise.
+        action != TraverseDescendantsAction.SkipSubtreeAndContinueTraversal
+    }
+}
+// endregion
+
+// region Tencent Code
+// *********** Traverse Local Descendants methods ***********
+/**
+ * Executes [block] for each descendant with a matching [key].
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseLocalDescendants(
+    key: Any?,
+    block: (TraversableNode) -> Boolean
+) {
+    visitLocalDescendants(Nodes.Traversable) {
+        val continueTraversal = if (key == it.traverseKey) {
+            block(it)
+        } else {
+            true
+        }
+        if (!continueTraversal) return
+    }
+}
+
+/**
+ * Executes [block] for all local descendants of the same class and key.
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ */
+@ExperimentalTencentComposeUiApi
+fun <T> T.traverseLocalDescendants(block: (T) -> Boolean) where T : TraversableNode {
+    visitLocalDescendants(Nodes.Traversable) {
+        val continueTraversal =
+            if (this.traverseKey == it.traverseKey && areObjectsOfSameType(this, it)) {
+                @Suppress("UNCHECKED_CAST")
+                block(it as T)
+            } else {
+                true
+            }
+        if (!continueTraversal) return
+    }
+}
+
+/**
+ * Executes [block] for all local descendants.
+ *
+ * Note: The parameter [block]'s return boolean value will determine if the traversal will
+ * continue (true = continue, false = cancel).
+ */
+@ExperimentalTencentComposeUiApi
+fun DelegatableNode.traverseAllLocalDescendants(
+    block: (TraversableNode) -> Boolean
+) {
+    visitLocalDescendants(Nodes.Traversable) {
+        val continueTraversal = block(it)
+        if (!continueTraversal) return
+    }
+}
+// endregion

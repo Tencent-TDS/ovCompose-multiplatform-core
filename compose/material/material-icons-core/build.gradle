@@ -45,10 +45,11 @@ if (!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -67,12 +68,12 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             androidMain.dependencies {
                 implementation(libs.kotlinStdlib)
             }
-
-            wasmJsMain {
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+//
+//            wasmJsMain {
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
         }
     }
     dependencies {
@@ -80,11 +81,12 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     }
 }
 
-IconGenerationTask.registerCoreIconProject(
-        project,
-        android,
-        AndroidXComposePlugin.isMultiplatformEnabled(project)
-)
+IconGenerationTask.registerCoreIconProjectForMpp(project)
+//IconGenerationTask.registerCoreIconProject(
+//        project,
+//        android,
+//        AndroidXComposePlugin.isMultiplatformEnabled(project)
+//)
 
 androidx {
     name = "Compose Material Icons Core"

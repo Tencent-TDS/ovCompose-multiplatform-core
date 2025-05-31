@@ -351,11 +351,12 @@ private fun <T, V : AnimationVector> AnimationScope<T, V>.doAnimationFrame(
     value = anim.getValueFromNanos(playTimeNanos)
     velocityVector = anim.getVelocityVectorFromNanos(playTimeNanos)
     val isLastFrame = anim.isFinishedFromNanos(playTimeNanos)
-    if (isLastFrame) {
+    if (isLastFrame || isForceStop) {
         // TODO: This could probably be a little more granular
         // TODO: end time isn't necessarily last frame time
         finishedTimeNanos = lastFrameTimeNanos
         isRunning = false
+        isForceStop = false
     }
     updateState(state)
     block()

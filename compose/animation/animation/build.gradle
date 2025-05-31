@@ -65,10 +65,11 @@ dependencies {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -93,40 +94,41 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
             }
 
-            desktopMain.dependencies {
-                implementation(libs.kotlinStdlib)
-            }
+//            desktopMain.dependencies {
+//                implementation(libs.kotlinStdlib)
+//            }
             jsNativeMain.dependsOn(commonMain)
             nativeMain.dependsOn(jsNativeMain)
-            jsWasmMain.dependsOn(jsNativeMain)
+            ohosArm64Main.dependsOn(nativeMain)
+//            jsWasmMain.dependsOn(jsNativeMain)
 
-            jsMain {
-                dependsOn(jsWasmMain)
-            }
-
-            wasmJsMain {
-                dependsOn(jsWasmMain)
-            }
+//            jsMain {
+//                dependsOn(jsWasmMain)
+//            }
+//
+//            wasmJsMain {
+//                dependsOn(jsWasmMain)
+//            }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-            }
-
-            androidAndroidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-                implementation(project(":compose:foundation:foundation"))
-                implementation(project(":compose:ui:ui-test-junit4"))
-                implementation(project(":compose:test-utils"))
-            }
+//            androidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//                implementation(project(":compose:foundation:foundation"))
+//                implementation(project(":compose:ui:ui-test-junit4"))
+//                implementation(project(":compose:test-utils"))
+//            }
         }
     }
     dependencies {

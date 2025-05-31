@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composer
 import androidx.compose.runtime.CompositionLocalMap
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.modifier.InjectModifier
+import androidx.compose.ui.modifier.LocalModifierInjection
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireLayoutNode
 import androidx.compose.ui.platform.InspectorInfo
@@ -251,9 +253,24 @@ private class KeyedComposedModifierN(
 // "materialize" JVM name is taken below to solve a backwards-incompatibility
 @JvmName("materializeModifier")
 fun Composer.materialize(modifier: Modifier): Modifier {
-    if (modifier.all { it !is ComposedModifier }) {
-        return modifier
+    // region Tencent Code
+    var result = modifier
+    val injection = this.currentCompositionLocalMap.get(LocalModifierInjection)
+    if (injection != null && result.all { it !== InjectModifier }) {
+        result = injection.inject(result).then(InjectModifier)
     }
+    // endregion
+
+    // region Tencent Code
+    /*
+    if (modifier.all { it !is ComposedModifier }) {
+        return result
+    }
+    */
+    if (result.all { it !is ComposedModifier }) {
+        return result
+    }
+    // endregion
 
     // This is a fake composable function that invokes the compose runtime directly so that it
     // can call the element factory functions from the non-@Composable lambda of Modifier.foldIn.
@@ -262,14 +279,27 @@ fun Composer.materialize(modifier: Modifier): Modifier {
 
     // Random number for fake group key. Chosen by fair die roll.
     startReplaceableGroup(0x48ae8da7)
-
+    // region Tencent Code
+    /*
     val result = modifier.foldIn<Modifier>(Modifier) { acc, element ->
+     */
+    result = result.foldIn<Modifier>(Modifier) { acc, element ->
+    // endregion
         acc.then(
             if (element is ComposedModifier) {
                 @Suppress("UNCHECKED_CAST")
                 val factory = element.factory as Modifier.(Composer, Int) -> Modifier
                 val composedMod = factory(Modifier, this, 0)
+                // region Tencent Code
+                /*
                 materialize(composedMod)
+                 */
+                if (injection == null) {
+                    materialize(composedMod)
+                } else {
+                    materialize(composedMod.then(InjectModifier))
+                }
+                // endregion
             } else {
                 element
             }

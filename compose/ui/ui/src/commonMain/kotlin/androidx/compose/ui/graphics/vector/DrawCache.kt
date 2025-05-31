@@ -18,6 +18,7 @@ package androidx.compose.ui.graphics.vector
 
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.CanvasType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
@@ -78,6 +79,7 @@ internal class DrawCache {
             this.config = config
         }
         this.size = size
+        cacheScope.drawInSkia = targetCanvas.canvasType == CanvasType.Skia
         cacheScope.draw(density, layoutDirection, targetCanvas, size.toSize()) {
             clear()
             block()

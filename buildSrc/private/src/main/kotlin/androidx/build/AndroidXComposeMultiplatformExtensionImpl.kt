@@ -34,7 +34,7 @@ import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.tomlj.Toml
 
@@ -55,11 +55,42 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 
     override fun android(): Unit = multiplatformExtension.run {
-        androidTarget()
+        val isInCompositeBuild = project.gradle.parent != null
+
+        androidTarget {
+            // Included into a composite build.
+            if (isInCompositeBuild) {
+                if (project.group.toString().startsWith("org.jetbrains.compose")) {
+                    // Ignore source files for Android target.
+                    // We will add Jetpack Compose for Android projects.
+                    this.compilations.all {
+                        arrayOf(
+                            it.compileJavaTaskProvider,
+                            it.compileTaskProvider
+                        ).forEach {
+                            it.configure {
+                                it.actions = emptyList()
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         val androidMain = sourceSets.getByName("androidMain")
         val jvmMain = getOrCreateJvmMain()
         androidMain.dependsOn(jvmMain)
+
+        if (isInCompositeBuild) {
+            val version = project.redirectAndroidxVersion()
+            val dependencyGroup = project.group.toString().replace(
+                "org.jetbrains.compose",
+                "androidx.compose"
+            )
+            androidMain.dependencies {
+                api("$dependencyGroup:${project.name}:$version")
+            }
+        }
 
         val androidTest = sourceSets.getByName("androidUnitTest")
         val jvmTest = getOrCreateJvmTest()
@@ -88,7 +119,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         jsMain.dependsOn(commonMain)
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     override fun wasm(): Unit = multiplatformExtension.run {
         wasmJs {
             browser {
@@ -155,12 +186,12 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 
     override fun darwin(): Unit = multiplatformExtension.run {
-        macosX64() {
-            substituteForOelPublishedDependencies()
-        }
-        macosArm64() {
-            substituteForOelPublishedDependencies()
-        }
+//        macosX64() {
+//            substituteForOelPublishedDependencies()
+//        }
+//        macosArm64() {
+//            substituteForOelPublishedDependencies()
+//        }
         iosX64("uikitX64") {
             substituteForOelPublishedDependencies()
         }
@@ -174,18 +205,20 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         val commonMain = sourceSets.getByName("commonMain")
         val nativeMain = sourceSets.create("nativeMain")
         val darwinMain = sourceSets.create("darwinMain")
-        val macosMain = sourceSets.create("macosMain")
-        val macosX64Main = sourceSets.getByName("macosX64Main")
-        val macosArm64Main = sourceSets.getByName("macosArm64Main")
+        val nonDarwinMain = sourceSets.create("nonDarwinMain")
+//        val macosMain = sourceSets.create("macosMain")
+//        val macosX64Main = sourceSets.getByName("macosX64Main")
+//        val macosArm64Main = sourceSets.getByName("macosArm64Main")
         val uikitMain = sourceSets.create("uikitMain")
         val uikitX64Main = sourceSets.getByName("uikitX64Main")
         val uikitArm64Main = sourceSets.getByName("uikitArm64Main")
         val uikitSimArm64Main = sourceSets.getByName("uikitSimArm64Main")
         nativeMain.dependsOn(commonMain)
         darwinMain.dependsOn(nativeMain)
-        macosMain.dependsOn(darwinMain)
-        macosX64Main.dependsOn(macosMain)
-        macosArm64Main.dependsOn(macosMain)
+        nonDarwinMain.dependsOn(commonMain)
+//        macosMain.dependsOn(darwinMain)
+//        macosX64Main.dependsOn(macosMain)
+//        macosArm64Main.dependsOn(macosMain)
         uikitMain.dependsOn(darwinMain)
         uikitX64Main.dependsOn(uikitMain)
         uikitArm64Main.dependsOn(uikitMain)
@@ -194,22 +227,37 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         val commonTest = sourceSets.getByName("commonTest")
         val nativeTest = sourceSets.create("nativeTest")
         val darwinTest = sourceSets.create("darwinTest")
-        val macosTest = sourceSets.create("macosTest")
-        val macosX64Test = sourceSets.getByName("macosX64Test")
-        val macosArm64Test = sourceSets.getByName("macosArm64Test")
+        val nonDarwinTest = sourceSets.create("nonDarwinTest")
+//        val macosTest = sourceSets.create("macosTest")
+//        val macosX64Test = sourceSets.getByName("macosX64Test")
+//        val macosArm64Test = sourceSets.getByName("macosArm64Test")
         val uikitTest = sourceSets.create("uikitTest")
         val uikitX64Test = sourceSets.getByName("uikitX64Test")
         val uikitArm64Test = sourceSets.getByName("uikitArm64Test")
         val uikitSimArm64Test = sourceSets.getByName("uikitSimArm64Test")
         nativeTest.dependsOn(commonTest)
         darwinTest.dependsOn(nativeTest)
-        macosTest.dependsOn(darwinTest)
-        macosX64Test.dependsOn(macosTest)
-        macosArm64Test.dependsOn(macosTest)
+        nonDarwinTest.dependsOn(commonTest)
+//        macosTest.dependsOn(darwinTest)
+//        macosX64Test.dependsOn(macosTest)
+//        macosArm64Test.dependsOn(macosTest)
         uikitTest.dependsOn(darwinTest)
         uikitX64Test.dependsOn(uikitTest)
         uikitArm64Test.dependsOn(uikitTest)
         uikitSimArm64Test.dependsOn(uikitTest)
+
+        targets.all { target ->
+            if (target.platformType != KotlinPlatformType.common &&
+                (target !is KotlinNativeTarget || !target.konanTarget.family.isAppleFamily)) {
+                sourceSets.getByName("${target.name}Main").dependsOn(nonDarwinMain)
+                if (target.name == "android") {
+                    sourceSets.getByName("androidUnitTest").dependsOn(nonDarwinTest)
+                    sourceSets.getByName("androidInstrumentedTest").dependsOn(nonDarwinTest)
+                } else {
+                    sourceSets.getByName("${target.name}Test").dependsOn(nonDarwinTest)
+                }
+            }
+        }
     }
 
     override fun linuxX64(): Unit = multiplatformExtension.run {
@@ -220,6 +268,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     override fun linuxArm64(): Unit = multiplatformExtension.run {
         linuxArm64()
+    }
+
+    override fun ohos(): Unit = multiplatformExtension.run {
+        ohosArm64 { }
+    }
+
+    override fun ohos(configure: Action<KotlinNativeTarget>): Unit = multiplatformExtension.run {
+        ohosArm64(configure)
+    }
+
+    override fun ohos(configure: KotlinNativeTarget.() -> Unit): Unit = multiplatformExtension.run {
+        ohosArm64(configure)
     }
 
     private fun getOrCreateJvmMain(): KotlinSourceSet =
@@ -327,6 +387,33 @@ fun enableArtifactRedirectingPublishing(project: Project) {
     }
 }
 
+private fun Project.redirectAndroidxVersion(): String {
+    val composeVersion = requireNotNull(artifactRedirectingAndroidxVersion()) {
+        "Please specify artifactRedirecting.androidx.version property"
+    }
+    val material3Version =
+        requireNotNull(artifactRedirectingAndroidxMaterial3Version()) {
+            "Please specify artifactRedirecting.androidx.material3.version property"
+        }
+    val foundationVersion =
+        artifactRedirectingAndroidxFoundationVersion() ?: composeVersion
+    val materialVersion =
+        artifactRedirectingAndroidxMaterialVersion() ?: composeVersion
+
+    val groupId = group.toString()
+
+    val version = if (groupId.contains("org.jetbrains.compose.material3")) {
+        material3Version
+    } else if (groupId.contains("org.jetbrains.compose.foundation")) {
+        foundationVersion
+    } else if (groupId.contains("org.jetbrains.compose.material")) {
+        materialVersion
+    } else {
+        composeVersion
+    }
+    return version
+}
+
 private fun Project.publishAndroidxReference(target: KotlinAndroidTarget) {
     afterEvaluate {
         // Take root component which should contain "variants" (aka usages)
@@ -337,28 +424,7 @@ private fun Project.publishAndroidxReference(target: KotlinAndroidTarget) {
             .withType(KotlinSoftwareComponentWithCoordinatesAndPublication::class.java)
             .getByName("kotlin")
 
-        val composeVersion = requireNotNull(target.project.artifactRedirectingAndroidxVersion()) {
-            "Please specify artifactRedirecting.androidx.version property"
-        }
-        val material3Version =
-            requireNotNull(target.project.artifactRedirectingAndroidxMaterial3Version()) {
-                "Please specify artifactRedirecting.androidx.material3.version property"
-            }
-        val foundationVersion =
-            target.project.artifactRedirectingAndroidxFoundationVersion() ?: composeVersion
-        val materialVersion =
-            target.project.artifactRedirectingAndroidxMaterialVersion() ?: composeVersion
-
-        val groupId = target.project.group.toString()
-        val version = if (groupId.contains("org.jetbrains.compose.material3")) {
-            material3Version
-        } else if (groupId.contains("org.jetbrains.compose.foundation")) {
-            foundationVersion
-        } else if (groupId.contains("org.jetbrains.compose.material")) {
-            materialVersion
-        } else {
-            composeVersion
-        }
+        val version = redirectAndroidxVersion()
         val dependencyGroup = target.project.group.toString().replace(
             "org.jetbrains.compose",
             "androidx.compose"

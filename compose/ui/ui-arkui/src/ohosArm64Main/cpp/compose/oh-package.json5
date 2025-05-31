@@ -1,0 +1,11 @@
+{
+  "name": "compose",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "libcompose_arkui_utils.so": "file:./src/main/cpp/types/libcompose_arkui_utils"
+  }
+}

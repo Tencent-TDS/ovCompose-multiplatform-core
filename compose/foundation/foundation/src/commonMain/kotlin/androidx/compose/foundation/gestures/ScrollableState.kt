@@ -18,6 +18,7 @@ package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
+import androidx.compose.foundation.gestures.extention.DefaultScrollingStateListener
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -177,10 +178,22 @@ private class DefaultScrollableState(val onDelta: (Float) -> Float) : Scrollable
     ): Unit = coroutineScope {
         scrollMutex.mutateWith(scrollScope, scrollPriority) {
             isScrollingState.value = true
+            // region Tencent Code
+            DefaultScrollingStateListener?.startScrolling(
+                scrollPriority, this@DefaultScrollableState
+            )
+            // endregion
+
             try {
                 block()
             } finally {
                 isScrollingState.value = false
+                // region Tencent Code
+                DefaultScrollingStateListener?.stopScrolling(
+                    scrollPriority,
+                    this@DefaultScrollableState
+                )
+                // endregion
             }
         }
     }

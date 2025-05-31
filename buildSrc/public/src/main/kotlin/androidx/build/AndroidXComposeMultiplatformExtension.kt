@@ -16,6 +16,9 @@
 
 package androidx.build
 
+import org.gradle.api.Action
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 /**
   * This extension provides the default multiplatform target configurations and
   * source set dependencies.
@@ -65,6 +68,12 @@ abstract class AndroidXComposeMultiplatformExtension {
      * for all linuxArm64 native targets.
      */
     abstract fun linuxArm64(): Unit
+
+    abstract fun ohos(): Unit
+
+    abstract fun ohos(configure: Action<KotlinNativeTarget>): Unit
+
+    abstract fun ohos(configure: KotlinNativeTarget.() -> Unit = { }): Unit
 
     /**
      * Configures native compilation tasks with flags to link required frameworks

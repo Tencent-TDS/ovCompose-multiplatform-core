@@ -20,7 +20,7 @@ CAMERA_TESTING = "1.0.0-alpha01"
 CARDVIEW = "1.1.0-alpha01"
 CAR_APP = "1.7.0-alpha01"
 COLLECTION = "1.4.0"
-COMPOSE = "1.6.1"
+COMPOSE = "1.6.1-KBA-002"
 COMPOSE_COMPILER = "1.5.4"
 COMPOSE_MATERIAL3 = "1.2.0-alpha11"
 COMPOSE_MATERIAL3_ADAPTIVE = "1.0.0-alpha01"
@@ -194,8 +194,15 @@ COMPOSE_COMPILER = { group = "org.jetbrains.compose.compiler", atomicGroupVersio
 COMPOSE_DESKTOP = { group = "org.jetbrains.compose.desktop", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_FOUNDATION = { group = "org.jetbrains.compose.foundation", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_MATERIAL = { group = "org.jetbrains.compose.material", atomicGroupVersion = "versions.COMPOSE" }
-COMPOSE_MATERIAL3 = { group = "org.jetbrains.compose.material3", atomicGroupVersion = "versions.COMPOSE_MATERIAL3" }
-COMPOSE_MATERIAL3_ADAPTIVE = { group = "androidx.compose.material3.material3-adaptive", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_ADAPTIVE" }
+COMPOSE_EXPORT = { group = "org.jetbrains.compose.export", atomicGroupVersion = "versions.COMPOSE" }
+
+# The version of material3 used in compose multiplatform gradle plugin is definitely the same with the version of compose.
+# Keep the versions aligned to make it easier to maintain.
+COMPOSE_MATERIAL3 = { group = "org.jetbrains.compose.material3", atomicGroupVersion = "versions.COMPOSE" }
+COMPOSE_MATERIAL3_ADAPTIVE = { group = "androidx.compose.material3.material3-adaptive", atomicGroupVersion = "versions.COMPOSE" }
+# COMPOSE_MATERIAL3 = { group = "org.jetbrains.compose.material3", atomicGroupVersion = "versions.COMPOSE_MATERIAL3" }
+# COMPOSE_MATERIAL3_ADAPTIVE = { group = "androidx.compose.material3.material3-adaptive", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_ADAPTIVE" }
+
 COMPOSE_RUNTIME = { group = "org.jetbrains.compose.runtime", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_UI = { group = "org.jetbrains.compose.ui", atomicGroupVersion = "versions.COMPOSE" }
 CONCURRENT = { group = "androidx.concurrent", atomicGroupVersion = "versions.FUTURES" }

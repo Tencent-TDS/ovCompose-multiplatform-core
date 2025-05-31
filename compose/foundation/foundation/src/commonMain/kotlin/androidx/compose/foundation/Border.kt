@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSimple
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CanvasType
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -321,19 +322,39 @@ internal class BorderModifierNode(
                         // drawn all around it just draw a filled in rounded rect
                         drawRoundRect(brush, cornerRadius = cornerRadius)
                     }
+
                     cornerRadius.x < halfStroke -> {
                         // If the corner radius is smaller than half of the stroke width
                         // then the interior curvature of the stroke will be a sharp edge
                         // In this case just draw a normal filled in rounded rect with the
                         // desired corner radius but clipping out the interior rectangle
-                        clipRect(
-                            strokeWidth,
-                            strokeWidth,
-                            size.width - strokeWidth,
-                            size.height - strokeWidth,
-                            clipOp = ClipOp.Difference
-                        ) {
-                            drawRoundRect(brush, cornerRadius = cornerRadius)
+
+                        // region Tencent Code
+                        if (!drawInSkia) {
+                            // clipRect 这个方法是Skia用于设置绘图上下文的剪裁区域，
+                            // 这个方法允许开发者在指定的矩形区域内进行绘图操作，
+                            // 并在绘图完成后自动恢复到之前的剪裁状态。
+                            // ClipOp.Difference: 来从当前剪裁区域中减去指定的矩形
+                            // ClipOp.Intersect:新的剪裁区域将是当前剪裁区域与指定矩形的交集
+                            // 现有OC中的实现直接绘制，不需要设置裁剪区域，如果进行clipRect会影响父Layer
+                            drawRoundRect(
+                                brush = brush,
+                                topLeft = topLeft,
+                                size = borderSize,
+                                cornerRadius = cornerRadius.shrink(halfStroke),
+                                style = borderStroke
+                            )
+                        } else {
+                            // endregion
+                            clipRect(
+                                strokeWidth,
+                                strokeWidth,
+                                size.width - strokeWidth,
+                                size.height - strokeWidth,
+                                clipOp = ClipOp.Difference
+                            ) {
+                                drawRoundRect(brush, cornerRadius = cornerRadius)
+                            }
                         }
                     }
                     else -> {
@@ -388,7 +409,7 @@ private data class BorderCache(
         // If we previously had allocated a full Argb888 ImageBitmap but are only requiring
         // an alpha mask, just re-use the same ImageBitmap instead of allocating a new one
         val compatibleConfig = targetImageBitmap?.config == ImageBitmapConfig.Argb8888 ||
-            config == targetImageBitmap?.config
+                config == targetImageBitmap?.config
         if (targetImageBitmap == null ||
             targetCanvas == null ||
             size.width > targetImageBitmap.width ||
@@ -408,7 +429,11 @@ private data class BorderCache(
         }
 
         val targetDrawScope =
-            canvasDrawScope ?: CanvasDrawScope().also { canvasDrawScope = it }
+            canvasDrawScope ?: CanvasDrawScope().also { canvasDrawScope = it}
+        targetDrawScope.drawInSkia = targetCanvas.canvasType == CanvasType.Skia
+        canvasDrawScope?.let {
+            it.drawInSkia = targetCanvas.canvasType == CanvasType.Skia
+        }
         val drawSize = borderSize.toSize()
         targetDrawScope.draw(
             this,

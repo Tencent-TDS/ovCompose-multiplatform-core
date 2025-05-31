@@ -1,0 +1,43 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    // cpp 代码合并入 compose 里编译
+    /*"externalNativeOptions": {
+      "path": "./src/main/cpp/CMakeLists.txt",
+      "arguments": "",
+      "cppFlags": ""
+    },*/
+  },
+  "buildOptionSet": [
+    {
+      "name": "release",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": false,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          },
+          "consumerFiles": [
+            "./consumer-rules.txt"
+          ]
+        }
+      },
+      "nativeLib": {
+        "debugSymbol": {
+          "strip": true,
+          "exclude": []
+        }
+      }
+    },
+  ],
+  "targets": [
+    {
+      "name": "default"
+    },
+    {
+      "name": "ohosTest"
+    }
+  ]
+}

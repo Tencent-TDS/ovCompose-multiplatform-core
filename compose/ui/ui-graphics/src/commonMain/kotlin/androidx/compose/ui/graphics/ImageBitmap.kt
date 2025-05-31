@@ -90,6 +90,9 @@ interface ImageBitmap {
      */
     fun prepareToDraw()
 
+    // region Tencent Code
+    fun toSkiaBackedImageBitmap(): ImageBitmap? = null
+    // endregion
     /**
      * Provide an empty companion object to hang platform-specific companion extensions onto.
      */
@@ -226,6 +229,11 @@ value class ImageBitmapConfig internal constructor(val value: Int) {
          * screen.
          */
         val Gpu = ImageBitmapConfig(4)
+
+        /**
+         * // TODO，未来删除，未知类型
+         */
+        val Unknown = ImageBitmapConfig(-1)
     }
 
     override fun toString() = when (this) {

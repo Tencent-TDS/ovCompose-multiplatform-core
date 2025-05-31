@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.MutableRect
@@ -46,6 +47,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.minus
 import androidx.compose.ui.unit.plus
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -109,7 +112,12 @@ internal abstract class NodeCoordinator(
     }
 
     private fun hasNode(type: NodeKind<*>): Boolean {
-        return headNode(type.includeSelfInTraversal)?.has(type) == true
+        // region Tencent Code: Avoid both boxing Boolean values and invoking equals on them.
+        // return headNode(type.includeSelfInTraversal)?.has(type) == true
+
+        val node = headNode(type.includeSelfInTraversal) ?: return false
+        return node.has(type)
+        // endregion
     }
 
     fun head(type: NodeKind<*>): Modifier.Node? {
@@ -321,7 +329,13 @@ internal abstract class NodeCoordinator(
                 .notifyChildrenUsingCoordinatesWhilePlacing()
             val layer = layer
             if (layer != null) {
-                layer.move(position)
+                // region Tencent Code
+                if (ComposeTabService.reduceUpdateParentLayer) {
+                    updateLayerPositionWithNoUpdateParentLayer(layer)
+                } else {
+                    updateLayerPosition(layer)
+                }
+                // endregion
             } else {
                 wrappedBy?.invalidateLayer()
             }
@@ -342,9 +356,19 @@ internal abstract class NodeCoordinator(
     /**
      * Draws the content of the LayoutNode
      */
+    // region Tencent Code
     fun draw(canvas: Canvas) {
         val layer = layer
         if (layer != null) {
+            val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+            if (!drawInSkia && this.isAttached) {
+                if (ComposeTabService.reduceUpdateParentLayer) {
+                    updateLayerHierarchy(layer)
+                    updateLayerPositionWithNoUpdateParentLayer(layer)
+                } else {
+                    updateLayerPosition(layer)
+                }
+            }
             layer.drawLayer(canvas)
         } else {
             val x = position.x.toFloat()
@@ -354,6 +378,7 @@ internal abstract class NodeCoordinator(
             canvas.translate(-x, -y)
         }
     }
+    // endregion
 
     private fun drawContainedDrawModifiers(canvas: Canvas) {
         val head = head(Nodes.Draw)
@@ -409,7 +434,13 @@ internal abstract class NodeCoordinator(
                     invalidateParentLayer
                 ).apply {
                     resize(measuredSize)
-                    move(position)
+                    // region Tencent Code
+                    if (ComposeTabService.reduceUpdateParentLayer) {
+                        updateLayerPositionWithNoUpdateParentLayer(this)
+                    } else {
+                        updateLayerPosition(this)
+                    }
+                    // endregion
                 }
                 updateLayerParameters()
                 layoutNode.innerLayerCoordinatorIsDirty = true
@@ -471,6 +502,17 @@ internal abstract class NodeCoordinator(
      */
     internal var lastLayerDrawingWasSkipped = false
         private set
+
+    // region Tencent Code
+    private val parentLayerNode: NodeCoordinator?
+        get() {
+            return if (wrappedBy?.layer == null) {
+                wrappedBy?.parentLayerNode
+            } else {
+                wrappedBy
+            }
+        }
+    // endregion
 
     var layer: OwnedLayer? = null
         private set
@@ -731,6 +773,13 @@ internal abstract class NodeCoordinator(
         val owner = layoutNode.requireOwner()
         return owner.calculatePositionInWindow(positionInRoot)
     }
+
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: Rect): Rect {
+        val owner = layoutNode.requireOwner()
+        return owner.boundsBoxInContainerWindow(bounds)
+    }
+    // endregion
 
     private fun LayoutCoordinates.toCoordinator() =
         (this as? LookaheadLayoutCoordinates)?.coordinator ?: this as NodeCoordinator
@@ -1128,6 +1177,59 @@ internal abstract class NodeCoordinator(
             Float.POSITIVE_INFINITY // miss
         }
     }
+
+    // region Tencent Code
+    private fun updateLayerHierarchy(layer: OwnedLayer) {
+        // TODO: parent layer may be changed according to the layer block updates
+        //  of layout nodes.
+        layer.updateParentLayer(parentLayerNode?.layer)
+    }
+
+    private fun updateLayerPositionWithNoUpdateParentLayer(layer: OwnedLayer) {
+        val parentLayerNode = this.parentLayerNode
+        val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+        if (!drawInSkia) {
+            // TODO: parent layer may be changed according to the layer block updates
+            //  of layout nodes.
+            // iOS Binding: position relative to parent layer in iOS.
+            if (parentLayerNode == null) {
+                layer.move(position)
+            } else {
+                // TODO: Work out a better way to keep track on position changes.
+                //  Position of UIViewLayer is relative to its parent layer
+                //  Any changes happened to the nodes between parent layer and current layer
+                //  will not be notified.
+                val layerPosition = parentLayerNode.localPositionOf(wrappedBy!!, position.toOffset())
+                layer.move(layerPosition.round())
+            }
+        } else {
+            layer.move(position)
+        }
+    }
+
+    private fun updateLayerPosition(layer: OwnedLayer) {
+        val parentLayerNode = this.parentLayerNode
+        val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+        if (!drawInSkia) {
+            // TODO: parent layer may be changed according to the layer block updates
+            //  of layout nodes.
+            layer.updateParentLayer(parentLayerNode?.layer)
+            // iOS Binding: position relative to parent layer in iOS.
+            if (parentLayerNode == null) {
+                layer.move(position)
+            } else {
+                // TODO: Work out a better way to keep track on position changes.
+                //  Position of UIViewLayer is relative to its parent layer
+                //  Any changes happened to the nodes between parent layer and current layer
+                //  will not be notified.
+                val layerPosition = parentLayerNode.localPositionOf(wrappedBy!!, position.toOffset())
+                layer.move(layerPosition.round())
+            }
+        } else {
+            layer.move(position)
+        }
+    }
+    // endregion
 
     /**
      * [LayoutNode.hitTest] and [LayoutNode.hitTestSemantics] are very similar, but the data

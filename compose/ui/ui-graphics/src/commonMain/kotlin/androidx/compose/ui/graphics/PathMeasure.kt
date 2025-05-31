@@ -28,6 +28,13 @@ import androidx.compose.ui.graphics.internal.JvmDefaultWithCompatibility
  */
 expect fun PathMeasure(): PathMeasure
 
+
+// region Tencent Code
+enum class PathMeasureType {
+    Skia,
+    Native,
+}
+// endregion
 @JvmDefaultWithCompatibility
 interface PathMeasure {
 
@@ -36,6 +43,10 @@ interface PathMeasure {
      * object.
      */
     val length: Float
+
+    // region Tencent Code
+    var pathMeasureType: PathMeasureType
+    // endregion
 
     /**
      * Given a start and stop distance, return in dst the intervening segment(s). If the segment

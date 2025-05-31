@@ -177,3 +177,12 @@ operator fun IntOffset.minus(offset: Offset): Offset =
  */
 @Stable
 inline fun Offset.round(): IntOffset = IntOffset(x.roundToInt(), y.roundToInt())
+
+// region Tencent Code
+/**
+ * Round a [Offset] down to the nearest [Int] coordinates.
+ */
+@Stable
+inline fun Offset.safeRound(): IntOffset =
+    IntOffset(if (x.isNaN()) 0 else x.roundToInt(), if (y.isNaN()) 0 else y.roundToInt())
+// endregion

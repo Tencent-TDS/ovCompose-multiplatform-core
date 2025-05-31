@@ -15,6 +15,53 @@
  */
 package androidx.compose.ui.text.platform
 
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.text.AnnotatedString.Range
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.Paragraph
+import androidx.compose.ui.text.ParagraphIntrinsics
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.SkiaParagraph
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextDecorationLineStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.WeakKeysCache
+import androidx.compose.ui.text.ceilToInt
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontFamilyResolverImpl
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.SkiaFontLoader
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextForegroundStyle
+import androidx.compose.ui.text.style.TextGeometricTransform
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.isUnspecified
+import androidx.compose.ui.unit.sp
+import org.jetbrains.skia.FontFeature
+import org.jetbrains.skia.Paint
+import org.jetbrains.skia.paragraph.BaselineMode
+import org.jetbrains.skia.paragraph.HeightMode
+import org.jetbrains.skia.paragraph.LineMetrics
+import org.jetbrains.skia.paragraph.ParagraphStyle
+import org.jetbrains.skia.paragraph.PlaceholderAlignment
+import org.jetbrains.skia.paragraph.PlaceholderStyle
+import org.jetbrains.skia.paragraph.TextBox
 import org.jetbrains.skia.Font as SkFont
 import org.jetbrains.skia.FontStyle as SkFontStyle
 import org.jetbrains.skia.paragraph.Alignment as SkAlignment
@@ -26,26 +73,28 @@ import org.jetbrains.skia.paragraph.ParagraphBuilder as SkParagraphBuilder
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
 import org.jetbrains.skia.paragraph.TextIndent as SkTextIndent
 import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.text.*
-import androidx.compose.ui.text.AnnotatedString.Range
-import androidx.compose.ui.text.Paragraph
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.intl.LocaleList
-import androidx.compose.ui.text.style.*
-import androidx.compose.ui.unit.*
-import org.jetbrains.skia.FontFeature
-import org.jetbrains.skia.Paint
-import org.jetbrains.skia.paragraph.*
-import org.jetbrains.skia.paragraph.ParagraphStyle
 
 private val DefaultFontSize = 16.sp
+
+interface PlatformParagraphFactory {
+    fun createParagraph(
+        intrinsics: ParagraphIntrinsics,
+        maxLines: Int,
+        ellipsis: Boolean,
+        constraints: Constraints
+    ): Paragraph?
+
+    fun createParagraphIntrinsics(
+        text: String,
+        style: TextStyle,
+        spanStyles: List<Range<SpanStyle>>,
+        placeholders: List<Range<Placeholder>>,
+        density: Density,
+        fontFamilyResolver: FontFamily.Resolver
+    ): ParagraphIntrinsics?
+}
+
+var platformParagraphFactory: PlatformParagraphFactory? = null
 
 @Suppress("DEPRECATION")
 @Deprecated(
@@ -106,7 +155,12 @@ internal actual fun ActualParagraph(
     maxLines: Int,
     ellipsis: Boolean,
     constraints: Constraints
-): Paragraph = SkiaParagraph(
+): Paragraph = platformParagraphFactory?.createParagraph(
+    paragraphIntrinsics,
+    maxLines,
+    ellipsis,
+    constraints
+) ?: SkiaParagraph(
     paragraphIntrinsics as SkiaParagraphIntrinsics,
     maxLines,
     ellipsis,

@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.SelectionRegistrar
 import androidx.compose.foundation.text.selection.hasSelection
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DeleteRedundantGraphicsLayer
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,7 +114,12 @@ fun BasicText(
     val finalModifier = if (selectionController != null || onTextLayout != null) {
         modifier
             // TODO(b/274781644): Remove this graphicsLayer
-            .graphicsLayer()
+            // region Tencent Code Modify
+            /*
+            modifier.graphicsLayer()
+            */
+            .optimizedGraphicsLayer()
+            // end region
             .textModifier(
                 AnnotatedString(text = text),
                 style = style,
@@ -131,7 +137,11 @@ fun BasicText(
     } else {
         modifier
             // TODO(b/274781644): Remove this graphicsLayer
-            .graphicsLayer() then TextStringSimpleElement(
+            // region Tencent Code Modify
+            /*
+            modifier.graphicsLayer()
+            */
+            .optimizedGraphicsLayer() then TextStringSimpleElement(
             text = text,
             style = style,
             fontFamilyResolver = LocalFontFamilyResolver.current,
@@ -141,9 +151,15 @@ fun BasicText(
             minLines = minLines,
             color = color
         )
+        // end region
     }
     Layout(finalModifier, EmptyMeasurePolicy)
 }
+
+// region Tencent Code
+private fun Modifier.optimizedGraphicsLayer(): Modifier = if (DeleteRedundantGraphicsLayer) this else graphicsLayer()
+
+// endregion
 
 /**
  * Basic element that displays text and provides semantics / accessibility information.

@@ -19,7 +19,10 @@ import androidx.build.SdkHelperKt
 
 buildscript {
     SdkHelperKt.setSupportRootFolder(project, project.projectDir)
-    SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
+    // region @Tencent: Any Android SDK will work since we don't want to build the Android code actually.
+    //              Please configure your local installed Android SDK path in the local.properties.
+    // SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
+    // endregion
 
     // Needed for atomicfu plugin
     apply(from: "buildSrc/repos.gradle")

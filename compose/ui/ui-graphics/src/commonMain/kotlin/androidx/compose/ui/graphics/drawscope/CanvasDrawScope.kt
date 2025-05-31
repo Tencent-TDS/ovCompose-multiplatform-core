@@ -49,6 +49,10 @@ import androidx.compose.ui.unit.LayoutDirection
  */
 class CanvasDrawScope : DrawScope {
 
+    // region Tencent Code
+    override var drawInSkia: Boolean = false
+    // endregion
+
     @PublishedApi internal val drawParams = DrawParams()
 
     override val layoutDirection: LayoutDirection

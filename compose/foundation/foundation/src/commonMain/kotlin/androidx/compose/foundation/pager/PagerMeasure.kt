@@ -58,7 +58,8 @@ internal fun LazyLayoutMeasureScope.measurePager(
     pinnedPages: List<Int>,
     snapPositionInLayout: SnapPositionInLayout,
     placementScopeInvalidator: ObservableScopeInvalidator,
-    layout: (Int, Int, Placeable.PlacementScope.() -> Unit) -> MeasureResult
+    layout: (Int, Int, Placeable.PlacementScope.() -> Unit) -> MeasureResult,
+    disableScrollLoading: Boolean
 ): PagerMeasureResult {
     require(beforeContentPadding >= 0) { "negative beforeContentPadding" }
     require(afterContentPadding >= 0) { "negative afterContentPadding" }
@@ -87,7 +88,6 @@ internal fun LazyLayoutMeasureScope.measurePager(
             remeasureNeeded = false
         )
     } else {
-
         val childConstraints = Constraints(
             maxWidth = if (orientation == Orientation.Vertical) {
                 constraints.maxWidth
@@ -287,11 +287,15 @@ internal fun LazyLayoutMeasureScope.measurePager(
                 }
             }
         }
-
+        // do not compose extra pages when user ser disableScrollLoading
+        var beyondBoundsPageCountOverride = beyondBoundsPageCount;
+        if (currentFirstPageScrollOffset != 0 && disableScrollLoading) {
+            beyondBoundsPageCountOverride = 0;
+        }
         // Compose extra pages before
         val extraPagesBefore = createPagesBeforeList(
             currentFirstPage = currentFirstPage,
-            beyondBoundsPageCount = beyondBoundsPageCount,
+            beyondBoundsPageCount = beyondBoundsPageCountOverride,
             pinnedPages = pinnedPages
         ) {
             getAndMeasure(
@@ -317,7 +321,7 @@ internal fun LazyLayoutMeasureScope.measurePager(
         val extraPagesAfter = createPagesAfterList(
             currentLastPage = visiblePages.last().index,
             pagesCount = pageCount,
-            beyondBoundsPageCount = beyondBoundsPageCount,
+            beyondBoundsPageCount = beyondBoundsPageCountOverride,
             pinnedPages = pinnedPages
         ) {
             getAndMeasure(
@@ -421,7 +425,7 @@ internal fun LazyLayoutMeasureScope.measurePager(
             pageSize = pageAvailableSize,
             pageSpacing = spaceBetweenPages,
             afterContentPadding = afterContentPadding,
-            beyondBoundsPageCount = beyondBoundsPageCount,
+            beyondBoundsPageCount = beyondBoundsPageCountOverride,
             canScrollForward = index < pageCount || currentMainAxisOffset > maxOffset,
             currentPage = newCurrentPage,
             currentPageOffsetFraction = newCurrentPageOffsetFraction,
@@ -440,7 +444,6 @@ private fun createPagesAfterList(
     var list: MutableList<MeasuredPage>? = null
 
     val end = minOf(currentLastPage + beyondBoundsPageCount, pagesCount - 1)
-
     for (i in currentLastPage + 1..end) {
         if (list == null) list = mutableListOf()
         list.add(getAndMeasure(i))
@@ -465,7 +468,6 @@ private fun createPagesBeforeList(
     var list: MutableList<MeasuredPage>? = null
 
     val start = maxOf(0, currentFirstPage - beyondBoundsPageCount)
-
     for (i in currentFirstPage - 1 downTo start) {
         if (list == null) list = mutableListOf()
         list.add(getAndMeasure(i))

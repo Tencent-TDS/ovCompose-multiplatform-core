@@ -16,158 +16,40 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.interop.UIKitInteropState
-import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.interop.doLocked
 import androidx.compose.ui.interop.isNotEmpty
 import androidx.compose.ui.util.fastForEach
-import kotlin.math.roundToInt
-import kotlinx.cinterop.*
-import org.jetbrains.skia.*
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSRunLoop
-import platform.Foundation.NSSelectorFromString
-import platform.Foundation.NSThread
-import platform.Metal.MTLCommandBufferProtocol
-import platform.QuartzCore.*
-import platform.UIKit.UIApplicationDidEnterBackgroundNotification
-import platform.UIKit.UIApplicationWillEnterForegroundNotification
-import platform.darwin.*
+import kotlinx.cinterop.autoreleasepool
+import kotlinx.cinterop.objcPtr
+import kotlinx.cinterop.useContents
+import org.jetbrains.skia.BackendRenderTarget
+import org.jetbrains.skia.Color
+import org.jetbrains.skia.ColorSpace
+import org.jetbrains.skia.DirectContext
+import org.jetbrains.skia.PictureRecorder
+import org.jetbrains.skia.PixelGeometry
 import org.jetbrains.skia.Rect
+import org.jetbrains.skia.Surface
+import org.jetbrains.skia.SurfaceColorFormat
+import org.jetbrains.skia.SurfaceOrigin
+import org.jetbrains.skia.SurfaceProps
 import platform.Foundation.NSLock
-import platform.Foundation.NSRunLoopCommonModes
+import platform.Foundation.NSThread
 import platform.Foundation.NSTimeInterval
+import platform.Metal.MTLCommandBufferProtocol
 import platform.Metal.MTLCommandQueueProtocol
 import platform.Metal.MTLDeviceProtocol
-import platform.UIKit.UIApplication
-import platform.UIKit.UIApplicationState
-
-private class DisplayLinkConditions(
-    val setPausedCallback: (Boolean) -> Unit
-) {
-    /**
-     * see [MetalRedrawer.needsProactiveDisplayLink]
-     */
-    var needsToBeProactive: Boolean = false
-        set(value) {
-            field = value
-
-            update()
-        }
-
-    /**
-     * Indicates that application is running foreground now
-     */
-    var isApplicationActive: Boolean = false
-        set(value) {
-            field = value
-
-            update()
-        }
-
-    /**
-     * Number of subsequent vsync that will issue a draw
-     */
-    private var scheduledRedrawsCount = 0
-        set(value) {
-            field = value
-
-            update()
-        }
-
-    /**
-     * Handle display link callback by updating internal state and dispatching the draw, if needed.
-     */
-    inline fun onDisplayLinkTick(draw: () -> Unit) {
-        if (scheduledRedrawsCount > 0) {
-            scheduledRedrawsCount -= 1
-            draw()
-        }
-    }
-
-    /**
-     * Mark next [FRAMES_COUNT_TO_SCHEDULE_ON_NEED_REDRAW] frames to issue a draw dispatch and unpause displayLink if needed.
-     */
-    fun needRedraw() {
-        scheduledRedrawsCount = FRAMES_COUNT_TO_SCHEDULE_ON_NEED_REDRAW
-    }
-
-    private fun update() {
-        val isUnpaused = isApplicationActive && (needsToBeProactive || scheduledRedrawsCount > 0)
-        setPausedCallback(!isUnpaused)
-    }
-
-    companion object {
-        /**
-         * Right now `needRedraw` doesn't reentry from within `draw` callback during animation which leads to a situation where CADisplayLink is first paused
-         * and then asynchronously unpaused. This effectively makes Pro Motion display lose a frame before running on highest possible frequency again.
-         * To avoid this, we need to render at least two frames (instead of just one) after each `needRedraw` assuming that invalidation comes inbetween them and
-         * displayLink is not paused by the end of RuntimeLoop tick.
-         */
-        const val FRAMES_COUNT_TO_SCHEDULE_ON_NEED_REDRAW = 2
-    }
-}
-
-private class ApplicationStateListener(
-    /**
-     * Callback which will be called with `true` when the app becomes active, and `false` when the app goes background
-     */
-    private val callback: (Boolean) -> Unit
-) : NSObject() {
-    init {
-        val notificationCenter = NSNotificationCenter.defaultCenter
-
-        notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationWillEnterForeground.name),
-            UIApplicationWillEnterForegroundNotification,
-            null
-        )
-
-        notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationDidEnterBackground.name),
-            UIApplicationDidEnterBackgroundNotification,
-            null
-        )
-    }
-
-    @ObjCAction
-    fun applicationWillEnterForeground() {
-        callback(true)
-    }
-
-    @ObjCAction
-    fun applicationDidEnterBackground() {
-        callback(false)
-    }
-
-    /**
-     * Deregister from [NSNotificationCenter]
-     */
-    fun dispose() {
-        val notificationCenter = NSNotificationCenter.defaultCenter
-
-        notificationCenter.removeObserver(this, UIApplicationWillEnterForegroundNotification, null)
-        notificationCenter.removeObserver(this, UIApplicationDidEnterBackgroundNotification, null)
-    }
-}
-
-internal interface MetalRedrawerCallbacks {
-    /**
-     * Perform time step and encode draw operations into canvas.
-     *
-     * @param canvas Canvas to encode draw operations into.
-     * @param targetTimestamp Timestamp indicating the expected draw result presentation time. Implementation should forward its internal time clock to this targetTimestamp to achieve smooth visual change cadence.
-     */
-    fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
-
-    /**
-     * Retrieve a transaction object, containing a list of pending actions
-     * that need to be synchronized with Metal rendering using CATransaction mechanism.
-     */
-    fun retrieveInteropTransaction(): UIKitInteropTransaction
-}
+import platform.QuartzCore.CACurrentMediaTime
+import platform.QuartzCore.CAMetalLayer
+import platform.darwin.DISPATCH_TIME_FOREVER
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_queue_create
+import platform.darwin.dispatch_semaphore_create
+import platform.darwin.dispatch_semaphore_signal
+import platform.darwin.dispatch_semaphore_wait
+import kotlin.math.roundToInt
 
 internal class InflightCommandBuffers(
     private val maxInflightCount: Int
@@ -192,8 +74,10 @@ internal class InflightCommandBuffers(
 
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
-    private val callbacks: MetalRedrawerCallbacks
-) {
+    callbacks: RedrawerCallbacks
+// region Tencent Code
+) : Redrawer(callbacks) {
+// endregion
     // Workaround for KN compiler bug
     // Type mismatch: inferred type is objcnames.protocols.MTLDeviceProtocol but platform.Metal.MTLDeviceProtocol was expected
     @Suppress("USELESS_CAST")
@@ -210,30 +94,14 @@ internal class MetalRedrawer(
     private val inflightCommandBuffers =
         InflightCommandBuffers(metalLayer.maximumDrawableCount.toInt())
 
-    var isForcedToPresentWithTransactionEveryFrame = false
-
-    var maximumFramesPerSecond: NSInteger
-        get() = caDisplayLink?.preferredFramesPerSecond ?: 0
-        set(value) {
-            caDisplayLink?.preferredFramesPerSecond = value
-        }
-
-    /**
-     * Set to `true` if need always running invalidation-independent displayLink for forcing UITouch events to come at the fastest possible cadence.
-     * Otherwise, touch events can come at rate lower than actual display refresh rate.
-     */
-    var needsProactiveDisplayLink: Boolean
-        get() = displayLinkConditions.needsToBeProactive
-        set(value) {
-            displayLinkConditions.needsToBeProactive = value
-        }
-
-    var opaque: Boolean = true
+    // region Tencent Code
+    override var opaque: Boolean = true
         set(value) {
             field = value
 
             updateLayerOpacity()
         }
+    // endregion
 
     /**
      * `true` if Metal rendering is synchronized with changes of UIKit interop views, `false` otherwise
@@ -252,30 +120,12 @@ internal class MetalRedrawer(
         metalLayer.setOpaque(!isInteropActive && opaque)
     }
 
-    /**
-     * null after [dispose] call
-     */
-    private var caDisplayLink: CADisplayLink? = CADisplayLink.displayLinkWithTarget(
-        target = DisplayLinkProxy {
-            val targetTimestamp = currentTargetTimestamp ?: return@DisplayLinkProxy
-
-            displayLinkConditions.onDisplayLinkTick {
-                draw(waitUntilCompletion = false, targetTimestamp)
-            }
-        },
-        selector = NSSelectorFromString(DisplayLinkProxy::handleDisplayLinkTick.name)
-    )
-
-    private val currentTargetTimestamp: NSTimeInterval?
-        get() = caDisplayLink?.targetTimestamp
-
-    private val displayLinkConditions = DisplayLinkConditions { paused ->
-        caDisplayLink?.paused = paused
+    // region Tencent Code
+    init {
+        updateLayerOpacity()
     }
 
-    private val applicationStateListener = ApplicationStateListener { isApplicationActive ->
-        displayLinkConditions.isApplicationActive = isApplicationActive
-
+    override fun onApplicationStateChanged(isApplicationActive: Boolean) {
         if (!isApplicationActive) {
             // If application goes background, synchronously schedule all inflightCommandBuffers, as per
             // https://developer.apple.com/documentation/metal/gpu_devices_and_work_submission/preparing_your_metal_app_to_run_in_the_background?language=objc
@@ -283,53 +133,17 @@ internal class MetalRedrawer(
         }
     }
 
-    init {
-        val caDisplayLink = caDisplayLink
-            ?: throw IllegalStateException("caDisplayLink is null during redrawer init")
-
-        // UIApplication can be in UIApplicationStateInactive state (during app launch before it gives control back to run loop)
-        // and won't receive UIApplicationWillEnterForegroundNotification
-        // so we compare the state with UIApplicationStateBackground instead of UIApplicationStateActive
-        displayLinkConditions.isApplicationActive =
-            UIApplication.sharedApplication.applicationState != UIApplicationState.UIApplicationStateBackground
-
-        caDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoopCommonModes)
-
-        updateLayerOpacity()
-    }
-
-    fun dispose() {
-        check(caDisplayLink != null) { "MetalRedrawer.dispose() was called more than once" }
+    override fun dispose() {
+        super.dispose()
 
         releaseCachedCommandQueue(queue)
-
-        applicationStateListener.dispose()
-
-        caDisplayLink?.invalidate()
-        caDisplayLink = null
 
         pictureRecorder.close()
         context.close()
     }
 
-    /**
-     * Marks current state as dirty and unpauses display link if needed and enables draw dispatch operation on
-     * next vsync
-     */
-    fun needRedraw() = displayLinkConditions.needRedraw()
-
-    /**
-     * Immediately dispatch draw and block the thread until it's finished and presented on the screen.
-     */
-    fun drawSynchronously() {
-        if (caDisplayLink == null) {
-            return
-        }
-
-        draw(waitUntilCompletion = true, CACurrentMediaTime())
-    }
-
-    private fun draw(waitUntilCompletion: Boolean, targetTimestamp: NSTimeInterval) {
+    override fun draw(waitUntilCompletion: Boolean, targetTimestamp: NSTimeInterval) {
+    // endregion
         check(NSThread.isMainThread)
 
         lastRenderTimestamp = maxOf(targetTimestamp, lastRenderTimestamp)
@@ -353,7 +167,9 @@ internal class MetalRedrawer(
                 )
             ).also { canvas ->
                 canvas.clear(if (metalLayer.opaque) Color.WHITE else Color.TRANSPARENT)
-                callbacks.render(canvas, lastRenderTimestamp)
+                // region Tencent Code
+                callbacks.render(canvas.asComposeCanvas(), lastRenderTimestamp)
+                // endregion
             }
 
             val picture = pictureRecorder.finishRecordingAsPicture()
@@ -504,14 +320,5 @@ internal class MetalRedrawer(
                 }
             }
         }
-    }
-}
-
-private class DisplayLinkProxy(
-    private val callback: () -> Unit
-) : NSObject() {
-    @ObjCAction
-    fun handleDisplayLinkTick() {
-        callback()
     }
 }

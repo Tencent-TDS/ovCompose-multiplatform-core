@@ -181,6 +181,14 @@ class AnimationScope<T, V : AnimationVector> internal constructor(
     var isRunning: Boolean by mutableStateOf(isRunning)
         internal set
 
+    // region Tencent Code
+    /**
+     *  stop animation flag
+     */
+    var isForceStop: Boolean = false
+        internal set
+    // endregion
+
     /**
      * Velocity of type [T], converted from [velocityVector].
      */
@@ -193,8 +201,18 @@ class AnimationScope<T, V : AnimationVector> internal constructor(
      */
     fun cancelAnimation() {
         isRunning = false
+        isForceStop = false
         onCancel()
     }
+
+    // region Tencent Code
+    /**
+     * Force stop animation
+     */
+    fun forceStopAnimation() {
+        isForceStop = true
+    }
+    // endregion
 
     /**
      * Creates an [AnimationState] that populates all the fields in [AnimationState] from

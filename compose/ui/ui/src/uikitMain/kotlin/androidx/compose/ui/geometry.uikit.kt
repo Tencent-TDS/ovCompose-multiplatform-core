@@ -26,11 +26,12 @@ import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
+import kotlin.math.abs
 
-internal fun Rect.toCGRect() =
+fun Rect.toCGRect() =
     CGRectMake(left.toDouble(), top.toDouble(), size.width.toDouble(), size.height.toDouble())
 
-internal fun Rect.toCGRect(density: Double) =
+fun Rect.toCGRect(density: Double) =
     CGRectMake(
         left / density,
         top / density,
@@ -38,9 +39,17 @@ internal fun Rect.toCGRect(density: Double) =
         size.height / density
     )
 
-internal operator fun IntRect.div(divider: Float) =
+operator fun IntRect.div(divider: Float) =
     Rect(left / divider, top / divider, right / divider, bottom / divider)
 
-internal fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
-internal fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
-internal fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
+// region Tencent Code
+fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
+fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
+fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
+
+const val EPSILON = 0.00001F
+
+fun Float.equalsRelaxed(other: Float): Boolean = abs(this - other) < EPSILON
+
+fun Double.equalsRelaxed(other: Double): Boolean = abs(this - other) < EPSILON
+// endregion

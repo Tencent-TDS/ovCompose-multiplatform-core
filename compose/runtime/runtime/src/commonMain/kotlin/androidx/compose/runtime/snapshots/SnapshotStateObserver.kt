@@ -33,6 +33,7 @@ import androidx.compose.runtime.observeDerivedStateRecalculations
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.synchronized
 import androidx.compose.runtime.createSynchronizedObject
+import androidx.compose.runtime.platformReentrantLockObject
 
 /**
  * Helper class to efficiently observe snapshot state reads. See [observeReads] for more details.
@@ -193,8 +194,12 @@ class SnapshotStateObserver(private val onChangedExecutor: (callback: () -> Unit
             observedScopeMaps.removeIf(block)
         }
     }
-
+    // region Tencent Code Modify
+    /*
     private val observedScopeMapsLock = createSynchronizedObject()
+    */
+    private val observedScopeMapsLock = platformReentrantLockObject()
+    // end region
 
     /**
      * Method to call when unsubscribing from the apply observer.

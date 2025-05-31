@@ -307,18 +307,6 @@ internal class IntermediateTextInputUIView(
         return toPosition.position - from.position
     }
 
-    override fun positionWithinRange(
-        range: UITextRange,
-        atCharacterOffset: NSInteger
-    ): UITextPosition? =
-        TODO("positionWithinRange range: $range, atCharacterOffset: $atCharacterOffset")
-
-    override fun positionWithinRange(
-        range: UITextRange,
-        farthestInDirection: UITextLayoutDirection
-    ): UITextPosition? =
-        TODO("positionWithinRange, farthestInDirection: ${farthestInDirection.directionToStr()}")
-
     override fun characterRangeByExtendingPosition(
         position: UITextPosition,
         inDirection: UITextLayoutDirection
@@ -529,6 +517,15 @@ internal class IntermediateTextInputUIView(
 
     override fun tokenizer(): UITextInputTokenizerProtocol =
         UITextInputStringTokenizer(textInput = this)
+
+    // region Tencent Code
+    override fun positionWithinRange(
+        range: UITextRange,
+        farthestInDirection: UITextLayoutDirection
+    ): UITextPosition? {
+        TODO("Not yet implemented")
+    }
+    // endregion
 }
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()

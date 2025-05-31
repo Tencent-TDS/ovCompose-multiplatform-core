@@ -91,6 +91,8 @@ internal fun Pager(
     horizontalAlignment: Alignment.Horizontal,
     /** The alignment to align pages vertically. Required when isVertical is false */
     verticalAlignment: Alignment.Vertical,
+    /** disable loading neighbor page when pager is Scrolling */
+    disableScrollLoading: Boolean,
     /** The content of the list */
     pageContent: @Composable PagerScope.(page: Int) -> Unit
 ) {
@@ -119,7 +121,8 @@ internal fun Pager(
         verticalAlignment = verticalAlignment,
         itemProviderLambda = pagerItemProvider,
         snapPositionInLayout = SnapAlignmentStartToStart,
-        pageCount = { state.pageCount }
+        pageCount = { state.pageCount },
+        disableScrollLoading = disableScrollLoading
     )
 
     val pagerFlingBehavior = remember(flingBehavior, state) {

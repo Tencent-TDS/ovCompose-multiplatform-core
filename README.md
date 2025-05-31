@@ -1,3 +1,18 @@
+<p align="center">
+    <img alt="ovCompose Logo" src="img/ovCompose.svg" />
+</p>
+
+### English
+ovCompose (online-video-compose) is a cross-platform development framework launched by the Tencent Video team within Oteam, the leading frontend group at Tencent. It is based on the Compose Multiplatform ecosystem and aims to address the limitations of Jetbrains Compose Multiplatform, specifically its lack of support for the HarmonyOS platform and the constraints on mixed layout rendering on iOS. ovCompose makes it easier for businesses to build fully cross-platform apps.
+
+Learn more about [ovCompose](README_ovCompose_en.md)
+
+### 中文
+ovCompose（online-video-compose）是腾讯大前端领域Oteam中，腾讯视频团队基于 Compose Multiplatform 生态推出的跨平台开发框架，旨在弥补Jetbrains Compose Multiplatform不支持鸿蒙平台的遗憾与解决iOS平台混排受限的问题，便于业务构建全跨端App。
+
+详情请见 [ovCompose](README_ovCompose_zh.md)
+
+---
 # Android Jetpack
 
 [![Revved up by Gradle Enterprise](https://img.shields.io/badge/Revved%20up%20by-Gradle%20Enterprise-06A0CE?logo=Gradle&labelColor=02303A)](https://ge.androidx.dev)
@@ -67,3 +82,20 @@ https://android-review.googlesource.com/settings/new-agreement
 
 ## Handling binary dependencies
 AndroidX uses git to store all the binary Gradle dependencies. They are stored in `prebuilts/androidx/internal` and `prebuilts/androidx/external` directories in your checkout. All the dependencies in these directories are also available from `google()`, or `mavenCentral()`. We store copies of these dependencies to have hermetic builds. You can pull in [a new dependency using our importMaven tool](development/importMaven/README.md).
+
+
+
+## Publish
+
+Configure your remote maven in `gradle.properties`.
+```
+maven.remote.url=https:xxx
+maven.remote.username=xxx
+maven.remote.password=xxx
+```
+Publish artifacts to remote or local maven, see [MULTIPLATFORM.md](MULTIPLATFORM.md) for more details.
+```
+./gradlew :mpp:publishComposeJb -Pcompose.platforms=android,ohosArm64,uikit
+./gradlew :mpp:publishComposeJbToMavenLocal -Pcompose.platforms=android,ohosArm64,uikit
+```
+

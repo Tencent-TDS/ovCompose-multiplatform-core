@@ -65,13 +65,13 @@ internal actual fun ActualImageBitmap(
  * @Throws UnsupportedOperationException if this [ImageBitmap] is not backed by an
  * org.jetbrains.skia.Image
  */
-fun ImageBitmap.asSkiaBitmap(): Bitmap =
-    when (this) {
-        is SkiaBackedImageBitmap -> bitmap
+fun ImageBitmap.asSkiaBitmap(): Bitmap  =
+    when (val skiaBackedImageBitmap = this.toSkiaBackedImageBitmap()) {
+        is SkiaBackedImageBitmap -> skiaBackedImageBitmap.bitmap
         else -> throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Image")
     }
 
-private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
+internal class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
     override val colorSpace = bitmap.colorSpace.toComposeColorSpace()
     override val config = bitmap.colorType.toComposeConfig()
     override val hasAlpha = !bitmap.isOpaque
@@ -108,6 +108,10 @@ private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
         val bytes = bitmap.readPixels(imageInfo, stride * bytesPerPixel, startX, startY)!!
         bytes.putBytesInto(buffer, bufferOffset, bytes.size / bytesPerPixel)
     }
+
+    // region Tencent Code
+    override fun toSkiaBackedImageBitmap(): ImageBitmap? = this
+    // endregion
 }
 
 internal expect fun ByteArray.putBytesInto(array: IntArray, offset: Int, length: Int)

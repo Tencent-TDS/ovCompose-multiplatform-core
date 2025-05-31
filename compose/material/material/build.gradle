@@ -78,10 +78,11 @@ dependencies {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -122,60 +123,61 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            desktopMain.dependencies {
-                implementation(libs.kotlinStdlib)
-            }
+//            desktopMain.dependencies {
+//                implementation(libs.kotlinStdlib)
+//            }
 
-            desktopMain.dependsOn(skikoMain)
+//            desktopMain.dependsOn(skikoMain)
             jsNativeMain.dependsOn(skikoMain)
             nativeMain.dependsOn(jsNativeMain)
-            jsWasmMain.dependsOn(jsNativeMain)
+            ohosArm64Main.dependsOn(nativeMain)
+//            jsWasmMain.dependsOn(jsNativeMain)
 
-            jsMain {
-                dependsOn(jsWasmMain)
-            }
-
-            wasmJsMain {
-                dependsOn(jsWasmMain)
-            }
+//            jsMain {
+//                dependsOn(jsWasmMain)
+//            }
+//
+//            wasmJsMain {
+//                dependsOn(jsWasmMain)
+//            }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
             //  level dependencies block instead:
             //  `dependencies { testImplementation(libs.robolectric) }`
-            androidTest.dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
+//            androidTest.dependencies {
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//            }
+//
+//            androidAndroidTest.dependencies {
+//                implementation(project(":compose:material:material:material-samples"))
+//                implementation(project(":compose:test-utils"))
+//                implementation(androidxArtifact(":test:screenshot:screenshot"))
+//
+//                implementation(libs.testRules)
+//                implementation(libs.testRunner)
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//                implementation(libs.dexmakerMockito)
+//                implementation(libs.mockitoCore)
+//                implementation(libs.mockitoKotlin)
+//                implementation(libs.testUiautomator)
+//            }
 
-            androidAndroidTest.dependencies {
-                implementation(project(":compose:material:material:material-samples"))
-                implementation(project(":compose:test-utils"))
-                implementation(androidxArtifact(":test:screenshot:screenshot"))
+//            commonTest.dependencies {
+//                implementation(kotlin("test"))
+//                implementation(project(":compose:ui:ui-test"))
+//            }
 
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-                implementation(libs.dexmakerMockito)
-                implementation(libs.mockitoCore)
-                implementation(libs.mockitoKotlin)
-                implementation(libs.testUiautomator)
-            }
-
-            commonTest.dependencies {
-                implementation(kotlin("test"))
-                implementation(project(":compose:ui:ui-test"))
-            }
-
-            desktopTest.dependencies {
-                implementation(project(":compose:ui:ui-test-junit4"))
-                implementation(libs.truth)
-                implementation(libs.junit)
-                implementation(libs.skikoCurrentOs)
-            }
+//            desktopTest.dependencies {
+//                implementation(project(":compose:ui:ui-test-junit4"))
+//                implementation(libs.truth)
+//                implementation(libs.junit)
+//                implementation(libs.skikoCurrentOs)
+//            }
 
             configureEach {
                 languageSettings.optIn("androidx.compose.material.ExperimentalMaterialApi")

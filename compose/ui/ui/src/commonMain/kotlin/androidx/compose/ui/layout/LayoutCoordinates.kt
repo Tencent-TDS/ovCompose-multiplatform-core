@@ -66,6 +66,13 @@ interface LayoutCoordinates {
      */
     fun localToWindow(relativeToLocal: Offset): Offset
 
+    // region Tencent Code
+    /**
+     * clip [bounds] in native container window, when compose scroll in a scrollable component
+     */
+    fun boundsBoxInContainerWindow(bounds: Rect): Rect
+    // endregion
+
     /**
      * Converts a local position within this layout into an offset from the root composable.
      */
@@ -152,6 +159,16 @@ fun LayoutCoordinates.boundsInWindow(): Rect {
     val bottom = maxOf(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y)
     return Rect(left, top, right, bottom)
 }
+
+// region Tencent Code
+/**
+ * The boundaries of this layout relative to the container window's origin.
+ */
+fun LayoutCoordinates.boundsInContainerWindow(): Rect {
+    val rect = boundsInWindow()
+    return boundsBoxInContainerWindow(rect)
+}
+// endregion
 
 /**
  * Returns the position of the top-left in the parent's content area or (0, 0)

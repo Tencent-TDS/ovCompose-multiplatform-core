@@ -15,8 +15,13 @@
  */
 package androidx.compose.ui.text.platform
 
-import androidx.compose.ui.text.*
 import androidx.compose.ui.text.AnnotatedString.Range
+import androidx.compose.ui.text.ParagraphIntrinsics
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.StrongDirectionType
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.firstStrongDirectionType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
@@ -33,15 +38,21 @@ internal actual fun ActualParagraphIntrinsics(
     placeholders: List<Range<Placeholder>>,
     density: Density,
     fontFamilyResolver: FontFamily.Resolver
-): ParagraphIntrinsics =
-    SkiaParagraphIntrinsics(
-        text,
-        style,
-        spanStyles,
-        placeholders,
-        density,
-        fontFamilyResolver
-    )
+): ParagraphIntrinsics = platformParagraphFactory?.createParagraphIntrinsics(
+    text,
+    style,
+    spanStyles,
+    placeholders,
+    density,
+    fontFamilyResolver
+) ?: SkiaParagraphIntrinsics(
+    text,
+    style,
+    spanStyles,
+    placeholders,
+    density,
+    fontFamilyResolver
+)
 
 internal class SkiaParagraphIntrinsics(
     val text: String,
@@ -92,6 +103,7 @@ internal fun resolveTextDirection(
         TextDirection.Ltr -> ResolvedTextDirection.Ltr
         TextDirection.Rtl -> ResolvedTextDirection.Rtl
         TextDirection.Content, TextDirection.Unspecified -> contentBasedTextDirection(text) { localeBasedTextDirection(localeList?.firstOrNull()) }
+
         TextDirection.ContentOrLtr -> contentBasedTextDirection(text) { ResolvedTextDirection.Ltr }
         TextDirection.ContentOrRtl -> contentBasedTextDirection(text) { ResolvedTextDirection.Rtl }
         else -> error("Invalid TextDirection.")
