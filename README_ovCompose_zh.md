@@ -1,5 +1,5 @@
 <p align="center">
-    <img alt="ovCompose Logo" src="img/ovCompose.svg" style="height:72px; width:auto;" />
+    <img alt="ovCompose Logo" src="img/ovCompose.svg" />
 </p>
 
 ovCompose（online-video-compose）是腾讯大前端领域Oteam中，腾讯视频团队基于 Compose Multiplatform 生态推出的跨平台开发框架，旨在弥补Jetbrains Compose Multiplatform不支持鸿蒙平台的遗憾与解决iOS平台混排受限的问题，便于业务构建全跨端App。
@@ -398,3 +398,5 @@ ovCompose（online-video-compose）是腾讯大前端领域Oteam中，腾讯视�
    brew install ninja
    ```
 
+## License
+ovCompose-multiplatform-core 基于 Apache 2.0 协议发布，详见：[License](License_ovCompose-multiplatform-core.txt)

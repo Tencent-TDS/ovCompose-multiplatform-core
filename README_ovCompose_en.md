@@ -1,5 +1,5 @@
 <p align="center">
-    <img alt="ovCompose Logo" src="img/ovCompose.svg" style="height:72px; width:auto;" />
+    <img alt="ovCompose Logo" src="img/ovCompose.svg" />
 </p>
 
 ovCompose (online-video-compose) is a cross-platform development framework launched by the Tencent Video team within Oteam, the leading frontend group at Tencent. It is based on the Compose Multiplatform ecosystem and aims to address the limitations of Jetbrains Compose Multiplatform, specifically its lack of support for the HarmonyOS platform and the constraints on mixed layout rendering on iOS. ovCompose makes it easier for businesses to build fully cross-platform apps.
@@ -393,3 +393,5 @@ ovCompose (online-video-compose) is a cross-platform development framework launc
    brew install ninja
    ```
 
+### License
+ovCompose-multiplatform-core is released under the Apache 2.0 License. For details, see: [License](License_ovCompose-multiplatform-core.txt)

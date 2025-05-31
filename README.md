@@ -1,5 +1,5 @@
 <p align="center">
-    <img alt="ovCompose Logo" src="img/ovCompose.svg" style="height:72px; width:auto;" />
+    <img alt="ovCompose Logo" src="img/ovCompose.svg" />
 </p>
 
 ### English
