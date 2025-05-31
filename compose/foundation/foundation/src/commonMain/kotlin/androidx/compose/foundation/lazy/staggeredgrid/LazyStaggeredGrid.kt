@@ -17,6 +17,7 @@
 package androidx.compose.foundation.lazy.staggeredgrid
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.clipScrollableContainer
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
@@ -28,6 +29,7 @@ import androidx.compose.foundation.lazy.layout.lazyLayoutBeyondBoundsModifier
 import androidx.compose.foundation.lazy.layout.lazyLayoutSemantics
 import androidx.compose.foundation.overscroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -57,10 +59,22 @@ internal fun LazyStaggeredGrid(
     mainAxisSpacing: Dp = 0.dp,
     /** The horizontal spacing for items/lines. */
     crossAxisSpacing: Dp = 0.dp,
+    // region Tencent Code
+    /** OverscrollEffect applied to this list */
+    overscrollEffect: OverscrollEffect? = null,
+    // endregion
     /** The content of the grid */
     content: LazyStaggeredGridScope.() -> Unit
 ) {
-    val overscrollEffect = ScrollableDefaults.overscrollEffect()
+    // region Tencent Code
+    // Preserve the original var name to make less changes
+    @Suppress("NAME_SHADOWING")
+    val overscrollEffect = if (overscrollEffect == null) {
+        ScrollableDefaults.overscrollEffect()
+    } else {
+        remember { overscrollEffect }
+    }
+    // endregion
 
     val itemProviderLambda = rememberStaggeredGridItemProviderLambda(state, content)
     val coroutineScope = rememberCoroutineScope()

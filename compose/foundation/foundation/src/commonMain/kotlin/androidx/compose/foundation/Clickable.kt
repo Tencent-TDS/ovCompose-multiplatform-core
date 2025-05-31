@@ -24,6 +24,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalTencentComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequesterModifierNode
@@ -44,6 +45,8 @@ import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.findNearestLocalAncestor
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.platform.inspectable
@@ -734,6 +737,25 @@ private class CombinedClickableNodeImpl(
     }
 }
 
+// region Tencent Code
+/**
+ * Allows awareness of click events within the descendant nodes of the current Modifier.Node,
+ * only being aware of click events belonging to the current LayoutNode and not being aware of child LayoutNode events.
+ */
+interface LocalClickableAwareNode : TraversableNode {
+    override val traverseKey: Key
+
+    fun beforeClick() {}
+    fun afterClick() {}
+    fun beforeLongClick() {}
+    fun afterLongClick() {}
+    fun beforeDoubleClick() {}
+    fun afterDoubleClick() {}
+
+    interface Key
+}
+// endregion
+
 internal sealed class AbstractClickableNode(
     private var interactionSource: MutableInteractionSource,
     private var enabled: Boolean,
@@ -822,7 +844,14 @@ internal sealed class AbstractClickableNode(
                         interactionSource.emit(PressInteraction.Release(it))
                     }
                 }
+                // region Tencent Code
+                val awareNode = findClickableAwareNode()
+                awareNode?.beforeClick()
+                // endregion
                 onClick()
+                // region Tencent Code
+                awareNode?.afterClick()
+                // endregion
                 true
             }
             else -> false
@@ -830,6 +859,12 @@ internal sealed class AbstractClickableNode(
     }
 
     override fun onPreKeyEvent(event: KeyEvent) = false
+
+    // region Tencent Code
+    @OptIn(ExperimentalTencentComposeUiApi::class)
+    protected fun findClickableAwareNode(): LocalClickableAwareNode? =
+        findNearestLocalAncestor { it is LocalClickableAwareNode.Key } as? LocalClickableAwareNode
+    // endregion
 }
 
 private class ClickableSemanticsElement(
@@ -911,12 +946,32 @@ internal class ClickableSemanticsNode(
             role = this@ClickableSemanticsNode.role!!
         }
         onClick(
-            action = { onClick(); true },
+            action = {
+                // region Tencent Code
+                val awareNode = findClickableAwareNode()
+                awareNode?.beforeClick()
+                // endregion
+                onClick()
+                // region Tencent Code
+                awareNode?.afterClick()
+                // endregion
+                true
+            },
             label = onClickLabel
         )
         if (onLongClick != null) {
             onLongClick(
-                action = { onLongClick?.invoke(); true },
+                action = {
+                    // region Tencent Code
+                    val awareNode = findClickableAwareNode()
+                    awareNode?.beforeLongClick()
+                    // endregion
+                    onLongClick?.invoke()
+                    // region Tencent Code
+                    awareNode?.afterLongClick()
+                    // endregion
+                    true
+                },
                 label = onLongClickLabel
             )
         }
@@ -924,6 +979,12 @@ internal class ClickableSemanticsNode(
             disabled()
         }
     }
+
+    // region Tencent Code
+    @OptIn(ExperimentalTencentComposeUiApi::class)
+    private fun findClickableAwareNode(): LocalClickableAwareNode? =
+        findNearestLocalAncestor { it is LocalClickableAwareNode.Key } as? LocalClickableAwareNode
+    // endregion
 }
 
 internal sealed class AbstractClickablePointerInputNode(
@@ -966,6 +1027,12 @@ internal sealed class AbstractClickablePointerInputNode(
     }
 
     protected fun resetPointerInputHandler() = pointerInputNode.resetPointerInputHandler()
+
+    // region Tencent Code
+    @OptIn(ExperimentalTencentComposeUiApi::class)
+    protected fun findClickableAwareNode(): LocalClickableAwareNode? =
+        findNearestLocalAncestor { it is LocalClickableAwareNode.Key } as? LocalClickableAwareNode
+    // endregion
 }
 
 private class ClickablePointerInputNode(
@@ -988,7 +1055,18 @@ private class ClickablePointerInputNode(
                     handlePressInteraction(offset)
                 }
             },
-            onTap = { if (enabled) onClick() }
+            onTap = {
+                if (enabled) {
+                    // region Tencent Code
+                    val awareNode = findClickableAwareNode()
+                    awareNode?.beforeClick()
+                    // endregion
+                    onClick()
+                    // region Tencent Code
+                    awareNode?.afterClick()
+                    // endregion
+                }
+            }
         )
     }
 
@@ -1022,10 +1100,30 @@ private class CombinedClickablePointerInputNode(
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
             onDoubleTap = if (enabled && onDoubleClick != null) {
-                { requestFocusWhenInMouseInputMode(); onDoubleClick?.invoke() }
+                {
+                    requestFocusWhenInMouseInputMode()
+                    // region Tencent Code
+                    val awareNode = findClickableAwareNode()
+                    awareNode?.beforeDoubleClick()
+                    // endregion
+                    onDoubleClick?.invoke()
+                    // region Tencent Code
+                    awareNode?.afterDoubleClick()
+                    // endregion
+                }
             } else null,
             onLongPress = if (enabled && onLongClick != null) {
-                { requestFocusWhenInMouseInputMode(); onLongClick?.invoke() }
+                {
+                    requestFocusWhenInMouseInputMode()
+                    // region Tencent Code
+                    val awareNode = findClickableAwareNode()
+                    awareNode?.beforeLongClick()
+                    // endregion
+                    onLongClick?.invoke()
+                    // region Tencent Code
+                    awareNode?.afterLongClick()
+                    // endregion
+                }
             } else null,
             onPress = { offset ->
                 if (enabled) {
@@ -1033,7 +1131,18 @@ private class CombinedClickablePointerInputNode(
                     handlePressInteraction(offset)
                 }
             },
-            onTap = { if (enabled) onClick() }
+            onTap = {
+                if (enabled) {
+                    // region Tencent Code
+                    val awareNode = findClickableAwareNode()
+                    awareNode?.beforeClick()
+                    // endregion
+                    onClick()
+                    // region Tencent Code
+                    awareNode?.afterClick()
+                    // endregion
+                }
+            }
         )
     }
 

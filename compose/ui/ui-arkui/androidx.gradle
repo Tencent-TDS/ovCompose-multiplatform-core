@@ -1,0 +1,9 @@
+import androidx.build.LibraryType
+
+androidx {
+    name = "Compose ArkUI Utils"
+    type = LibraryType.PUBLISHED_LIBRARY
+    inceptionYear = "2024"
+    description = "Internal OHOS ArkUI utilities including C library."
+    legacyDisableKotlinStrictApiMode = true
+}

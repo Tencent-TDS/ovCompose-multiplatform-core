@@ -23,6 +23,16 @@ import androidx.compose.ui.graphics.internal.JvmDefaultWithCompatibility
 
 expect fun Path(): Path
 
+/**
+ * 原生的Path，不进行注入
+ */
+expect fun LocalPath(): Path
+
+enum class PathType {
+    Skia,
+    Native
+}
+
 @JvmDefaultWithCompatibility
 /* expect class */ interface Path {
 
@@ -51,6 +61,11 @@ expect fun Path(): Path
      */
     val isEmpty: Boolean
 
+    // region Tencent Code
+    var pathType: PathType
+
+    val currentPath: Path
+    // endregion
     /**
      * Starts a new subpath at the given coordinate
      */

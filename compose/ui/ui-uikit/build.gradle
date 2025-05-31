@@ -60,7 +60,7 @@ def configureCInterop(target, isDevice, architecture) {
         sdkName = "iphonesimulator"
         destination = "generic/platform=iOS Simulator"
     }
-    def buildDir = new File(project.buildDir, "objc/${sdkName}.xcarchive")
+    def buildDir = new File(project.buildDir, "objc/${target.name}/${sdkName}.xcarchive")
     def frameworkPath = new File(buildDir, "/Products/usr/local/lib/lib${frameworkName}.a")
     def headersPath = new File(frameworkSourcesDir, frameworkName)
 
@@ -73,6 +73,8 @@ def configureCInterop(target, isDevice, architecture) {
     ] + linkerFlags.collectMany {
         ["-linker-option", it]
     }
+
+    def xcodeConfiguration = resolveXcodeConfiguration()
 
     target.compilations.main {
         def taskName = "${compileTaskProvider.name}ObjCLib"
@@ -90,6 +92,7 @@ def configureCInterop(target, isDevice, architecture) {
             args(
                     "archive",
                     "-scheme", schemeName,
+                    "-configuration", xcodeConfiguration,
                     "-archivePath", buildDir,
                     "-sdk", sdkName,
                     "-destination", destination,
@@ -100,10 +103,16 @@ def configureCInterop(target, isDevice, architecture) {
             )
         }
 
-        tasks[compileTaskProvider.name].dependsOn(taskName)
+        tasks[compileTaskProvider.name].with {
+            dependsOn(taskName)
+            inputs.file(frameworkPath).withPropertyName("${frameworkName}-${sdkName}-static-lib")
+        }
 
         cinterops {
             utils {
+                headersPath.eachDirRecurse {
+                    includeDirs(it)
+                }
                 headersPath.eachFileRecurse {
                     if (it.name.endsWith('.h')) {
                         headers(it)
@@ -114,11 +123,11 @@ def configureCInterop(target, isDevice, architecture) {
     }
 
     target.binaries.all {
-        freeCompilerArgs += compilerArgs
+        freeCompilerArgs += xcodeConfiguration == "Debug" ? [] : compilerArgs
     }
     target.compilations.all {
         kotlinOptions {
-            freeCompilerArgs += compilerArgs
+            freeCompilerArgs += xcodeConfiguration == "Debug" ? [] : compilerArgs
         }
     }
 }
@@ -129,4 +138,11 @@ androidx {
     inceptionYear = "2023"
     description = "Internal iOS UIKit utilities including Objective-C library."
     legacyDisableKotlinStrictApiMode = true
+}
+
+def resolveXcodeConfiguration() {
+    // Set XCODE_CONFIGURATION to Debug to allow breakpoint in the Objective-C source code.
+    def xcodeConfiguration = project.findProperty("XCODE_CONFIGURATION") ?:
+            gradle.parent?.rootProject?.findProperty("XCODE_CONFIGURATION") ?: "Release"
+    return xcodeConfiguration
 }

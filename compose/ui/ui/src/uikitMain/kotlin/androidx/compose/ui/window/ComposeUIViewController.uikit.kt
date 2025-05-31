@@ -26,7 +26,9 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = ComposeContainer(
+// region Tencent Code
+): UIViewController = ComposeUIViewController(
+// endregion
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
 )

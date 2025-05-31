@@ -232,7 +232,7 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
     // and we are overriding the name mangling to make it callable from a Java subclass in this
     // package (ArrayMap).
     @JvmName("__restricted\$indexOfValue")
-    internal fun indexOfValue(value: V): Int {
+    public fun indexOfValue(value: V): Int {
         val n = size * 2
         val array = array
         if (value == null) {

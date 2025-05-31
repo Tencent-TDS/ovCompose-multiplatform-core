@@ -101,6 +101,8 @@ internal class LayoutNode(
 
     internal var isVirtualLookaheadRoot: Boolean = false
 
+    var drawInSkia: Boolean = false
+
     /**
      * This lookaheadRoot references the closest root to the LayoutNode, not the top-level
      * lookahead root.
@@ -215,7 +217,10 @@ internal class LayoutNode(
     internal val parent: LayoutNode?
         get() {
             var parent = _foldedParent
-            while (parent?.isVirtual == true) {
+            // region Tencent Code: Avoid boxing.
+            // while (parent?.isVirtual == true) {
+            while (parent != null && parent.isVirtual) {
+            // endregion
                 parent = parent._foldedParent
             }
             return parent
@@ -295,7 +300,6 @@ internal class LayoutNode(
         if (DebugChanges) {
             println("$instance added to $this at index $index")
         }
-
         instance._foldedParent = this
         _foldedChildren.add(index, instance)
         onZSortedChildrenInvalidated()
@@ -332,6 +336,7 @@ internal class LayoutNode(
         }
         for (i in index + count - 1 downTo index) {
             val child = _foldedChildren.removeAt(i)
+
             onChildRemoved(child)
             if (DebugChanges) {
                 println("$child removed from $this at index $i")
@@ -457,7 +462,9 @@ internal class LayoutNode(
 
         // Use the inner coordinator of first non-virtual parent
         outerCoordinator.wrappedBy = parent?.innerCoordinator
-
+        // region Tencent Code
+        this.drawInSkia = owner.drawInSkia
+        // endregion
         this.owner = owner
         this.depth = (parent?.depth ?: -1) + 1
         if (nodes.has(Nodes.Semantics)) {
@@ -1420,33 +1427,63 @@ internal class LayoutNode(
      * LookaheadScope. After the lookahead is finished, [Measuring] and then [LayingOut] will
      * happen as needed.
      */
-    internal enum class LayoutState {
+    // region Tencent Code: Optimize LayoutState to Int values for performance reasons.
+    // internal enum class LayoutState {
+    //     /**
+    //      * Node is currently being measured.
+    //      */
+    //     Measuring,
+    //
+    //     /**
+    //      * Node is being measured in lookahead.
+    //      */
+    //     LookaheadMeasuring,
+    //
+    //     /**
+    //      * Node is currently being laid out.
+    //      */
+    //     LayingOut,
+    //
+    //     /**
+    //      * Node is being laid out in lookahead.
+    //      */
+    //     LookaheadLayingOut,
+    //
+    //     /**
+    //      * Node is not currently measuring or laying out. It could be pending measure or pending
+    //      * layout depending on the [measurePending] and [layoutPending] flags.
+    //      */
+    //     Idle,
+    // }
+
+    internal object LayoutState {
         /**
          * Node is currently being measured.
          */
-        Measuring,
+        const val Measuring: Int = 0
 
         /**
          * Node is being measured in lookahead.
          */
-        LookaheadMeasuring,
+        const val LookaheadMeasuring: Int = 1
 
         /**
          * Node is currently being laid out.
          */
-        LayingOut,
+        const val LayingOut: Int = 2
 
         /**
          * Node is being laid out in lookahead.
          */
-        LookaheadLayingOut,
+        const val LookaheadLayingOut: Int = 3
 
         /**
          * Node is not currently measuring or laying out. It could be pending measure or pending
          * layout depending on the [measurePending] and [layoutPending] flags.
          */
-        Idle,
+        const val Idle: Int = 4
     }
+    // endregion
 
     internal enum class UsageByParent {
         InMeasureBlock,

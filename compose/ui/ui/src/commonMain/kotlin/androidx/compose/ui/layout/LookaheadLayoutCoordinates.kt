@@ -66,6 +66,11 @@ internal class LookaheadLayoutCoordinates(val lookaheadDelegate: LookaheadDelega
     override fun localToWindow(relativeToLocal: Offset): Offset =
         coordinator.localToWindow(relativeToLocal + lookaheadOffset)
 
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: Rect): Rect =
+        coordinator.boundsBoxInContainerWindow(bounds)
+    // endregion
+
     override fun localToRoot(relativeToLocal: Offset): Offset =
         coordinator.localToRoot(relativeToLocal + lookaheadOffset)
 

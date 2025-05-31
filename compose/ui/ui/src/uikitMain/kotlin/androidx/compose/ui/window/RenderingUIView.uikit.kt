@@ -16,22 +16,25 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.interop.UIKitInteropTransaction
-import kotlinx.cinterop.*
-import org.jetbrains.skia.Canvas
-import platform.CoreGraphics.*
-import platform.Foundation.*
+import androidx.compose.ui.graphics.traceAction
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.useContents
+import kotlinx.cinterop.usePinned
+import platform.CoreGraphics.CGColorCreate
+import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
+import platform.CoreGraphics.CGRectIsEmpty
+import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.Metal.MTLCreateSystemDefaultDevice
 import platform.Metal.MTLDeviceProtocol
 import platform.Metal.MTLPixelFormatBGRA8Unorm
 import platform.QuartzCore.CAMetalLayer
-import platform.UIKit.*
+import platform.UIKit.UIView
+import platform.UIKit.UIViewMeta
 
+// region Tencent Code
 internal class RenderingUIView(
-    private val renderDelegate: Delegate,
+    private val component: RenderingComponentForSkia
 ) : UIView(
     frame = CGRectMake(
         x = 0.0,
@@ -41,44 +44,23 @@ internal class RenderingUIView(
     )
 ) {
 
-    interface Delegate {
-        fun retrieveInteropTransaction(): UIKitInteropTransaction
-        fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
-    }
-
     companion object : UIViewMeta() {
         override fun layerClass() = CAMetalLayer
     }
-
-    var onAttachedToWindow: (() -> Unit)? = null
-    private val _isReadyToShowContent: MutableState<Boolean> = mutableStateOf(false)
-    val isReadyToShowContent: State<Boolean> = _isReadyToShowContent
 
     private val device: MTLDeviceProtocol =
         MTLCreateSystemDefaultDevice()
             ?: throw IllegalStateException("Metal is not supported on this system")
     private val metalLayer: CAMetalLayer get() = layer as CAMetalLayer
-    internal val redrawer: MetalRedrawer = MetalRedrawer(
-        metalLayer,
-        callbacks = object : MetalRedrawerCallbacks {
-            override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                renderDelegate.render(canvas, targetTimestamp)
-            }
-
-            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-                renderDelegate.retrieveInteropTransaction()
-        }
-    )
 
     override fun setOpaque(opaque: Boolean) {
         super.setOpaque(opaque)
 
-        redrawer.opaque = opaque
+        component.redrawer.opaque = opaque
     }
 
     init {
         userInteractionEnabled = false
-
         metalLayer.also {
             // Workaround for KN compiler bug
             // Type mismatch: inferred type is platform.Metal.MTLDeviceProtocol but objcnames.protocols.MTLDeviceProtocol? was expected
@@ -94,29 +76,24 @@ internal class RenderingUIView(
         }
     }
 
-    fun needRedraw() = redrawer.needRedraw()
-
-    var isForcedToPresentWithTransactionEveryFrame by redrawer::isForcedToPresentWithTransactionEveryFrame
-
     fun dispose() {
-        redrawer.dispose()
+        component.dispose()
     }
 
     override fun didMoveToWindow() {
         super.didMoveToWindow()
-        val window = window ?: return
 
-        val screen = window.screen
-        contentScaleFactor = screen.scale
-        redrawer.maximumFramesPerSecond = screen.maximumFramesPerSecond
-        onAttachedToWindow?.invoke()
-        _isReadyToShowContent.value = true
+        component.didMoveToWindow()
         updateMetalLayerSize()
     }
 
     override fun layoutSubviews() {
-        super.layoutSubviews()
-        updateMetalLayerSize()
+        // region Tencent Code
+        traceAction("RenderingUIView layoutSubviews") {
+        // endregion
+            super.layoutSubviews()
+            updateMetalLayerSize()
+        }
     }
 
     private fun updateMetalLayerSize() {
@@ -137,10 +114,11 @@ internal class RenderingUIView(
         metalLayer.drawableSize = scaledSize
 
         if (needsSynchronousDraw) {
-            redrawer.drawSynchronously()
+            component.redrawer.drawSynchronously()
         }
     }
 
     override fun canBecomeFirstResponder() = false
 
 }
+// endregion

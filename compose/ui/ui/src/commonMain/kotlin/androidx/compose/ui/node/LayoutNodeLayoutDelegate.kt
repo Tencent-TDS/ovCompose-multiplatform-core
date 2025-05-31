@@ -434,6 +434,13 @@ internal class LayoutNodeLayoutDelegate(
         private fun markSubtreeAsNotPlaced() {
             if (isPlaced) {
                 isPlaced = false
+
+                // region Tencent Code
+                layoutNode.forEachCoordinatorIncludingInner {
+                    it.layer?.setPlaced(false)
+                }
+                // endregion
+
                 forEachChildDelegate {
                     it.markSubtreeAsNotPlaced()
                 }
@@ -454,6 +461,9 @@ internal class LayoutNodeLayoutDelegate(
                 }
                 // invalidate all the nodes layers that were invalidated while the node was not placed
                 forEachCoordinatorIncludingInner {
+                    // region Tencent Code
+                    it.layer?.setPlaced(true)
+                    // endregion
                     if (it.lastLayerDrawingWasSkipped) {
                         it.invalidateLayer()
                     }

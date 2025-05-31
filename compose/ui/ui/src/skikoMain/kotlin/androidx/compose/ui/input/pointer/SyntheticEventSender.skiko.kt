@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.util.fastAny
@@ -175,7 +176,13 @@ internal class SyntheticEventSender(
         _send(event)
         // We don't send nativeEvent for synthetic events.
         // Nullify to avoid memory leaks (native events can point to native views).
-        previousEvent = event.copy(nativeEvent = null)
+        // region Tencent Code
+        if (ComposeTabService.composeGestureEnable && event.eventType == PointerEventType.Unknown) {
+            reset()
+        } else {
+            previousEvent = event.copy(nativeEvent = null)
+        }
+        // endregion
     }
 
     private fun isMoveEventMissing(

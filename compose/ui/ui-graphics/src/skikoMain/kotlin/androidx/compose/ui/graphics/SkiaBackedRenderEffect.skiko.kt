@@ -58,8 +58,8 @@ internal class SkiaBackedRenderEffect(
 @Immutable
 actual class BlurEffect actual constructor(
     private val renderEffect: RenderEffect?,
-    private val radiusX: Float,
-    private val radiusY: Float,
+    val radiusX: Float,
+    val radiusY: Float,
     private val edgeTreatment: TileMode
 ) : RenderEffect() {
 

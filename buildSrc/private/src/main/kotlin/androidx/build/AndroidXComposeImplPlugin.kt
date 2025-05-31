@@ -45,7 +45,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.tooling.core.withClosure
 
 const val composeSourceOption =
@@ -106,7 +106,6 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
         ) {
             if (isMultiplatformEnabled) {
                 project.apply(plugin = "kotlin-multiplatform")
-
                 project.extensions.create(
                     AndroidXComposeMultiplatformExtension::class.java,
                     "androidXComposeMultiplatform",
@@ -124,26 +123,25 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
             }
 
             project.afterEvaluate { projectAfterEvaluate ->
-                projectAfterEvaluate.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
+                projectAfterEvaluate.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
                     // Needed to enable `expect` and `actual` keywords
-                    compile.kotlinOptions.freeCompilerArgs += "-Xmulti-platform"
+                    compile.compilerOptions.freeCompilerArgs.add("-Xmulti-platform")
                 }
             }
 
-            project.tasks.withType(KotlinJsCompile::class.java).configureEach { compile ->
+            project.tasks.withType(KotlinJsCompile::class.java).configureEach { it ->
                 // val isWasm = compile.kotlinOptions.freeCompilerArgs.contains("-Xwasm")
-
-                compile.kotlinOptions.freeCompilerArgs += listOf(
+                it.compilerOptions.freeCompilerArgs.addAll(
                     "-P", "plugin:androidx.compose.compiler.plugins.kotlin:generateDecoys=false",
                     "-Xklib-enable-signature-clash-checks=false",
                 )
             }
 
             project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
-                it.kotlinOptions {
-                    freeCompilerArgs += "-opt-in=kotlinx.cinterop.ExperimentalForeignApi"
-                    freeCompilerArgs += "-opt-in=kotlin.experimental.ExperimentalNativeApi"
-                }
+                it.compilerOptions.freeCompilerArgs.addAll(
+                    "-opt-in=kotlinx.cinterop.ExperimentalForeignApi",
+                    "-opt-in=kotlin.experimental.ExperimentalNativeApi"
+                )
             }
         }
 
@@ -333,6 +331,10 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 }
             }
 
+            // region Tencent Code: Fix JVM target compatibility for Kotlin 2.0.
+            multiplatformExtension.jvmToolchain(11)
+            // endregion
+
             configureLintForMultiplatformLibrary(multiplatformExtension)
 
             afterEvaluate {
@@ -344,7 +346,7 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 }
 
                 if (androidXExtension.type == LibraryType.PUBLISHED_LIBRARY) {
-                    project.apply(plugin = "org.jetbrains.kotlinx.binary-compatibility-validator")
+//                    project.apply(plugin = "org.jetbrains.kotlinx.binary-compatibility-validator")
                 }
             }
         }
@@ -369,10 +371,10 @@ private fun configureComposeCompilerPlugin(
         val configuration = project.configurations.create(COMPILER_PLUGIN_CONFIGURATION)
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-        val compilerPluginVersion = project.properties["jetbrains.compose.compiler.version"] as String
+        val compilerPluginVersion = project.getVersionByName("kotlin")
         project.dependencies.add(
             COMPILER_PLUGIN_CONFIGURATION,
-            "org.jetbrains.compose.compiler:compiler:$compilerPluginVersion"
+            "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:$compilerPluginVersion"
         )
         val kotlinPlugin = configuration.incoming.artifactView { view ->
             view.attributes { attributes ->
@@ -388,7 +390,7 @@ private fun configureComposeCompilerPlugin(
 
         val libraryMetricsDirectory = project.rootProject.getLibraryMetricsDirectory()
         val libraryReportsDirectory = project.rootProject.getLibraryReportsDirectory()
-        project.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
+        project.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
             // Append inputs to KotlinCompile so tasks get invalidated if any of these values change
             compile.inputs.files({ kotlinPlugin })
                 .withPropertyName("composeCompilerExtension")
@@ -405,27 +407,30 @@ private fun configureComposeCompilerPlugin(
             // `freeCompilerArgs` is immutable in `doFirst` for native compilations.
             // It used to be configured with `onlyIf` in upstream too.
             compile.onlyIf {
-                compile.kotlinOptions.freeCompilerArgs += "-Xplugin=${kotlinPlugin.first()}"
+                compile.compilerOptions.freeCompilerArgs.add("-Xplugin=${kotlinPlugin.first()}")
 
                 if (enableMetricsProvider.orNull == "true") {
                     val metricsDest = File(libraryMetricsDirectory, "compose")
-                    compile.kotlinOptions.freeCompilerArgs +=
+                    compile.compilerOptions.freeCompilerArgs.addAll(
                         listOf(
                             "-P",
                             "$composeMetricsOption=${metricsDest.absolutePath}"
                         )
+                    )
                 }
                 if ((enableReportsProvider.orNull == "true")) {
                     val reportsDest = File(libraryReportsDirectory, "compose")
-                    compile.kotlinOptions.freeCompilerArgs +=
+                    compile.compilerOptions.freeCompilerArgs.addAll(
                         listOf(
                             "-P",
                             "$composeReportsOption=${reportsDest.absolutePath}"
                         )
+                    )
                 }
                 if (shouldPublish) {
-                    compile.kotlinOptions.freeCompilerArgs +=
+                    compile.compilerOptions.freeCompilerArgs.addAll(
                         listOf("-P", composeSourceOption)
+                    )
                 }
                 true
             }

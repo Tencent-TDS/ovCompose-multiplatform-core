@@ -301,13 +301,16 @@ private fun TextStyle.withDefaultFontFamily(default: FontFamily): TextStyle {
 
 internal val DefaultLineHeightStyle = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
-    trim = LineHeightStyle.Trim.None,
+    trim = defaultLineHeightStyleTrim(),
 )
 
 internal val DefaultTextStyle = TextStyle.Default.copy(
     platformStyle = defaultPlatformTextStyle(),
     lineHeightStyle = DefaultLineHeightStyle,
 )
+
+internal expect fun defaultLineHeightStyleTrim(): LineHeightStyle.Trim
+
 
 /**
  * Returns Default [PlatformTextStyle].

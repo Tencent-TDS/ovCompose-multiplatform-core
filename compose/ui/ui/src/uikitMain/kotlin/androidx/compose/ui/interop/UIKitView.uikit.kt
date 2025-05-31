@@ -16,10 +16,14 @@
 
 package androidx.compose.ui.interop
 
+import androidx.compose.runtime.Applier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReusableComposeNode
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.currentComposer
+import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,21 +34,42 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.window.pointerInteropFilter
+import androidx.compose.runtime.key
+import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.materializerOf
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.node.ComposeUiNode
+import androidx.compose.ui.node.ComposeUiNode.Companion.SetCompositeKeyHash
+import androidx.compose.ui.node.ComposeUiNode.Companion.SetMeasurePolicy
+import androidx.compose.ui.node.ComposeUiNode.Companion.SetResolvedCompositionLocals
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.v2.nativefoundation.AdaptiveCanvas
+import androidx.compose.ui.semantics.AccessibilityKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.uikit.LocalRenderBackend
+import androidx.compose.ui.uikit.RenderBackend
+import androidx.compose.ui.uikit.utils.TMMInteropWrapView
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toSize
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSThread
 import platform.UIKit.UIColor
 import platform.UIKit.UIView
@@ -53,10 +78,15 @@ import platform.UIKit.addChildViewController
 import platform.UIKit.didMoveToParentViewController
 import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
+import kotlin.math.ceil
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
 private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit = { rect -> this.view.setFrame(rect) }
+// region Tencent Code
+private val DefaultPlacementScope: Placeable.PlacementScope.() -> Unit = {}
+private val DefaultEmptyComposeContent: @Composable @UiComposable () -> Unit = {}
+// endregion
 
 /**
  * @param factory The block creating the [UIView] to be composed.
@@ -79,6 +109,177 @@ fun <T : UIView> UIKitView(
     onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
     onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
     interactive: Boolean = true,
+) {
+    // region Tencent Code
+    val renderBackend = LocalRenderBackend.current
+    when (renderBackend) {
+        RenderBackend.Skia -> UIKitViewForSkiaBackend(factory, modifier, update, background, onRelease, onResize, interactive)
+        RenderBackend.UIView -> UIKitViewForUIViewBackend(factory, modifier, update, background, onRelease, onResize, interactive)
+    }
+    // endregion
+}
+
+// region Tencent Code
+/**
+ * @param factory The block creating the [UIView] to be composed.
+ * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
+ * Modifier may contains crop() modifier with different shapes.
+ * @param update A callback to be invoked after the layout is inflated.
+ * @param background A color of [UIView] background wrapping the view created by [factory].
+ * @param onRelease A callback invoked as a signal that this view instance has exited the
+ * composition hierarchy entirely and will not be reused again. Any additional resources used by the
+ * View should be freed at this time.
+ * @param onResize May be used to custom resize logic.
+ * @param interactive If true, then user touches will be passed to this UIView
+ */
+@Composable
+fun <T : UIView> UIKitView2(
+    factory: () -> T,
+    modifier: Modifier,
+    update: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    background: Color = Color.Unspecified,
+    onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
+    interactive: Boolean = true,
+) {
+    val renderBackend = LocalRenderBackend.current
+    when (renderBackend) {
+        RenderBackend.Skia -> UIKitViewForSkiaBackend(factory, modifier, update, background, onRelease, onResize, interactive)
+        RenderBackend.UIView -> UIKitViewForUIViewBackend(factory, modifier, update, background, onRelease, onResize, interactive, true)
+    }
+}
+
+/**
+ * @param factory The block creating the [UIView] to be composed.
+ * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
+ * Modifier may contains crop() modifier with different shapes.
+ * @param update A callback to be invoked after the layout is inflated.
+ * @param background A color of [UIView] background wrapping the view created by [factory].
+ * @param onRelease A callback invoked as a signal that this view instance has exited the
+ * composition hierarchy entirely and will not be reused again. Any additional resources used by the
+ * View should be freed at this time.
+ * @param onResize May be used to custom resize logic.
+ * @param interactive If true, then user touches will be passed to this UIView
+ */
+@Composable
+private fun <T : UIView> UIKitViewForUIViewBackend(
+    factory: () -> T,
+    modifier: Modifier,
+    update: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    background: Color = Color.Unspecified,
+    onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
+    interactive: Boolean = true,
+    enableNestedScroll: Boolean = false
+) {
+    val interopContext = LocalUIKitInteropContext.current
+    val embeddedInteropComponent = remember {
+        EmbeddedInteropForUIViewBackend(
+            onRelease = onRelease
+        )
+    }
+    if (enableNestedScroll) {
+        embeddedInteropComponent.bindComposeInteractionUIView(interopContext.interactionUIView)
+    }
+
+    val density = LocalDensity.current.density
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    embeddedInteropComponent.wrappingView.userInteractionEnabled = interactive
+    Place(
+        measurePolicy = { _, constraints ->
+            embeddedInteropComponent.component?.measure(density, this, constraints) ?: emptyMeasureResult()
+        },
+        modifier = Modifier.then(modifier)
+            .nativeAccessibility(isEnabled = true, embeddedInteropComponent.wrappingView)
+            .uiViewLayer { view ->
+                embeddedInteropComponent.wrappingView.setFrame(view.frame.useContents {
+                    CGRectMake(0.0,0.0, this.size.width, this.size.height)
+                })
+            }.drawLayer { canvas ->
+                (canvas as AdaptiveCanvas).drawLayer(embeddedInteropComponent.wrappingView.layer)
+            }.onGloballyPositioned { coordinates ->
+                val component = embeddedInteropComponent.component ?: return@onGloballyPositioned
+                if (size != coordinates.size) {
+                    val newSize = coordinates.size.toSize() / density
+                    interopContext.deferAction {
+                        onResize(
+                            component,
+                            CGRectMake(
+                                0.0,
+                                0.0,
+                                newSize.width.toDouble(),
+                                newSize.height.toDouble()
+                            ),
+                        )
+                    }
+                    size = coordinates.size
+                }
+            }.let {
+                if (interactive) {
+                    it.pointerInteropFilter(wrappingView = embeddedInteropComponent.wrappingView)
+                } else {
+                    it
+                }
+            }
+        ,
+        factory = {
+            LayoutNode().also {
+                embeddedInteropComponent.refreshLayoutNode(it)
+            }
+        }
+    )
+
+    DisposableEffect(Unit) {
+        val component = factory()
+        embeddedInteropComponent.component = component
+        embeddedInteropComponent.updater = Updater(component, update) {
+            interopContext.deferAction(action = it)
+        }
+
+        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+            embeddedInteropComponent.addToHierarchy()
+        }
+
+        onDispose {
+            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+                embeddedInteropComponent.removeFromHierarchy()
+            }
+        }
+    }
+
+    LaunchedEffect(background) {
+        interopContext.deferAction {
+            embeddedInteropComponent.wrappingView.backgroundColor = parseColor(background)
+        }
+    }
+
+    SideEffect {
+        embeddedInteropComponent.updater.update = update
+    }
+}
+
+/**
+ * @param factory The block creating the [UIView] to be composed.
+ * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
+ * Modifier may contains crop() modifier with different shapes.
+ * @param update A callback to be invoked after the layout is inflated.
+ * @param background A color of [UIView] background wrapping the view created by [factory].
+ * @param onRelease A callback invoked as a signal that this view instance has exited the
+ * composition hierarchy entirely and will not be reused again. Any additional resources used by the
+ * View should be freed at this time.
+ * @param onResize May be used to custom resize logic.
+ * @param interactive If true, then user touches will be passed to this UIView
+ */
+@Composable
+private fun <T : UIView> UIKitViewForSkiaBackend(
+    factory: () -> T,
+    modifier: Modifier,
+    update: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    background: Color = Color.Unspecified,
+    onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
+    interactive: Boolean = true,
+// end region
 ) {
     // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
@@ -253,15 +454,61 @@ fun <T : UIViewController> UIKitViewController(
     }
 }
 
+// region Tencent Code
 @Composable
-private fun Place(modifier: Modifier) {
-    Layout({}, measurePolicy = PlaceMeasurePolicy, modifier = modifier)
+private fun Place(
+    modifier: Modifier,
+    measurePolicy:
+    MeasurePolicy = PlaceMeasurePolicy,
+    factory: () -> ComposeUiNode = ComposeUiNode.Constructor
+) {
+    val compositeKeyHash = currentCompositeKeyHash
+    val localMap = currentComposer.currentCompositionLocalMap
+    ReusableComposeNode<ComposeUiNode, Applier<Any>>(
+        factory = factory,
+        update = {
+            set(measurePolicy, SetMeasurePolicy)
+            set(localMap, SetResolvedCompositionLocals)
+            @OptIn(ExperimentalComposeUiApi::class)
+            set(compositeKeyHash, SetCompositeKeyHash)
+        },
+        skippableUpdate = materializerOf(modifier),
+        content = DefaultEmptyComposeContent
+    )
 }
+// endregion
 
 private object PlaceMeasurePolicy : MeasurePolicy {
     override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints) =
         layout(constraints.maxWidth, constraints.maxHeight) {}
 }
+
+// region Tencent Code
+private inline fun UIView.measure(density: Float, measureScope: MeasureScope, constraints: Constraints): MeasureResult {
+    val hasFixedWidth = constraints.hasFixedWidth
+    val hasFixedHeight = constraints.hasFixedHeight
+    return if (hasFixedWidth && hasFixedHeight) {
+        measureScope.layout(constraints.maxWidth, constraints.maxHeight, emptyMap(), DefaultPlacementScope)
+    } else {
+        val scaledWidth = (constraints.maxWidth / density).toDouble()
+        val scaledHeight = (constraints.maxHeight / density).toDouble()
+        val measuredSize = sizeThatFits(CGSizeMake(scaledWidth, scaledHeight))
+        measuredSize.useContents {
+            val layoutWidth = if (hasFixedWidth) {
+                constraints.maxWidth
+            } else {
+                ceil(width * density).toInt().coerceIn(constraints.minWidth, constraints.maxWidth)
+            }
+            val layoutHeight = if (hasFixedHeight) {
+                constraints.maxHeight
+            } else {
+                ceil(height * density).toInt().coerceIn(constraints.minHeight, constraints.maxHeight)
+            }
+            measureScope.layout(layoutWidth, layoutHeight, emptyMap(), DefaultPlacementScope)
+        }
+    }
+}
+// endregion
 
 private fun parseColor(color: Color): UIColor {
     return UIColor(
@@ -271,6 +518,59 @@ private fun parseColor(color: Color): UIColor {
         alpha = color.alpha.toDouble()
     )
 }
+
+// region Tencent Code
+
+private fun emptyMeasureResult(): MeasureResult {
+    return object : MeasureResult {
+        override val width: Int
+            get() = 0
+        override val height: Int
+            get() = 0
+        override val alignmentLines: Map<AlignmentLine, Int>
+            get() = emptyMap()
+
+        override fun placeChildren() {}
+    }
+}
+
+// onSizeChange回调的是 dp，使用时需要注意单位转换。
+private class EmbeddedInteropForUIViewBackend<T : UIView>(
+    val onRelease: (T) -> Unit
+) {
+    var wrappingView: TMMInteropWrapView = TMMInteropWrapView()
+    var layoutNode: LayoutNode? = null
+    var component: T? = null
+    lateinit var updater: Updater<T>
+
+    init {
+        wrappingView.setOnSizeChange { _: Double, _: Double ->
+            layoutNode?.requestRemeasure()
+        }
+    }
+
+    fun bindComposeInteractionUIView(view: UIView) {
+        wrappingView.bindComposeInteropContainer(view)
+    }
+
+    fun addToHierarchy() {
+        val tempComponent = component ?: return
+        wrappingView.addSubview(tempComponent)
+    }
+
+    fun removeFromHierarchy() {
+        wrappingView.removeFromSuperview()
+        updater.dispose()
+        val tempComponent = component ?: return
+        tempComponent.removeFromSuperview()
+        onRelease(tempComponent)
+    }
+
+    fun refreshLayoutNode(node: LayoutNode) {
+        layoutNode = node
+    }
+}
+// endregion
 
 private abstract class EmbeddedInteropComponent<T : Any>(
     val rootView: UIView,
@@ -391,3 +691,38 @@ private class Updater<T : Any>(
         isDisposed = true
     }
 }
+
+internal val NativeAccessibilityViewSemanticsKey = AccessibilityKey<TMMInteropWrapView>(
+    name = "NativeAccessibilityView",
+    mergePolicy = { parentValue, childValue ->
+        if (parentValue == null) {
+            childValue
+        } else {
+            println(
+                "Warning: Merging accessibility for multiple interop views is not supported. " +
+                        "Multiple [UIKitView] are grouped under one node that should be represented as a single accessibility element." +
+                        "It isn't recommended because the accessibility system can only recognize the first one. " +
+                        "If you need multiple native views for accessibility, make sure to place them inside a single [UIKitView]."
+            )
+
+            parentValue
+        }
+    }
+)
+
+private var SemanticsPropertyReceiver.nativeAccessibilityView by NativeAccessibilityViewSemanticsKey
+
+// TODO: align "platform" vs "native" naming
+/**
+ * Chain [this] with [Modifier.semantics] that sets the [nativeAccessibilityView] of the node to
+ * the [interopWrappingView] if [isEnabled] is true.
+ * If [isEnabled] is false, [this] is returned as is.
+ *
+ * See [UIKitView] and [UIKitViewController] accessibility argument for description of effects introduced by this semantics.
+ */
+fun Modifier.nativeAccessibility(isEnabled: Boolean, interopWrappingView: TMMInteropWrapView) =
+    if (isEnabled) {
+        this.semantics { nativeAccessibilityView = interopWrappingView }
+    } else {
+        this
+    }

@@ -119,7 +119,7 @@ internal class SkiaParagraph(
             RectHeightMode.MAX,
             RectWidthMode.TIGHT
         )
-        val path = Path()
+        val path = LocalPath()
         for (b in boxes) {
             path.asSkiaPath().addRect(b.rect)
         }

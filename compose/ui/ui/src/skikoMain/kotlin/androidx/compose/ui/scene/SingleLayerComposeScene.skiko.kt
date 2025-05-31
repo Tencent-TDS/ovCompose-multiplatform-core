@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
+import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
@@ -36,9 +37,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.toIntRect
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Constructs a single-layer [ComposeScene] using the specified parameters.
@@ -145,6 +145,27 @@ private class SingleLayerComposeSceneImpl(
         return mainOwner.measureInConstraints(Constraints())
     }
 
+
+    // region Tencent Code
+    override fun setLayerFactory(factory: OwnedLayerFactory) {
+        mainOwner.layerFactory = factory
+    }
+
+    override fun outerContainerOffsetChange(x: Float, y: Float) {
+        mainOwner.outerContainerOffsetChange(x, y)
+    }
+
+    override fun getMeasuredContentSize(): IntSize {
+        check(!isClosed) { "ComposeScene is closed" }
+        // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
+        val children = mainOwner.owner.root.children
+        return IntSize(
+            width = children.maxOfOrNull { it.outerCoordinator.measuredWidth } ?: 0,
+            height = children.maxOfOrNull { it.outerCoordinator.measuredHeight } ?: 0,
+        )
+    }
+    // endregion
+
     override fun createComposition(content: @Composable () -> Unit): Composition {
         return mainOwner.setContent(
             compositionContext,
@@ -153,10 +174,20 @@ private class SingleLayerComposeSceneImpl(
         )
     }
 
+    // region Tencent Code
     @Deprecated("To be removed. Temporary hack for iOS interop")
-    override fun hitTestInteropView(position: Offset): Boolean {
-        return mainOwner.hitTestInteropView(position)
+    override fun hitTestInteropView(position: Offset): Boolean =
+        mainOwner.hitTestInteropView(position, null)
+
+    @Deprecated("To be removed. Temporary hack for iOS interop")
+    override fun hitTestInteropView(position: Offset, event: Any?): Boolean {
+        return mainOwner.hitTestInteropView(position, event)
     }
+
+    override fun hitTestComposeView(position: Offset, event: Any?): Boolean {
+        return mainOwner.hitTestComposeView(position, event)
+    }
+    // endregion
 
     override fun processPointerInputEvent(event: PointerInputEvent) =
         mainOwner.onPointerInput(event)

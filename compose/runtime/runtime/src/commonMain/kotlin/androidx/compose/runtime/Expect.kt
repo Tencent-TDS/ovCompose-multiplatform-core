@@ -18,6 +18,7 @@ package androidx.compose.runtime
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotContextElement
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CancellationException
 
 /**
@@ -103,7 +104,9 @@ internal expect fun <T> invokeComposableForResult(
 @OptIn(ExperimentalComposeApi::class)
 internal expect class SnapshotContextElementImpl(
     snapshot: Snapshot
-) : SnapshotContextElement
+) : SnapshotContextElement {
+    override val key: CoroutineContext.Key<*>
+}
 
 internal expect fun logError(message: String, e: Throwable)
 

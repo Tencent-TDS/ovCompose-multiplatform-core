@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LocalPath
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -442,9 +443,9 @@ class MultiParagraph(
                 " or start > end!"
         }
 
-        if (start == end) return Path()
+        if (start == end) return LocalPath()
 
-        val path = Path()
+        val path = LocalPath()
         findParagraphsByRange(paragraphInfoList, TextRange(start, end)) { paragraphInfo ->
             with(paragraphInfo) {
                 path.addPath(

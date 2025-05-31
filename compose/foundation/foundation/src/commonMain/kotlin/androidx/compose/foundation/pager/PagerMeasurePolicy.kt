@@ -54,6 +54,7 @@ internal fun rememberPagerMeasurePolicy(
     verticalAlignment: Alignment.Vertical?,
     snapPositionInLayout: SnapPositionInLayout,
     pageCount: () -> Int,
+    disableScrollLoading: Boolean,
 ) = remember<LazyLayoutMeasureScope.(Constraints) -> MeasureResult>(
     state,
     contentPadding,
@@ -65,6 +66,7 @@ internal fun rememberPagerMeasurePolicy(
     pageSize,
     snapPositionInLayout,
     pageCount,
+    disableScrollLoading
 ) {
     { containerConstraints ->
         val isVertical = orientation == Orientation.Vertical
@@ -183,7 +185,8 @@ internal fun rememberPagerMeasurePolicy(
                     emptyMap(),
                     placement
                 )
-            }
+            },
+            disableScrollLoading = disableScrollLoading
         ).also {
             state.applyMeasureResult(it)
         }

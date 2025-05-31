@@ -16,8 +16,9 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.synchronized
-import androidx.compose.ui.createSynchronizedObject
+import androidx.compose.runtime.ThrowableCache
+import androidx.compose.runtime.platformSynchronizedObject
+import androidx.compose.runtime.synchronized
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -44,11 +45,23 @@ internal class FlushCoroutineDispatcher(
     private val scope = CoroutineScope(scope.coroutineContext.minusKey(Job))
     private val tasks = mutableSetOf<Runnable>()
     private val delayedTasks = mutableSetOf<Runnable>()
+    // region Tencent Code Modify
+    /*
     private val tasksLock = createSynchronizedObject()
+    */
+    private val tasksLock = platformSynchronizedObject()
+    // end region
     private val tasksCopy = mutableSetOf<Runnable>()
     @Volatile
     private var isPerformingRun = false
+
+    // region Tencent Code Modify
+    /*
     private val runLock = createSynchronizedObject()
+    */
+    private val runLock = platformSynchronizedObject()
+    // end region
+
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         synchronized(tasksLock) {
             tasks.add(block)
@@ -123,7 +136,9 @@ internal class FlushCoroutineDispatcher(
             }
         }
         continuation.invokeOnCancellation {
-            job.cancel()
+            // region Tencent Code
+            job.cancel(ThrowableCache.jobCancellationException)
+            // endregion
         }
     }
 }

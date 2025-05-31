@@ -356,6 +356,8 @@ interface DrawScope : Density {
      */
     val layoutDirection: LayoutDirection
 
+    var drawInSkia : Boolean
+
     /**
      * Draws a line between the given points using the given paint. The line is
      * stroked.

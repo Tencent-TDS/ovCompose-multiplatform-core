@@ -286,7 +286,7 @@ val currentCompositeKeyHash: Int
     if (currentComposer.applier !is E) invalidApplier()
     currentComposer.startReusableNode()
     if (currentComposer.inserting) {
-        currentComposer.createNode { factory() }
+        currentComposer.createNode(factory)
     } else {
         currentComposer.useNode()
     }

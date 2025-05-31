@@ -35,6 +35,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Density
@@ -137,6 +138,13 @@ interface ComposeScene {
      */
     fun calculateContentSize(): IntSize
 
+    // region Tencent Code
+    /**
+     * Returns the current content size measured in last draw.
+     */
+    fun getMeasuredContentSize(): IntSize
+    // endregion
+
     /**
      * Returns true if there are pending recompositions, renders or dispatched tasks.
      * Can be called from any thread.
@@ -235,6 +243,24 @@ interface ComposeScene {
     @Deprecated("To be removed. Temporary hack for iOS interop")
     fun hitTestInteropView(position: Offset): Boolean
 
+    // region Tencent Code
+    /**
+     * If [position] is inside interop view, then [ComposeScene] skip touches to forward it to
+     * platform interop view.
+     *
+     * @see InteropViewCatchPointerModifier
+     */
+    @Deprecated("To be removed. Temporary hack for iOS interop")
+    fun hitTestInteropView(position: Offset, event: Any?): Boolean
+
+    /**
+     * If [position] is inside interop view, then [ComposeScene] skip touches to forward it to
+     * compose view.
+     *
+     * @see InteropViewCatchPointerModifier
+     */
+    fun hitTestComposeView(position: Offset, event: Any?): Boolean
+    // endregion
     /**
      * Creates a new [ComposeSceneLayer] with the specified parameters.
      * It's used to create a new layer for [Popup] or [Dialog].
@@ -253,6 +279,16 @@ interface ComposeScene {
         focusable: Boolean,
         compositionContext: CompositionContext,
     ): ComposeSceneLayer
+
+    // region Tencent Code
+    fun setLayerFactory(factory: OwnedLayerFactory)
+
+    /**
+     * notify outer container scroll offset changed
+     */
+    fun outerContainerOffsetChange(x: Float, y: Float)
+    // endregion
+
 }
 
 private fun currentTimeForEvent(): Long =

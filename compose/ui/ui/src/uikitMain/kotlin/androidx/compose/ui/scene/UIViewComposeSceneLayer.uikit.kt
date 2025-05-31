@@ -25,7 +25,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.toDpOffset
-import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import androidx.compose.ui.uikit.ComposeConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -34,9 +34,10 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.LocalPopupStyle
+import androidx.compose.ui.window.PopupStyle
 import androidx.compose.ui.window.ProvideContainerCompositionLocals
-import androidx.compose.ui.window.RenderingUIView
-import kotlin.coroutines.CoroutineContext
+import androidx.compose.ui.window.RenderingComponent
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -49,12 +50,15 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
+import kotlin.coroutines.CoroutineContext
 
 internal class UIViewComposeSceneLayer(
     private val composeContainer: ComposeContainer,
     private val initDensity: Density,
     private val initLayoutDirection: LayoutDirection,
-    configuration: ComposeUIViewControllerConfiguration,
+    // region Tencent Code
+    private val configuration: ComposeConfiguration,
+    // endregion
     focusStack: FocusStack<UIView>?,
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
@@ -62,9 +66,19 @@ internal class UIViewComposeSceneLayer(
 
     override var focusable: Boolean = focusStack != null
     private var onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null
-    private val rootView = composeContainer.view.window ?: composeContainer.view
+    //  private val rootView = composeContainer.view.window ?: composeContainer.view
+    // region Tencent Code
+    private val popupStyle = LocalPopupStyle
+    private val rootView = when (popupStyle) {
+        PopupStyle.InWindow -> composeContainer.view.window ?: composeContainer.view
+        PopupStyle.InView -> composeContainer.view
+        PopupStyle.InViewController -> composeContainer.viewController.view
+    }
+    // endregion
     private val backgroundView: UIView = object : UIView(
-        frame = CGRectZero.readValue()
+        // region Tencent Code
+        frame = CGRectZero.readValue(),
+        // endregion
     ) {
 
         private var previousSuccessHitTestTimestamp: Double? = null
@@ -114,7 +128,11 @@ internal class UIViewComposeSceneLayer(
             focusStack = focusStack,
             windowContext = windowContext,
             coroutineContext = compositionContext.effectCoroutineContext,
-            renderingUIViewFactory = ::createSkikoUIView,
+            // region Tencent Code
+            renderingComponentFactory = ::createRenderingComponent,
+            boundsInWindow = null,
+            onContentSizeChanged = null,
+            // endregion
             composeSceneFactory = ::createComposeScene
         )
     }
@@ -128,10 +146,12 @@ internal class UIViewComposeSceneLayer(
         composeContainer.attachLayer(this)
     }
 
-    private fun createSkikoUIView(renderDelegate: RenderingUIView.Delegate): RenderingUIView =
-        RenderingUIView(renderDelegate = renderDelegate).apply {
-            opaque = false
+    // region Tencent Code
+    private fun createRenderingComponent(renderDelegate: RenderingComponent.Delegate) =
+        RenderingComponent(configuration.renderBackend, renderDelegate = renderDelegate).apply {
+            view.opaque = false
         }
+    // endregion
 
     private fun createComposeScene(
         invalidate: () -> Unit,

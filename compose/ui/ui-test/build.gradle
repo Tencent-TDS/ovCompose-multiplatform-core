@@ -83,10 +83,11 @@ dependencies {
 if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -148,19 +149,21 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonMain)
             }
 
-            desktopMain.dependsOn(skikoMain)
+//            desktopMain.dependsOn(skikoMain)
             jsNativeMain.dependsOn(skikoMain)
-            jsMain.dependsOn(jsNativeMain)
-            wasmJsMain.dependsOn(jsNativeMain)
+//            jsMain.dependsOn(jsNativeMain)
+//            wasmJsMain.dependsOn(jsNativeMain)
             nativeMain.dependsOn(jsNativeMain)
+            // nativeMain is actually appleMain, not for ohosArm64
+            ohosArm64Main.dependsOn(skikoMain)
             uikitMain.dependsOn(nativeMain)
-            macosMain.dependsOn(nativeMain)
+//            macosMain.dependsOn(nativeMain)
 
-            desktopMain.dependencies {
-                implementation(libs.junit)
-                implementation(libs.truth)
-                implementation(libs.skiko)
-            }
+//            desktopMain.dependencies {
+//                implementation(libs.junit)
+//                implementation(libs.truth)
+//                implementation(libs.skiko)
+//            }
 
             androidCommonTest.dependsOn(commonTest)
             androidTest.dependsOn(androidCommonTest)

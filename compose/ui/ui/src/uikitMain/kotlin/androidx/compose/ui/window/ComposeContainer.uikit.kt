@@ -17,17 +17,27 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.extention.DelicateComposeApi
+import androidx.compose.ui.extention.GlobalContentScope
+import androidx.compose.ui.interop.LocalUIView
 import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.platform.AccessibilityMediator
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.scheduleGCAsync
+import androidx.compose.ui.platform.v2.UIKitLifecycle
+import androidx.compose.ui.platform.v2.nativefoundation.injectForCompose
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -36,18 +46,22 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.scene.UIViewComposeSceneLayer
-import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
+import androidx.compose.ui.uikit.LocalRenderBackend
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.uikit.RenderBackend
+import androidx.compose.ui.uikit.systemDensity
+import androidx.compose.ui.uikit.utils.CMPRenderBackend
 import androidx.compose.ui.uikit.utils.CMPViewController
+import androidx.compose.ui.uikit.utils.TMMComposeMarkViewForVideoReport
+import androidx.compose.ui.uikit.utils.TMMNativeCreateComposeSceneReusePool
+import androidx.compose.ui.uikit.utils.TMMNativeReleaseComposeSceneReusePool
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
-import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -61,6 +75,7 @@ import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGSize
 import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSStringFromClass
+import platform.UIKit.UIAccessibilityElement
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
@@ -75,34 +90,100 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
-import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
+import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
+
+// region Tencent Code
+internal interface ComposeContainer {
+    val view: UIView
+
+    val viewController: UIViewController
+
+    val renderBackend: RenderBackend
+
+    @OptIn(InternalComposeApi::class)
+    val interfaceOrientationState: MutableState<InterfaceOrientation>
+
+    val systemThemeState: MutableState<SystemTheme>
+
+    fun attachLayer(layer: UIViewComposeSceneLayer)
+
+    fun detachLayer(layer: UIViewComposeSceneLayer)
+
+    fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext
+}
+
+internal class ComposeUIViewControllerContainer(
+    private val composeUIViewController: ComposeUIViewController
+) : ComposeContainer {
+    override val view: UIView
+        get() = composeUIViewController.view
+    override val viewController: UIViewController
+        get() = composeUIViewController
+    override val renderBackend: RenderBackend
+        get() = composeUIViewController.renderBackend
+    @InternalComposeApi
+    override val interfaceOrientationState: MutableState<InterfaceOrientation>
+        get() = composeUIViewController.interfaceOrientationState
+    override val systemThemeState: MutableState<SystemTheme>
+        get() = composeUIViewController.systemThemeState
+
+    override fun attachLayer(layer: UIViewComposeSceneLayer) {
+        composeUIViewController.attachLayer(layer)
+    }
+
+    override fun detachLayer(layer: UIViewComposeSceneLayer) {
+        composeUIViewController.detachLayer(layer)
+    }
+
+    override fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext {
+        return composeUIViewController.createComposeSceneContext(platformContext)
+    }
+}
+// region Tencent Code
 
 private val coroutineDispatcher = Dispatchers.Main
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class ComposeContainer(
+// region Tencent Code
+internal class ComposeUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
 ) : CMPViewController(nibName = null, bundle = null) {
+
+    init {
+        injectForCompose(configuration.renderBackend)
+        setRenderBackend(configuration.renderBackend.asNative())
+    }
+// endregion
     private var isInsideSwiftUI = false
     private var mediator: ComposeSceneMediator? = null
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
+
+    // region Tencent Code
+    private var nativeReusePool: Long = 0
+    // endregion
 
     @OptIn(ExperimentalComposeApi::class)
     private val windowContainer: UIView
         get() = if (configuration.platformLayers) {
             view.window ?: view
         } else view
+
+    // region Tencent Code
+    val viewController: UIViewController
+        get() = this
+
+    val container: ComposeContainer = ComposeUIViewControllerContainer(this)
+    // endregion
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -136,6 +217,13 @@ internal class ComposeContainer(
             }
         }
 
+    // region Tencent Code
+    val renderBackend: RenderBackend
+        get() = configuration.renderBackend
+
+    private var controllerLifecycle: UIKitLifecycle? = null
+    // endregion
+
     @Suppress("unused")
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
@@ -146,20 +234,28 @@ internal class ComposeContainer(
         }
     }
 
+    // region Tencent Code
     @OptIn(ExperimentalComposeApi::class)
     override fun loadView() {
         view = UIView().apply {
-            setClipsToBounds(true)
+            if (configuration.clipChildren) {
+                setClipsToBounds(true)
+            }
             opaque = configuration.opaque
             backgroundColor = if (configuration.opaque) UIColor.whiteColor else UIColor.clearColor
         } // rootView needs to interop with UIKit
+        TMMComposeMarkViewForVideoReport(view)
     }
+    // endregion
 
     override fun viewDidLoad() {
         super.viewDidLoad()
         PlistSanityCheck.performIfNeeded()
         configuration.delegate.viewDidLoad()
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        // region Tencent Code
+        controllerLifecycle?.didLoadView()
+        // endregion
     }
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
@@ -248,6 +344,9 @@ internal class ComposeContainer(
         updateWindowContainer()
 
         configuration.delegate.viewDidAppear(animated)
+        // region Tencent Code
+        controllerLifecycle?.viewDidAppear()
+        // endregion
     }
 
     override fun viewWillDisappear(animated: Boolean) {
@@ -262,11 +361,14 @@ internal class ComposeContainer(
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
 
-        dispatch_async(dispatch_get_main_queue()) {
-            kotlin.native.internal.GC.collect()
-        }
+        // region Tencent Code
+        scheduleGCAsync()
+        // endregion
 
         configuration.delegate.viewDidDisappear(animated)
+        // region Tencent Code
+        controllerLifecycle?.viewDidDisappear()
+        // endregion
     }
 
     override fun viewControllerDidLeaveWindowHierarchy() {
@@ -274,20 +376,35 @@ internal class ComposeContainer(
         dispose()
     }
 
+    // region Tencent Code
+    override fun viewControllerPrepareForReuse() {
+        super.viewControllerPrepareForReuse()
+        createMediatorIfNeeded()
+    }
+    // endregion
+
     override fun didReceiveMemoryWarning() {
         println("didReceiveMemoryWarning")
-        kotlin.native.internal.GC.collect()
+        // region Tencent Code
+        scheduleGCAsync()
+        // endregion
         super.didReceiveMemoryWarning()
     }
 
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
+    // region Tencent Code
     @OptIn(ExperimentalComposeApi::class)
-    private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
-        RenderingUIView(renderDelegate = renderRelegate).apply {
-            opaque = configuration.opaque
+    private fun createRenderingComponent(renderDelegate: RenderingComponent.Delegate) =
+        RenderingComponent(
+            configuration.renderBackend,
+            renderDelegate = renderDelegate,
+            firstFrameRenderConfig = configuration.firstFrameRenderConfig
+        ).apply {
+            view.opaque = configuration.opaque
         }
+    // endregion
 
     @OptIn(ExperimentalComposeApi::class)
     private fun createComposeScene(
@@ -322,31 +439,56 @@ internal class ComposeContainer(
         }
     }
 
+    // region Tencent Code
     private fun createMediator(): ComposeSceneMediator {
+        if (ComposeTabService.viewProxyReuseEnable) {
+            releaseReusePoolIfNeeded()
+            nativeReusePool = TMMNativeCreateComposeSceneReusePool()
+        }
         val mediator = ComposeSceneMediator(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
             windowContext = windowContext,
             coroutineContext = coroutineDispatcher,
-            renderingUIViewFactory = ::createSkikoUIView,
+            renderingComponentFactory = ::createRenderingComponent,
+            boundsInWindow = null,
+            onContentSizeChanged = null,
             composeSceneFactory = ::createComposeScene,
+            nativeReusePool = nativeReusePool
         )
+        val controllerLifecycle =  UIKitLifecycle()
+        this.controllerLifecycle = controllerLifecycle
         mediator.setContent {
-            ProvideContainerCompositionLocals(this, content)
+            CompositionLocalProvider(LocalLifecycleOwner provides controllerLifecycle) {
+                ProvideContainerCompositionLocals(container, content)
+            }
         }
         mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
         return mediator
     }
 
+    private inline fun releaseReusePoolIfNeeded() {
+        if (!ComposeTabService.viewProxyReuseEnable) {
+            return
+        }
+        if (nativeReusePool != 0L) {
+            TMMNativeReleaseComposeSceneReusePool(nativeReusePool)
+            nativeReusePool = 0L
+        }
+    }
+
     private fun dispose() {
+        controllerLifecycle?.dispose()
+        controllerLifecycle = null
         mediator?.dispose()
         mediator = null
         layers.fastForEach {
             it.close()
         }
-
+        releaseReusePoolIfNeeded()
     }
+    // endregion
 
     fun attachLayer(layer: UIViewComposeSceneLayer) {
         layers.add(layer)
@@ -366,7 +508,7 @@ internal class ComposeContainer(
             compositionContext: CompositionContext
         ): ComposeSceneLayer =
             UIViewComposeSceneLayer(
-                composeContainer = this@ComposeContainer,
+                composeContainer = container,
                 initDensity = density,
                 initLayoutDirection = layoutDirection,
                 configuration = configuration,
@@ -376,7 +518,21 @@ internal class ComposeContainer(
             )
     }
 
+    // region Tencent Code
+    internal fun accessibilityMediator(): AccessibilityMediator? {
+        return mediator?.accessibilityMediator()
+    }
+    // endregion
 }
+
+// region Tencent Code
+private inline fun RenderBackend.asNative(): CMPRenderBackend {
+    return when (this) {
+        RenderBackend.UIView -> CMPRenderBackend.CMPRenderBackendUIView
+        RenderBackend.Skia  -> CMPRenderBackend.CMPRenderBackendSkia
+    }
+}
+// endregion
 
 private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
     var parent = parentViewController
@@ -413,19 +569,27 @@ private fun getLayoutDirection() =
         else -> LayoutDirection.Ltr
     }
 
-@OptIn(InternalComposeApi::class)
+// region Tencent Code
+@OptIn(InternalComposeApi::class, DelicateComposeApi::class)
 @Composable
 internal fun ProvideContainerCompositionLocals(
     composeContainer: ComposeContainer,
     content: @Composable () -> Unit,
 ) = with(composeContainer) {
+    val lazyViewController = remember(composeContainer) {
+        lazy { viewController }
+    }
     CompositionLocalProvider(
-        LocalUIViewController provides this,
+        // Crucial to make this lazy, for ViewController is not present util UIView attached.
+        LocalUIViewController providesLazy lazyViewController,
+        LocalUIView provides view,
         LocalInterfaceOrientation provides interfaceOrientationState.value,
         LocalSystemTheme provides systemThemeState.value,
-        content = content
+        LocalRenderBackend provides renderBackend,
+        content = { GlobalContentScope.content(content) }
     )
 }
+// endregion
 
 internal val uiContentSizeCategoryToFontScaleMap = mapOf(
     UIContentSizeCategoryExtraSmall to 0.8f,

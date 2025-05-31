@@ -48,10 +48,11 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -73,15 +74,15 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
             }
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
-            desktopTest.kotlin.srcDirs("src/test/kotlin")
+//            desktopTest.kotlin.srcDirs("src/test/kotlin")
 
-            wasmJsMain {
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+//            wasmJsMain {
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
         }
     }
 }

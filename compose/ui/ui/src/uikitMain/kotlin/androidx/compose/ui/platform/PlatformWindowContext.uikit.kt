@@ -17,15 +17,13 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.toDpOffset
-import androidx.compose.ui.uikit.systemDensity
+import androidx.compose.ui.uikit.utils.TMMComposeCoreDeviceDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.toOffset
-import kotlinx.cinterop.cValue
 import kotlinx.cinterop.useContents
+import platform.UIKit.UIApplication
 import platform.UIKit.UIView
+import kotlin.math.roundToInt
 
 /**
  * This class copied from Desktop sourceSet.
@@ -37,6 +35,8 @@ import platform.UIKit.UIView
 internal class PlatformWindowContext {
     private val _windowInfo = WindowInfoImpl()
     val windowInfo: WindowInfo get() = _windowInfo
+
+    private val density = TMMComposeCoreDeviceDensity()
 
     private var _windowContainer: UIView? = null
 
@@ -66,16 +66,27 @@ internal class PlatformWindowContext {
      * @return The offset of the container within the window as an [IntOffset] object.
      */
     fun offsetInWindow(container: UIView): IntOffset {
-        val density = container.systemDensity
-        return if (_windowContainer != null && _windowContainer != container) {
-            container.convertPoint(
-                point = cValue { container.bounds.useContents { origin } },
-                toView = _windowContainer,
-            )
-        } else {
-            cValue { container.bounds.useContents { origin } }
-        }.useContents {
-            toDpOffset().toOffset(density).round()
-        }
+        // region Tencent Code Modify
+        /**
+         * val density = container.systemDensity
+         * return if (_windowContainer != null && _windowContainer != container) {
+         *     container.convertPoint(
+         *         point = cValue { container.bounds.useContents { origin } },
+         *         toView = _windowContainer,
+         *     )
+         * } else {
+         *     cValue { container.bounds.useContents { origin } }
+         * }.useContents {
+         *     toDpOffset().toOffset(density).round()
+         * }
+         */
+        val window = container.window ?: UIApplication.sharedApplication.keyWindow
+        return window?.convertRect(container.bounds, fromView = container)?.useContents {
+            val offsetX = if (origin.x.isNaN()) 0 else (origin.x * density).roundToInt()
+            val offsetY = if (origin.y.isNaN()) 0 else (origin.y * density).roundToInt()
+            IntOffset(offsetX, offsetY)
+        } ?: IntOffset(0, 0)
+        // endregion
+
     }
 }

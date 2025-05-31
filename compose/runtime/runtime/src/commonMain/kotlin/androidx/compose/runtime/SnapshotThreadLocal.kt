@@ -27,10 +27,15 @@ import androidx.compose.runtime.internal.emptyThreadMap
  */
 internal class SnapshotThreadLocal<T> {
     private val map = AtomicReference<ThreadMap>(emptyThreadMap)
-    private val writeMutex = SynchronizedObject()
+    private val writeMutex = platformSynchronizedObject()
 
     @Suppress("UNCHECKED_CAST")
     fun get(): T? = map.get().get(currentThreadId()) as T?
+
+    // region Tencent Code
+    @Suppress("UNCHECKED_CAST")
+    fun get(threadId: Long): T? = map.get().get(threadId) as T?
+    // endregion
 
     fun set(value: T?) {
         val key = currentThreadId()

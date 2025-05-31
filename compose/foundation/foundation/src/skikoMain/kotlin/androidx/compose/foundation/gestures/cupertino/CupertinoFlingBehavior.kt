@@ -22,6 +22,7 @@ import androidx.compose.animation.core.animateDecay
 import androidx.compose.foundation.gestures.DefaultScrollMotionDurationScale
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaultFlingBehavior
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
 import kotlinx.coroutines.CancellationException
@@ -61,7 +62,14 @@ internal class CupertinoFlingBehavior(
                     lastValue = value
                     velocityLeft = this.velocity
                     // avoid rounding errors and stop if anything is unconsumed
-                    if (abs(delta - consumed) > 0.5f) this.cancelAnimation()
+                    if (abs(delta - consumed) > 0.5f) {
+                        this.cancelAnimation()
+                    }
+                    // region Tencent Code
+                    else if (ComposeTabService.composeIOSScrollAnimationFixUpEnable && abs(value) > 0 && abs(delta) < 1) {
+                        this.forceStopAnimation()
+                    }
+                    // endregion
                 }
                 velocityLeft
             } else {

@@ -174,6 +174,9 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
     }
 
@@ -222,6 +225,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**
@@ -274,6 +281,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**
@@ -316,6 +327,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**

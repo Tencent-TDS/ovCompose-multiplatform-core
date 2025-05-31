@@ -65,6 +65,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.InspectorInfo
@@ -258,9 +259,23 @@ private class ScrollableElement(
     }
 }
 
+// region Tencent Code
+/**
+ * Expose ScrollableState
+ */
+interface ScrollableStateNode : TraversableNode {
+
+    override val traverseKey: Key
+
+    val state: ScrollableState
+
+    interface Key
+}
+// endregion
+
 @OptIn(ExperimentalFoundationApi::class)
 private class ScrollableNode(
-    private var state: ScrollableState,
+    override var state: ScrollableState,
     private var orientation: Orientation,
     private var overscrollEffect: OverscrollEffect?,
     private var enabled: Boolean,
@@ -269,7 +284,8 @@ private class ScrollableNode(
     private var interactionSource: MutableInteractionSource?,
     bringIntoViewSpec: BringIntoViewSpec
 ) : DelegatingNode(), ObserverModifierNode, CompositionLocalConsumerModifierNode,
-    FocusPropertiesModifierNode, KeyInputModifierNode {
+    FocusPropertiesModifierNode, KeyInputModifierNode,
+    /* Tencent Code { */ ScrollableStateNode /* } */ {
 
     val nestedScrollDispatcher = NestedScrollDispatcher()
 
@@ -325,6 +341,10 @@ private class ScrollableNode(
             scrollLogic = scrollingLogic
         )
     )
+
+    // region Tencent Code
+    override val traverseKey: TraverseKey get() = TraverseKey
+    // endregion
 
     fun update(
         state: ScrollableState,
@@ -447,6 +467,10 @@ private class ScrollableNode(
     }
 
     override fun onPreKeyEvent(event: KeyEvent) = false
+
+    // region Tencent Code
+    object TraverseKey : ScrollableStateNode.Key
+    // endregion
 }
 
 /**
@@ -764,11 +788,18 @@ internal class ScrollingLogic(
                     .dispatchPreFling(velocity)
                 val available = velocity - preConsumedByParent
                 val velocityLeft = doFlingAnimation(available)
-                val consumedPost =
+                // Do not propagate the cancellation from outer nested scroll,
+                // otherwise if the outer scroll is dragged before the post fling ends,
+                // the following job will be canceled and the overscroll effect cannot be restored to 0(no overscroll)
+                // onDragStopped -> dispatchPreFling -> doFlingAnimation -> post fling -> overscroll fling
+                val consumedPost = try {
                     nestedScrollDispatcher.dispatchPostFling(
                         (available - velocityLeft),
                         velocityLeft
                     )
+                } catch (exception: CancellationException) {
+                    Velocity.Zero
+                }
                 val totalLeft = velocityLeft - consumedPost
                 velocity - totalLeft
             }

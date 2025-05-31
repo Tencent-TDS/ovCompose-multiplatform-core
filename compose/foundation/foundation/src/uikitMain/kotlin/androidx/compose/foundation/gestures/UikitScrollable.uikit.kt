@@ -42,6 +42,11 @@ fun optOutOfCupertinoOverscroll() {
     UiKitScrollConfig.isRubberBandingOverscrollEnabled = false
 }
 
+@ExperimentalFoundationApi
+fun optInCupertinoOverscroll() {
+    UiKitScrollConfig.isRubberBandingOverscrollEnabled = true
+}
+
 internal object UiKitScrollConfig : ScrollConfig {
     var isRubberBandingOverscrollEnabled: Boolean = true
 

@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,8 +30,10 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -117,6 +120,15 @@ internal class RootNodeOwner(
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
     val semanticsOwner = SemanticsOwner(owner.root)
+
+    // region Tencent Code
+    var layerFactory: OwnedLayerFactory? = null
+
+    /**
+     * record outer container's scroll offset
+     */
+    private var outerContainerOffset = Offset.Zero
+    // endregion
 
     /**
      * Bounds of [Owner] in window coordinates.
@@ -205,26 +217,59 @@ internal class RootNodeOwner(
             val positionInWindow = owner.calculatePositionInWindow(it.position)
             bounds?.contains(positionInWindow.round()) ?: true
         }
-        pointerInputEventProcessor.process(
-            event,
-            IdentityPositionCalculator,
-            isInBounds = isInBounds
-        )
+        // region Tencent Code
+        if (ComposeTabService.composeGestureEnable && event.eventType == PointerEventType.Unknown) {
+            pointerInputEventProcessor.processCancel()
+        } else {
+            pointerInputEventProcessor.process(
+                event,
+                IdentityPositionCalculator,
+                isInBounds = isInBounds
+            )
+        }
+        // endregion
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {
         return focusOwner.dispatchKeyEvent(keyEvent)
     }
 
-    /**
+        /**
      * If pointerPosition is inside UIKitView, then Compose skip touches. And touches goes to UIKit.
      */
-    fun hitTestInteropView(position: Offset): Boolean {
+    fun hitTestInteropView(position: Offset, event: Any?): Boolean {
+        val result = HitTestResult()
+        owner.root.hitTest(position, result, true)
+        // region Tencent Code
+        result.forEach {
+            ComposeTabService.composeHitTestLog("hitTestInteropView hit result: ${it.toString()}")
+        }
+        if (!owner.drawInSkia) {
+            val last = result.lastOrNull()
+            val element = (last as? BackwardsCompatNode)?.element
+            return element is InteropViewCatchPointerModifier
+        } else {
+            val last = result.lastOrNull()
+            return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+        }
+        // endregion
+    }
+    // region Tencent Code
+    fun hitTestComposeView(position: Offset, event: Any?): Boolean {
         val result = HitTestResult()
         owner.root.hitTest(position, result, true)
         val last = result.lastOrNull()
-        return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+        return last != null
     }
+
+    fun outerContainerOffsetChange(x: Float, y: Float) {
+        if (outerContainerOffset.y != y || outerContainerOffset.x != x) {
+            outerContainerOffset = Offset(x, y)
+            owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
+            measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+        }
+    }
+    // endregion
 
     private inner class OwnerImpl(
         layoutDirection: LayoutDirection,
@@ -235,14 +280,16 @@ internal class RootNodeOwner(
             it.layoutDirection = layoutDirection
             it.measurePolicy = RootMeasurePolicy
             it.modifier = rootModifier
+            it.drawInSkia = drawInSkia
         }
 
-        override val sharedDrawScope = LayoutNodeDrawScope()
+        override val sharedDrawScope = LayoutNodeDrawScope(CanvasDrawScope().also { it.drawInSkia = drawInSkia })
         override val rootForTest get() = this@RootNodeOwner.rootForTest
         override val hapticFeedBack = DefaultHapticFeedback()
         override val inputModeManager get() = platformContext.inputModeManager
         override val clipboardManager = PlatformClipboardManager()
         override val accessibilityManager = DefaultAccessibilityManager()
+        override val drawInSkia get() =  platformContext.drawInSkia
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
@@ -343,7 +390,14 @@ internal class RootNodeOwner(
         override fun createLayer(
             drawBlock: (Canvas) -> Unit,
             invalidateParentLayer: () -> Unit
-        ) = RenderNodeLayer(
+        // region Tencent Code
+        ) = layerFactory?.createLayer(
+            Snapshot.withoutReadObservation { density },
+            drawBlock,
+            invalidateParentLayer,
+            { needClearObservations = true }
+        ) ?: RenderNodeLayer(
+        // endregion
             Snapshot.withoutReadObservation {
                 // density is a mutable state that is observed whenever layer is created. the layer
                 // is updated manually on draw, so not observing the density changes here helps with
@@ -384,6 +438,12 @@ internal class RootNodeOwner(
             val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
             return positionInWindow - offset
         }
+
+        // region Tencent Code
+        override fun boundsBoxInContainerWindow(bounds: Rect): Rect {
+            return platformContext.boundsPositionCalculator?.invoke(bounds) ?: bounds
+        }
+        // endregion
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 

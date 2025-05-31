@@ -11,26 +11,27 @@ import java.util.*
  */
 enum class ComposePlatforms(vararg val alternativeNames: String) {
     KotlinMultiplatform("Common"),
-    Desktop("Jvm"),
+//    Desktop("Jvm"),
     AndroidDebug("Android"),
     AndroidRelease("Android"),
-    Js("Web"),
-    WasmJs("Web"),
-    MacosX64("Macos"),
-    MacosArm64("Macos"),
+//    Js("Web"),
+//    WasmJs("Web"),
+//    MacosX64("Macos"),
+//    MacosArm64("Macos"),
     UikitX64("UiKit"),
     UikitArm64("UiKit"),
     UikitSimArm64("UiKit"),
-    TvosArm64("TvOs"),
-    TvosX64("TvOs"),
-    TvosSimulatorArm64("TvOs"),
-    WatchosArm64("WatchOs"),
-    WatchosArm32("WatchOs"),
-    WatchosX64("WatchOs"),
-    WatchosSimulatorArm64("WatchOs"),
-    LinuxX64("Linux"),
-    LinuxArm64("Linux"),
-    MingwX64("Mingw"),
+//    TvosArm64("TvOs"),
+//    TvosX64("TvOs"),
+//    TvosSimulatorArm64("TvOs"),
+//    WatchosArm64("WatchOs"),
+//    WatchosArm32("WatchOs"),
+//    WatchosX64("WatchOs"),
+//    WatchosSimulatorArm64("WatchOs"),
+//    LinuxX64("Linux"),
+//    LinuxArm64("Linux"),
+//    MingwX64("Mingw"),
+    OhosArm64("Ohos")
     ;
 
     private val namesLowerCased by lazy {
@@ -49,7 +50,7 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
         val ALL = EnumSet.allOf(ComposePlatforms::class.java)
 
         val JVM_BASED = EnumSet.of(
-            ComposePlatforms.Desktop,
+//            ComposePlatforms.Desktop,
             ComposePlatforms.AndroidDebug,
             ComposePlatforms.AndroidRelease
         )
@@ -65,19 +66,22 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
             ComposePlatforms.AndroidRelease
         )
 
+        val OHOS = EnumSet.of(ComposePlatforms.OhosArm64)
+
         // These platforms are not supported by skiko yet
-        val NO_SKIKO = EnumSet.of(
-            ComposePlatforms.TvosArm64,
-            ComposePlatforms.TvosX64,
-            ComposePlatforms.TvosSimulatorArm64,
-            ComposePlatforms.WatchosArm64,
-            ComposePlatforms.WatchosArm32,
-            ComposePlatforms.WatchosX64,
-            ComposePlatforms.WatchosSimulatorArm64,
-            ComposePlatforms.LinuxX64,
-            ComposePlatforms.LinuxArm64,
-            ComposePlatforms.MingwX64,
-        )
+//        val NO_SKIKO = EnumSet.of(
+//            ComposePlatforms.TvosArm64,
+//            ComposePlatforms.TvosX64,
+//            ComposePlatforms.TvosSimulatorArm64,
+//            ComposePlatforms.WatchosArm64,
+//            ComposePlatforms.WatchosArm32,
+//            ComposePlatforms.WatchosX64,
+//            ComposePlatforms.WatchosSimulatorArm64,
+//            ComposePlatforms.LinuxX64,
+//            ComposePlatforms.LinuxArm64,
+//            ComposePlatforms.MingwX64,
+//        )
+        val NO_SKIKO = setOf<ComposePlatforms>()
 
         /**
          * Maps comma separated list of platforms into a set of [ComposePlatforms]

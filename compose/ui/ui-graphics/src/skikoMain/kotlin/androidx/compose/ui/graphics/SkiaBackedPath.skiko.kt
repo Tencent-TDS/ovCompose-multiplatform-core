@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.CurrentPlatform
+import androidx.compose.runtime.PlatformType
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
@@ -24,8 +26,18 @@ import org.jetbrains.skia.PathDirection
 import org.jetbrains.skia.PathFillMode
 import org.jetbrains.skia.PathOp
 
-actual fun Path(): Path = SkiaBackedPath()
+// region Tencent Code
+actual fun Path(): Path =
+    if(CurrentPlatform != PlatformType.IOS) SkiaBackedPath() else PathProxy()
 
+actual fun LocalPath(): Path = SkiaBackedPath()
+
+private var pathFactory: (() -> Path)? = null
+
+fun setNativePathFactory(factory: () -> Path) {
+    pathFactory = factory
+}
+// endregion
 /**
  * Convert the [org.jetbrains.skia.Path] instance into a Compose-compatible Path
  */
@@ -36,19 +48,28 @@ fun org.jetbrains.skia.Path.asComposePath(): Path = SkiaBackedPath(this)
  *
  * @Throws UnsupportedOperationException if this Path is not backed by an org.jetbrains.skia.Path
  */
-fun Path.asSkiaPath(): org.jetbrains.skia.Path =
-    if (this is SkiaBackedPath) {
-        internalPath
+fun Path.asSkiaPath(): org.jetbrains.skia.Path {
+    // region Tencent Code
+    val path = if (this is PathProxy) this.skiaBackedPath else this
+    if (path is SkiaBackedPath) {
+        return (path as SkiaBackedPath).internalPath
     } else {
         throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Path")
     }
+    // endregion
+}
 
 internal class SkiaBackedPath(
     internalPath: org.jetbrains.skia.Path = org.jetbrains.skia.Path()
 ) : Path {
     var internalPath = internalPath
         private set
+    // region Tencent Code
+    override val currentPath: Path
+        get() = this
 
+    override var pathType = PathType.Skia
+    // endregion
     override var fillType: PathFillType
         get() {
             if (internalPath.fillMode == PathFillMode.EVEN_ODD) {
@@ -57,7 +78,6 @@ internal class SkiaBackedPath(
                 return PathFillType.NonZero
             }
         }
-
         set(value) {
             internalPath.fillMode =
                 if (value == PathFillType.EvenOdd) {
@@ -273,3 +293,139 @@ internal class SkiaBackedPath(
         v[8] = v8 // 8
     }
 }
+
+// region Tencent Code
+internal class PathProxy : Path {
+
+    var skiaBackedPath: SkiaBackedPath = SkiaBackedPath()
+    var nativePath: Path = pathFactory?.invoke() ?: throw RuntimeException("Native 未注入实现")
+
+    override var pathType: PathType = PathType.Native
+    override val currentPath: Path
+        get() = if (pathType == PathType.Native) {
+            nativePath
+        } else {
+            skiaBackedPath
+        }
+    override var fillType: PathFillType
+        get() = currentPath.fillType
+        set(value) {
+            skiaBackedPath.fillType = value
+            nativePath.fillType = value
+        }
+    override val isConvex: Boolean
+        get() = currentPath.isConvex
+    override val isEmpty: Boolean
+        get() = currentPath.isEmpty
+
+    override fun moveTo(x: Float, y: Float) {
+        nativePath.moveTo(x, y)
+        skiaBackedPath.moveTo(x, y)
+    }
+
+    override fun relativeMoveTo(dx: Float, dy: Float) {
+        nativePath.relativeMoveTo(dx, dy)
+        skiaBackedPath.relativeMoveTo(dx, dy)
+    }
+
+    override fun lineTo(x: Float, y: Float) {
+        nativePath.lineTo(x, y)
+        skiaBackedPath.lineTo(x, y)
+    }
+
+    override fun relativeLineTo(dx: Float, dy: Float) {
+        nativePath.relativeLineTo(dx, dy)
+        skiaBackedPath.relativeLineTo(dx, dy)
+    }
+
+    override fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float) {
+        nativePath.quadraticBezierTo(x1, y1, x2, y2)
+        skiaBackedPath.quadraticBezierTo(x1, y1, x2, y2)
+    }
+
+    override fun relativeQuadraticBezierTo(dx1: Float, dy1: Float, dx2: Float, dy2: Float) {
+        nativePath.relativeQuadraticBezierTo(dx1, dy1, dx2, dy2)
+        skiaBackedPath.relativeQuadraticBezierTo(dx1, dy1, dx2, dy2)
+    }
+
+    override fun cubicTo(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {
+        nativePath.cubicTo(x1, y1, x2, y2, x3, y3)
+        skiaBackedPath.cubicTo(x1, y1, x2, y2, x3, y3)
+    }
+
+    override fun relativeCubicTo(
+        dx1: Float,
+        dy1: Float,
+        dx2: Float,
+        dy2: Float,
+        dx3: Float,
+        dy3: Float
+    ) {
+        nativePath.relativeCubicTo(dx1, dy1, dx2, dy2, dx3, dy3)
+        skiaBackedPath.relativeCubicTo(dx1, dy1, dx2, dy2, dx3, dy3)
+    }
+
+    override fun arcTo(
+        rect: Rect,
+        startAngleDegrees: Float,
+        sweepAngleDegrees: Float,
+        forceMoveTo: Boolean
+    ) {
+        nativePath.arcTo(rect, startAngleDegrees, sweepAngleDegrees, forceMoveTo)
+        skiaBackedPath.arcTo(rect, startAngleDegrees, sweepAngleDegrees, forceMoveTo)
+    }
+
+    override fun addRect(rect: Rect) {
+        nativePath.addRect(rect)
+        skiaBackedPath.addRect(rect)
+    }
+
+    override fun addOval(oval: Rect) {
+        nativePath.addOval(oval)
+        skiaBackedPath.addOval(oval)
+    }
+
+    override fun addArcRad(oval: Rect, startAngleRadians: Float, sweepAngleRadians: Float) {
+        nativePath.addArcRad(oval, startAngleRadians, sweepAngleRadians)
+        skiaBackedPath.addArcRad(oval, startAngleRadians, sweepAngleRadians)
+    }
+
+    override fun addArc(oval: Rect, startAngleDegrees: Float, sweepAngleDegrees: Float) {
+        nativePath.addArc(oval, startAngleDegrees, sweepAngleDegrees)
+        skiaBackedPath.addArc(oval, startAngleDegrees, sweepAngleDegrees)
+    }
+
+    override fun addRoundRect(roundRect: RoundRect) {
+        nativePath.addRoundRect(roundRect)
+        skiaBackedPath.addRoundRect(roundRect)
+    }
+
+    override fun addPath(path: Path, offset: Offset) {
+        nativePath.addPath(path, offset)
+        skiaBackedPath.addPath(path, offset)
+    }
+
+    override fun close() {
+        nativePath.close()
+        skiaBackedPath.close()
+    }
+
+    override fun reset() {
+        nativePath.reset()
+        skiaBackedPath.reset()
+    }
+
+    override fun translate(offset: Offset) {
+        nativePath.translate(offset)
+        skiaBackedPath.translate(offset)
+    }
+
+    override fun getBounds(): Rect {
+        return currentPath.getBounds()
+    }
+
+    override fun op(path1: Path, path2: Path, operation: PathOperation): Boolean {
+        return currentPath.op(path1, path2, operation)
+    }
+}
+// endregion

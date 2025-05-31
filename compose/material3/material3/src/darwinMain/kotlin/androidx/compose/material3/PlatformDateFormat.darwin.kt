@@ -110,7 +110,7 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
     @Suppress("SIGNED_CONSTANT_CONVERTED_TO_UNSIGNED")
     actual fun is24HourFormat(): Boolean {
         return NSDateFormatter
-            .dateFormatFromTemplate("j", 0, locale)
+            .dateFormatFromTemplate("j", 0UL, locale)
             ?.contains('a') == false
     }
 }

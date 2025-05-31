@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text.intl
 
+import androidx.compose.runtime.EnableLocaleListCachedHashCode
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -57,6 +58,10 @@ class LocaleList constructor(val localeList: List<Locale>) : Collection<Locale> 
     // Collection overrides for easy iterations.
     override val size: Int = localeList.size
 
+    // region Tencent Code
+    private val cachedHashCode = localeList.hashCode()
+    // endregion
+
     override operator fun contains(element: Locale): Boolean = localeList.contains(element)
 
     override fun containsAll(elements: Collection<Locale>): Boolean =
@@ -74,6 +79,11 @@ class LocaleList constructor(val localeList: List<Locale>) : Collection<Locale> 
     }
 
     override fun hashCode(): Int {
+        // region Tencent Code
+        if (EnableLocaleListCachedHashCode) {
+            return cachedHashCode
+        }
+        // endregion
         return localeList.hashCode()
     }
 

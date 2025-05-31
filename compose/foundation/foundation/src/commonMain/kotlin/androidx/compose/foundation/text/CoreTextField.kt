@@ -33,11 +33,10 @@ import androidx.compose.foundation.text.selection.SimpleLayout
 import androidx.compose.foundation.text.selection.TextFieldSelectionHandle
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
-import androidx.compose.foundation.text.selection.selectionGestureInput
 import androidx.compose.foundation.text.selection.textFieldMagnifier
-import androidx.compose.foundation.text.selection.updateSelectionTouchMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.EnableIOSParagraph
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.RecomposeScope
@@ -58,12 +57,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -85,6 +85,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.copyText
@@ -214,7 +215,11 @@ internal fun CoreTextField(
     textScrollerPosition: TextFieldScrollerPosition? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
-
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
     // CompositionLocals
     // If the text field is disabled or read-only, we should not deal with the input service
     val textInputService = LocalTextInputService.current
@@ -224,7 +229,8 @@ internal fun CoreTextField(
     val focusManager = LocalFocusManager.current
     val windowInfo = LocalWindowInfo.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
+    var localBitmap: ImageBitmap? = null
+    var localCanvas: Canvas? = null
     // Scroll state
     val singleLine = maxLines == 1 && !softWrap && imeOptions.singleLine
     val orientation = if (singleLine) Orientation.Horizontal else Orientation.Vertical
@@ -389,16 +395,51 @@ internal fun CoreTextField(
         offsetMapping
     )
 
+    fun paragraphHashCode(offsetMapping: OffsetMapping, value: TextFieldValue, layoutResult: TextLayoutResult): Int {
+        var hashCode = layoutResult.hashCode()
+        if (!value.selection.collapsed) {
+            val start = offsetMapping.originalToTransformed(value.selection.min)
+            val end = offsetMapping.originalToTransformed(value.selection.max)
+            hashCode += 31 * hashCode + start
+            hashCode += 31 * hashCode + end
+        }
+        return hashCode
+    }
+
     val drawModifier = Modifier.drawBehind {
         state.layoutResult?.let { layoutResult ->
             drawIntoCanvas { canvas ->
+                var currentParagraphHashCode = 0
+                if (drawInSkia || EnableIOSParagraph) {
+                    localCanvas = canvas
+                } else {
+                    currentParagraphHashCode = paragraphHashCode(offsetMapping, value, layoutResult.value)
+                    val width = layoutResult.value.size.width
+                    val height = layoutResult.value.size.height
+                    if (platformTextDelegate?.needRedrawText(canvas, currentParagraphHashCode, width, height) == false) return@drawBehind
+                    val newBitmap = ImageBitmap(width, height)
+                    localCanvas = Canvas(newBitmap)
+                    localBitmap = newBitmap
+                }
                 TextFieldDelegate.draw(
-                    canvas,
+                    localCanvas!!,
                     value,
                     offsetMapping,
                     layoutResult.value,
                     state.selectionPaint
                 )
+                if (!drawInSkia && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        localBitmap,
+                        layoutResult.value.size.width,
+                        layoutResult.value.size.height,
+                        currentParagraphHashCode,
+                        canvas
+                    )
+                }
+
+                localBitmap = null
+                localCanvas = null
             }
         }
     }
@@ -672,9 +713,9 @@ internal fun CoreTextField(
                             measurables: List<Measurable>,
                             constraints: Constraints
                         ): MeasureResult {
-                            val prevResult = Snapshot.withoutReadObservation {
-                                state.layoutResult?.value
-                            }
+                            val prevProxy =
+                                Snapshot.withoutReadObservation { state.layoutResult }
+                            val prevResult = prevProxy?.value
                             val (width, height, result) = TextFieldDelegate.layout(
                                 state.textDelegate,
                                 constraints,
@@ -682,7 +723,11 @@ internal fun CoreTextField(
                                 prevResult
                             )
                             if (prevResult != result) {
-                                state.layoutResult = TextLayoutResultProxy(result)
+                                state.layoutResult = TextLayoutResultProxy(
+                                    value = result,
+                                    decorationBoxCoordinates =
+                                        prevProxy?.decorationBoxCoordinates,
+                                )
                                 onTextLayout(result)
                                 notifyFocusedRect(state, value, offsetMapping)
                             }

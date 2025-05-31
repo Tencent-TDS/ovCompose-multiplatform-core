@@ -170,6 +170,20 @@ abstract class AndroidXExtension(val project: Project) : ExtensionAware {
         return projectPath.substring(0, lastColonIndex)
     }
 
+    /**
+     * annotation and collection for compose-multiplatform are published with group "org.jetbrains.*".
+     * The Kotlin Native compiler will complain about the missing libraries
+     * "androidx.annotation:annotation" and "androidx.collection:collection" in a composite build.
+     * To work around this, we simply redirect the group back to "androidx.*".
+     */
+    private fun overriddenForCompositeBuild(library: LibraryGroup): LibraryGroup {
+        return when (library.group) {
+            "org.jetbrains.compose.annotation-internal" -> library.copy("androidx.annotation")
+            "org.jetbrains.compose.collection-internal" -> library.copy("androidx.collection")
+            else -> library
+        }
+    }
+
     // gets the library group from the project path, including special cases
     fun getLibraryGroupFromProjectPath(
         projectPath: String,
@@ -182,8 +196,13 @@ abstract class AndroidXExtension(val project: Project) : ExtensionAware {
                     " overrideInclude=[\"$projectPath\"] is $overridden"
             )
         }
-        if (overridden != null)
-            return overridden
+        if (overridden != null) {
+            return if (project.gradle.parent == null) {
+                overridden
+            } else {
+                overriddenForCompositeBuild(overridden)
+            }
+        }
 
         val result = getStandardLibraryGroupFromProjectPath(projectPath, explanationBuilder)
         if (result != null)

@@ -1,0 +1,3 @@
+package = platform.arkui
+headers = ace/xcomponent/native_interface_xcomponent.h native_interface_accessibility.h \
+        native_type.h native_node.h native_node_napi.h native_interface.h native_gesture.h

@@ -16,13 +16,31 @@
 
 package androidx.compose.ui.text
 
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.Lock
+import androidx.compose.runtime.platformSynchronizedObject
+import androidx.compose.runtime.synchronized
 import kotlin.native.ref.WeakReference
 
 internal actual class WeakKeysCache<K : Any, V> : Cache<K, V> {
     // TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
     private val cache = HashMap<Key<K>, V>()
 
-    override fun get(key: K, loader: (K) -> V): V {
+    // region Tencent Code
+    private val lock: Lock? = if (ComposeTabService.textAsyncPaint) platformSynchronizedObject() else null
+    // end region
+
+    actual override fun get(key: K, loader: (K) -> V): V {
+        // region Tencent Code
+        val lock = this.lock
+        if (lock != null) {
+            return synchronized(lock) {
+                clean()
+                cache.getOrPut(Key(key)) { loader(key) }
+            }
+        }
+        // end region
+
         clean()
         return cache.getOrPut(Key(key)) { loader(key) }
     }

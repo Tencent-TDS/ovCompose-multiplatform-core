@@ -17,6 +17,7 @@
 package androidx.compose.ui.interop
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.window.InteractionUIView
 import platform.Foundation.NSLock
 
 internal enum class UIKitInteropState {
@@ -80,7 +81,10 @@ private class UIKitInteropMutableTransaction: UIKitInteropTransaction {
  * Addding deferred actions is threadsafe, but they will be executed in the order of their submission, and on the main thread.
  */
 internal class UIKitInteropContext(
-    val requestRedraw: () -> Unit
+    val requestRedraw: () -> Unit,
+    // region Tencent Code
+    val interactionUIView: InteractionUIView
+    // endregion
 ) {
     private val lock: NSLock = NSLock()
     private var transaction = UIKitInteropMutableTransaction()

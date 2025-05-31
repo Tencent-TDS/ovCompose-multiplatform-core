@@ -33,6 +33,7 @@ fun org.jetbrains.skia.ColorFilter.asComposeColorFilter(): ColorFilter = ColorFi
 internal actual fun actualTintColorFilter(color: Color, blendMode: BlendMode): NativeColorFilter =
     SkiaColorFilter.makeBlend(color.toArgb(), blendMode.toSkia())
 
+val EMPTY_FILTER = SkiaColorFilter.makeComposed(null, null)
 /**
  * Remaps compose [ColorMatrix] to [org.jetbrains.skia.ColorMatrix] and returns [ColorFilter]
  * applying this matrix to draw color result

@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "page_show",
+      "value": "page from package"
+    },
+    {
+      "name": "text_toolbar_cut",
+      "value": "剪切"
+    },
+    {
+      "name": "text_toolbar_copy",
+      "value": "复制"
+    },
+    {
+      "name": "text_toolbar_select_all",
+      "value": "全选"
+    }
+  ]
+}

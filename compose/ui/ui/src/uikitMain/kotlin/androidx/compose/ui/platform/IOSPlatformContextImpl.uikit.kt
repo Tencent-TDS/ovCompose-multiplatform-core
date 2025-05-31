@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
@@ -26,7 +28,13 @@ internal class IOSPlatformContextImpl(
     override val textToolbar: TextToolbar,
     override val windowInfo: WindowInfo,
     density: Density,
-    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
+    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?,
+    // region Tencent Code
+    override val boundsPositionCalculator: ((offset: Rect) -> Rect)?,
+
+    override val nativeReusePool: Long,
+    override val drawInSkia: Boolean = false
+    // endregion
 ) : PlatformContext by PlatformContext.Empty {
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
@@ -35,6 +43,12 @@ internal class IOSPlatformContextImpl(
                 // this value is originating from iOS 16 drag behavior reverse engineering
                 10.dp.toPx()
             }
+        // region Tencent Code
+        override val maximumFlingVelocity: Float
+            get() = with(density) {
+                ComposeTabService.iOSFlingConfig.maximumVelocity.dp.toPx()
+            }
+        // endregion
     }
     override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
 }

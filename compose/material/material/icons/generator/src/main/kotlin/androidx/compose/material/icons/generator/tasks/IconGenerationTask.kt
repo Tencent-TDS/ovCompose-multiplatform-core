@@ -155,6 +155,11 @@ abstract class IconGenerationTask : DefaultTask() {
             }
         }
 
+        @JvmStatic
+        fun registerCoreIconProjectForMpp(project: Project) {
+            CoreIconGenerationTask.register(project, null)
+        }
+
         /**
          * Registers the extended [project]. The core project contains all icons except for the
          * icons defined in [androidx.compose.material.icons.generator.CoreIcons], as well as a

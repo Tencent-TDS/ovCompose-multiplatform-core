@@ -19,20 +19,22 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 
+// region Tencent Code
 /**
  * Composition local for SafeArea of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalSafeArea = staticCompositionLocalOf { PlatformInsets.Zero }
+val LocalSafeArea = compositionLocalOf { PlatformInsets.Zero }
 
 /**
  * Composition local for layoutMargins of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalLayoutMargins = staticCompositionLocalOf { PlatformInsets.Zero }
-
+val LocalLayoutMargins = compositionLocalOf { PlatformInsets.Zero }
+// endregion
 @OptIn(InternalComposeApi::class)
 private object SafeAreaInsetsConfig : InsetsConfig {
     override val safeInsets: PlatformInsets
