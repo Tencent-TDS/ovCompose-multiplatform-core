@@ -43,9 +43,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInterfaceOrientation
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalNapiEnv
+import androidx.compose.ui.platform.LocalPlatformInsetsHolder
 import androidx.compose.ui.platform.LocalUIContext
 import androidx.compose.ui.platform.MainDispatcherFactory
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformInsetsHolder
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.accessibility.OHNativeXComponent
 import androidx.compose.ui.scene.ComposeScene
@@ -83,6 +85,10 @@ internal class ComposeArkUIViewContainer(
         InterfaceOrientation.Portrait
     )
     internal val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+
+    internal val insetsHolder by lazy {
+        PlatformInsetsHolder(this)
+    }
 
     override fun onSurfaceCreated(component: OHNativeXComponent, width: Int, height: Int) {
         if (!nativeSurfaceHasBeenDestroyed) {
@@ -221,6 +227,7 @@ internal fun ProvideContainerCompositionLocals(
         LocalTouchableInteropContainer provides requiredTouchableRootView,
         LocalArkUIInteropContext provides interopContext,
         LocalSystemTheme provides systemThemeState.value,
+        LocalPlatformInsetsHolder provides insetsHolder,
         content = { GlobalContentScope.content(content) }
     )
 }

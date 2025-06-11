@@ -19,11 +19,12 @@ package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.ui.platform.LocalKeyboardOverlapHeight
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.PlatformInsetsHolder
+import androidx.compose.ui.platform.PlatformInsetsValues
 
 private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 
-// TODO("补API；need check the impl）
 /**
  * An insets type representing the window of a caption bar.
  * It is probably useless for OHOS.
@@ -31,27 +32,25 @@ private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 actual val WindowInsets.Companion.captionBar: WindowInsets
     get() = ZeroInsets
 
-// TODO("补API；后续可能参考import display from '@ohos.display'）
 /**
  * This [WindowInsets] represents the area with the display cutout (e.g. for camera).
  */
 actual val WindowInsets.Companion.displayCutout: WindowInsets
     @Composable
-    @OptIn(InternalComposeApi::class)
-    get() = TODO("need to import display from '@ohos.display' and impl with getCutoutInfo and CutoutInfo. From WindowInsets.Companion.displayCutout")
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
+    get() = PlatformInsetsHolder.current().displayCutout.windowInsets
 
-// TODO("补API；后续可能参考import display from '@ohos.window'）
 /**
  * An insets type representing the window of an "input method",
  * for iOS IME representing the software keyboard.
  *
- * TODO: Animation doesn't work on iOS yet
+ * TODO: Animation doesn't work on OHOS yet
  */
 actual val WindowInsets.Companion.ime: WindowInsets
     @Composable
-    get() = WindowInsets(bottom = LocalKeyboardOverlapHeight.current)
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
+    get() = PlatformInsetsHolder.current().ime.windowInsets
 
-// TODO("补API；need check the impl）
 /**
  * These insets represent the space where system gestures have priority over application gestures.
  */
@@ -59,34 +58,31 @@ actual val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
     @Composable
     get() = ZeroInsets
 
-// TODO("补API'；后续可能参考import display from '@ohos.window'）
 /**
  * These insets represent where system UI places navigation bars.
  * Interactive UI should avoid the navigation bars area.
  */
 actual val WindowInsets.Companion.navigationBars: WindowInsets
     @Composable
-    get() = TODO("probably need to import display from '@ohos.window' and impl with findWindow and the Size property. From WindowInsets.Companion.navigationBars")
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
+    get() = PlatformInsetsHolder.current().navigationBars.windowInsets
 
-// TODO("补API'；后续可能参考import display from '@ohos.window'）
 /**
  * These insets represent status bar.
  */
 actual val WindowInsets.Companion.statusBars: WindowInsets
     @Composable
-    @OptIn(InternalComposeApi::class)
-    get() = TODO("probably need to import display from '@ohos.window' and impl with findWindow and the Size property. From WindowInsets.Companion.statusBars")
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
+    get() = PlatformInsetsHolder.current().statusBars.windowInsets
 
-// TODO("补API；后续可能参考import display from '@ohos.display'）
 /**
  * These insets represent all system bars.
  * Includes [statusBars], [captionBar] as well as [navigationBars], but not [ime].
  */
 actual val WindowInsets.Companion.systemBars: WindowInsets
     @Composable
-    get() = TODO("need to import display from '@ohos.display' and impl with getCutoutInfo and CutoutInfo. From WindowInsets.Companion.systemBars")
+    get() = statusBars.union(navigationBars)
 
-// TODO("补API')
 /**
  * The [systemGestures] insets represent the area of a window where system gestures have
  * priority and may consume some or all touch input, e.g. due to the system bar
@@ -94,48 +90,49 @@ actual val WindowInsets.Companion.systemBars: WindowInsets
  */
 actual val WindowInsets.Companion.systemGestures: WindowInsets
     @Composable
-    get() = TODO("impl on OHOS not found yet. From WindowInsets.Companion.systemGestures")
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
+    get() = PlatformInsetsHolder.current().systemGestures.windowInsets
 
-// TODO("补API')
 /**
  * Returns the tappable element insets.
  */
 actual val WindowInsets.Companion.tappableElement: WindowInsets
     @Composable
-    get() = TODO("impl on OHOS not found yet. From WindowInsets.Companion.tappableElement")
+    get() = navigationBars
 
-// TODO("补API；后续可能参考import display from '@ohos.display'）
 /**
  * The insets for the curved areas in a waterfall display.
- * It is useless for iOS.
+ * It is useless for OHOS.
  */
 actual val WindowInsets.Companion.waterfall: WindowInsets
-    get() = TODO("need to import display from '@ohos.display' and impl with getCutoutInfo and CutoutInfo. From WindowInsets.Companion.waterfall")
+    get() = ZeroInsets
 
-// TODO("补API；后续可能参考import display from '@ohos.display'）
 /**
  * The insets that include areas where content may be covered by other drawn content.
  * This includes all [systemBars], [displayCutout], and [ime].
  */
 actual val WindowInsets.Companion.safeDrawing: WindowInsets
     @Composable
-    get() = TODO("need to import display from '@ohos.display' and impl with getCutoutInfo and CutoutInfo AND import display from '@ohos.window' and impl with getWindowAvoidArea(3). From WindowInsets.Companion.safeDrawing")
+    get() = systemBars.union(ime).union(displayCutout)
 
-// TODO("补API')
 /**
  * The insets that include areas where gestures may be confused with other input,
  * including [systemGestures], [mandatorySystemGestures], [waterfall], and [tappableElement].
  */
 actual val WindowInsets.Companion.safeGestures: WindowInsets
     @Composable
-    get() = TODO("Need to consider the actual situation on OHOS. From WindowInsets.Companion.safeGestures")
+    get() = tappableElement.union(mandatorySystemGestures).union(systemGestures).union(waterfall)
 
-// TODO("补API')
 /**
  * The insets that include all areas that may be drawn over or have gesture confusion,
  * including everything in [safeDrawing] and [safeGestures].
  */
 actual val WindowInsets.Companion.safeContent: WindowInsets
     @Composable
-    get() = TODO("Need to consider the actual situation on OHOS. From WindowInsets.Companion.safeContent")
+    get() = safeDrawing.union(safeGestures)
+
+
+@OptIn(ExperimentalComposeUiApi::class, InternalComposeApi::class)
+private val PlatformInsetsValues.windowInsets: WindowInsets
+    @Composable get() = WindowInsets(left = left, top = top, right = right, bottom = bottom)
 
