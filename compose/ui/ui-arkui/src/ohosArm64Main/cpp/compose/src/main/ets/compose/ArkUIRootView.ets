@@ -48,5 +48,6 @@ export class ArkUIRootView extends NodeController {
 
   removeSubView(view: ArkUIView) {
     this.frameNode.removeChild(view)
+    view.dispose()
   }
 }
