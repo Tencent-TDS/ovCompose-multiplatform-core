@@ -71,3 +71,9 @@ ovCompose (online-video-compose) is a cross-platform development framework launc
 
 ## License
 ovCompose-multiplatform-core is released under the Apache 2.0 License. For details, see: [License](License_ovCompose-multiplatform-core.txt)
+
+### Stay Connected
+Scan the QR codes below to follow our latest updates or contact us for inquiries.
+
+<img alt="ovCompose support" src="img/support.png" />
+
