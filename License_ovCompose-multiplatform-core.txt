@@ -1,6 +1,6 @@
 Tencent is pleased to support the open source community by making ovCompose-multiplatform-core available. 
 
-Copyright (C) 2025 THL A29 Limited, a Tencent company.  All rights reserved. The below software in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) THL A29 Limited.
+Copyright (C) 2025 Tencent.  All rights reserved. The below software in this distribution may have been modified by Tencent ("Tencent Modifications"). All Tencent Modifications are Copyright (C) Tencent.
 
 ovCompose-multiplatform-core is licensed under the Apache License Version 2.0 except for the third-party components listed below.
 
@@ -70,7 +70,7 @@ Other dependencies and licenses:
 
 
 Open Source Software Licensed under the Apache License Version 2.0:
-The below software in this distribution may have been modified by THL A29 Limited ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2025 THL A29 Limited.
+The below software in this distribution may have been modified by Tencent ("Tencent Modifications"). All Tencent Modifications are Copyright (C) 2025 Tencent.
 --------------------------------------------------------------------
 1. jetbrains Compose Multiplatform Core
 Copyright (c) jetbrains Compose Multiplatform Core original author and authors
