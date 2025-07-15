@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=it">Itapano</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=Tencent-TDS&project=ovCompose-multiplatform-core&lang=id">Bahasa Indonesia</a>
+      </div>
+    </div>
+  </details>
+</div>
+
 <p align="center">
     <img alt="ovCompose Logo" src="img/ovCompose.svg" />
 </p>
