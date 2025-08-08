@@ -226,6 +226,22 @@ bool XComponentRender::EglInit(void *window) {
     return true;
 }
 
+const char* NEW_RENDERER_PREFIX = "Maleoon ";
+const char* NEW_RENDERER_MIN_VERSION = "Maleoon 920";
+static int isNewRenderer = -1;
+
+// 华为在 Maleoon 920 之后使用了不同的渲染方式，渲染 api 需要做特殊处理。
+static bool newRenderer() {
+    if (isNewRenderer < 0) {
+        auto renderer = (const char *)glGetString(GL_RENDERER);
+        // start with `NEW_RENDERER_PREFIX` and more than `NEW_RENDERER_MIN_VERSION`.
+        isNewRenderer = renderer != nullptr &&
+                        strncmp(renderer, NEW_RENDERER_PREFIX, strlen(NEW_RENDERER_PREFIX)) == 0 &&
+                        strcmp(renderer, NEW_RENDERER_MIN_VERSION) >= 0;
+    }
+    return isNewRenderer;
+}
+
 bool XComponentRender::EglPrepareDraw() const {
     if (eglDisplay == nullptr || eglSurface == nullptr || eglContext == nullptr) {
         LOGE("XComponentRender: EglPrepareDraw: eglDisplay or eglSurface or eglContext is null");
@@ -234,6 +250,10 @@ bool XComponentRender::EglPrepareDraw() const {
     if (!eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
         LOGE("XComponentRender: EglPrepareDraw: unable to mak current");
         return false;
+    }
+    if (newRenderer()) {
+        // 华为在 Maleoon 920 之后使用了不同的渲染方式，对此增加 glClear 解决此型号屏闪渲染问题。
+        glClear(GL_COLOR_BUFFER_BIT);
     }
     return true;
 }
