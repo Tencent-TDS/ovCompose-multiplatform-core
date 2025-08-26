@@ -447,7 +447,7 @@ using namespace TMM;
 - (void)drawPath:(TMMComposeNativePath *)path paint:(TMMComposeNativePaint *)paint {
     TMMNativeBasicShader *shader = [paint shader];
     const TMMNativeDrawingType drawingType = shader ? TMMNativeDrawingTypeShaderPath : TMMNativeDrawingTypePath;
-    const uint64_t drawingContentHash = hashMerge([path hash], TMMNativeDataHashFromPaint(paint), drawingType);
+    const uint64_t drawingContentHash = hashMerge([path dataHash], TMMNativeDataHashFromPaint(paint), drawingType);
     PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     bool isDirty = updateItem.isDirty;
     CALayer *layerForDrawing = nil;

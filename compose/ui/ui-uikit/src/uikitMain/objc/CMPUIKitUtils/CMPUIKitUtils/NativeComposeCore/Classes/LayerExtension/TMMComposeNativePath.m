@@ -197,7 +197,7 @@ static const float TMMComposeNativePathOpTypeOp = 19.0f;
 }
 
 - (void)reset {
-    _currentDataHash = TMMComposeCoreHash4Floats(TMMComposeNativePathOpTypeReset, _currentDataHash, 0, 0);
+    _currentDataHash = 0;
     [self.bezierPath removeAllPoints];
     NSLog(@"[NativePath] self:%@ reset", self);
 }
