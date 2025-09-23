@@ -18,6 +18,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.ui.arkui.RenderingBackend
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
 
@@ -49,4 +50,6 @@ class ComposeArkUIViewControllerConfiguration {
      */
     @ExperimentalComposeApi
     var internalStopGCSuppressor: () -> Unit = {}
+
+    var renderingBackend: RenderingBackend = RenderingBackend.XComponent
 }

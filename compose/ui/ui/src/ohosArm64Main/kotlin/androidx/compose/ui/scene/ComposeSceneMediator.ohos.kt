@@ -25,17 +25,19 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.arkui.InternalArkUIViewController
+import androidx.compose.ui.arkui.RenderingBackend
 import androidx.compose.ui.arkui.TouchEvent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.pointer.HistoricalChange
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.interop.ArkUIInteropContext
-import androidx.compose.ui.interop.OhosTrace
 import androidx.compose.ui.napi.JsEnv
 import androidx.compose.ui.platform.LocalKeyboardAvoidFocusOffset
 import androidx.compose.ui.platform.LocalKeyboardOverlapHeight
+import androidx.compose.ui.platform.ArkUIRenderNodeLayerFactory
 import androidx.compose.ui.platform.PlatformClipboardProxy
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformContextImpl
@@ -97,7 +99,24 @@ internal class ComposeSceneMediator(
     }
 
     private val render: ComposeSceneRender by lazy {
-        ComposeSceneRender(onDraw = scene::render)
+        createSceneRender(configuration.renderingBackend)
+    }
+
+    private fun createSceneRender(backend: RenderingBackend): ComposeSceneRender {
+        return when (backend) {
+            RenderingBackend.ArkUIRenderNode -> ComposeSceneRenderForRenderNode(renderDelegate)
+            RenderingBackend.XComponent -> ComposeSceneRenderForXComponent(renderDelegate)
+        }
+    }
+
+    private val renderDelegate by lazy {
+        RenderingRenderNodeDelegateImpl(scene = scene)
+    }
+
+    init {
+        if (configuration.renderingBackend == RenderingBackend.ArkUIRenderNode) {
+            scene.setLayerFactory(ArkUIRenderNodeLayerFactory())
+        }
     }
 
     private val keyboardVisibilityListener by lazy {
@@ -184,14 +203,12 @@ internal class ComposeSceneMediator(
         activeChangedPointers.putAll(changedPointers.associateBy { it.id })
         val pointers = activeChangedPointers.values.toList()
 
-        OhosTrace.traceSync("sendPointerEvent") {
-            scene.sendPointerEvent(
-                eventType = eventType,
-                pointers = pointers,
-                timeMillis = event.timestamp,
-                nativeEvent = TouchEvent(event)
-            )
-        }
+        scene.sendPointerEvent(
+            eventType = eventType,
+            pointers = pointers,
+            timeMillis = event.timestamp,
+            nativeEvent = TouchEvent(event)
+        )
         return true
     }
 
@@ -311,4 +328,13 @@ internal class ComposeSceneMediator(
             }
         }
     }
+}
+
+private class RenderingRenderNodeDelegateImpl(
+    private val scene: ComposeScene
+) : ComposeSceneRender.Delegate {
+    override fun render(canvas: Canvas, timestamp: Long) {
+        scene.render(canvas, timestamp)
+    }
+
 }
