@@ -171,6 +171,7 @@ WORK = "2.10.0-alpha01"
 
 [groups]
 ACTIVITY = { group = "androidx.activity", atomicGroupVersion = "versions.ACTIVITY" }
+COMMON = { group = "org.jetbrains.compose.common", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [":compose:common"]}
 ANNOTATION = { group = "org.jetbrains.compose.annotation-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":annotation:annotation" ] }
 APPACTIONS_BUILTINTYPES = { group = "androidx.appactions.builtintypes", atomicGroupVersion = "versions.APPACTIONS_BUILTINTYPES" }
 APPACTIONS_INTERACTION = { group = "androidx.appactions.interaction", atomicGroupVersion = "versions.APPACTIONS_INTERACTION" }

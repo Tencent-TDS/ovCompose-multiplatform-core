@@ -1,0 +1,206 @@
+import androidx.build.AndroidXComposePlugin
+import androidx.build.LibraryType
+
+plugins {
+    id("AndroidXPlugin")
+    id("com.android.library")
+    id("AndroidXComposePlugin")
+    id("kotlinx-atomicfu")
+    id("kotlin-multiplatform")
+}
+
+// 用于应用和配置 Kotlin Gradle插件
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+
+if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+    dependencies {
+        /*
+         * When updating dependencies, make sure to make the an an analogous update in the
+         * corresponding block below
+         */
+
+        implementation(libs.kotlinStdlibCommon)
+
+        testImplementation(libs.testRules)
+        testImplementation(libs.testRunner)
+        testImplementation(libs.kotlinTestJunit)
+        testImplementation(libs.junit)
+        testImplementation(libs.truth)
+
+        androidTestImplementation(libs.testRules)
+        androidTestImplementation(libs.testRunner)
+        androidTestImplementation(libs.espressoCore)
+        androidTestImplementation(libs.junit)
+        androidTestImplementation(libs.truth)
+    }
+}
+
+if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+    androidXComposeMultiplatform {
+        android()
+        darwin()
+        ohos()
+    }
+
+    kotlin {
+        iosX64("uikitX64") {
+            configureCInterop(it, false, "x86_64")
+        }
+        iosArm64("uikitArm64") {
+            configureCInterop(it, true, "arm64")
+        }
+        iosSimulatorArm64("uikitSimArm64") {
+            configureCInterop(it, false, "arm64")
+        }
+
+        sourceSets {
+            commonMain.dependencies {
+                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinCoroutinesCore)
+                implementation(libs.atomicFu)
+            }
+            nativeMain {
+                dependsOn(commonMain)
+            }
+            androidMain {
+                dependencies {
+                    implementation(libs.kotlinStdlib)
+                    implementation(libs.kotlinCoroutinesAndroid)
+                }
+            }
+            ohosArm64Main {
+                dependsOn(commonMain)
+            }
+            darwinMain {
+                dependsOn(commonMain)
+            }
+            def uikitX64Main = sourceSets.getByName("uikitX64Main")
+            def uikitArm64Main = sourceSets.getByName("uikitArm64Main")
+            def uikitSimArm64Main = sourceSets.getByName("uikitSimArm64Main")
+            uikitMain.dependsOn(darwinMain)
+            uikitX64Main.dependsOn(uikitMain)
+            uikitArm64Main.dependsOn(uikitMain)
+            uikitSimArm64Main.dependsOn(uikitMain)
+        }
+    }
+    dependencies {
+        implementation(libs.kotlinStdlib)
+    }
+}
+
+tasks.register("printSourceSets") {
+    doLast {
+        kotlin.sourceSets.all { ss ->
+            logger.lifecycle("SourceSet: ${ss.name}  dependsOn -> ${ss.dependsOn*.name}")
+        }
+    }
+}
+
+def configureCInterop(target, isDevice, architecture) {
+    def frameworkName = "UIKitComposeUtils"
+    def schemeName = frameworkName
+    def objcDir = new File(project.projectDir, "src/uikitMain/objectc")
+    def frameworkSourcesDir = new File(objcDir, frameworkName)
+    def sdkName
+    def destination
+    if (isDevice) {
+        sdkName = "iphoneos"
+        destination = "generic/platform=iOS"
+    } else {
+        sdkName = "iphonesimulator"
+        destination = "generic/platform=iOS Simulator"
+    }
+    def buildDir = new File(project.buildDir, "objectc/${target.name}/${sdkName}.xcarchive")
+    def frameworkPath = new File(buildDir, "/Products/usr/local/lib/lib${frameworkName}.a")
+    def headersPath = new File(frameworkSourcesDir, frameworkName)
+
+    def systemFrameworks = ["UIKit", frameworkName]
+    def linkerFlags = ["-ObjC"] + systemFrameworks.collectMany {
+        ["-framework", it]
+    }
+    def compilerArgs = [
+            "-include-binary", frameworkPath.toString(),
+    ] + linkerFlags.collectMany {
+        ["-linker-option", it]
+    }
+
+    def xcodeConfiguration = resolveXcodeConfiguration()
+
+    target.compilations.main {
+        def taskName = "${compileTaskProvider.name}ObjCLib"
+        project.tasks.register(taskName, Exec) {
+            inputs.dir(frameworkSourcesDir)
+                    .withPropertyName("${frameworkName}-${sdkName}")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+
+            outputs.cacheIf { true }
+            outputs.dir(buildDir)
+                    .withPropertyName("${frameworkName}-${sdkName}-archive")
+
+            workingDir(frameworkSourcesDir)
+            commandLine("xcodebuild")
+            args(
+                    "archive",
+                    "-scheme", schemeName,
+                    "-configuration", xcodeConfiguration,
+                    "-archivePath", buildDir,
+                    "-sdk", sdkName,
+                    "-destination", destination,
+                    "SKIP_INSTALL=NO",
+                    "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
+                    "VALID_ARCHS=" + architecture,
+                    "MACH_O_TYPE=staticlib"
+            )
+        }
+
+        tasks[compileTaskProvider.name].with {
+            dependsOn(taskName)
+            inputs.file(frameworkPath).withPropertyName("${frameworkName}-${sdkName}-static-lib")
+        }
+
+        cinterops {
+            utils {
+                headersPath.eachDirRecurse {
+                    includeDirs(it)
+                }
+                headersPath.eachFileRecurse {
+                    if (it.name.endsWith('.h')) {
+                        headers(it)
+                    }
+                }
+            }
+        }
+    }
+
+    target.binaries.all {
+        freeCompilerArgs += xcodeConfiguration == "Debug" ? [] : compilerArgs
+    }
+    target.compilations.all {
+        kotlinOptions {
+            freeCompilerArgs += xcodeConfiguration == "Debug" ? [] : compilerArgs
+        }
+    }
+}
+
+def resolveXcodeConfiguration() {
+    // Set XCODE_CONFIGURATION to Debug to allow breakpoint in the Objective-C source code.
+    def xcodeConfiguration = project.findProperty("XCODE_CONFIGURATION") ?:
+            gradle.parent?.rootProject?.findProperty("XCODE_CONFIGURATION") ?: "Release"
+    return xcodeConfiguration
+}
+
+androidx {
+    name = "Compose Common"
+    type = LibraryType.PUBLISHED_LIBRARY
+    inceptionYear = "2025"
+    description = "Compose Common"
+    legacyDisableKotlinStrictApiMode = true
+}
+
+androidxCompose {
+    composeCompilerPluginEnabled = false
+}
+
+android {
+    namespace "androidx.compose.common"
+}
