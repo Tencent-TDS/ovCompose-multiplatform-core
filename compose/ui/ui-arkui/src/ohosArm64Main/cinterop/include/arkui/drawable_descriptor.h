@@ -142,7 +142,7 @@ int32_t OH_ArkUI_DrawableDescriptor_GetAnimationDuration(ArkUI_DrawableDescripto
  * @brief Sets the number of playback times.
  *
  * @param drawableDescriptor Indicates the pointer to the drawableDescriptor.
- * @param iterations Indicates the number of playback times.
+ * @param iteration Indicates the number of playback times.
  * @since 12
 */
 void OH_ArkUI_DrawableDescriptor_SetAnimationIteration(

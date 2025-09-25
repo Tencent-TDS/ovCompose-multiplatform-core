@@ -36,7 +36,11 @@
 #ifndef ARKUI_NATIVE_ANIMATE_H
 #define ARKUI_NATIVE_ANIMATE_H
 
+#ifdef __cplusplus
 #include <cstdint>
+#else
+#include <stdint.h>
+#endif
 
 #include "native_type.h"
 
@@ -183,7 +187,7 @@ typedef struct {
     /**
     * @brief Disposes of an animator object.
     *
-    * @param animator Indicates the target animator object.
+    * @param animatorHandle Indicates the target animator object.
     */
     void (*disposeAnimator)(ArkUI_AnimatorHandle animatorHandle);
 } ArkUI_NativeAnimateAPI_1;
@@ -199,6 +203,7 @@ ArkUI_AnimateOption* OH_ArkUI_AnimateOption_Create();
 /**
 * @brief Disposes of an animation configuration.
 *
+* @param option Indicates the pointer to an animation configuration.
 * @since 12
 */
 void OH_ArkUI_AnimateOption_Dispose(ArkUI_AnimateOption* option);
@@ -410,6 +415,19 @@ int32_t OH_ArkUI_KeyframeAnimateOption_RegisterOnFinishCallback(
     ArkUI_KeyframeAnimateOption* option, void* userData, void (*onFinish)(void* userData));
 
 /**
+ * @brief Sets the expected frame rate range of a keyframe animation.
+ *
+ * @param option Indicates the pointer to a keyframe animation configuration.
+ * @param frameRate Indicates the expected frame rate range.
+ * @return Returns the error code.
+ *         Returns {@link ARKUI_ERROR_CODE_NO_ERROR} if the operation is successful.
+ *         Returns {@link ARKUI_ERROR_CODE_PARAM_INVALID} if a parameter error occurs.
+ * @since 19
+ */
+int32_t OH_ArkUI_KeyframeAnimateOption_SetExpectedFrameRate(
+    ArkUI_KeyframeAnimateOption* option, ArkUI_ExpectedFrameRateRange* frameRate);
+
+/**
  * @brief Sets the duration of a keyframe animation, in milliseconds.
  *
  * @param option Indicates the keyframe animation parameters.
@@ -473,6 +491,15 @@ int32_t OH_ArkUI_KeyframeAnimateOption_GetDelay(ArkUI_KeyframeAnimateOption* opt
 int32_t OH_ArkUI_KeyframeAnimateOption_GetIterations(ArkUI_KeyframeAnimateOption* option);
 
 /**
+ * @brief Obtains the expected frame rate range of a keyframe animation configuration.
+ *
+ * @param option Indicates the pointer to a keyframe animation configuration.
+ * @return Returns the expected frame rate range of the keyframe animation.
+ * @since 19
+ */
+ArkUI_ExpectedFrameRateRange* OH_ArkUI_KeyframeAnimateOption_GetExpectedFrameRate(ArkUI_KeyframeAnimateOption* option);
+
+/**
  * @brief Obtains the duration of a specific state in a keyframe animation.
  *
  * @param option Indicates the keyframe animation parameters.
@@ -508,6 +535,7 @@ ArkUI_AnimatorOption* OH_ArkUI_AnimatorOption_Create(int32_t keyframeSize);
 /**
  * @brief Disposes of an animator parameter object.
  *
+ * @param option Indicates the target animator parameter object.
  * @since 12
  */
 void OH_ArkUI_AnimatorOption_Dispose(ArkUI_AnimatorOption* option);
@@ -932,6 +960,7 @@ int32_t OH_ArkUI_Animator_Reverse(ArkUI_AnimatorHandle animatorHandle);
  * @param curve Indicates the curve type.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateCurveByType(ArkUI_AnimationCurve curve);
 
@@ -943,6 +972,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateCurveByType(ArkUI_AnimationCurve curve);
  * <b>true</b>: Jumping occurs when the interpolation ends. <b>false</b>: Jumping occurs when the interpolation starts.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateStepsCurve(int32_t count, bool end);
 
@@ -958,6 +988,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateStepsCurve(int32_t count, bool end);
  * @param y2 Indicates the Y coordinate of the second point on the Bezier curve.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateCubicBezierCurve(float x1, float y1, float x2, float y2);
 
@@ -979,6 +1010,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateCubicBezierCurve(float x1, float y1, floa
  * the oscillation amplitude.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateSpringCurve(float velocity, float mass, float stiffness, float damping);
 
@@ -998,6 +1030,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateSpringCurve(float velocity, float mass, f
  * transit smoothly over this duration if they are different.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateSpringMotion(float response, float dampingFraction, float overlapDuration);
 
@@ -1017,6 +1050,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateSpringMotion(float response, float dampin
  * transit smoothly over this duration if they are different.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateResponsiveSpringMotion(
     float response, float dampingFraction, float overlapDuration);
@@ -1043,6 +1077,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateResponsiveSpringMotion(
  * the oscillation amplitude.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateInterpolatingSpring(float velocity, float mass, float stiffness, float damping);
 
@@ -1060,6 +1095,7 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateInterpolatingSpring(float velocity, float
  * which will result in an effect of transition from that end value to the value of the state variable.
  * @return Returns the pointer to the interpolation object of the curve.
  *         Returns <b>NULL</b> if a parameter error occurs.
+ * @since 12
  */
 ArkUI_CurveHandle OH_ArkUI_Curve_CreateCustomCurve(
     void* userData, float (*interpolate)(float fraction, void* userdata));
@@ -1067,7 +1103,8 @@ ArkUI_CurveHandle OH_ArkUI_Curve_CreateCustomCurve(
 /**
  * @brief Disposes of a custom curve.
  *
- * @param curve Indicates the pointer to the interpolation object of the curve.
+ * @param curveHandle Indicates the pointer to the interpolation object of the curve.
+ * @since 12
  */
 void OH_ArkUI_Curve_DisposeCurve(ArkUI_CurveHandle curveHandle);
 
@@ -1176,3 +1213,4 @@ int32_t OH_ArkUI_TransitionEffect_SetAnimation(
 #endif
 
 #endif // ARKUI_NATIVE_ANIMATE_H
+/** @} */
