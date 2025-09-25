@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStoreOwner
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.StableRef
@@ -70,7 +71,7 @@ import platform.ohos.napi_value
  * @author gavinbaoliu
  * @since 2024/5/9
  */
-sealed interface ArkUIViewController : LifecycleOwner, OnBackPressedDispatcherOwner, ExtraStorageOwner {
+sealed interface ArkUIViewController : LifecycleOwner, OnBackPressedDispatcherOwner, ExtraStorageOwner, ViewModelStoreOwner {
 
     /**
      * Return harmony ArkUI Context

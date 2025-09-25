@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.InterfaceOrientation
 import androidx.compose.ui.platform.LocalArkUIViewController
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInterfaceOrientation
+import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalNapiEnv
 import androidx.compose.ui.platform.LocalPlatformInsetsHolder
@@ -59,6 +60,7 @@ import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.lifecycle.ViewModelStore
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import platform.ohos.napi_value
@@ -88,6 +90,13 @@ internal class ComposeArkUIViewContainer(
 
     internal val insetsHolder by lazy {
         PlatformInsetsHolder(this)
+    }
+
+    override val viewModelStore: ViewModelStore by lazy { ViewModelStore() }
+
+    override fun aboutToDisappear() {
+        super.aboutToDisappear()
+        viewModelStore.clear()
     }
 
     override fun onSurfaceCreated(component: OHNativeXComponent, width: Int, height: Int) {
@@ -218,6 +227,7 @@ internal fun ProvideContainerCompositionLocals(
     CompositionLocalProvider(
         LocalArkUIViewController provides this,
         LocalLifecycleOwner provides this,
+        LocalInternalViewModelStoreOwner provides this,
         LocalNapiEnv provides requiredEnv,
         LocalContext provides context,
         LocalUIContext provides uiContext,
