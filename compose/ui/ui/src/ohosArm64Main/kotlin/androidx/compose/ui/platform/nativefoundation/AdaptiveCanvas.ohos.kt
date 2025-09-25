@@ -1,6 +1,8 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Vertices
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import kotlinx.cinterop.COpaquePointer
 import kotlin.experimental.ExperimentalObjCRefinement
 
 
@@ -51,8 +54,11 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
 
 @OptIn(ExperimentalObjCRefinement::class)
 @HiddenFromObjC
-internal class AdaptiveCanvas() : OHOSNativeCanvas {
-    //    val nativeCanvasProxy: ArkUINativeCanvasProxy()
+internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
+    // nativeCanvasProxy 内部持有一个 canvasNode: RenderNode -> 作为一个子树的根节点持有所有参与绘制的drawingNode
+    val nativeCanvasProxy: OHNativeCanvasProxy_Handle? =
+        androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(factory)
+
     override fun onPreDraw() {
         // TODO nativeCanvasProxy.beginDraw()
         LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")

@@ -22,6 +22,8 @@
 #include "xcomponent_holder.h"
 #include "xcomponent_log.h"
 #include "xcomponent_render.h"
+#include "canvas/oh_native_canvas_proxy.h"
+#include "canvas/oh_native_canvas_proxy_factory.h"
 
 EXTERN_C_START
 void androidx_compose_ui_arkui_utils_init(napi_env env, napi_value exports) {
@@ -57,4 +59,11 @@ void androidx_compose_ui_arkui_utils_xcomponent_unregisterFrameCallback(void *re
     auto xComponentRender = reinterpret_cast<androidx::compose::ui::arkui::utils::XComponentRender *>(render);
     xComponentRender->UnregisterFrameCallback();
 }
+
+OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory) {
+    LOGI("androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy: start");
+    auto canvasFactory = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxyFactory *>(factory);
+    return reinterpret_cast<OHNativeCanvasProxy_Handle>(canvasFactory->CreateOHNativeCanvasProxy());
+}
+
 EXTERN_C_END

@@ -151,6 +151,7 @@ internal abstract class BasicArkUIViewController(
     internal var internalContext: ContextImpl? = null
     internal var internalUiContext: UIContextImpl? = null
     internal var render: COpaquePointer? = null
+    internal var nativeCanvasFactory: COpaquePointer? = null
     internal var backRootView: ArkUIRootView? = null
     internal var foreRootView: ArkUIRootView? = null
     internal var touchableRootView: ArkUIRootView? = null
@@ -383,6 +384,11 @@ fun _ArkUIViewController_sendMessage(controllerRef: COpaquePointer, type: String
 @InternalComposeApi
 fun _ArkUIViewController_setXComponentRender(controllerRef: COpaquePointer, render: COpaquePointer) {
     controllerRef.getController()?.render = render
+}
+
+@InternalComposeApi
+fun _ArkUIViewController_setNativeCanvasFactory(controllerRef: COpaquePointer, nativeCanvasFactory: COpaquePointer) {
+    controllerRef.getController()?.nativeCanvasFactory = nativeCanvasFactory
 }
 
 @InternalComposeApi

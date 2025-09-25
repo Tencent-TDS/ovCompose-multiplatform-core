@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.window.ComposeArkUIViewControllerConfiguration
+import kotlinx.cinterop.COpaquePointer
 import kotlin.coroutines.CoroutineContext
 import org.jetbrains.skiko.currentNanoTime
 import platform.ohos.napi_env
@@ -67,6 +68,7 @@ internal class ComposeSceneMediator(
     private val interopContext: ArkUIInteropContext,
     val coroutineContext: CoroutineContext,
     component: OHNativeXComponent,
+    nativeCanvasFactory: COpaquePointer? = null,
     composeSceneFactory: (
         invalidate: () -> Unit,
         platformContext: PlatformContext,
@@ -115,7 +117,10 @@ internal class ComposeSceneMediator(
 
     init {
         if (configuration.renderingBackend == RenderingBackend.ArkUIRenderNode) {
-            scene.setLayerFactory(ArkUIRenderNodeLayerFactory())
+            if (nativeCanvasFactory == null) {
+                throw IllegalArgumentException("nativeCanvasFactory is not set")
+            }
+            scene.setLayerFactory(ArkUIRenderNodeLayerFactory(nativeCanvasFactory))
         }
     }
 
