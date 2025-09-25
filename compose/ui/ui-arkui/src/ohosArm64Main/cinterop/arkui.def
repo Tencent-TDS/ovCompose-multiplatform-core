@@ -1,3 +1,6 @@
 package = platform.arkui
 headers = ace/xcomponent/native_interface_xcomponent.h native_interface_accessibility.h \
-        native_type.h native_node.h native_node_napi.h native_interface.h native_gesture.h
+        napi/common.h napi/native_api.h \
+        js_native_api_types.h js_native_api.h node_api.h node_api_types.h \
+        drawable_descriptor.h native_type.h native_node.h native_node_napi.h native_interface.h \
+        ui_input_event.h native_gesture.h native_render.h
