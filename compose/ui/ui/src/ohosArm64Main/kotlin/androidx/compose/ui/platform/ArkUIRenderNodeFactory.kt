@@ -21,8 +21,11 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.unit.Density
+import kotlinx.cinterop.COpaquePointer
 
-class ArkUIRenderNodeLayerFactory() : OwnedLayerFactory() {
+class ArkUIRenderNodeLayerFactory(
+    private var nativeCanvasFactory: COpaquePointer
+) : OwnedLayerFactory() {
 
     override fun createLayer(
         density: Density,
@@ -35,7 +38,8 @@ class ArkUIRenderNodeLayerFactory() : OwnedLayerFactory() {
             density,
             invalidateParentLayer,
             drawBlock,
-            onDestroy
+            onDestroy,
+            nativeCanvasFactory
         )
     }
 }

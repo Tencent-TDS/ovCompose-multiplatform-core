@@ -154,7 +154,8 @@ internal class ComposeArkUIViewContainer(
             windowContext = windowContext,
             coroutineContext = MainDispatcherFactory.getDispatcher(),
             component = component,
-            composeSceneFactory = ::createComposeScene
+            composeSceneFactory = ::createComposeScene,
+            nativeCanvasFactory = nativeCanvasFactory
         )
         mediator.setContent {
             ProvideContainerCompositionLocals(this) {

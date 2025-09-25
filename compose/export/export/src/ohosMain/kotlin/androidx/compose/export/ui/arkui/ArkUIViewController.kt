@@ -48,6 +48,7 @@ import androidx.compose.ui.arkui._ArkUIViewController_setContext
 import androidx.compose.ui.arkui._ArkUIViewController_setEnv
 import androidx.compose.ui.arkui._ArkUIViewController_setId
 import androidx.compose.ui.arkui._ArkUIViewController_setMessenger
+import androidx.compose.ui.arkui._ArkUIViewController_setNativeCanvasFactory
 import androidx.compose.ui.arkui._ArkUIViewController_setRootView
 import androidx.compose.ui.arkui._ArkUIViewController_setUIContext
 import androidx.compose.ui.arkui._ArkUIViewController_setXComponentRender
@@ -94,6 +95,12 @@ fun _Export_ArkUIViewController_sendMessage(controllerRef: COpaquePointer, type:
 @CName("androidx_compose_ui_arkui_ArkUIViewController_setXComponentRender")
 fun _Export_ArkUIViewController_setXComponentRender(controllerRef: COpaquePointer, render: COpaquePointer) =
     _ArkUIViewController_setXComponentRender(controllerRef, render)
+
+@InternalExportApi
+@CName("androidx_compose_ui_arkui_ArkUIViewController_setNativeCanvasFactory")
+fun ArkUIViewController_setNativeCanvasFactory(controllerRef: COpaquePointer, factory: COpaquePointer) =
+    _ArkUIViewController_setNativeCanvasFactory(controllerRef, factory)
+
 
 @InternalExportApi
 @CName("androidx_compose_ui_arkui_ArkUIViewController_getXComponentRender")

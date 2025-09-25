@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
+import kotlinx.cinterop.COpaquePointer
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -52,7 +53,8 @@ internal class ArkUIRenderNodeLayer(
     private var density: Density,
     private val invalidateParentLayer: () -> Unit,
     private val drawBlock: (Canvas) -> Unit,
-    private val onDestroy: () -> Unit = {}
+    private val onDestroy: () -> Unit = {},
+    nativeCanvasFactory: COpaquePointer
 ): OwnedLayer {
     // ---- 基础属性 ----
     // 当前层的尺寸（宽度和高度），以像素为单位。通过 resize 方法更新
@@ -114,7 +116,7 @@ internal class ArkUIRenderNodeLayer(
 
     // ---- 绘制相关 ----
     // 当前层的画布对象，用于绘制内容
-    private val canvas = AdaptiveCanvas()
+    private val canvas = AdaptiveCanvas(nativeCanvasFactory)
     // 当前层的视图代理，用于与底层平台（iOS的UIView）交互
 //    val viewProxy: ITMMCanvasViewProxyProtocol = canvas.viewProxy
     // 当前层的父层缓存，用于优化层级关系的更新
