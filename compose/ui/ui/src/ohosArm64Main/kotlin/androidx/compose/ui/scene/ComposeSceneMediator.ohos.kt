@@ -17,6 +17,7 @@
 
 package androidx.compose.ui.scene
 
+import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
@@ -143,11 +144,13 @@ internal class ComposeSceneMediator(
     fun setSize(width: Int, height: Int) {
         scene.density = Density(controller.density)
         val bounds = scene.boundsInWindow
+        LogPrintUtil.verbose("ComposeSceneMediator::setSize start, $width x $height, bounds: $bounds")
         if (bounds?.width != width || bounds.height != height) {
             scene.boundsInWindow = IntRect(0, 0, width, height)
             render.setSize(width, height)
             sizeChange = true
         }
+        LogPrintUtil.verbose("ComposeSceneMediator::setSize end, sizeChange: $sizeChange")
     }
 
     fun setContent(content: @Composable () -> Unit) {

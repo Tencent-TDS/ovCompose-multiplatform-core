@@ -15,8 +15,16 @@
  * limitations under the License.
  */
 
-export { Compose } from './src/main/ets/compose/Compose'
+#include "napi/native_api.h"
 
-export { ComposeV2 } from './src/main/ets/compose/ComposeV2'
+#ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
+#define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
 
-export { ArkUIViewController } from 'libcompose_arkui_utils.so'
+
+EXTERN_C_START
+typedef struct OHNativeCanvasProxy* OHNativeCanvasProxy_Handle;
+OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy);
+EXTERN_C_END
+
+#endif

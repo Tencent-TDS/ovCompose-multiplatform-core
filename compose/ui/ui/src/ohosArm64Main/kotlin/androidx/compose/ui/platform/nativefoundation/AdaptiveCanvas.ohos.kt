@@ -55,27 +55,30 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
 @OptIn(ExperimentalObjCRefinement::class)
 @HiddenFromObjC
 internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
-    // nativeCanvasProxy 内部持有一个 canvasNode: RenderNode -> 作为一个子树的根节点持有所有参与绘制的drawingNode
-    val nativeCanvasProxy: OHNativeCanvasProxy_Handle? =
+    // 持有原始Native指针
+    private val rawCanvasProxyHandle: OHNativeCanvasProxy_Handle? =
         androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(factory)
 
+    // 封装的Kotlin对象，可以像普通Kotlin对象一样使用
+    val nativeCanvasProxy = OHNativeCanvasProxy(rawCanvasProxyHandle)
+
     override fun onPreDraw() {
-        // TODO nativeCanvasProxy.beginDraw()
+        nativeCanvasProxy.beginDraw()
         LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")
     }
 
     override fun drawLayer() {
-        // TODO nativeCanvasProxy.drawLayer()
+        nativeCanvasProxy.drawLayer()
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {
-        // TODO nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
+        nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).rawCanvasProxyHandle)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayerWithNativeCanvas")
     }
 
     override fun onPostDraw() {
-        // TODO nativeCanvasProxy.finishDraw()
+        nativeCanvasProxy.finishDraw()
         LogPrintUtil.verbose("AdaptiveCanvas::clipRoundRect")
     }
 
@@ -94,16 +97,16 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         translationY: Float,
         m34Transform: Double
     ) {
-        // TODO this.nativeCanvasProxy.applyTransformMatrix(
-        //          rotationX,
-        //          rotationY,
-        //          rotationZ,
-        //          scaleX,
-        //          scaleY,
-        //          translationX,
-        //          translationY,
-        //          m34Transform)
-
+        nativeCanvasProxy.applyTransformMatrix(
+            rotationX,
+            rotationY,
+            rotationZ,
+            scaleX,
+            scaleY,
+            translationX,
+            translationY,
+            m34Transform
+        )
         LogPrintUtil.verbose("AdaptiveCanvas::applyTransformMatrix")
     }
 
@@ -122,9 +125,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         width: Int,
         height: Int
     ): Boolean {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::needRedrawImageWithHashCode")
-        return false
+        return nativeCanvasProxy.needRedrawImageWithHashCode(paragraphHashCode, width, height)
     }
 
     override fun asyncDrawIntoCanvas(
@@ -212,7 +213,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-        // TODO("Not yet implemented")
+        nativeCanvasProxy.drawRect(left, top, right, bottom, paint)
         LogPrintUtil.verbose(
             "AdaptiveCanvas::drawRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"

@@ -59,6 +59,7 @@ extern void androidx_compose_ui_arkui_ArkUIViewController_setMessenger(void* con
 extern void androidx_compose_ui_arkui_ArkUIViewController_setRootView(void* controllerRef, void* backRootView, void* foreRootView, void* touchableRootView);
 extern void androidx_compose_ui_arkui_ArkUIViewController_setUIContext(void* controllerRef, void* uiContext);
 extern void androidx_compose_ui_arkui_ArkUIViewController_setXComponentRender(void* controllerRef, void* render);
+extern void androidx_compose_ui_arkui_ArkUIViewController_setNativeCanvasFactory(void* controllerRef, void* factory);
 extern void androidx_compose_ui_arkui_init(void* env, void* exports);
 
 #ifdef __cplusplus

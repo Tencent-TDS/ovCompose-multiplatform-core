@@ -295,4 +295,12 @@ void ArkUIViewController_onFinalize(ArkUIViewController *controller) {
     }
     androidx_compose_ui_arkui_ArkUIViewController_onFinalize(controller);
 }
+
+void ArkUIViewController_setNativeCanvasFactory(ArkUIViewController *controller, void *factory) {
+    if (controller == nullptr) {
+        LOGE("ArkUIViewController_setNativeCanvasFactory: controller is null");
+        return;
+    }
+    androidx_compose_ui_arkui_ArkUIViewController_setNativeCanvasFactory(controller, factory);
+}
 } // namespace androidx::compose::ui::arkui::utils

@@ -438,7 +438,11 @@ fun _ArkUIViewController_onSurfaceCreated(
     width: Int,
     height: Int
 ) {
-    controllerRef.getController()?.onSurfaceCreated(xcomponentPtr.reinterpret(), width, height)
+    if (xcomponentPtr != null) {
+        controllerRef.getController()?.onSurfaceCreated(xcomponentPtr.reinterpret(), width, height)
+    } else {
+        controllerRef.getController()?.onSurfaceCreated(null, width, height)
+    }
 }
 
 @InternalComposeApi

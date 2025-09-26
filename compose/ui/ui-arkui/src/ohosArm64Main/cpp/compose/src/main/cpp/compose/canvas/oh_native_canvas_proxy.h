@@ -9,6 +9,7 @@ class OHNativeCanvasProxy {
 public:
     explicit OHNativeCanvasProxy(ArkUI_RenderNode *rootNode);
     ~OHNativeCanvasProxy();
+    void BeginDraw();
 private:
     ArkUI_RenderNode *rootNode_;
 };

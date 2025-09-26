@@ -31,7 +31,6 @@ Boolean androidx_compose_ui_arkui_utils_xcomponent_finishDraw(void *render);
 void androidx_compose_ui_arkui_utils_xcomponent_registerFrameCallback(void *render);
 void androidx_compose_ui_arkui_utils_xcomponent_unregisterFrameCallback(void *render);
 
-OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory);
 EXTERN_C_END
 
 #endif

@@ -24,11 +24,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		26C761502E72C9450088FF8D /* UIKitComposeUtilsTestApp */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = UIKitComposeUtilsTestApp;
-			sourceTree = "<group>";
-		};
 		26C761612E72CA740088FF8D /* UIKitComposeUtils */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = UIKitComposeUtils;
@@ -57,7 +52,6 @@
 		26C761452E72C9450088FF8D = {
 			isa = PBXGroup;
 			children = (
-				26C761502E72C9450088FF8D /* UIKitComposeUtilsTestApp */,
 				26C761612E72CA740088FF8D /* UIKitComposeUtils */,
 				26C7614F2E72C9450088FF8D /* Products */,
 			);
@@ -86,9 +80,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				26C761502E72C9450088FF8D /* UIKitComposeUtilsTestApp */,
 			);
 			name = UIKitComposeUtilsTestApp;
 			packageProductDependencies = (
