@@ -50,4 +50,14 @@ export declare interface InternalArkUIViewController extends ArkUIViewController
   requestSyncRefresh(): number
 
   cancelSyncRefresh(refreshId: number)
+
+  onSurfaceCreated(width: number, height: number): void
+
+  onSurfaceChanged(width: number, height: number): void
+
+  notifyRedraw(targetTimestamp: number): void
+
+  createNativeRoot(nodeContent: any): void
+
+  destroyNativeRoot(): void
 }

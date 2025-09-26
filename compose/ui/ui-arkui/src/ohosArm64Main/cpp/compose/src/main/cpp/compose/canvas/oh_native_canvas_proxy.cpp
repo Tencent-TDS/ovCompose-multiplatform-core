@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
+#include "../xcomponent_log.h"
 #include "oh_native_canvas_proxy.h"
 #include "arkui/native_render.h"
-    
 
 namespace androidx::compose::ui::arkui::utils {
 OHNativeCanvasProxy::OHNativeCanvasProxy(ArkUI_RenderNode *rootNode) : rootNode_(rootNode) {}
+void OHNativeCanvasProxy::BeginDraw() {
+    LOGI("OHNativeCanvasProxy::BeginDraw: start");
+}
 OHNativeCanvasProxy::~OHNativeCanvasProxy() { }
 
 } // namespace androidx::compose::ui::arkui::utils

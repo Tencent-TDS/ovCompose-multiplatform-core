@@ -75,4 +75,5 @@ find_library(
 
 add_library(compose_arkui_utils STATIC napi_init.cpp ${SOURCES})
 target_link_libraries(compose_arkui_utils PUBLIC libace_napi.z.so)
-target_link_libraries(compose_arkui_utils PUBLIC ${EGL-lib} ${GLES-lib} ${hilog-lib} ${libace-lib} ${libnapi-lib} ${libuv-lib} libc++_shared.so)
+target_link_libraries(compose_arkui_utils PUBLIC ${EGL-lib} ${GLES-lib} ${hilog-lib} ${libace-lib} ${libnapi-lib} ${libuv-lib} libace_napi.z.so
+        libace_ndk.z.so libc++_shared.so)

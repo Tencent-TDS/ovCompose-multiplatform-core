@@ -21,6 +21,8 @@
 #include "xcomponent_holder.h"
 #include "xcomponent_render.h"
 #include "xcomponent_utils.h"
+#include "oh_render_node_manager.h"
+#include "canvas/oh_native_canvas_proxy_factory.h"
 
 namespace androidx::compose::ui::arkui::utils::ArkUIViewControllerWrapper {
 static void FinalizeArkViewController(napi_env env, void *data, void *hint) {
@@ -270,6 +272,70 @@ static napi_value SendMessage(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value OnRenderNodeSurfaceCreated(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr, nullptr};
+    napi_value thisArg = nullptr;
+    napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
+    int width;
+    napi_get_value_int32(env, args[0], &width);
+    int height;
+    napi_get_value_int32(env, args[1], &height);
+    void *controller = nullptr;
+    napi_unwrap(env, thisArg, &controller);
+    ArkUIViewController_onSurfaceCreated(reinterpret_cast<ArkUIViewController *>(controller), nullptr, width, height);
+    return nullptr;
+}
+
+static napi_value OnRenderNodeSurfaceChanged(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr, nullptr};
+    napi_value thisArg = nullptr;
+    napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
+    int width;
+    napi_get_value_int32(env, args[0], &width);
+    int height;
+    napi_get_value_int32(env, args[1], &height);
+    void *controller = nullptr;
+    napi_unwrap(env, thisArg, &controller);
+    ArkUIViewController_onSurfaceChanged(reinterpret_cast<ArkUIViewController *>(controller), width, height);
+
+    return nullptr;
+}
+
+static napi_value NotifyRedraw(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_value thisArg = nullptr;
+    napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
+    uint64_t targetTimestamp;
+    napi_get_value_bigint_uint64(env, args[0], &targetTimestamp, nullptr);
+    void *controller = nullptr;
+    napi_unwrap(env, thisArg, &controller);
+    ArkUIViewController_onFrame(reinterpret_cast<ArkUIViewController *>(controller), 0, targetTimestamp);
+    return nullptr;
+}
+
+static napi_value CreateNativeRoot(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_value thisArg = nullptr;
+    napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
+
+    OHRenderNodeManager *instance = OHRenderNodeManager::GetInstance();
+    instance -> CreateNativeRoot(env, args[0]);
+    void *controller = nullptr;
+    napi_unwrap(env, thisArg, &controller);
+    androidx::compose::ui::arkui::utils::OHNativeCanvasProxyFactory *factory
+                                        = instance -> createNativeCanvasProxyFactory();
+    ArkUIViewController_setNativeCanvasFactory(reinterpret_cast<ArkUIViewController *>(controller), factory);
+    return nullptr;
+}
+
+static napi_value DestroyNativeRoot(napi_env env, napi_callback_info info) {
+    OHRenderNodeManager * instance = OHRenderNodeManager::GetInstance();
+    instance -> DestroyNativeRoot();
+}
 
 static void bindFunction(napi_env env, napi_value object, const char *functionName, napi_callback functionCallback) {
     napi_value functionValue = nullptr;
@@ -297,6 +363,12 @@ napi_value Wrapped(napi_env env, void *nativeController) {
     bindFunction(env, result, "requestSyncRefresh", RequestSyncRefresh);
     bindFunction(env, result, "cancelSyncRefresh", CancelSyncRefresh);
     bindFunction(env, result, "sendMessage", SendMessage);
+    //TODO：区分自渲染和统一渲染，需要修改名字
+    bindFunction(env, result, "onSurfaceCreated", OnRenderNodeSurfaceCreated);
+    bindFunction(env, result, "onSurfaceChanged", OnRenderNodeSurfaceChanged);
+    bindFunction(env, result, "notifyRedraw", NotifyRedraw);
+    bindFunction(env, result, "createNativeRoot", CreateNativeRoot);
+    bindFunction(env, result, "destroyNativeRoot", DestroyNativeRoot);
     return result;
 }
 } // namespace androidx::compose::ui::arkui::utils::ArkUIViewControllerWrapper

@@ -61,5 +61,6 @@ void ArkUIViewController_cancelSyncRefresh(ArkUIViewController *controller, uint
 const char *ArkUIViewController_sendMessage(ArkUIViewController *controller, const std::string &type,
                                             const std::string &message);
 void ArkUIViewController_onFinalize(ArkUIViewController *controller);
+void ArkUIViewController_setNativeCanvasFactory(ArkUIViewController *controller, void *factory);
 } // namespace androidx::compose::ui::arkui::utils
 #endif
