@@ -89,7 +89,8 @@ internal class ComposeSceneMediator(
             TextInputService(),
             PlatformTextToolbar(controller.messenger, PlatformClipboardProxy(controller.messenger)),
             semanticsOwnerListener,
-            densityProvider = { scene.density }
+            densityProvider = { scene.density },
+            drawInSkia = configuration.renderingBackend == RenderingBackend.XComponent
         )
     }
 

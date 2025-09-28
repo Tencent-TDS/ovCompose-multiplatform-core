@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Vertices
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.cinterop.COpaquePointer
+import platform.arkui.ArkUI_RenderNodeHandle
 import kotlin.experimental.ExperimentalObjCRefinement
 
 
@@ -55,6 +56,8 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
 @OptIn(ExperimentalObjCRefinement::class)
 @HiddenFromObjC
 internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
+    override val canvasType: CanvasType get() = CanvasType.Native
+
     // 持有原始Native指针
     private val rawCanvasProxyHandle: OHNativeCanvasProxy_Handle? =
         androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(factory)
@@ -67,7 +70,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")
     }
 
-    override fun drawLayer() {
+    override fun drawLayer(layer: ArkUI_RenderNodeHandle) {
         nativeCanvasProxy.drawLayer()
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
     }
@@ -325,6 +328,4 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         // TODO: destroy some resources
         LogPrintUtil.verbose("AdaptiveCanvas::destroy")
     }
-
-    override val canvasType: CanvasType get() = CanvasType.Native
 }

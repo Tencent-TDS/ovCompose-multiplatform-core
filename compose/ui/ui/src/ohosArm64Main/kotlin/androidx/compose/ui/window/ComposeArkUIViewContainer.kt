@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsetsHolder
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.accessibility.OHNativeXComponent
+import androidx.compose.ui.platform.nativefoundation.injectForCompose
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -70,6 +71,10 @@ internal class ComposeArkUIViewContainer(
     private val configuration: ComposeArkUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
 ) : BasicArkUIViewController(coroutineDispatcher) {
+
+    init {
+        injectForCompose(configuration.renderingBackend)
+    }
 
     private var nativeSurfaceHasBeenDestroyed = false
 

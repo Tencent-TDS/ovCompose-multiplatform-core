@@ -95,6 +95,7 @@ internal class TextStringSimpleNode(
         PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
     private var localBitmap: ImageBitmap? = null
     private var localCanvas: Canvas? = null
+
     // endregion
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
     private var _layoutCache: ParagraphLayoutCache? = null
@@ -487,7 +488,7 @@ internal class TextStringSimpleNode(
 
         val localParagraph = requireNotNull(layoutCache.paragraph) { "no paragraph" }
         // region Tencent Code
-        if (ComposeTabService.textAsyncPaint && !drawInSkia) {
+        if (ComposeTabService.textAsyncPaint && !drawInSkia && platformTextDelegate != null) {
             asyncDrawIntoCanvas(localParagraph)
             return
         }
@@ -495,16 +496,16 @@ internal class TextStringSimpleNode(
         drawIntoCanvas { canvas ->
             var currentParagraphHashCode = 0
             // region Tencent Code
-            if (drawInSkia || EnableIOSParagraph) {
+            if (drawInSkia || EnableIOSParagraph || platformTextDelegate == null) {
                 localCanvas = canvas
             } else {
                 currentParagraphHashCode = paragraphHashCode()
-                if (platformTextDelegate?.needRedrawText(
+                if (!platformTextDelegate.needRedrawText(
                         nativeCanvas = canvas,
                         paragraphHashKey = currentParagraphHashCode,
                         width = layoutCache.layoutSize.width,
                         height = layoutCache.layoutSize.height
-                    ) == false
+                    )
                 ) return
                 ensureTextBitmap()
             }
@@ -571,6 +572,7 @@ internal class TextStringSimpleNode(
             }
         }
     }
+
     private fun paragraphHashCode(): Int {
         var result = text.hashCode()
         result = 31 * result + style.hashCode()
