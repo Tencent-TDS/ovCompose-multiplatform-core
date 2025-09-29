@@ -217,6 +217,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             ohosArm64Main.dependsOn(nativeMain)
             ohosArm64Main {
                 dependencies {
+                    api "androidx.lifecycle:lifecycle-viewmodel:2.8.0-KBA-001"
                     api project(":compose:ui:ui-arkui")
                 }
             }
