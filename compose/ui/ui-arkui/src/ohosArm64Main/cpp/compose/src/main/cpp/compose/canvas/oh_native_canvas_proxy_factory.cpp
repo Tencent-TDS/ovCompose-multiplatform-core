@@ -17,17 +17,15 @@
 
 #include "oh_native_canvas_proxy_factory.h"
 #include "oh_native_canvas_proxy.h"
-#include "arkui/native_render.h"
 
 
 namespace androidx::compose::ui::arkui::utils {
 
 OHNativeCanvasProxy *OHNativeCanvasProxyFactory::CreateOHNativeCanvasProxy() {
-
     return new OHNativeCanvasProxy(this->rootNode_);
 }
 
-OHNativeCanvasProxyFactory::OHNativeCanvasProxyFactory(ArkUI_RenderNode *rootNode) : rootNode_(rootNode) {}
+OHNativeCanvasProxyFactory::OHNativeCanvasProxyFactory(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {}
 
 OHNativeCanvasProxyFactory::~OHNativeCanvasProxyFactory() { } 
 } // namespace androidx::compose::ui::arkui::utils

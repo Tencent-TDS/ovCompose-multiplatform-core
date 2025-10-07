@@ -281,6 +281,7 @@ static napi_value OnRenderNodeSurfaceCreated(napi_env env, napi_callback_info in
     napi_get_value_int32(env, args[0], &width);
     int height;
     napi_get_value_int32(env, args[1], &height);
+
     void *controller = nullptr;
     napi_unwrap(env, thisArg, &controller);
     ArkUIViewController_onSurfaceCreated(reinterpret_cast<ArkUIViewController *>(controller), nullptr, width, height);
@@ -335,6 +336,21 @@ static napi_value CreateNativeRoot(napi_env env, napi_callback_info info) {
 static napi_value DestroyNativeRoot(napi_env env, napi_callback_info info) {
     OHRenderNodeManager * instance = OHRenderNodeManager::GetInstance();
     instance -> DestroyNativeRoot();
+    return nullptr;
+}
+
+static napi_value onResize(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr, nullptr};
+    napi_value thisArg = nullptr;
+    napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
+    int32_t width;
+    napi_get_value_int32(env, args[0], &width);
+    int32_t height;
+    napi_get_value_int32(env, args[1], &height);
+    OHRenderNodeManager * instance = OHRenderNodeManager::GetInstance();
+    instance -> onResize(width, height);
+    return nullptr;
 }
 
 static void bindFunction(napi_env env, napi_value object, const char *functionName, napi_callback functionCallback) {
@@ -366,6 +382,7 @@ napi_value Wrapped(napi_env env, void *nativeController) {
     //TODO：区分自渲染和统一渲染，需要修改名字
     bindFunction(env, result, "onSurfaceCreated", OnRenderNodeSurfaceCreated);
     bindFunction(env, result, "onSurfaceChanged", OnRenderNodeSurfaceChanged);
+    bindFunction(env, result, "onResize", onResize);
     bindFunction(env, result, "notifyRedraw", NotifyRedraw);
     bindFunction(env, result, "createNativeRoot", CreateNativeRoot);
     bindFunction(env, result, "destroyNativeRoot", DestroyNativeRoot);

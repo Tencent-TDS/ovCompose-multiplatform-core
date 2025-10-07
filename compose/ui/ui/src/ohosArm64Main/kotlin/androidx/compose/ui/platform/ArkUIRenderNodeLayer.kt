@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.toSize
 import kotlinx.cinterop.COpaquePointer
 import kotlin.math.abs
 import kotlin.math.max
+import androidx.compose.ui.platform.nativefoundation.OHNativeCanvasProxy
 
 private var lastId = 0
 
@@ -118,7 +119,7 @@ internal class ArkUIRenderNodeLayer(
     // 当前层的画布对象，用于绘制内容
     private val canvas = AdaptiveCanvas(nativeCanvasFactory)
     // 当前层的视图代理，用于与底层平台（iOS的UIView）交互
-//    val viewProxy: ITMMCanvasViewProxyProtocol = canvas.viewProxy
+    val viewProxy: OHNativeCanvasProxy = canvas.nativeCanvasProxy
     // 当前层的父层缓存，用于优化层级关系的更新
     private var cachedParentLayer: OwnedLayer? = null
     // 标记当前层是否需要重慧
@@ -432,6 +433,25 @@ internal class ArkUIRenderNodeLayer(
     override fun inverseTransform(matrix: Matrix) {
         // TODO("Not yet implemented")
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::inverseTransform")
+    }
+
+    override fun updateParentLayer(parentLayer: OwnedLayer?) {
+        LogPrintUtil.verbose("ArkUIRenderNodeLayer::updateParentLayer")
+        val parentViewLayer = (parentLayer as? ArkUIRenderNodeLayer)
+        if (parentViewLayer != null) {
+            if (cachedParentLayer != parentViewLayer) {
+                cachedParentLayer = parentViewLayer
+                viewProxy.setParent(parentViewLayer.viewProxy)
+            }
+            didUpdateParentLayer(parentViewLayer)
+        } else {
+            viewProxy.attachToRootView()
+        }
+    }
+
+    private inline fun didUpdateParentLayer(superLayer: ArkUIRenderNodeLayer) {
+        superRenderEffect = superLayer.renderEffect ?: superLayer.superRenderEffect
+        applyRenderEffect = renderEffect ?: superRenderEffect
     }
 }
 

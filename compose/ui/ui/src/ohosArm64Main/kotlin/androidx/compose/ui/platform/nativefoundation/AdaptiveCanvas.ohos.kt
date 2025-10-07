@@ -70,6 +70,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")
     }
 
+    //TODO：layer是怎么生成的
     override fun drawLayer(layer: ArkUI_RenderNodeHandle) {
         nativeCanvasProxy.drawLayer()
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
@@ -211,7 +212,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
-        // TODO("Not yet implemented")
+        nativeCanvasProxy.drawLine(p1.x, p1.y, p2.x, p2.y, paint)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLine, p1: $p1, p2: $p2, paint: $paint")
     }
 

@@ -1,10 +1,19 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.arkui.utils.Boolean
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Paint
 import kotlinx.cinterop.*
+
 
 /**
  * 封装 OHNativeCanvasProxy_Handle 结构体指针的 Kotlin 代理类
@@ -41,14 +50,14 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
      * 结束绘制
      */
     fun finishDraw() {
-//        handle?.let { OHNativeCanvasProxy_finishDraw(it) }
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw(it) }
     }
 
     /**
      * 绘制图层
      */
     fun drawLayer() {
-//        handle?.let { OHNativeCanvasProxy_drawLayer(it) }
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(it) }
     }
 
     /**
@@ -62,7 +71,20 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
      * 绘制矩形
      */
     fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-//        handle?.let { OHNativeCanvasProxy_drawRect(it, left, top, right, bottom, paint.nativeHandle) }
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(it, left, top, right, bottom) }
+    }
+
+    fun drawLine(x1: Float, y1: Float, x2: Float, y2: Float, paint: Paint) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(it, x1, y1, x2, y2) }
+    }
+
+
+    fun setParent(parentProxy: OHNativeCanvasProxy) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(it, parentProxy.handle) }
+    }
+
+    fun attachToRootView() {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView(it) }
     }
 
     /**

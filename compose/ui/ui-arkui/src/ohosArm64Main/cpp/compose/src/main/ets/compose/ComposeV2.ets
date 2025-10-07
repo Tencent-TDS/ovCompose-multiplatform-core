@@ -195,6 +195,7 @@ export struct ComposeV2 {
           this.requireController().onSurfaceCreated(vp2px(newValue.width as number), vp2px(newValue.height as number))
            this.hasCreated = true
         }
+        this.requireController().onResize(newValue.width as number, newValue.height as number);
       })
 
       TextToolbarOverlay({ params: this.textToolbarParams })
