@@ -63,19 +63,19 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     /**
      * 使用子代理绘制图层
      */
-    fun drawLayerWithSubproxy(subproxy: OHNativeCanvasProxy_Handle?) {
+    fun drawLayerWithSubproxy(subproxy: OHNativeCanvasProxy) {
 //        handle?.let { OHNativeCanvasProxy_drawLayerWithSubproxy(it, subproxy) }
     }
 
     /**
      * 绘制矩形
      */
-    fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(it, left, top, right, bottom) }
+    fun drawRect(left: Float, top: Float, right: Float, bottom: Float, nativePaint: OHComposeNativePaint) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(it, left, top, right, bottom, nativePaint.handle) }
     }
 
-    fun drawLine(x1: Float, y1: Float, x2: Float, y2: Float, paint: Paint) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(it, x1, y1, x2, y2) }
+    fun drawLine(x1: Float, y1: Float, x2: Float, y2: Float, nativePaint: OHComposeNativePaint) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(it, x1, y1, x2, y2, nativePaint.handle) }
     }
 
 

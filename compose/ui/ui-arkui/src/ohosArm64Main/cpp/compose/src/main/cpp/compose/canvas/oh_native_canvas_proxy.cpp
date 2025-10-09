@@ -27,8 +27,15 @@ namespace androidx::compose::ui::arkui::utils {
     OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {
         ArkUI_RenderNodeHandle renderNodeHandle = OH_ArkUI_RenderNodeUtils_CreateNode();
         canvasNode_ = std::make_unique<OH::BaseRenderNode>(renderNodeHandle);
-        OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&_scaledDensity);
     }
+
+    OHComposeNativePaint *OHNativeCanvasProxy::Paint() {
+        if (paint_ == nullptr) {
+            paint_ = new OHComposeNativePaint();
+        }
+        return paint_;
+    }
+
     void OHNativeCanvasProxy::beginDraw() {
         LOGI("OHNativeCanvasProxy::BeginDraw: start");
         _pictureRecorder.startRecording(*canvasNode_);
@@ -49,7 +56,7 @@ namespace androidx::compose::ui::arkui::utils {
         }
     }
 
-    OH::BaseRenderNode* OHNativeCanvasProxy::getRenderNode() {
+    OH::BaseRenderNode *OHNativeCanvasProxy::getRenderNode() {
         LOGI("OHNativeCanvasProxy::getRenderNode: start");
         return canvasNode_.get();
     }
@@ -59,41 +66,39 @@ namespace androidx::compose::ui::arkui::utils {
         _pictureRecorder.finishRecording(*canvasNode_);
     }
 
-    void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom) {
+    void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint) {
         LOGI("OHNativeCanvasProxy::drawRect: start");
         //TODO:需要paint
-//    TMMNativeBasicShader *shader = [paint shader];
-        bool isShader = false;
-        const OH::OHNativeDrawingType drawingType = isShader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
+        OH_Drawing_ShaderEffect* shader = paint->shader;
+        const OH::OHNativeDrawingType drawingType = shader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
         //TODO:需要paint
 //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
         const uint64_t preHash = 0;
         const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
         OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
         bool isDirty = updateItem.isDirty;
-        OH::BaseRenderNode* renderNodeForDrawing = nullptr;
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
         if (isDirty) {
             renderNodeForDrawing = _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
-            OH::OHRenderNodeDrawRect(left, top, right, bottom, _scaledDensity, isShader, &(updateItem.saveState), renderNodeForDrawing);
+            OH::OHRenderNodeDrawRect(left, top, right, bottom, shader, &(updateItem.saveState), renderNodeForDrawing, paint);
         }
     }
 
-    void OHNativeCanvasProxy::drawLine(float x1, float y1, float x2, float y2) {
+    void OHNativeCanvasProxy::drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint* paint) {
         LOGI("OHNativeCanvasProxy::drawLine: start");
         //TODO:需要paint
         //TMMNativeBasicShader *shader = [paint shader];
-        bool isShader = false;
-        const OH::OHNativeDrawingType drawingType = isShader ? OH::OHNativeDrawingType::ShaderLine : OH::OHNativeDrawingType::Line;
+        const OH::OHNativeDrawingType drawingType = paint->shader ? OH::OHNativeDrawingType::ShaderLine : OH::OHNativeDrawingType::Line;
         //const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
         const uint64_t preHash = 0;
         const uint64_t drawingContentHash = OH::hashCombineSequential(x1, y1, x2, y2, static_cast<float>(preHash));
         OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
 
         bool isDirty = updateItem.isDirty;
-        OH::BaseRenderNode* renderNodeForDrawing = nullptr;
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
         if (isDirty) {
             renderNodeForDrawing = _pictureRecorder.getOrCreateLayerForDrawing(updateItem.drawingType, updateItem.itemHash);
-            OH::OHRenderNodeDrawLine(x1, y1, x2, y2, _scaledDensity, isShader, &(updateItem.saveState), renderNodeForDrawing);
+            OH::OHRenderNodeDrawLine(x1, y1, x2, y2, paint->shader, &(updateItem.saveState), renderNodeForDrawing);
         }
     }
 
@@ -101,5 +106,11 @@ namespace androidx::compose::ui::arkui::utils {
         //TODO：ios上传入了CALayer，oh需要对应的renderNode？
         //_pictureRecorder.drawRenderNode(xxx);
     };
-    OHNativeCanvasProxy::~OHNativeCanvasProxy() { }
+
+    OHNativeCanvasProxy::~OHNativeCanvasProxy() {
+        if (paint_ != nullptr) {
+            delete paint_;
+            paint_ = nullptr;
+        }
+    }
 } // namespace androidx::compose::ui::arkui::utils

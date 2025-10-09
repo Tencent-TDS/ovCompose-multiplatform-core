@@ -1,7 +1,9 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -58,12 +60,19 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
 internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     override val canvasType: CanvasType get() = CanvasType.Native
 
-    // 持有原始Native指针
-    private val rawCanvasProxyHandle: OHNativeCanvasProxy_Handle? =
-        androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(factory)
-
     // 封装的Kotlin对象，可以像普通Kotlin对象一样使用
-    val nativeCanvasProxy = OHNativeCanvasProxy(rawCanvasProxyHandle)
+    val nativeCanvasProxy: OHNativeCanvasProxy
+    val nativePaint: OHComposeNativePaint
+
+    init {
+        val rawCanvasProxyHandle: OHNativeCanvasProxy_Handle? =
+            androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(factory)
+        val rawNativePaintHandle: OHComposeNativePaint_Handle? =
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(rawCanvasProxyHandle)
+        nativeCanvasProxy = OHNativeCanvasProxy(rawCanvasProxyHandle)
+        nativePaint = OHComposeNativePaint(rawNativePaintHandle)
+    }
+
 
     override fun onPreDraw() {
         nativeCanvasProxy.beginDraw()
@@ -77,7 +86,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {
-        nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).rawCanvasProxyHandle)
+        nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayerWithNativeCanvas")
     }
 
@@ -212,12 +221,14 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
-        nativeCanvasProxy.drawLine(p1.x, p1.y, p2.x, p2.y, paint)
+        nativePaint.sync(paint)
+        nativeCanvasProxy.drawLine(p1.x, p1.y, p2.x, p2.y, nativePaint)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLine, p1: $p1, p2: $p2, paint: $paint")
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-        nativeCanvasProxy.drawRect(left, top, right, bottom, paint)
+        nativePaint.sync(paint)
+        nativeCanvasProxy.drawRect(left, top, right, bottom, nativePaint)
         LogPrintUtil.verbose(
             "AdaptiveCanvas::drawRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"

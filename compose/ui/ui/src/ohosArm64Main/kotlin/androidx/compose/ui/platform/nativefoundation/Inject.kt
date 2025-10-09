@@ -1,6 +1,8 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.ui.arkui.RenderingBackend
+import androidx.compose.ui.graphics.setNativeShaderFactory
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.OHOSParagraph
 import androidx.compose.ui.text.OHOSParagraphIntrinsics
@@ -21,6 +23,11 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
 
     if (didInject) return
     didInject = true
+
+    /* 注入 OHOS 平台的 Shader */
+    setNativeShaderFactory(NativeShaderFactoryImpl)
+
+    EnableOHOSParagraph = renderBackend == RenderingBackend.ArkUIRenderNode
 
     /*注入 OHOS 平台的 Paragraph */
     platformParagraphFactory = object : PlatformParagraphFactory {

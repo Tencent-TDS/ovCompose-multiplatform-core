@@ -4,7 +4,8 @@
 #include <memory>
 #include <unordered_map>
 
-#include "napi/native_api.h"
+#include <arkui/native_type.h>
+#include <napi/native_api.h>
 #include <arkui/native_node_napi.h>
 #include <js_native_api_types.h>
 #include <arkui/native_render.h>

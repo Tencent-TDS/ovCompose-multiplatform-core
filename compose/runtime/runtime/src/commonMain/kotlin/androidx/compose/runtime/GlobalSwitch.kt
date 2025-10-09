@@ -29,6 +29,9 @@ expect val CurrentPlatform: PlatformType
 /** IOSParagraph开关 */
 var EnableIOSParagraph = false
 
+/** OHOSParagraph开关 **/
+var EnableOHOSParagraph = false
+
 var EnableSkiaBackedCanvasLog = false
 
 var DeleteRedundantGraphicsLayer = false

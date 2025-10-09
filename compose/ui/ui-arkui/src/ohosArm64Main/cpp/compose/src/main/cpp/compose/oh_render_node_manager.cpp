@@ -13,17 +13,13 @@ void OHRenderNodeManager::DestroyNativeRoot() {
 
 void OHRenderNodeManager::onResize(int32_t width, int32_t height) {
     float scaledDensity;
-    auto result = OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&scaledDensity);
-    if(result != DISPLAY_MANAGER_OK) {
-        LOGE("Failed to get displayScaledDensity");
-        return;
-    }
 
     ArkUI_NumberValue widthValue[] = {
             static_cast<float>(width)};
     ArkUI_AttributeItem widthItem = {
             widthValue, sizeof(widthValue) / sizeof(ArkUI_NumberValue)};
 
+    NativeNodeApi::getInstance()->setLengthMetricUnit(m_customNodeHandle, ArkUI_LengthMetricUnit::ARKUI_LENGTH_METRIC_UNIT_PX);
     NativeNodeApi::getInstance()->setAttribute(m_customNodeHandle, NODE_WIDTH, &widthItem);
 
     ArkUI_NumberValue heightValue[] = {
@@ -32,8 +28,7 @@ void OHRenderNodeManager::onResize(int32_t width, int32_t height) {
             heightValue, sizeof(heightValue) / sizeof(ArkUI_NumberValue)};
 
     NativeNodeApi::getInstance()->setAttribute(m_customNodeHandle, NODE_HEIGHT, &heightItem);
-    m_renderRootNode->setSize(static_cast<int32_t>(width * scaledDensity),
-            static_cast<int32_t>(height * scaledDensity));
+    m_renderRootNode->setSize(static_cast<int32_t>(width), static_cast<int32_t>(height));
 }
 
 void OHRenderNodeManager::CreateNativeRoot(napi_env env, napi_value nodeContent) {

@@ -2,6 +2,7 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.platform.v2.DumpComposeCanvas
+import org.jetbrains.skia.Rect
 
 class ComposeSceneRenderForRenderNode(
     private val renderDelegate: ComposeSceneRender.Delegate
@@ -14,10 +15,15 @@ class ComposeSceneRenderForRenderNode(
     private val canvas = DumpComposeCanvas()
 
     override fun setSize(width: Int, height: Int) {
-        // nothing to do
+        if (this.width != width || this.height != height) {
+            this.width = width
+            this.height = height
+            this.renderRect = Rect(0f, 0f, width.toFloat(), height.toFloat())
+        }
     }
 
     override fun draw(timestamp: Long) {
+
         renderDelegate.render(canvas, timestamp)
     }
 

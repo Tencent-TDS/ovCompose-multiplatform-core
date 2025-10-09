@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.modifiers
 import androidx.compose.foundation.text.DefaultMinLines
 import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -496,16 +497,16 @@ internal class TextStringSimpleNode(
         drawIntoCanvas { canvas ->
             var currentParagraphHashCode = 0
             // region Tencent Code
-            if (drawInSkia || EnableIOSParagraph || platformTextDelegate == null) {
+            if (drawInSkia || EnableIOSParagraph || EnableOHOSParagraph) {
                 localCanvas = canvas
             } else {
                 currentParagraphHashCode = paragraphHashCode()
-                if (!platformTextDelegate.needRedrawText(
+                if (platformTextDelegate?.needRedrawText(
                         nativeCanvas = canvas,
                         paragraphHashKey = currentParagraphHashCode,
                         width = layoutCache.layoutSize.width,
                         height = layoutCache.layoutSize.height
-                    )
+                    ) == false
                 ) return
                 ensureTextBitmap()
             }
