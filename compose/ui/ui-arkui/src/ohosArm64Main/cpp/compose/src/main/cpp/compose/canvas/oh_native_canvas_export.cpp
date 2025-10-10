@@ -27,68 +27,122 @@ EXTERN_C_START
 
 /// OHNativeCanvasProxy related methods
 OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory) {
-    LOGI("androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy: start");
     auto canvasFactory = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxyFactory *>(factory);
     return reinterpret_cast<OHNativeCanvasProxy_Handle>(canvasFactory->CreateOHNativeCanvasProxy());
+    LOGI("androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy");
 }
 
 /// OHNativeCanvasProxy drawing methods
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw: start");
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->beginDraw();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(OHNativeCanvasProxy_Handle proxy, float left, float top, float right, float bottom, OHComposeNativePaint_Handle paint) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect: start");
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawRect(left, top, right, bottom, nativePaint);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1, float x2, float y2, OHComposeNativePaint_Handle paint) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine: start");
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawLine(x1, y1, x2, y2, nativePaint);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw(OHNativeCanvasProxy_Handle proxy) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw: start");
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->finishDraw();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw");
 }
 
-void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(OHNativeCanvasProxy_Handle proxy) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer: start");
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(OHNativeCanvasProxy_Handle proxy, BaseRenderNode_Handle renderNodeHandle) {
+    auto renderNode = reinterpret_cast<OH::BaseRenderNode *>(renderNodeHandle);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
-    canvasProxy->drawLayer();
+    canvasProxy->drawLayer(renderNode);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView(OHNativeCanvasProxy_Handle proxy) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView: start");
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->attachToRootView();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(OHNativeCanvasProxy_Handle proxy, OHNativeCanvasProxy_Handle parentProxy) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent: start");
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     auto canvasParentProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(parentProxy);
     canvasProxy->setParent(canvasParentProxy);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent");
 }
 
-void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1, float x2, float y2) {
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine: start");
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy(OHNativeCanvasProxy_Handle proxy, OHNativeCanvasProxy_Handle subProxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
-    canvasProxy->drawLine(x1, y1, x2, y2);
+    auto subCanvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(subProxy);
+    canvasProxy->drawLayerWithSubproxy(subCanvasProxy);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy");
 }
+
+
+/// OHNativeCanvasProxy state operations 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left, float top, float right, float bottom, uint32_t clipOp) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->clipRect(left, top, right, bottom, static_cast<OH_Native_Draw_ClipOp>(clipOp));
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect: start left:%{public}f, top:%{public}f, right:%{public}f, bottom:%{public}f, clipOp:%{public}u", left, top, right, bottom, clipOp);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(OHNativeCanvasProxy_Handle proxy, int32_t x, int32_t y) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setPosition(x, y);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition: x:%{public}d, y:%{public}d", x, y);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(OHNativeCanvasProxy_Handle proxy, int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setBounds(originX, originY, boundsWidth, boundsHeight);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds: originX:%{public}d, originY:%{public}d, boundsWidth:%{public}d, boundsHeight:%{public}d", originX, originY, boundsWidth, boundsHeight);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot(OHNativeCanvasProxy_Handle proxy, float px, float py) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setPivot(px, py);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot: px:%{public}f, py:%{public}f", px, py);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity(OHNativeCanvasProxy_Handle proxy, float opacity) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setOpacity(opacity);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity: opacity:%{public}f", opacity);
+}
+
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save(OHNativeCanvasProxy_Handle proxy) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->save();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save");
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore(OHNativeCanvasProxy_Handle proxy) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->restore();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore");
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(OHNativeCanvasProxy_Handle proxy, float dx, float dy) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->translate(dx, dy);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate: dx:%{public}f, dy:%{public}f", dx, dy);
+}
+
+/// OHComposeNativePaint related methods
 OHComposeNativePaint_Handle androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     return reinterpret_cast<OHComposeNativePaint_Handle>(canvasProxy->Paint());
 }
 
-// OHComposeNativePaint related methods
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(OHComposeNativePaint_Handle paint, float alpha) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     nativePaint->alpha = alpha;

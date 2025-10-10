@@ -1,8 +1,10 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
+import androidx.compose.ui.arkui.utils.OH_Native_Draw_ClipOp
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy
 import androidx.compose.ui.geometry.CornerRadius
@@ -22,17 +24,16 @@ import androidx.compose.ui.graphics.Vertices
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.cinterop.COpaquePointer
-import platform.arkui.ArkUI_RenderNodeHandle
 import kotlin.experimental.ExperimentalObjCRefinement
 
 
-//private inline fun ClipOp.asNativeEnum(): TMMNativeDrawClipOp {
-//    return when (this) {
-//        ClipOp.Difference -> TMMNativeDrawClipOp.TMMNativeDrawClipOpDifference
-//        ClipOp.Intersect -> TMMNativeDrawClipOp.TMMNativeDrawClipOpIntersect
-//        else -> throw RuntimeException("暂不支持")
-//    }
-//}
+private inline fun ClipOp.asNativeEnum(): OH_Native_Draw_ClipOp {
+    return when (this) {
+        ClipOp.Difference -> OH_Native_Draw_ClipOp.OH_NATIVE_CLIPOP_DIFFERENCE
+        ClipOp.Intersect -> OH_Native_Draw_ClipOp.OH_NATIVE_CLIPOP_INTERSECT
+        else -> throw RuntimeException("暂不支持")
+    }
+}
 
 private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
     return x > rhs.x && y > rhs.y
@@ -79,9 +80,8 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")
     }
 
-    //TODO：layer是怎么生成的
-    override fun drawLayer(layer: ArkUI_RenderNodeHandle) {
-        nativeCanvasProxy.drawLayer()
+    override fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
+        nativeCanvasProxy.drawLayer(renderNodeHandle)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
     }
 
@@ -168,12 +168,12 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun save() {
-        // TODO("Not yet implemented")
+        nativeCanvasProxy.save()
         LogPrintUtil.verbose("AdaptiveCanvas::save")
     }
 
     override fun restore() {
-        // TODO("Not yet implemented")
+        nativeCanvasProxy.restore()
         LogPrintUtil.verbose("AdaptiveCanvas::restore")
     }
 
@@ -183,8 +183,8 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun translate(dx: Float, dy: Float) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::translate")
+        nativeCanvasProxy.translate(dx, dy)
+        LogPrintUtil.verbose("AdaptiveCanvas::translate, dx: $dx, dy: $dy")
     }
 
     override fun scale(sx: Float, sy: Float) {
@@ -208,7 +208,7 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
-        // TODO("Not yet implemented")
+        nativeCanvasProxy.clipRect(left, top, right, bottom, clipOp.asNativeEnum().value)
         LogPrintUtil.verbose(
             "AdaptiveCanvas::clipRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, clipOp: $clipOp"

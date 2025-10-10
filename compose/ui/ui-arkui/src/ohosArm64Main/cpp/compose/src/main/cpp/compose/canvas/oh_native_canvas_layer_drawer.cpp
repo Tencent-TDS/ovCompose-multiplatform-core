@@ -42,6 +42,25 @@ namespace OH {
         }
     }
 
+    void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom,
+            const RenderNodeSaveState *saveState,
+            BaseRenderNode* renderNodeForDrawing) {
+        ArkUI_RectShapeOption* shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
+        if (shape) {
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, left, ARKUI_EDGE_DIRECTION_LEFT);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, top, ARKUI_EDGE_DIRECTION_TOP);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
+        }
+        ArkUI_RenderNodeClipOption* clipOption = OH_ArkUI_RenderNodeUtils_CreateRenderNodeClipOptionFromRectShape(shape);
+        OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
+        if (clipOption) {
+            renderNodeForDrawing->setTransform(const_cast<float*>(saveState->transform.data()))
+                ->setTranslate(saveState->translateX, saveState->translateY)
+                ->setClip(clipOption);
+        }
+    }
+
     void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2,
             OH_Drawing_ShaderEffect* shader,
             const RenderNodeSaveState *saveState,

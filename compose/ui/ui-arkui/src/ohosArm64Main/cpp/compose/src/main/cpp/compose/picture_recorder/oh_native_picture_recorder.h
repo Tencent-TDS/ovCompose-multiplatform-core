@@ -121,6 +121,7 @@ namespace OH {
         OH_ALWAYS_INLINE PictureRecorderUpdateInfo clip(uint64_t drawingContentHash) {
             PictureRecorderUpdateInfo updateItem = draw(OHNativeDrawingType::Clip, drawingContentHash);
             pushClip();
+            LOGI("PictureRecorder::clip 的 itemHash: =%{public}d", updateItem.itemHash);
             return updateItem;
         }
 

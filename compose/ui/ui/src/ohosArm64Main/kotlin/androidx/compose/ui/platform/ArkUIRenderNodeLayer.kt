@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.alphaMultiplier
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.platform.nativefoundation.AdaptiveCanvas
 import androidx.compose.ui.platform.nativefoundation.OHOSNativeCanvas
@@ -119,7 +120,7 @@ internal class ArkUIRenderNodeLayer(
     // 当前层的画布对象，用于绘制内容
     private val canvas = AdaptiveCanvas(nativeCanvasFactory)
     // 当前层的视图代理，用于与底层平台（iOS的UIView）交互
-    val viewProxy: OHNativeCanvasProxy = canvas.nativeCanvasProxy
+    val nativeCanvasProxy: OHNativeCanvasProxy = canvas.nativeCanvasProxy
     // 当前层的父层缓存，用于优化层级关系的更新
     private var cachedParentLayer: OwnedLayer? = null
     // 标记当前层是否需要重慧
@@ -155,7 +156,7 @@ internal class ArkUIRenderNodeLayer(
             this.transformOrigin = scope.transformOrigin
             // TODO: move this to updateMatrix together with the updating of anchorPoint
             //  after we properly handle the transitions on the out most draw call.
-            updateLayerCenter()
+            updateLayerPosition()
         }
         this.translationX = scope.translationX
         this.translationY = scope.translationY
@@ -180,7 +181,7 @@ internal class ArkUIRenderNodeLayer(
             updateMatrix()
         }
         mutatedFields = scope.mutatedFields
-        //TODO this.nativeCanvasProxy.setAlpha(scope.alpha)
+        this.nativeCanvasProxy.setOpacity(scope.alpha)
         updateShadow()
     }
 
@@ -220,7 +221,7 @@ internal class ArkUIRenderNodeLayer(
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::move start, $position")
         if (position != this.position) {
             this.position = position
-            updateLayerCenter()
+            updateLayerPosition()
             invalidateParentLayer()
         }
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::move end, $position")
@@ -230,28 +231,16 @@ internal class ArkUIRenderNodeLayer(
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::resize start, size:$size")
         if (size != this.size) {
             outlineCache.size = size
-            var layerWidth = (size.width / density.density)
-            var layerHeight = (size.height / density.density)
-            // IMPORTANT: set bounds instead of frame to work with transform3D properly.
-            // Frame should be ignored when transform is applied.
-            // Likely, we update the position of view by updating its center property.
-            // TODO: nativeCanvasProxy.setBounds(0.0f, 0.0f, layerWidth, layerHeight)
-            updateLayerCenter()
+            nativeCanvasProxy.setBounds(0, 0, size.width, size.height)
+            updateLayerPosition()
             updateMatrix()
             invalidate()
         }
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::resize end, size:$size")
     }
 
-    private fun updateLayerCenter() {
-        val centerX = transformOrigin.pivotFractionX * size.width
-        val centerPositionX = ((position.x + centerX) / density.density)
-        val centerY = transformOrigin.pivotFractionY * size.height
-        val centerPositionY = ((position.y + centerY) / density.density)
-
-        // IMPORTANT: updating the position of view with center rather than frame
-        // to respect the transformation applied in [updateMatrix].
-        // TODO: nativeCanvasProxy.setCenter(centerPositionX, centerPositionY)
+    private fun updateLayerPosition() {
+        nativeCanvasProxy.setPosition(position.x, position.y)
     }
 
     override fun drawLayer(canvas: Canvas) {
@@ -292,7 +281,7 @@ internal class ArkUIRenderNodeLayer(
             canvas.saveLayer(
                 bounds,
                 Paint().apply {
-//                    alpha = this@UIViewLayer.alpha
+                    alpha = this@ArkUIRenderNodeLayer.alpha
                     asFrameworkPaint().imageFilter = currentRenderEffect?.asSkiaImageFilter()
                 }
             )
@@ -300,14 +289,14 @@ internal class ArkUIRenderNodeLayer(
             canvas.save()
         }
 
-//        if (canvas.canvasType == CanvasType.Skia) {
-//            canvas.alphaMultiplier =
-//                if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
-//                    alpha
-//                } else {
-//                    1.0f
-//                }
-//        }
+        if (canvas.canvasType == CanvasType.Skia) {
+            canvas.alphaMultiplier =
+                if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
+                    alpha
+                } else {
+                    1.0f
+                }
+        }
 
         drawBlock(canvas)
         canvas.restore()
@@ -337,7 +326,7 @@ internal class ArkUIRenderNodeLayer(
             scale(scaleX, scaleY)
         }
 
-        // 记录iOSMatrix变化需要用到的属性，对齐Compose原生
+        // 记录Matrix变化需要用到的属性，对齐Compose原生
         var m34Transform = 0.0
         // Perspective transform should be applied only in case of rotations to avoid
         // multiply application in hierarchies.
@@ -363,10 +352,9 @@ internal class ArkUIRenderNodeLayer(
         matrix[0, 2] = 0f
         matrix[1, 2] = 0f
         matrix[3, 2] = 0f
-        // TODO: this.nativeCanvasProxy.setAnchorPoint(transformOrigin.pivotFractionX, transformOrigin.pivotFractionY)
-//        this.viewProxy.setAnchorPoint(transformOrigin.pivotFractionX, transformOrigin.pivotFractionY)
+        this.nativeCanvasProxy.setPivot(transformOrigin.pivotFractionX, transformOrigin.pivotFractionY)
 
-        // 将Matrix参数传递到OC侧计算矩阵
+        // 将Matrix参数传递到C侧计算矩阵
         canvas.applyTransformMatrix(
             rotationX,
             rotationY,
@@ -441,11 +429,11 @@ internal class ArkUIRenderNodeLayer(
         if (parentViewLayer != null) {
             if (cachedParentLayer != parentViewLayer) {
                 cachedParentLayer = parentViewLayer
-                viewProxy.setParent(parentViewLayer.viewProxy)
+                nativeCanvasProxy.setParent(parentViewLayer.nativeCanvasProxy)
             }
             didUpdateParentLayer(parentViewLayer)
         } else {
-            viewProxy.attachToRootView()
+            nativeCanvasProxy.attachToRootView()
         }
     }
 

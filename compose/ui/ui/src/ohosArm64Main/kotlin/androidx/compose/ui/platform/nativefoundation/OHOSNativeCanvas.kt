@@ -1,10 +1,10 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RenderEffect
-import platform.arkui.ArkUI_RenderNodeHandle
 
 /*
  * Tencent is pleased to support the open source community by making ovCompose available.
@@ -27,8 +27,7 @@ interface OHOSNativeCanvas : Canvas {
 
     fun onPreDraw()
 
-//    fun drawLayer(layer: CALayer)
-    fun drawLayer(layer: ArkUI_RenderNodeHandle)
+    fun drawLayer(renderNodeHandle: BaseRenderNode_Handle)
 
     fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas)
 

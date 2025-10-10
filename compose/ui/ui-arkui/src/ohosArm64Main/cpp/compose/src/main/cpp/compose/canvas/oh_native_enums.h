@@ -22,7 +22,6 @@ typedef enum  {
     OH_NATIVE_STROKE_CAP_BUTT,
     OH_NATIVE_STROKE_CAP_ROUND,
     OH_NATIVE_STROKE_CAP_SQUARE
-
 } OH_Native_Draw_StrokeCap;
 
 typedef enum {
@@ -37,6 +36,11 @@ typedef enum {
     OH_NATIVE_FILTER_QUALITY_MEDIUM,
     OH_NATIVE_FILTER_QUALITY_HIGH
 } OH_Native_Draw_FilterQuality;
+
+typedef enum {
+    OH_NATIVE_CLIPOP_DIFFERENCE,
+    OH_NATIVE_CLIPOP_INTERSECT
+} OH_Native_Draw_ClipOp;
 #ifdef __cplusplus
 }
 #endif

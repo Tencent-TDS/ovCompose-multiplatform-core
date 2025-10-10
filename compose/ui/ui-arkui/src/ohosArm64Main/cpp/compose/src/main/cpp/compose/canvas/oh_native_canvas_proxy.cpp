@@ -52,8 +52,69 @@ namespace androidx::compose::ui::arkui::utils {
         LOGI("OHNativeCanvasProxy::setParent: start");
         OH::BaseRenderNode *parentNode = canvasParentProxy->getRenderNode();
         if (canvasNode_->getParent() != parentNode) {
-            parentNode->addChild(canvasNode_.get());
+            // parentNode->addChild(canvasNode_.get());
+            canvasNode_->setParent(parentNode);
         }
+    }
+
+    void OHNativeCanvasProxy::setPosition(int32_t x, int32_t y) {
+        LOGI("OHNativeCanvasProxy::setPosition: start");
+        if (canvasNode_ != nullptr) {
+            canvasNode_->setPosition(x, y);
+        }
+    }
+
+    void OHNativeCanvasProxy::setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) {
+        LOGI("OHNativeCanvasProxy::setBounds: start");
+        if (canvasNode_ != nullptr) {
+            canvasNode_->setBounds(originX, originY, boundsWidth, boundsHeight);
+        }
+    }
+
+    void OHNativeCanvasProxy::setPivot(float px, float py) {
+        LOGI("OHNativeCanvasProxy::setPivot: start");
+        if (canvasNode_ != nullptr) {
+            canvasNode_->setPivot(px, py);
+        }
+    }
+
+    void OHNativeCanvasProxy::setOpacity(float opacity) {
+        LOGI("OHNativeCanvasProxy::setOpacity: start");
+        if (canvasNode_ != nullptr) {
+            canvasNode_->setOpacity(opacity);
+        }
+    }
+
+    void OHNativeCanvasProxy::clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp) {
+        LOGI("OHNativeCanvasProxy::clipRect: start");
+        const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(clipOp));
+        OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
+        bool isDirty = updateItem.isDirty;
+        if (isDirty) {
+            OH::BaseRenderNode *renderNodeForDrawing = _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+            OH::OHRenderNodeDrawClipRect(left, top, right, bottom, &(updateItem.saveState), renderNodeForDrawing);
+        }
+    }
+
+
+    void OHNativeCanvasProxy::save() {
+        _pictureRecorder.save();
+    }
+
+    void OHNativeCanvasProxy::restore() {
+        _pictureRecorder.restore();
+    }
+
+    void OHNativeCanvasProxy::translate(float dx, float dy) {
+        _pictureRecorder.translate(dx, dy);
+    }
+
+    void OHNativeCanvasProxy::drawLayerWithSubproxy(OHNativeCanvasProxy* subproxy) {
+        LOGI("OHNativeCanvasProxy::drawLayerWithSubproxy: start");
+        if (subproxy->canvasNode_ != nullptr) {
+            _pictureRecorder.drawRenderNode(subproxy->canvasNode_.get());
+        }
+        
     }
 
     OH::BaseRenderNode *OHNativeCanvasProxy::getRenderNode() {
@@ -102,9 +163,9 @@ namespace androidx::compose::ui::arkui::utils {
         }
     }
 
-    void OHNativeCanvasProxy::drawLayer() {
+    void OHNativeCanvasProxy::drawLayer(OH::BaseRenderNode* renderNode) {
         //TODO：ios上传入了CALayer，oh需要对应的renderNode？
-        //_pictureRecorder.drawRenderNode(xxx);
+        _pictureRecorder.drawRenderNode(renderNode);
     };
 
     OHNativeCanvasProxy::~OHNativeCanvasProxy() {

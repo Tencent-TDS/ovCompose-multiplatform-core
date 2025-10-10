@@ -17,5 +17,9 @@ namespace OH {
             OH_Drawing_ShaderEffect* shader,
             const RenderNodeSaveState *saveState,
             BaseRenderNode* renderNodeForDrawing);
+        
+    void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom,
+            const RenderNodeSaveState *saveState,
+            BaseRenderNode* renderNodeForDrawing);
 } // namespace OH
 #endif

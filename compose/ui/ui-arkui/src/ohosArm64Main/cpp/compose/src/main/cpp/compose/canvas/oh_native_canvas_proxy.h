@@ -19,10 +19,19 @@ public:
     void attachToRootView();
     void setParent(OHNativeCanvasProxy *canvasParentProxy);
     void finishDraw();
+    void save();
+    void restore();
+    void translate(float dx, float dy);
+    void setPosition(int32_t x, int32_t y);
+    void setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight);
+    void setPivot(float px, float py);
+    void setOpacity(float opacity);
 
     void drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint);
     void drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint* paint);
-    void drawLayer();
+    void drawLayer(OH::BaseRenderNode* renderNode);
+    void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);
+    void drawLayerWithSubproxy(OHNativeCanvasProxy *subProxy);
 private:
     OHComposeNativePaint *paint_;
     OH::BaseRenderNode *rootNode_;

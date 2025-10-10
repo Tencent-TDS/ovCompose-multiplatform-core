@@ -54,6 +54,10 @@ namespace OH {
             return this;
         }
 
+        void setParent(BaseRenderNode* parent) {
+            parent_ = parent;
+        }
+
         BaseRenderNode* removeChild(BaseRenderNode* child) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_RemoveChild(nodeHandle_, child->getHandle()));
             child->setParent(nullptr);
@@ -89,10 +93,19 @@ namespace OH {
             return this;
         }
 
-        BaseRenderNode* setMask(float edgeValue) {
+        BaseRenderNode* setClip(ArkUI_RenderNodeClipOption* clipOption) {
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetClip(nodeHandle_, clipOption));
+            OH_ArkUI_RenderNodeUtils_DisposeRenderNodeClipOption(clipOption);
+            return this;
+        }
+
+        BaseRenderNode* setMask(float left, float top, float right, float bottom) {
             ArkUI_RectShapeOption* shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
             if (shape) {
-                OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, edgeValue, ARKUI_EDGE_DIRECTION_ALL);
+                OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, left, ARKUI_EDGE_DIRECTION_LEFT);
+                OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, top, ARKUI_EDGE_DIRECTION_TOP);
+                OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
+                OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
                 ArkUI_RenderNodeMaskOption* mask = OH_ArkUI_RenderNodeUtils_CreateRenderNodeMaskOptionFromRectShape(shape);
                 if (mask) {
                     maybeThrow(OH_ArkUI_RenderNodeUtils_SetMask(nodeHandle_, mask));
@@ -100,6 +113,21 @@ namespace OH {
                 }
                 OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
             }
+            return this;
+        }
+
+        BaseRenderNode* setBounds(int32_t x, int32_t y, int32_t width, int32_t height) {
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
+            return this;
+        }
+
+        BaseRenderNode* setPivot(float px, float py) {
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetPivot(nodeHandle_, px, py));
+            return this;
+        }
+
+        BaseRenderNode* setOpacity(float opacity) {
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetOpacity(nodeHandle_, opacity));
             return this;
         }
 
@@ -192,10 +220,6 @@ namespace OH {
                 LOGE("OHRenderNode operation failed with status: %{public}d", status);
                 throw std::runtime_error("OHRenderNode operation failed");
             }
-        }
-
-        void setParent(BaseRenderNode* parent) {
-            parent_ = parent;
         }
 
         uint32_t hash_;

@@ -1,13 +1,13 @@
 package androidx.compose.ui.text
 
+import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.Density
-import platform.arkui.ArkUI_RenderNodeHandle
 import org.jetbrains.skia.Point
 
 class OHNativeParagraphProxy {
 
-    fun getRenderNodeHandle(): ArkUI_RenderNodeHandle? {
+    fun getRenderNodeHandle(): BaseRenderNode_Handle? {
         return null
     }
 
