@@ -1,19 +1,19 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.NativeShaderFactory
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createNativeImageShader
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createNativeLinearGradientShader
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createNativeRadialGradientShader
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_createNativeSweepGradientShader
 import kotlinx.cinterop.CValues
 import kotlinx.cinterop.UIntVar
 import kotlinx.cinterop.toCValues
-import platform.arkui.OH_Drawing_ShaderEffectCreateLinearGradient
-import platform.arkui.OH_Drawing_ShaderEffectCreateRadialGradient
 import platform.arkui.OH_Drawing_TileMode
-import platform.arkui.OH_Drawing_PointCreate
-import platform.arkui.OH_Drawing_ShaderEffectCreateImageShader
-import platform.arkui.OH_Drawing_ShaderEffectCreateSweepGradient
 import platform.native.OH_Drawing_ImageCreate
 
 private inline fun TileMode.asNativeEnum(): OH_Drawing_TileMode {
@@ -34,17 +34,17 @@ internal object NativeShaderFactoryImpl : NativeShaderFactory {
         colorStops: List<Float>?,
         tileMode: TileMode
     ): Any {
-        val startPt = OH_Drawing_PointCreate(from.x, from.y)
-        val endPt = OH_Drawing_PointCreate(to.x, to.y)
         val colorsArray = toCValuesColors(colors)
         val posArray = colorStops?.toFloatArray()?.toCValues()
-        return OH_Drawing_ShaderEffectCreateLinearGradient(
-            startPt = startPt,
-            endPt = endPt,
+        return androidx_compose_ui_arkui_utils_createNativeLinearGradientShader(
+            startX = from.x,
+            startY = from.y,
+            endX = to.x,
+            endY = to.y,
             colors = colorsArray,
-            pos = posArray,
-            size = colors.size.toUInt(),
-            tileMode = tileMode.asNativeEnum()
+            colorPositions = posArray,
+            colorCount = colors.size.toUInt(),
+            tileMode = tileMode.asNativeEnum().value,
         ) as Any
     }
 
@@ -55,33 +55,30 @@ internal object NativeShaderFactoryImpl : NativeShaderFactory {
         colorStops: List<Float>?,
         tileMode: TileMode
     ): Any {
-        val centerPt = OH_Drawing_PointCreate(center.x, center.y)
         val posArray = colorStops?.toFloatArray()?.toCValues()
         val colorsArray = toCValuesColors(colors)
-        return OH_Drawing_ShaderEffectCreateRadialGradient(
-            centerPt = centerPt,
+        return androidx_compose_ui_arkui_utils_createNativeRadialGradientShader(
+            centerX = center.x,
+            centerY = center.y,
             radius = radius,
             colors = colorsArray,
-            pos = posArray,
-            size = colors.size.toUInt(),
-            tileMode = tileMode.asNativeEnum()
+            colorPositions = posArray,
+            colorCount = colors.size.toUInt(),
+            tileMode = tileMode.asNativeEnum().value
         ) as Any
     }
-
 
     override fun makeSweepGradientShader(
         center: Offset,
         colors: List<Color>,
         colorStops: List<Float>?
     ): Any {
-        return OH_Drawing_ShaderEffectCreateSweepGradient(
-            centerPt = OH_Drawing_PointCreate(center.x, center.y),
+        return androidx_compose_ui_arkui_utils_createNativeSweepGradientShader(
+            centerX = center.x,
+            centerY = center.y,
             colors = toCValuesColors(colors),
-            pos = colorStops?.toFloatArray()?.toCValues(),
-            size = colors.size.toUInt(),
-            // Using CLAMP as the default tileMode since Compose's API doesn't require this parameter
-            // but the OH native API does require
-            tileMode = OH_Drawing_TileMode.CLAMP
+            colorPositions = colorStops?.toFloatArray()?.toCValues(),
+            colorCount = colors.size.toUInt(),
         ) as Any
     }
 
@@ -90,14 +87,12 @@ internal object NativeShaderFactoryImpl : NativeShaderFactory {
         tileModeX: TileMode,
         tileModeY: TileMode
     ): Any {
-        return OH_Drawing_ShaderEffectCreateImageShader(
+        return androidx_compose_ui_arkui_utils_createNativeImageShader(
             // TODO 此处涉及到 Compose的ImageBitmap到原生Bitmap的转换
             // TODO 当前先创建一个空的image，编译通过，后续再修改
             image = OH_Drawing_ImageCreate(),
-            tileX = tileModeX.asNativeEnum(),
-            tileY = tileModeY.asNativeEnum(),
-            samplingOptions = null,
-            matrix = null
+            tileModeX = tileModeX.asNativeEnum().value,
+            tileModeY = tileModeY.asNativeEnum().value,
         ) as Any
     }
 

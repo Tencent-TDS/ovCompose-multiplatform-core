@@ -93,6 +93,36 @@ namespace OH {
         return hashMerge(ua, ub);
     }
 
+    OH_ALWAYS_INLINE uint64_t FNVHash(const void *data, size_t len) noexcept {
+        const uint8_t* bytes = static_cast<const uint8_t*>(data);
+        uint64_t hash = 14695981039346656037ULL; // FNV偏移基数
+        for (size_t i = 0; i < len; ++i) {
+            hash ^= bytes[i];
+            hash *= 1099511628211ULL; // FNV质数
+        }
+        return hash;
+    } 
+
+    template<typename T>
+    OH_ALWAYS_INLINE uint64_t FNVHashNumberArray(const std::vector<T> &data) noexcept {
+        uint64_t hash = 14695981039346656037ULL;
+        if (data.size() == 0) {
+            return 0;
+        }
+        for (auto f : data) {
+            hash ^= static_cast<uint64_t>(f);
+            hash *= 1099511628211ULL;
+        }
+        return hash;
+    }
+
+    OH_ALWAYS_INLINE uint64_t hashArray(const void* data, size_t elementSize, size_t elementCount) noexcept {
+        if (data == nullptr || elementCount == 0 || elementSize == 0) {
+            return 0;
+        }
+        return FNVHash(data, elementSize * elementCount);
+    }
+
     OH_ALWAYS_INLINE uint64_t hashMergeDoubles(double a, double b) noexcept {
         // 将双精度浮点数按位解释为整数进行哈希
         static_assert(sizeof(double) == sizeof(uint64_t), "double size mismatch");

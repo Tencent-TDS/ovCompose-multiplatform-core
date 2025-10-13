@@ -146,6 +146,12 @@ internal class ArkUIRenderNodeLayer(
             }
         }
 
+//    init {
+//        if (clipChildren) {
+//            nativeCanvasProxy.setMasksToBounds(true)
+//        }
+//    }
+
     override fun updateLayerProperties(
         scope: ReusableGraphicsLayerScope,
         layoutDirection: LayoutDirection,

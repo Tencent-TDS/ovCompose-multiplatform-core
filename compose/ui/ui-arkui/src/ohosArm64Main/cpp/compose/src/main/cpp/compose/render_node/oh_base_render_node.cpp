@@ -1,4 +1,5 @@
 #include "oh_base_render_node.h"
+#include "../shader/oh_native_linear_gradient_shader.h"
 
 namespace OH {
      BaseRenderNode::BaseRenderNode(ArkUI_RenderNodeHandle node)

@@ -23,14 +23,14 @@
 #ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
 
-
 EXTERN_C_START
-typedef struct OHNativeCanvasProxy* OHNativeCanvasProxy_Handle;
-typedef struct OHComposeNativePaint* OHComposeNativePaint_Handle;
-typedef struct OH_Drawing_ShaderEffect* OH_Drawing_ShaderEffect_Handle;
-typedef struct OH_Drawing_ColorFilter* OH_Drawing_ColorFilter_Handle;
-typedef struct OH_Drawing_PathEffect* OH_Drawing_PathEffect_Handle;
-typedef struct BaseRenderNode* BaseRenderNode_Handle;
+typedef struct OHNativeCanvasProxy *OHNativeCanvasProxy_Handle;
+typedef struct OHComposeNativePaint *OHComposeNativePaint_Handle;
+typedef struct OH_Drawing_ShaderEffect *OH_Drawing_ShaderEffect_Handle;
+typedef struct OH_Drawing_ColorFilter *OH_Drawing_ColorFilter_Handle;
+typedef struct OH_Drawing_PathEffect *OH_Drawing_PathEffect_Handle;
+typedef struct BaseRenderNode *BaseRenderNode_Handle;
+typedef struct NativeBasicShader *NativeBasicShader_Handle;
 OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy);
 OHComposeNativePaint_Handle androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy);
@@ -65,9 +65,18 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(OHCompose
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(OHComposeNativePaint_Handle paint, uint32_t strokeJoin);
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(OHComposeNativePaint_Handle paint, float miterLimit);
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(OHComposeNativePaint_Handle paint, uint32_t quality);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint, OH_Drawing_ShaderEffect_Handle shader);
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint, NativeBasicShader_Handle shader);
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect(OHComposeNativePaint_Handle paint, OH_Drawing_PathEffect_Handle pathEffect);
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHComposeNativePaint_Handle paint, OH_Drawing_ColorFilter_Handle colorFilter);
+
+// NativeShader related methods
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeLinearGradientShader(float startX, float startY, float endX, float endY,
+                                                                                          uint32_t *colors, float *colorPositions, uint32_t colorCount, uint32_t tileMode);
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeRadialGradientShader(float centerX, float centerY, float radius,
+                                                                                          uint32_t *colors, float *colorPositions, uint32_t colorCount, uint32_t tileMode);
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeSweepGradientShader(float centerX, float centerY,
+                                                                                         uint32_t *colors, float *colorPositions, uint32_t colorCount);
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(OH_Drawing_Image* image, uint32_t tileModeX, uint32_t tileModeY);
 EXTERN_C_END
 
 #endif

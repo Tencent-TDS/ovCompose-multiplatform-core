@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
+#include <window_manager/oh_display_manager.h>
+#include <arkui/native_render.h>
 #include "../xcomponent_log.h"
 #include "oh_native_canvas_proxy.h"
-#include <arkui/native_render.h>
 #include "../utils/oh_hash_funcs.h"
 #include "../constants/oh_native_enum.h"
 #include "oh_native_canvas_layer_drawer.h"
-#include <window_manager/oh_display_manager.h>
 
 namespace androidx::compose::ui::arkui::utils {
     OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {
@@ -130,7 +130,7 @@ namespace androidx::compose::ui::arkui::utils {
     void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint) {
         LOGI("OHNativeCanvasProxy::drawRect: start");
         //TODO:需要paint
-        OH_Drawing_ShaderEffect* shader = paint->shader;
+        OH::NativeBasicShader* shader = paint->shader;
         const OH::OHNativeDrawingType drawingType = shader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
         //TODO:需要paint
 //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);

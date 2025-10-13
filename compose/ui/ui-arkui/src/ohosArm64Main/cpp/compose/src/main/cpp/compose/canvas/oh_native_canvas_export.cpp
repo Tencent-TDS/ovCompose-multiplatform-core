@@ -21,6 +21,11 @@
 #include "oh_native_canvas_proxy.h"
 #include "oh_native_canvas_proxy_factory.h"
 #include "oh_compose_native_paint.h"
+#include "../shader/oh_native_basic_shader.h"
+#include "../shader/oh_native_linear_gradient_shader.h"
+#include "../shader/oh_native_radial_gradient_shader.h"
+#include "../shader/oh_native_sweep_gradient_shader.h"
+#include "../shader/oh_native_image_shader.h"
 #include "native_drawing/drawing_shader_effect.h"
 
 EXTERN_C_START
@@ -86,8 +91,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy(O
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy");
 }
 
-
-/// OHNativeCanvasProxy state operations 
+/// OHNativeCanvasProxy state operations
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left, float top, float right, float bottom, uint32_t clipOp) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->clipRect(left, top, right, bottom, static_cast<OH_Native_Draw_ClipOp>(clipOp));
@@ -117,7 +121,6 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity(OHNativeCanv
     canvasProxy->setOpacity(opacity);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity: opacity:%{public}f", opacity);
 }
-
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save(OHNativeCanvasProxy_Handle proxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
@@ -168,7 +171,7 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(OHCompo
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth: strokeWidth=%{public}f", strokeWidth);
 }
 
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(OHComposeNativePaint_Handle paint, uint32_t blendMode){
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(OHComposeNativePaint_Handle paint, uint32_t blendMode) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     nativePaint->blendMode = static_cast<OH_Drawing_BlendMode>(blendMode);
     LOGI("addroidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode: blendMode=%{public}d", blendMode);
@@ -198,30 +201,73 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(OH
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit: miterLimit=%{public}f", miterLimit);
 }
 
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(OHComposeNativePaint_Handle paint, uint32_t quality){
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(OHComposeNativePaint_Handle paint, uint32_t quality) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     nativePaint->filterQuality = static_cast<OH_Native_Draw_FilterQuality>(quality);
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality: quality=%{public}d", quality);
 }
 
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint, OH_Drawing_ShaderEffect_Handle shader) {
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint, NativeBasicShader_Handle shader) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    auto nativeShader = reinterpret_cast<OH_Drawing_ShaderEffect *>(shader);
+    auto nativeShader = reinterpret_cast<OH::NativeBasicShader *>(shader);
     nativePaint->shader = nativeShader;
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader: shader=%{public}p", shader);
 }
 
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect(OHComposeNativePaint_Handle paint, OH_Drawing_PathEffect_Handle pathEffect){
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect(OHComposeNativePaint_Handle paint, OH_Drawing_PathEffect_Handle pathEffect) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto nativePathEffect = reinterpret_cast<OH_Drawing_PathEffect *>(paint);
     nativePaint->pathEffect = nativePathEffect;
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect: pathEffect=%{public}p", pathEffect);
 }
 
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHComposeNativePaint_Handle paint, OH_Drawing_ColorFilter_Handle colorFilter){
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHComposeNativePaint_Handle paint, OH_Drawing_ColorFilter_Handle colorFilter) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto nativeColorFilter = reinterpret_cast<OH_Drawing_ColorFilter *>(colorFilter);
     nativePaint->colorFilter = nativeColorFilter;
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter: colorFilter=%{public}p", colorFilter);
 }
+
+/// NativeShader related methods
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeLinearGradientShader(float startX, float startY, float endX, float endY,
+                                                                                          uint32_t *colors, float *colorPositions, uint32_t colorCount, uint32_t tileMode) {
+    auto shader = new OH::NativeLinearGradientShader();
+    shader->setStart(startX, startY)
+        ->setEnd(endX, endY)
+        ->setColors(colors, colorPositions, colorCount)
+        ->setTileMode(static_cast<OH_Drawing_TileMode>(tileMode));
+    LOGI("androidx_compose_ui_arkui_utils_createNativeLinearGradientShader: startX=%{public}f, startY=%{public}f, endX=%{public}f, endY=%{public}f, tileMode=%{public}u",
+         startX, startY, endX, endY, tileMode);
+    return reinterpret_cast<NativeBasicShader_Handle>(shader);
+}
+
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeRadialGradientShader(float centerX, float centerY, float radius,
+                                                                                          uint32_t *colors, float *colorPositions, uint32_t colorCount, uint32_t tileMode) {
+    auto shader = new OH::NativeRadialGradientShader();
+    shader->setCenter(centerX, centerY)
+        ->setRadius(radius)
+        ->setColors(colors, colorPositions, colorCount)
+        ->setTileMode(static_cast<OH_Drawing_TileMode>(tileMode));
+    LOGI("androidx_compose_ui_arkui_utils_createNativeRadialGradientShader: centerX=%{public}f, centerY=%{public}f, radius=%{public}f, tileMode=%{public}u",
+         centerX, centerY, radius, tileMode);
+    return reinterpret_cast<NativeBasicShader_Handle>(shader);
+}
+
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeSweepGradientShader(float centerX, float centerY,
+                                                                                         uint32_t *colors, float *colorPositions, uint32_t colorCount) {
+    auto shader = new OH::NativeSweepGradientShader();
+    shader->setCenter(centerX, centerY)
+        ->setColors(colors, colorPositions, colorCount);
+    LOGI("androidx_compose_ui_arkui_utils_createNativeSweepGradientShader: centerX=%{public}f, centerY=%{public}f", centerX, centerY);
+    return reinterpret_cast<NativeBasicShader_Handle>(shader);
+}
+
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(OH_Drawing_Image* image, uint32_t tileModeX, uint32_t tileModeY) {
+    auto shader = new OH::NativeImageShader();
+    shader->setTileMode(static_cast<OH_Drawing_TileMode>(tileModeX), static_cast<OH_Drawing_TileMode>(tileModeY));
+    shader->image = image;
+    LOGI("androidx_compose_ui_arkui_utils_createNativeImageShader: image=%{public}p, tileModeX=%{public}u, tileModeY=%{public}u", image, tileModeX, tileModeY);
+    return reinterpret_cast<NativeBasicShader_Handle>(shader);
+}
+
 EXTERN_C_END

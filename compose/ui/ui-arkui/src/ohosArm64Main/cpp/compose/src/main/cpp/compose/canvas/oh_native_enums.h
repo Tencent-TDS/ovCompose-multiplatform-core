@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 typedef enum {
-    OH_NATIVE_PAINTINT_STYLE_FILL,
-    OH_NATIVE_PAINTINT_STYLE_STROKE
+    OH_NATIVE_PAINTING_STYLE_FILL,
+    OH_NATIVE_PAINTING_STYLE_STROKE
 } OH_Native_Draw_PaintingStyle;
 
 typedef enum {

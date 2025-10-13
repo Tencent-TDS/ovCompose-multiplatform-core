@@ -4,12 +4,13 @@
 #include "cstdint"
 #include "oh_native_enums.h"
 #include "native_drawing/drawing_types.h"
+#include "../shader/oh_native_basic_shader.h"
 
 
 namespace androidx::compose::ui::arkui::utils {
 class OHComposeNativePaint {
 public:
-    explicit OHComposeNativePaint();
+    OHComposeNativePaint();
     ~OHComposeNativePaint();
     // kt侧设置的 alpha
     float alpha;
@@ -42,7 +43,7 @@ public:
     bool isAntiAlias;
 
     // kt侧设置的 shader
-    OH_Drawing_ShaderEffect* shader;
+    OH::NativeBasicShader* shader;
 
     // kt侧设置的 pathEffect
     OH_Drawing_PathEffect* pathEffect;

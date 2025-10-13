@@ -1,5 +1,6 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.ui.arkui.utils.NativeBasicShader_Handle
 import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_FilterQuality
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_PaintingStyle
@@ -22,8 +23,6 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import cnames.structs.OH_Drawing_ShaderEffect
-import kotlinx.cinterop.CPointer
 import platform.arkui.OH_Drawing_BlendMode
 
 internal fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
@@ -62,8 +61,8 @@ internal fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
 
 internal fun PaintingStyle.asNativePaintStyle(): OH_Native_Draw_PaintingStyle {
     return when (this) {
-        PaintingStyle.Fill -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTINT_STYLE_FILL
-        PaintingStyle.Stroke -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTINT_STYLE_STROKE
+        PaintingStyle.Fill -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTING_STYLE_FILL
+        PaintingStyle.Stroke -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTING_STYLE_STROKE
         else -> throw RuntimeException("Unsupported PaintingStyle: $this")
     }
 
@@ -110,7 +109,7 @@ class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(handle, paint.strokeJoin.asNativeStrokeJoin().value)
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(handle, paint.filterQuality.asNativeFilterQuality().value)
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(handle, paint.strokeMiterLimit)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(handle, paint.shader?.nativeShader as CPointer<OH_Drawing_ShaderEffect>?)
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(handle, paint.shader?.nativeShader as NativeBasicShader_Handle?)
         // TODO setColorFilter
         // androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(handle, paint.colorFilter?.nativeColorFilter)
     }
