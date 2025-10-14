@@ -130,10 +130,49 @@ void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom,
     }
 }
 
+    void OHRenderNodeDrawRoundRect(float left, float top, float right, float bottom,
+            float radiusX, float radiusY,
+            NativeBasicShader* shader,
+            const RenderNodeSaveState* saveState,
+            BaseRenderNode* renderNodeForDrawing,
+            androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint) {
+        const float strokeWidth = paint->strokeWidth;
+        int32_t x = (left + strokeWidth);
+        int32_t y = (top + strokeWidth);
+
+        int32_t width = (right - left + strokeWidth);
+        int32_t height = (bottom - top + strokeWidth);
+
+        renderNodeForDrawing
+            ->setTransform(const_cast<float*>(saveState->transform.data()))
+            ->setTranslate(saveState->translateX, saveState->translateY)
+            ->setPosition(x, y)
+            ->setSize(width, height)
+            ->setBorderCornerRadius(radiusX);
+        if (!shader) {
+            //TODO：setMask(0)会导致不显示，需要了解具体怎么传值
+            //renderNodeForDrawing->setMask(0);
+            if (paint->style == OH_Native_Draw_PaintingStyle::OH_NATIVE_PAINTING_STYLE_STROKE) {
+                renderNodeForDrawing
+                        ->setBorderWidth(strokeWidth)
+                        ->setBorderColor(paint->color)
+                        ->setBackgroundColor(CLEAR_COLOR);
+            } else {
+                renderNodeForDrawing->setBorderWidth(0)
+                                //TODO:需要通过paint获取颜色
+                        ->setBackgroundColor(paint->color);
+            }
+        } else {
+
+        }
+    }
+
 void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2,
-                          OH_Drawing_ShaderEffect *shader,
+                          NativeBasicShader* shader,
                           const RenderNodeSaveState *saveState,
-                          BaseRenderNode *renderNodeForDrawing) {
+                          BaseRenderNode *renderNodeForDrawing,
+                          androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint) {
+    const float strokeWidth = paint->strokeWidth;
     int32_t x = std::min(x1, x2);
     int32_t y = std::min(y1, y2);
     int32_t width = abs(x2 - x1);
@@ -146,15 +185,7 @@ void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2,
         ->setSize(width, height);
 
     if (!shader) {
-        renderNodeForDrawing->drawLine(x1, y1, x2, y2);
-        //            [(TMMNativeLineLayer *)layerForDrawing drawWithPointX1:pointX1
-        //            pointY1:pointY1
-        //            pointX2:pointX2
-        //            pointY2:pointY2
-        //            lineWidth:[paint strokeWidth]
-        //            lineColor:[paint colorFromColorValue]
-        //            strokeCap:[paint strokeCap]
-        //            density:density];
+        renderNodeForDrawing->drawLine(x1, y1, x2, y2, strokeWidth, paint->color, paint->strokeCap);
     } else {
         //            [(TMMNativeLineGradientLayer *)layerForDrawing drawWithPointX1:pointX1
         //            pointY1:pointY1

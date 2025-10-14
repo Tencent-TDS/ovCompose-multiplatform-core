@@ -12,6 +12,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds
@@ -144,6 +145,13 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
                 nativePaint.handle
             )
         }
+    }
+
+    /**
+     * 绘制圆角矩形
+     */
+    fun drawRoundRect(left: Float, top: Float, right: Float, bottom: Float, radiusX: Float, radiusY: Float, nativePaint: OHComposeNativePaint) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(it, left, top, right, bottom, radiusX, radiusY, nativePaint.handle) }
     }
 
     fun drawLine(x1: Float, y1: Float, x2: Float, y2: Float, nativePaint: OHComposeNativePaint) {

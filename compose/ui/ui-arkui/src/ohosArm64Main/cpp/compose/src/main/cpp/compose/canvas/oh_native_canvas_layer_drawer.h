@@ -15,10 +15,18 @@ void OHRenderNodeDrawRect(float left, float top, float right, float bottom,
                           BaseRenderNode *renderNodeForDrawing,
                           androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint);
 
+void OHRenderNodeDrawRoundRect(float left, float top, float right, float bottom,
+                               float roundX, float roundY,
+                                NativeBasicShader* shader,
+                                const RenderNodeSaveState *saveState,
+                                BaseRenderNode* renderNodeForDrawing,
+                                androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint);
+
 void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2,
                           NativeBasicShader *shader,
                           const RenderNodeSaveState *saveState,
-                          BaseRenderNode *renderNodeForDrawing);
+                          BaseRenderNode *renderNodeForDrawing,
+                          androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint);
 
 void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom,
                               const RenderNodeSaveState *saveState,

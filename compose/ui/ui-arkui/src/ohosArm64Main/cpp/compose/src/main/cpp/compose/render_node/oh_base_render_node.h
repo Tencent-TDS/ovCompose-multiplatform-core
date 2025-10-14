@@ -10,6 +10,7 @@
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_canvas.h>
 #include "../xcomponent_log.h"
+#include "../canvas/oh_native_enums.h"
 
 namespace OH {
     class BaseRenderNode {
@@ -166,39 +167,79 @@ namespace OH {
             return this;
         }
 
-        BaseRenderNode* drawLine(float x1, float y1, float x2, float y2) {
-            struct UserData {
-                float x1;
-                float y1;
-                float x2;
-                float y2;
+        BaseRenderNode *drawLine(float x1, float y1, float x2, float y2, float lineWidth,
+                                 uint32_t lineColor, OH_Native_Draw_StrokeCap stokeCap) {
+            // Property的作用是触发set更新，同步更新modifier的Draw方法。
+            struct AnimatableUserData {
+                ArkUI_Vector2AnimatablePropertyHandle p1;
+                ArkUI_Vector2AnimatablePropertyHandle p2;
+                ArkUI_FloatAnimatablePropertyHandle width;
+                ArkUI_ColorAnimatablePropertyHandle color;
+                OH_Native_Draw_StrokeCap capStyle;
             };
-            UserData* data = new UserData{
-                .x1 = x1,
-                .y1 = y1,
-                .x2 = x2,
-                .y2 = y2
-            };
-            //ArkUI_RenderContentModifierHandle
+            // 设置基础值。
+            AnimatableUserData *userData1 = new AnimatableUserData;
+            auto vectorAnimP1 = OH_ArkUI_RenderNodeUtils_CreateVector2AnimatableProperty(x1, y1);
+            userData1->p1 = vectorAnimP1;
+            auto vectorAnimP2 = OH_ArkUI_RenderNodeUtils_CreateVector2AnimatableProperty(x2, y2);
+            userData1->p2 = vectorAnimP2;
+            auto widthP = OH_ArkUI_RenderNodeUtils_CreateFloatAnimatableProperty(lineWidth);
+            userData1->width = widthP;
+            auto colorP = OH_ArkUI_RenderNodeUtils_CreateColorAnimatableProperty(lineColor);
+            userData1->color = colorP;
+            userData1->capStyle = stokeCap;
+            // 关联组件和多个modifier。
             auto modifier = OH_ArkUI_RenderNodeUtils_CreateContentModifier();
-
             maybeThrow(OH_ArkUI_RenderNodeUtils_AttachContentModifier(nodeHandle_, modifier));
-            maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(modifier, data, [](ArkUI_DrawContext *context, void *userData) {
-                UserData* data = static_cast<UserData*>(userData);
+            // 关联modifier和property。
+            OH_ArkUI_RenderNodeUtils_AttachVector2AnimatableProperty(modifier, vectorAnimP1);
+            OH_ArkUI_RenderNodeUtils_AttachVector2AnimatableProperty(modifier, vectorAnimP2);
+            OH_ArkUI_RenderNodeUtils_AttachFloatAnimatableProperty(modifier, widthP);
+            OH_ArkUI_RenderNodeUtils_AttachColorAnimatableProperty(modifier, colorP);
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(modifier, userData1,
+                                                                         [](ArkUI_DrawContext *context,void *userData) {
+                AnimatableUserData *data = static_cast<AnimatableUserData *>(userData);
                 auto *canvas1 = OH_ArkUI_DrawContext_GetCanvas(context);
                 OH_Drawing_Canvas *canvas = reinterpret_cast<OH_Drawing_Canvas *>(canvas1);
 
                 auto path = OH_Drawing_PathCreate();
-                OH_Drawing_PathMoveTo(path, data -> x1, data -> y1);
-                OH_Drawing_PathLineTo(path, data -> x2, data -> y2);
+                float x1F = 0;
+                float y1F = 0;
+                float x2F = 0;
+                float y2F = 0;
+                float widthF = 0;
+                uint32_t lineColor = 0;
+                OH_Drawing_PenLineCapStyle lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_FLAT_CAP;
+
+                ArkUI_Vector2AnimatablePropertyHandle p1 = data->p1;
+                ArkUI_Vector2AnimatablePropertyHandle p2 = data->p2;
+                ArkUI_FloatAnimatablePropertyHandle width = data->width;
+                ArkUI_ColorAnimatablePropertyHandle cp = data->color;
+                OH_Native_Draw_StrokeCap nativeStokeCap = data->capStyle;
+
+
+                OH_ArkUI_RenderNodeUtils_GetVector2AnimatablePropertyValue(p1, &x1F, &y1F);
+                OH_ArkUI_RenderNodeUtils_GetVector2AnimatablePropertyValue(p2, &x2F, &y2F);
+                OH_ArkUI_RenderNodeUtils_GetFloatAnimatablePropertyValue(width, &widthF);
+                OH_ArkUI_RenderNodeUtils_GetColorAnimatablePropertyValue(cp, &lineColor);
+                if (nativeStokeCap == OH_Native_Draw_StrokeCap::OH_NATIVE_STROKE_CAP_ROUND) {
+                    lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_ROUND_CAP;
+                } else if(nativeStokeCap == OH_Native_Draw_StrokeCap::OH_NATIVE_STROKE_CAP_SQUARE) {
+                    lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_SQUARE_CAP;
+                }
+
+                OH_Drawing_PathMoveTo(path, x1F,y1F);
+                OH_Drawing_PathLineTo(path, x2F,y2F);
                 OH_Drawing_PathClose(path);
+
                 auto pen = OH_Drawing_PenCreate();
-                //TODO：暂时写死
-                OH_Drawing_PenSetWidth(pen, 10);
-                OH_Drawing_PenSetColor(pen, OH_Drawing_ColorSetArgb(0xFF, 0xFF, 0x00, 0x00));
+                OH_Drawing_PenSetWidth(pen, widthF);
+                OH_Drawing_PenSetColor(pen, lineColor);
+                OH_Drawing_PenSetCap(pen, lineCapStyle);
                 OH_Drawing_CanvasAttachPen(canvas, pen);
                 OH_Drawing_CanvasDrawPath(canvas, path);
-            }));
+             }));
+            return this;
         }
 
         uint32_t getHash() const {

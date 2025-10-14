@@ -28,6 +28,7 @@ public:
     void setOpacity(float opacity);
 
     void drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint);
+    void drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY, OHComposeNativePaint* paint);
     void drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint* paint);
     void drawLayer(OH::BaseRenderNode* renderNode);
     void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);

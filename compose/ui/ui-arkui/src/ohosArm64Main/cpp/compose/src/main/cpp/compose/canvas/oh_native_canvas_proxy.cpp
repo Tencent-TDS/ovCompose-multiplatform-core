@@ -145,6 +145,22 @@ namespace androidx::compose::ui::arkui::utils {
         }
     }
 
+    void OHNativeCanvasProxy::drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY, OHComposeNativePaint* paint) {
+        LOGI("OHNativeCanvasProxy::drawRoundRect: start");
+        OH::NativeBasicShader* shader = paint->shader;
+        const OH::OHNativeDrawingType drawingType = shader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
+        //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
+                const uint64_t preHash = 0;
+        const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
+        OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+        bool isDirty = updateItem.isDirty;
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
+        if (isDirty) {
+            renderNodeForDrawing = _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+            OH::OHRenderNodeDrawRoundRect(left, top, right, bottom, radiusX, radiusY, shader, &(updateItem.saveState), renderNodeForDrawing, paint);
+        }
+    }
+    
     void OHNativeCanvasProxy::drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint* paint) {
         LOGI("OHNativeCanvasProxy::drawLine: start");
         //TODO:需要paint
@@ -158,8 +174,8 @@ namespace androidx::compose::ui::arkui::utils {
         bool isDirty = updateItem.isDirty;
         OH::BaseRenderNode *renderNodeForDrawing = nullptr;
         if (isDirty) {
-            renderNodeForDrawing = _pictureRecorder.getOrCreateLayerForDrawing(updateItem.drawingType, updateItem.itemHash);
-            OH::OHRenderNodeDrawLine(x1, y1, x2, y2, paint->shader, &(updateItem.saveState), renderNodeForDrawing);
+            renderNodeForDrawing = _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+            OH::OHRenderNodeDrawLine(x1, y1, x2, y2, paint->shader, &(updateItem.saveState), renderNodeForDrawing, paint);
         }
     }
 

@@ -51,6 +51,13 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(OHNativeCanvas
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect");
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeCanvasProxy_Handle proxy, float left, float top, float right, float bottom, float radiusX, float radiusY, OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint);
+}
+
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1, float x2, float y2, OHComposeNativePaint_Handle paint) {
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);

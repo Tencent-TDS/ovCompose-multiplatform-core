@@ -244,7 +244,8 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
         radiusY: Float,
         paint: Paint
     ) {
-        // TODO("Not yet implemented")
+        nativePaint.sync(paint)
+        nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
         LogPrintUtil.verbose(
             "AdaptiveCanvas::drawRoundRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, " +
