@@ -20,7 +20,7 @@
 #include "../xcomponent_log.h"
 #include "oh_native_canvas_proxy.h"
 #include "../utils/oh_hash_funcs.h"
-#include "../constants/oh_native_enum.h"
+#include "../constants/oh_native_enums.h"
 #include "oh_native_canvas_layer_drawer.h"
 
 namespace androidx::compose::ui::arkui::utils {
@@ -96,7 +96,6 @@ namespace androidx::compose::ui::arkui::utils {
         }
     }
 
-
     void OHNativeCanvasProxy::save() {
         _pictureRecorder.save();
     }
@@ -131,7 +130,7 @@ namespace androidx::compose::ui::arkui::utils {
         LOGI("OHNativeCanvasProxy::drawRect: start");
         //TODO:需要paint
         OH::NativeBasicShader* shader = paint->shader;
-        const OH::OHNativeDrawingType drawingType = shader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
+        const OH_Native_Drawing_Type drawingType = shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
         //TODO:需要paint
 //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
         const uint64_t preHash = 0;
@@ -148,7 +147,7 @@ namespace androidx::compose::ui::arkui::utils {
     void OHNativeCanvasProxy::drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY, OHComposeNativePaint* paint) {
         LOGI("OHNativeCanvasProxy::drawRoundRect: start");
         OH::NativeBasicShader* shader = paint->shader;
-        const OH::OHNativeDrawingType drawingType = shader ? OH::OHNativeDrawingType::ShaderRect : OH::OHNativeDrawingType::Rect;
+        const OH_Native_Drawing_Type drawingType = shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
         //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
                 const uint64_t preHash = 0;
         const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
@@ -165,7 +164,7 @@ namespace androidx::compose::ui::arkui::utils {
         LOGI("OHNativeCanvasProxy::drawLine: start");
         //TODO:需要paint
         //TMMNativeBasicShader *shader = [paint shader];
-        const OH::OHNativeDrawingType drawingType = paint->shader ? OH::OHNativeDrawingType::ShaderLine : OH::OHNativeDrawingType::Line;
+        const OH_Native_Drawing_Type drawingType = paint->shader ? OH_Native_Drawing_Type::DrawingTypeShaderLine : OH_Native_Drawing_Type::DrawingTypeLine;
         //const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
         const uint64_t preHash = 0;
         const uint64_t drawingContentHash = OH::hashCombineSequential(x1, y1, x2, y2, static_cast<float>(preHash));

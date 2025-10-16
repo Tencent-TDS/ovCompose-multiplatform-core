@@ -3,7 +3,7 @@
 
 #include <string>
 #include "../graphics/oh_native_transform.h"
-#include "../constants/oh_native_enum.h"
+#include "../constants/oh_native_enums.h"
 
 namespace OH {
 
@@ -13,7 +13,7 @@ namespace OH {
         float translateX;       // Translation along X axis
         float translateY;       // Translation along Y axis
         int clipCount;            // Number of clips
-        RenderNodeSaveStateMakeType makeType;  // Type of the save (SafeGuard, Save, Clip)
+        OH_RenderNode_SaveState_MakeType makeType;  // Type of the save (SafeGuard, Save, Clip)
     };
 
 // Inline function to create a safeguard RenderNodeSaveState
@@ -23,7 +23,7 @@ namespace OH {
                 0.0f,                   // No translation
                 0.0f,                   // No translation
                 0,                      // No clip
-                RenderNodeSaveStateMakeType::SafeGuard  // SafeGuard type
+                OH_RenderNode_SaveState_MakeType::SafeGuard  // SafeGuard type
         };
     }
 

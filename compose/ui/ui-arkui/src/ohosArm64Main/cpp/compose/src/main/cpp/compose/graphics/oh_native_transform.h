@@ -4,7 +4,8 @@
 #include <cmath>
 #include <array>
 #include <cstring>
-#include "../constants/oh_native_enum.h"
+#include "../constants/oh_native_enums.h"
+#include "../constants/oh_native_constants.h"
 
 namespace OH {
 

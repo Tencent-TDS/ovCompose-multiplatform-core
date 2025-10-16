@@ -16,7 +16,7 @@
  */
 
 #include "napi/native_api.h"
-#include "oh_native_enums.h"
+#include "../constants/oh_native_enums.h"
 #include "native_drawing/drawing_types.h"
 #include <arkui/native_render.h>
 

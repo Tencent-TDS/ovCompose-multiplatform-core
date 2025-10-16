@@ -1,2 +1,2 @@
 package = androidx.compose.ui.arkui.utils
-headers = arkui_utils_export.h canvas/oh_native_canvas_export.h canvas/oh_native_enums.h
+headers = arkui_utils_export.h canvas/oh_native_canvas_export.h constants/oh_native_enums.h

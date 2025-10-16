@@ -18,7 +18,6 @@
 #include "oh_native_canvas_proxy_factory.h"
 #include "oh_native_canvas_proxy.h"
 
-
 namespace androidx::compose::ui::arkui::utils {
 
 OHNativeCanvasProxy *OHNativeCanvasProxyFactory::CreateOHNativeCanvasProxy() {

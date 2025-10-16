@@ -29,8 +29,8 @@ import kotlin.experimental.ExperimentalObjCRefinement
 
 private inline fun ClipOp.asNativeEnum(): OH_Native_Draw_ClipOp {
     return when (this) {
-        ClipOp.Difference -> OH_Native_Draw_ClipOp.OH_NATIVE_CLIPOP_DIFFERENCE
-        ClipOp.Intersect -> OH_Native_Draw_ClipOp.OH_NATIVE_CLIPOP_INTERSECT
+        ClipOp.Difference -> OH_Native_Draw_ClipOp.Difference
+        ClipOp.Intersect -> OH_Native_Draw_ClipOp.Intersect
         else -> throw RuntimeException("暂不支持")
     }
 }

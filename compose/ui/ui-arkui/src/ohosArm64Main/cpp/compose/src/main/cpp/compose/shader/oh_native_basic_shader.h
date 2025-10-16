@@ -1,15 +1,20 @@
 #ifndef OH_NATIVE_BASIC_SHADER_H
 #define OH_NATIVE_BASIC_SHADER_H
-#define NATIVE_EXPORT __attribute__((visibility("default")))
 
 #include <cstdint>
+#include "../constants/oh_native_enums.h"
 
 namespace OH {
-    // shader 基类，由子类实现，并在kt侧完成初始化
-    class NATIVE_EXPORT NativeBasicShader {
-    public:
-        virtual ~NativeBasicShader() = default;
-        virtual uint64_t propertyHash() = 0;
-    };
-}
+/**
+ * @brief Abstract base class representing a native basic shader.
+ *
+ * This class defines the interface for native shader implementations,
+ * requiring derived classes to provide a method for computing a property hash.
+ */
+class NativeBasicShader {
+public:
+    virtual ~NativeBasicShader() = default;
+    virtual uint64_t propertyHash() = 0;
+};
+} // namespace OH
 #endif

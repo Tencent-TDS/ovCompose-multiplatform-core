@@ -1,5 +1,6 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.arkui.utils.NativeBasicShader_Handle
 import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_FilterQuality
@@ -61,8 +62,8 @@ internal fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
 
 internal fun PaintingStyle.asNativePaintStyle(): OH_Native_Draw_PaintingStyle {
     return when (this) {
-        PaintingStyle.Fill -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTING_STYLE_FILL
-        PaintingStyle.Stroke -> OH_Native_Draw_PaintingStyle.OH_NATIVE_PAINTING_STYLE_STROKE
+        PaintingStyle.Fill -> OH_Native_Draw_PaintingStyle.Fill
+        PaintingStyle.Stroke -> OH_Native_Draw_PaintingStyle.Stroke
         else -> throw RuntimeException("Unsupported PaintingStyle: $this")
     }
 
@@ -70,46 +71,89 @@ internal fun PaintingStyle.asNativePaintStyle(): OH_Native_Draw_PaintingStyle {
 
 private inline fun StrokeCap.asNativeStrokeCap(): OH_Native_Draw_StrokeCap {
     return when (this) {
-        StrokeCap.Butt -> OH_Native_Draw_StrokeCap.OH_NATIVE_STROKE_CAP_BUTT
-        StrokeCap.Round -> OH_Native_Draw_StrokeCap.OH_NATIVE_STROKE_CAP_ROUND
-        StrokeCap.Square -> OH_Native_Draw_StrokeCap.OH_NATIVE_STROKE_CAP_SQUARE
+        StrokeCap.Butt -> OH_Native_Draw_StrokeCap.StrokeCapButt
+        StrokeCap.Round -> OH_Native_Draw_StrokeCap.StrokeCapRound
+        StrokeCap.Square -> OH_Native_Draw_StrokeCap.StrokeCapSquare
         else -> throw RuntimeException("Unsupported StrokeCap: $this")
     }
 }
 
 private inline fun StrokeJoin.asNativeStrokeJoin(): OH_Native_Draw_StrokeJoin {
     return when (this) {
-        StrokeJoin.Bevel -> OH_Native_Draw_StrokeJoin.OH_NATIVE_STROKE_JOIN_BEVEL
-        StrokeJoin.Miter -> OH_Native_Draw_StrokeJoin.OH_NATIVE_STROKE_JOIN_MITER
-        StrokeJoin.Round -> OH_Native_Draw_StrokeJoin.OH_NATIVE_STROKE_JOIN_ROUND
+        StrokeJoin.Bevel -> OH_Native_Draw_StrokeJoin.StrokeJoinBevel
+        StrokeJoin.Miter -> OH_Native_Draw_StrokeJoin.StrokeJoinMitter
+        StrokeJoin.Round -> OH_Native_Draw_StrokeJoin.StrokeJoinRound
         else -> throw RuntimeException("Unsupported StrokeJoin: $this")
     }
 }
 
 private inline fun FilterQuality.asNativeFilterQuality(): OH_Native_Draw_FilterQuality {
     return when (this) {
-        FilterQuality.Low -> OH_Native_Draw_FilterQuality.OH_NATIVE_FILTER_QUALITY_LOW
-        FilterQuality.High -> OH_Native_Draw_FilterQuality.OH_NATIVE_FILTER_QUALITY_HIGH
-        FilterQuality.Medium -> OH_Native_Draw_FilterQuality.OH_NATIVE_FILTER_QUALITY_MEDIUM
-        FilterQuality.None -> OH_Native_Draw_FilterQuality.OH_NATIVE_FILTER_QUALITY_NONE
+        FilterQuality.Low -> OH_Native_Draw_FilterQuality.Low
+        FilterQuality.High -> OH_Native_Draw_FilterQuality.High
+        FilterQuality.Medium -> OH_Native_Draw_FilterQuality.Medium
+        FilterQuality.None -> OH_Native_Draw_FilterQuality.None
         else -> throw RuntimeException("Unsupported FilterQuality: $this")
     }
+}
+
+fun Paint.toReadableString(): String {
+    return "Paint(alpha=$alpha, " +
+            "isAntiAlias=$isAntiAlias, " +
+            "color=$color, " +
+            "blendMode=$blendMode, " +
+            "style=$style, " +
+            "strokeWidth=$strokeWidth, " +
+            "strokeCap=$strokeCap, " +
+            "strokeJoin=$strokeJoin, " +
+            "strokeMiterLimit=$strokeMiterLimit, " +
+            "filterQuality=$filterQuality, " +
+            "shader=$shader, " +
+            "colorFilter=$colorFilter)"
 }
 
 class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
     fun sync(paint: Paint) {
         // 实现与 OHComposeNativePaint 的同步逻辑
+        LogPrintUtil.verbose("OHComposeNativePaint::sync, compose paint: (${paint.toReadableString()})")
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(handle, paint.alpha)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(handle, paint.isAntiAlias)
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(
+            handle,
+            paint.isAntiAlias
+        )
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor(handle, paint.color.value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(handle, paint.strokeWidth)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(handle, paint.blendMode.asNativeBlendMode().value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle(handle, paint.style.asNativePaintStyle().value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(handle, paint.strokeCap.asNativeStrokeCap().value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(handle, paint.strokeJoin.asNativeStrokeJoin().value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(handle, paint.filterQuality.asNativeFilterQuality().value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(handle, paint.strokeMiterLimit)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(handle, paint.shader?.nativeShader as NativeBasicShader_Handle?)
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(
+            handle,
+            paint.strokeWidth
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(
+            handle,
+            paint.blendMode.asNativeBlendMode().value
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle(
+            handle,
+            paint.style.asNativePaintStyle().value
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(
+            handle,
+            paint.strokeCap.asNativeStrokeCap().value
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(
+            handle,
+            paint.strokeJoin.asNativeStrokeJoin().value
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(
+            handle,
+            paint.filterQuality.asNativeFilterQuality().value
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(
+            handle,
+            paint.strokeMiterLimit
+        )
+        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(
+            handle,
+            paint.shader?.nativeShader as NativeBasicShader_Handle?
+        )
         // TODO setColorFilter
         // androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(handle, paint.colorFilter?.nativeColorFilter)
     }

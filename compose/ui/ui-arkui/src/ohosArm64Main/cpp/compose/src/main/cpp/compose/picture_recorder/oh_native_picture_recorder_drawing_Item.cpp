@@ -2,9 +2,9 @@
 
 namespace OH{
     DrawingItem DrawingItem::DrawingPopItem = {
-            .itemHash = static_cast<uint64_t>(OHNativeDrawingType::Pop),
-            .contentsHash = static_cast<uint64_t>(OHNativeDrawingType::Pop),
+            .itemHash = static_cast<uint64_t>(OH_Native_Drawing_Type::DrawingTypePop),
+            .contentsHash = static_cast<uint64_t>(OH_Native_Drawing_Type::DrawingTypePop),
             .clipIndex = 0,
-            .drawingType = OHNativeDrawingType::Pop
+            .drawingType = OH_Native_Drawing_Type::DrawingTypePop
     };
 }// namespace OH

@@ -1,11 +1,9 @@
-
-
 #ifndef OH_HASH_FUNCS_H
 #define OH_HASH_FUNCS_H
 
 #include <cstdint>
 #include <cstddef>
-#include "../constants/oh_native_enum.h"
+#include "../constants/oh_native_constants.h"
 
 namespace OH {
 

@@ -2,7 +2,7 @@
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHCOMPOSENATIVEPATIN_H
 
 #include "cstdint"
-#include "oh_native_enums.h"
+#include "../constants/oh_native_enums.h"
 #include "native_drawing/drawing_types.h"
 #include "../shader/oh_native_basic_shader.h"
 

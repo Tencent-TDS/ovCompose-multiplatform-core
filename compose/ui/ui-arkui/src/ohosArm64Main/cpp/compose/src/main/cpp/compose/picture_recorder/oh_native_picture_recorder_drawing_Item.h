@@ -1,7 +1,7 @@
 #ifndef OH_NATIVE_PICTURE_RECORDER_DRAWING_ITEM_H
 #define OH_NATIVE_PICTURE_RECORDER_DRAWING_ITEM_H
 
-#include "../constants/oh_native_enum.h"
+#include "../constants/oh_native_enums.h"
 
 namespace OH {
 
@@ -10,7 +10,7 @@ namespace OH {
     uint64_t itemHash = 0;
     uint64_t contentsHash = 0;
     int clipIndex = 0;
-    OHNativeDrawingType drawingType = OHNativeDrawingType::None;
+    OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeNone;
 
      static DrawingItem DrawingPopItem;
 };
