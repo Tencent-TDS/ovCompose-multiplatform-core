@@ -309,8 +309,8 @@ static napi_value NotifyRedraw(napi_env env, napi_callback_info info) {
     napi_value args[1] = {nullptr};
     napi_value thisArg = nullptr;
     napi_get_cb_info(env, info, &argc, args, &thisArg, nullptr);
-    uint64_t targetTimestamp;
-    napi_get_value_bigint_uint64(env, args[0], &targetTimestamp, nullptr);
+    int64_t targetTimestamp;
+    napi_get_value_int64(env, args[0], &targetTimestamp);
     void *controller = nullptr;
     napi_unwrap(env, thisArg, &controller);
     ArkUIViewController_onFrame(reinterpret_cast<ArkUIViewController *>(controller), 0, targetTimestamp);
