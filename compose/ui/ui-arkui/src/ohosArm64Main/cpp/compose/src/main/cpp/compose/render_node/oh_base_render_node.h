@@ -176,6 +176,7 @@ namespace OH {
         }
 
     protected:
+        virtual void initModifier() {};
         static uint32_t generateHash() {
             static std::atomic<uint32_t> counter{0};
             return ++counter;

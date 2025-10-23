@@ -17,6 +17,7 @@
 
 #include "napi/native_api.h"
 #include "../constants/oh_native_enums.h"
+#include "../constants/oh_native_constants.h"
 #include "native_drawing/drawing_types.h"
 #include <arkui/native_render.h>
 
@@ -24,13 +25,6 @@
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
 
 EXTERN_C_START
-typedef struct OHNativeCanvasProxy *OHNativeCanvasProxy_Handle;
-typedef struct OHComposeNativePaint *OHComposeNativePaint_Handle;
-typedef struct OH_Drawing_ShaderEffect *OH_Drawing_ShaderEffect_Handle;
-typedef struct OH_Drawing_ColorFilter *OH_Drawing_ColorFilter_Handle;
-typedef struct OH_Drawing_PathEffect *OH_Drawing_PathEffect_Handle;
-typedef struct BaseRenderNode *BaseRenderNode_Handle;
-typedef struct NativeBasicShader *NativeBasicShader_Handle;
 OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy);
 OHComposeNativePaint_Handle androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy);

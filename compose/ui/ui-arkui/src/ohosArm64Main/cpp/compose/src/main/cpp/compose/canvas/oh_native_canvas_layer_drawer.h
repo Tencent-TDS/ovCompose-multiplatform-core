@@ -7,6 +7,7 @@
 #include "../render_node/oh_base_render_node.h"
 #include "../shader/oh_native_basic_shader.h"
 #include "oh_compose_native_paint.h"
+#include "../paragraph/oh_native_paragraph.h"
 
 namespace OH {
 void OHRenderNodeDrawRect(float left, float top, float right, float bottom,
@@ -31,6 +32,8 @@ void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2,
 void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom,
                               const RenderNodeSaveState *saveState,
                               BaseRenderNode *renderNodeForDrawing);
+
+void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph* paragraphNode);
 
 void OHRenderNodeDrawThrow(int32_t status);
 

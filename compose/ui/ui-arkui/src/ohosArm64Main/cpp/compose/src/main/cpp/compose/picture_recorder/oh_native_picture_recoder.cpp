@@ -238,6 +238,8 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
             auto *parentRenderNode = stack[stack.size() - 1];
             auto *drawingRenderNode = getOrCreateRenderNodeForDrawing(drawingType, drawingItem.itemHash);
             parentRenderNode->addChild(drawingRenderNode);
+            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p drawingType: %{public}d, drawingItem.itemHash: %{public}lu",
+                 parentRenderNode, drawingRenderNode, drawingType, drawingItem.itemHash);
             break;
         }
         }
@@ -317,12 +319,15 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
         if (!found) {
             const DrawingItem &commandToBeDelete = oldArray[i];
 
-            if (commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer && commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
+            if (commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
+                commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
                 resetDrawingItemContentsHash(commandToBeDelete.drawingType, commandToBeDelete.itemHash);
             }
 
             detachRenderNode(rootRenderNode, commandToBeDelete.drawingType, commandToBeDelete.itemHash);
-            shouldRebuildRenderNodeHierarchy = shouldRebuildRenderNodeHierarchy || (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
+            shouldRebuildRenderNodeHierarchy =
+                shouldRebuildRenderNodeHierarchy ||
+                (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
         }
     }
 
