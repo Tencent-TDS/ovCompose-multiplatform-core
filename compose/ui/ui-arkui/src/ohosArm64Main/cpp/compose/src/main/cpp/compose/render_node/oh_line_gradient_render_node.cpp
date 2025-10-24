@@ -22,6 +22,8 @@ LineGradientRenderNode::LineGradientRenderNode() : BaseRenderNode() {
     this->initModifier();
 }
 
+OH_DrawingNode_Type LineGradientRenderNode::getType() { return OH_DrawingNode_Type::LineGradientNode; };
+
 /**
  * @brief Draws a line with a linear gradient shader and specified stroke properties.
  *

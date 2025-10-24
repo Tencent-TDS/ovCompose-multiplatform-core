@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-#include "napi/native_api.h"
+#include <napi/native_api.h>
+#include "../constants/oh_native_constants.h"
 #include "../xcomponent_log.h"
 #include "oh_native_canvas_export.h"
 #include "oh_native_canvas_proxy.h"
@@ -37,9 +38,23 @@ OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasP
     LOGI("androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy");
 }
 
+void androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy(OHNativeCanvasProxy_Handle proxyHandle) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxyHandle);
+    LOGI("androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy %{public}p", canvasProxy);
+    // delete canvasProxy here to avoid memory leak
+    delete canvasProxy;
+};
+
+void androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(OHComposeNativePaint_Handle paintHandle) {
+    auto paint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paintHandle);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_DisposeOHComposeNativePaint %{public}p", paint);
+    // delete paint here to avoid memory leak
+    delete paint;
+};
+
 /// OHNativeCanvasProxy drawing methods
-void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy) {
-    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxyHandle) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxyHandle);
     canvasProxy->beginDraw();
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw");
 }
@@ -76,6 +91,18 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(OHNativeCanva
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawLayer(renderNode);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer");
+}
+
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph(OHNativeCanvasProxy_Handle proxy, BaseRenderNode_Handle paragraphHandle) {
+    auto paragraph = reinterpret_cast<OH::BaseRenderNode *>(paragraphHandle);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    if (paragraph->getType() != OH_DrawingNode_Type::ParagraphNode) {
+        LOGE("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph: invalid paragraph node type");
+        throw std::invalid_argument("Invalid paragraph node type");
+    }
+    canvasProxy->drawParagraph(dynamic_cast<OH::Paragraph*>(paragraph));
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView(OHNativeCanvasProxy_Handle proxy) {

@@ -25,7 +25,6 @@ class Paragraph;
  *     .setText("Hello World")
  *     .setFontSize(16.0)
  *     .setColor(0xFF000000)
- *     .setMaxWidth(300.0)
  *     .build();
  */
 class ParagraphBuilder {
@@ -58,10 +57,6 @@ public:
     ParagraphBuilder &setMaxLines(int maxLines);
     ParagraphBuilder &setNeedEllipsis(bool needEllipsis);
     ParagraphBuilder &setEllipsis(const char *ellipsis, uint32_t length);
-
-    // ========== 布局参数 ==========
-
-    ParagraphBuilder &setMaxWidth(double maxWidth);
 
     // ========== 富文本支持（新增） ==========
 

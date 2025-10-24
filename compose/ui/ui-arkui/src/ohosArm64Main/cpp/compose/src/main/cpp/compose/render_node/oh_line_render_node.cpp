@@ -23,6 +23,8 @@ LineRenderNode::LineRenderNode() : BaseRenderNode() {
     this->initModifier();
 }
 
+OH_DrawingNode_Type LineRenderNode::getType() { return OH_DrawingNode_Type::LineNode; };
+
 /**
  * @brief Draws a line with the specified start and end coordinates, width, color, and stroke cap style.
  *
@@ -101,7 +103,7 @@ void LineRenderNode::initModifier() {
 
                 // 释放绘制资源
                 OH_Drawing_CanvasDetachPen(canvas);
-                OH_Drawing_PathClose(path);
+                OH_Drawing_PathDestroy(path);
                 OH_Drawing_PenDestroy(pen);
             }));
     }

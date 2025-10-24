@@ -127,11 +127,6 @@ void ParagraphBuilder_setEllipsis(ParagraphHandle_Handle handle, const char *ell
     handle->data.builder->setEllipsis(ellipsis, length);
 }
 
-void ParagraphBuilder_setMaxWidth(ParagraphHandle_Handle handle, double maxWidth) {
-    CHECK_BUILDER(handle);
-    handle->data.builder->setMaxWidth(maxWidth);
-}
-
 ParagraphHandle_Handle ParagraphBuilder_build(ParagraphHandle_Handle handle) {
     LOGI("ParagraphBuilder_build called");
     CHECK_BUILDER_RET(handle, nullptr);

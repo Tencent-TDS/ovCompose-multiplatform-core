@@ -12,6 +12,9 @@ NativeRadialGradientShader::NativeRadialGradientShader() {
 }
 NativeRadialGradientShader::~NativeRadialGradientShader() {};
 
+
+OH_Native_Shader_Type NativeRadialGradientShader::getType() { return OH_Native_Shader_Type::RadialGradientShader; };
+
 uint64_t NativeRadialGradientShader::propertyHash() {
     float floats[7] = {static_cast<float>(tileMode), centerX, centerY, radius, static_cast<float>(FNVHashNumberArray<float>(colorPositions)),
                        static_cast<float>(FNVHashNumberArray<uint32_t>(colors))};

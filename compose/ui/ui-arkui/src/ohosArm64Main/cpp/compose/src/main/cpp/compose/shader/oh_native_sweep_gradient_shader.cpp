@@ -13,6 +13,8 @@ NativeSweepGradientShader::NativeSweepGradientShader() {
 NativeSweepGradientShader::~NativeSweepGradientShader() {
 }
 
+OH_Native_Shader_Type NativeSweepGradientShader::getType() { return OH_Native_Shader_Type::SweepGradientShader; };
+
 uint64_t NativeSweepGradientShader::propertyHash() {
     float floats[5] = {centerX, centerY, static_cast<float>(FNVHashNumberArray<float>(colorPositions)),
                        static_cast<float>(FNVHashNumberArray<uint32_t>(colors))};

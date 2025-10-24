@@ -3,8 +3,9 @@
 
 #include <cmath>
 #include <array>
+#include <cstdio>
 #include <cstring>
-#include "../constants/oh_native_enums.h"
+#include <string>
 #include "../constants/oh_native_constants.h"
 
 namespace OH {
@@ -140,6 +141,23 @@ namespace OH {
 
         OH_ALWAYS_INLINE void reset() noexcept {
             *this = Transform3D();
+        }
+        
+        OH_ALWAYS_INLINE std::string toReadableString() const noexcept {
+            char buffer[512];
+            std::snprintf(buffer, sizeof(buffer),
+            "Transform3D(\n"
+            "  [%.3f, %.3f, %.3f, %.3f]\n"
+            "  [%.3f, %.3f, %.3f, %.3f]\n"
+            "  [%.3f, %.3f, %.3f, %.3f]\n"
+            "  [%.3f, %.3f, %.3f, %.3f]\n"
+            ")",
+            m11, m12, m13, m14,
+            m21, m22, m23, m24,
+            m31, m32, m33, m34,
+            m41, m42, m43, m44
+            );
+            return std::string(buffer, sizeof(buffer));
         }
 
 #pragma mark - 运算符重载

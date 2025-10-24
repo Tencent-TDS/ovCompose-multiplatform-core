@@ -30,19 +30,16 @@ namespace OH {
  * 4. 高性能：智能缓存策略
  * 5. 易测试：接口与实现分离
  */
-class Paragraph: public BaseRenderNode {
+class Paragraph : public BaseRenderNode {
 public:
     /**
      * 构造函数（通过Builder创建）
      * 现在支持富文本样式、占位符和字体族
      */
-    Paragraph(
-        const std::string &text,
-        std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
-        std::unique_ptr<IParagraphStyleStrategy> paragraphStyleStrategy,
-        const std::vector<SpanStyleRange> &spanStyles = {},
-        const std::vector<PlaceholderRange> &placeholders = {},
-        const std::string &fontFamily = "");
+    Paragraph(const std::string &text, std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
+              std::unique_ptr<IParagraphStyleStrategy> paragraphStyleStrategy,
+              const std::vector<SpanStyleRange> &spanStyles = {},
+              const std::vector<PlaceholderRange> &placeholders = {}, const std::string &fontFamily = "");
 
     /**
      * 析构函数（RAII自动清理）
@@ -66,9 +63,7 @@ public:
 
     // ========== 度量查询（Facade） ==========
 
-    double getWidth() const {
-        return layoutWidth_;
-    }
+    double getWidth() const { return layoutWidth_; }
     double getHeight() const;
     double getMinIntrinsicWidth() const;
     double getMaxIntrinsicWidth() const;
@@ -117,12 +112,10 @@ public:
 
     // ========== 文本内容访问 ==========
 
-    const std::string &getText() const {
-        return text_;
-    }
-    uint32_t getTextLength() const {
-        return text_.length();
-    }
+    const std::string &getText() const { return text_; }
+    uint32_t getTextLength() const { return text_.length(); }
+    OH_DrawingNode_Type getType() override;
+
 
 protected:
     // ========== Template Method 步骤 ==========
@@ -140,13 +133,12 @@ protected:
     /**
      * 布局后处理（钩子方法）
      */
-    virtual void onLayoutComplete() {
-    }
+    virtual void onLayoutComplete() {}
 
 private:
     // ========== 资源创建 ==========
 
-    void initModifier();
+    void initModifier() override;
     void createOrUpdatePositionProperty(float x, float y);
     void createTypographyResources();
     OH_Drawing_Typography *getOrCreateTypography();
@@ -156,13 +148,12 @@ private:
     /**
      * 应用 SpanStyles 到 Typography Handler
      */
-    void applySpanStyles(OH_Drawing_TypographyCreate* handler,
-                        OH_Drawing_TextStyle* baseStyle);
+    void applySpanStyles(OH_Drawing_TypographyCreate *handler, OH_Drawing_TextStyle *baseStyle);
 
     /**
      * 应用占位符到 Typography Handler
      */
-    void applyPlaceholders(OH_Drawing_TypographyCreate* handler);
+    void applyPlaceholders(OH_Drawing_TypographyCreate *handler);
 
     // ========== 缓存构建器 ==========
 

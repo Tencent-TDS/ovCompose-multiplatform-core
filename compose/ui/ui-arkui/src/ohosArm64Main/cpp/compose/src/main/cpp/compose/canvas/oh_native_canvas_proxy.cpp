@@ -106,7 +106,8 @@ void OHNativeCanvasProxy::translate(float dx, float dy) { _pictureRecorder.trans
 void OHNativeCanvasProxy::drawLayerWithSubproxy(OHNativeCanvasProxy *subproxy) {
     LOGI("OHNativeCanvasProxy::drawLayerWithSubproxy: start");
     if (subproxy->canvasNode_ != nullptr) {
-        _pictureRecorder.drawRenderNode(subproxy->canvasNode_.get());
+        auto canvasNode = subproxy->canvasNode_.get();
+        _pictureRecorder.drawRenderNode(canvasNode, canvasNode->getType());
     }
 }
 
@@ -181,14 +182,18 @@ void OHNativeCanvasProxy::drawLine(float x1, float y1, float x2, float y2, OHCom
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawLine(x1, y1, x2, y2, paint->shader, &(updateItem.saveState), renderNodeForDrawing, paint);
     }
-}
+};
 
 void OHNativeCanvasProxy::drawLayer(OH::BaseRenderNode *renderNode) {
-    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(renderNode);
-    // TODO：ios上传入了CALayer，oh需要对应的renderNode？
-    if (typeid(*renderNode) == typeid(OH::Paragraph)) {
-        OH::OHRenderNodeDrawText(&(updateItem.saveState), (OH::Paragraph *)renderNode);
-        LOGI("OHRenderNodeDrawText, paragraphNode hash: %{public}lu", updateItem.itemHash);
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(renderNode, renderNode->getType());
+};
+
+void OHNativeCanvasProxy::drawParagraph(OH::Paragraph *paragraph) {
+    LOGI("OHNativeCanvasProxy::drawParagraph: start %{public}f", paragraph->getHeight());
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(paragraph, paragraph->getType());
+    bool isDirty = updateItem.isDirty;
+    if (isDirty) {
+        OH::OHRenderNodeDrawText(&(updateItem.saveState), paragraph);
     }
 };
 

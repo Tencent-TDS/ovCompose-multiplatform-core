@@ -24,4 +24,8 @@ actual object LogPrintUtil {
     actual fun verbose(message: String) {
         println(message)
     }
+
+    actual var isLogEnabled: Boolean
+        get() = TODO("Not yet implemented")
+        set(value) {}
 }

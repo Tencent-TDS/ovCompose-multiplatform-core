@@ -22,5 +22,6 @@ interface LogPrintInterface {
 
 expect object LogPrintUtil {
     var logPrintImpl: LogPrintInterface?
+    var isLogEnabled: Boolean
     fun verbose(message: String)
 }

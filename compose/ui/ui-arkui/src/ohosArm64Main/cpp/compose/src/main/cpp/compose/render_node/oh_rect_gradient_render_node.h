@@ -13,11 +13,13 @@ public:
     void drawRect(float left, float top, float right, float bottom, float strokeWidth,
                   NativeBasicShader *shader, OH_Native_Draw_PaintingStyle style);
 
+    OH_DrawingNode_Type getType() override;
+    
 private:
     void createOrUpdateLeftTopPosProperty(float left, float top);
     void createOrUpdateRightBottomPosProperty(float right, float bottom);
     void createOrUpdateStrokeWidthProperty(float strokeWidth);
-    void initModifier();
+    void initModifier() override;
 
     ArkUI_Vector2PropertyHandle leftTopPosProperty_ = nullptr;
     ArkUI_Vector2PropertyHandle rightBottomProperty_ = nullptr;

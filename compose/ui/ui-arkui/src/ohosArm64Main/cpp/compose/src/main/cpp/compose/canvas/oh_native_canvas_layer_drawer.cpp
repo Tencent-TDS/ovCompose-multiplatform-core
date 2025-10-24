@@ -120,12 +120,15 @@ void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *parag
     const float originY = saveState->translateY;
     const int32_t width = paragraphNode->getWidth();
     const int32_t height = paragraphNode->getHeight();
+//    LOGI("Transform matrix: %{public}s", saveState->transform.toReadableString().c_str());
+    
     paragraphNode->setTransform(saveState->transform.data())
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(originX, originY)
+        ->setTranslate(originX, originY)
+        ->setPosition(originX, originY)  
         ->setSize(width, height);
-    LOGI("OHRenderNodeDrawText: start drawing paragraph, setTranslate: %{public}f, %{public}f, setSize: "
-         "%{public}d, %{public}d",
+    
+    LOGI("OHRenderNodeDrawText: start drawing paragraph, translateX/Y: %{public}f, %{public}f, "
+         "position: 0, 0, size: %{public}d, %{public}d, transform applied",
          originX, originY, width, height);
     paragraphNode->paint(0, 0);
 }

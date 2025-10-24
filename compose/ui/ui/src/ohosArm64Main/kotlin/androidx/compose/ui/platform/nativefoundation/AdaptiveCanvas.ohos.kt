@@ -40,30 +40,19 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
 }
 
 /**
- * 从[canvas]中获取绘制的[UikitImageBitmap]
+ * Adaptive canvas implementation for HarmonyOS platform.
+ * Provides a native canvas wrapper that delegates drawing operations to the underlying
+ * HarmonyOS native graphics API through OHNativeCanvasProxy.
+ *
+ * @param factory A native pointer to the canvas factory used to create the native canvas proxy
  */
-//fun getImageBitmapFromCanvas(canvas: Canvas?): ImageBitmap? {
-//    if (canvas is AdaptiveCanvas) {
-//        return UikitImageBitmap(canvas.viewProxy.getSnapshotImage())
-//    }
-//    return null
-//}
-
-//fun getImageBitmapFromCanvas(canvas: Canvas?, width:Int, height: Int): ImageBitmap? {
-//    if (canvas is AdaptiveCanvas) {
-//        return UikitImageBitmap(canvas.viewProxy.getSnapshotImageWithWidth(width, height))
-//    }
-//    return null
-//}
-
 @OptIn(ExperimentalObjCRefinement::class)
 @HiddenFromObjC
 internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     override val canvasType: CanvasType get() = CanvasType.Native
 
-    // 封装的Kotlin对象，可以像普通Kotlin对象一样使用
     val nativeCanvasProxy: OHNativeCanvasProxy
-    val nativePaint: OHComposeNativePaint
+    private val nativePaint: OHComposeNativePaint
 
     init {
         val rawCanvasProxyHandle: OHNativeCanvasProxy_Handle? =
@@ -83,6 +72,11 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     override fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
         nativeCanvasProxy.drawLayer(renderNodeHandle)
         LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
+    }
+
+    override fun drawParagraph(paragraph: BaseRenderNode_Handle) {
+        nativeCanvasProxy.drawParagraph(paragraph)
+        LogPrintUtil.verbose("AdaptiveCanvas::drawParagraph")
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {

@@ -14,6 +14,7 @@ public:
     ~NativeRadialGradientShader();
 
     uint64_t propertyHash() override;
+    OH_Native_Shader_Type getType() override ;
     NativeRadialGradientShader *setTileMode(OH_Drawing_TileMode mode);
     NativeRadialGradientShader *setCenter(float x, float y);
     NativeRadialGradientShader *setRadius(float radius);

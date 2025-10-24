@@ -21,6 +21,7 @@ import platform.ohos.LOG_DEBUG
 import platform.ohos.OH_LOG_Print
 
 actual object LogPrintUtil {
+    private var _isLogEnabled: Boolean = true
 
     private val DefaultLogger = object : LogPrintInterface {
         override fun verbose(message: String) {
@@ -36,6 +37,14 @@ actual object LogPrintUtil {
     actual var logPrintImpl: LogPrintInterface? = DefaultLogger
 
     actual fun verbose(message: String) {
-        this.logPrintImpl?.verbose(message)
+        if (isLogEnabled) {
+            this.logPrintImpl?.verbose(message)
+        }
     }
+
+    actual var isLogEnabled: Boolean
+        get() = _isLogEnabled
+        set(value) {
+            _isLogEnabled = value
+        }
 }

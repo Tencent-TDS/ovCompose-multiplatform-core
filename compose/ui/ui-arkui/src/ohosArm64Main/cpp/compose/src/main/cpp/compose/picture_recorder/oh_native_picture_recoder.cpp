@@ -238,7 +238,8 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
             auto *parentRenderNode = stack[stack.size() - 1];
             auto *drawingRenderNode = getOrCreateRenderNodeForDrawing(drawingType, drawingItem.itemHash);
             parentRenderNode->addChild(drawingRenderNode);
-            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p drawingType: %{public}d, drawingItem.itemHash: %{public}lu",
+            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p drawingType: %{public}d, "
+                 "drawingItem.itemHash: %{public}lu",
                  parentRenderNode, drawingRenderNode, drawingType, drawingItem.itemHash);
             break;
         }
@@ -296,7 +297,9 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
             const OH_Native_Drawing_Type drawingType = commandToBeDelete.drawingType;
             const uint64_t itemHash = commandToBeDelete.itemHash;
 
-            if (drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer && drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
+            if (drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
+                drawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
+                drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
                 resetDrawingItemContentsHash(drawingType, itemHash);
             }
 
@@ -320,6 +323,7 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
             const DrawingItem &commandToBeDelete = oldArray[i];
 
             if (commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
+                commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
                 commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
                 resetDrawingItemContentsHash(commandToBeDelete.drawingType, commandToBeDelete.itemHash);
             }
