@@ -1,6 +1,7 @@
 #ifndef OH_NATIVE_CONSTANTS_H
 #define OH_NATIVE_CONSTANTS_H
 
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

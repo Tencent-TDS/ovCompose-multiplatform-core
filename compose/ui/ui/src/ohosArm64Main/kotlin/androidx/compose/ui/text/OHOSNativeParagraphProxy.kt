@@ -327,7 +327,6 @@ internal class OHOSNativeParagraphProxy(
      * @param canvas Native Canvas指针
      */
     fun paint(canvas: OHOSNativeCanvas) {
-        flushNativeParagraphHandlesOnMainThread()
         val renderNodeHandle = Paragraph_getBaseRenderNode(handle)
         require(renderNodeHandle != null) { "Paragraph render node is null." }
         canvas.drawParagraph(renderNodeHandle)

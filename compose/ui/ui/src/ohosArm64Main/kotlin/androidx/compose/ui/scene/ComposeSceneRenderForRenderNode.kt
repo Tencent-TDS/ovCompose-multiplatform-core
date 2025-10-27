@@ -2,6 +2,7 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.platform.v2.DumpComposeCanvas
+import androidx.compose.ui.text.flushNativeParagraphHandlesOnMainThread
 import org.jetbrains.skia.Rect
 
 class ComposeSceneRenderForRenderNode(
@@ -23,8 +24,8 @@ class ComposeSceneRenderForRenderNode(
     }
 
     override fun draw(timestamp: Long) {
-
         renderDelegate.render(canvas, timestamp)
+        flushNativeParagraphHandlesOnMainThread()
     }
 
     override fun close() {
