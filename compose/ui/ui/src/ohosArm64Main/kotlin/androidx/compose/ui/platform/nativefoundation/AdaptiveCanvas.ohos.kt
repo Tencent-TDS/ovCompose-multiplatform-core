@@ -47,7 +47,6 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
  * @param factory A native pointer to the canvas factory used to create the native canvas proxy
  */
 @OptIn(ExperimentalObjCRefinement::class)
-@HiddenFromObjC
 internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     override val canvasType: CanvasType get() = CanvasType.Native
 

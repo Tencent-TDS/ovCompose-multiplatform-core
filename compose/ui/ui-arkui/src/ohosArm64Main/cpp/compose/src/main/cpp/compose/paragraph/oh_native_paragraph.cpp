@@ -3,6 +3,7 @@
 #include <native_drawing/drawing_font_collection.h>
 #include "oh_native_paragraph.h"
 #include "../xcomponent_log.h"
+#include "../constants/oh_native_constants.h"
 
 namespace OH {
 
@@ -396,7 +397,7 @@ void Paragraph::applySpanStyleToTextStyle(
     if (span.fontStyle >= 0) {
         OH_Drawing_SetTextStyleFontStyle(textStyle, span.fontStyle);
     }
-    if (span.color != 0xFFFFFFFF) {
+    if (span.color != 0xFFFFFFFF && span.color != CLEAR_COLOR) {
         OH_Drawing_SetTextStyleColor(textStyle, span.color);
     }
     if (span.letterSpacing > -999.0) {

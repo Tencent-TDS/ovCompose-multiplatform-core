@@ -32,6 +32,7 @@ import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setShadow
 import androidx.compose.ui.arkui.utils.SpanStyleRange_Handle
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.text.AnnotatedString.Range
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.font.FontListFontFamily
 import androidx.compose.ui.text.font.GenericFontFamily
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.TextUnit
 import kotlinx.cinterop.memScoped
 import kotlin.native.ref.createCleaner
 
@@ -174,38 +176,33 @@ internal class ParagraphBuilder(
         // 转换 spanStyles 为 Native 可识别的格式
         val nativeSpanStyles = spanStyles.map { range ->
             val spanStyle = range.item
+            // 需要将start和end转换为字节位置
+            val startByteIndex = text.substring(0, range.start).encodeToByteArray().size
+            val endByteIndex = text.substring(0, range.end).encodeToByteArray().size
             LogPrintUtil.verbose("ParagraphBuilder::createParagraphParams, Converting SpanStyle: $spanStyle in range: $range")
-            val nativeSpanStyleRange = NativeSpanStyleRange(range.start, range.end).apply {
-                fontWeight =
-                    spanStyle.fontWeight?.let { StyleMapperRegistry.fontWeight.map(it) } ?: 0
-                fontStyle = spanStyle.fontStyle?.let { StyleMapperRegistry.fontStyle.map(it) } ?: 0
-                fontSize = (spanStyle.fontSize.takeIf { it.value > 0 }
-                    ?.let { it.value.toDouble() * densityValue }) ?: 0.0
-                fontFamily = spanStyle.fontFamily?.let { family ->
-                    when (family) {
-                        is GenericFontFamily -> family.name
+            val nativeSpanStyleRange = NativeSpanStyleRange(startByteIndex, endByteIndex).apply {
+                spanStyle.fontWeight?.let { fontWeight = StyleMapperRegistry.fontWeight.map(it) }
+                spanStyle.fontStyle?.let { fontStyle = StyleMapperRegistry.fontStyle.map(it) }
+                spanStyle.fontSize.let { if (it != TextUnit.Unspecified) fontSize = it.value.toDouble() * densityValue }
+                spanStyle.fontFamily?.let {
+                    fontFamily = when (it) {
+                        is GenericFontFamily -> it.name
                         is FontListFontFamily -> {
-                            family.fonts.firstOrNull()?.toString() ?: "sans-serif"
+                            it.fonts.firstOrNull()?.toString() ?: "sans-serif"
                         }
-
                         else -> "sans-serif"
                     }
-                } ?: ""
-                color = spanStyle.color.toUInt()
-                background = spanStyle.background.toUInt()
-                letterSpacing =
-                    spanStyle.letterSpacing.takeIf { it.value.isFinite() }?.value?.toDouble() ?: 0.0
-                textDecoration = spanStyle.textDecoration?.let {
-                    StyleMapperRegistry.textDecoration.map(
-                        it
-                    )
-                } ?: 0
-                shadow = spanStyle.shadow?.let { shadow ->
-                    OHOSNativeShadow(
-                        color = shadow.color.toUInt(),
-                        offsetX = shadow.offset.x,
-                        offsetY = shadow.offset.y,
-                        blurRadius = shadow.blurRadius.toDouble()
+                }
+                spanStyle.color.let { if (it != Color.Unspecified) color = it.toUInt() }
+                spanStyle.background.let { if (it != Color.Unspecified) background = it.toUInt() }
+                spanStyle.letterSpacing.let { if (it != TextUnit.Unspecified) letterSpacing = it.value.toDouble() }
+                spanStyle.textDecoration.let { if (it != null) textDecoration = StyleMapperRegistry.textDecoration.map(it) }
+                spanStyle.shadow?.let {
+                    shadow  = OHOSNativeShadow(
+                        color = it.color.toUInt(),
+                        offsetX = it.offset.x,
+                        offsetY = it.offset.y,
+                        blurRadius = it.blurRadius.toDouble()
                     )
                 }
             }

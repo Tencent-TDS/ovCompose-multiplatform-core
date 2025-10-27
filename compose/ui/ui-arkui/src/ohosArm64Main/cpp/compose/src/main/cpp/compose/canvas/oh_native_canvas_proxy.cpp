@@ -123,11 +123,9 @@ void OHNativeCanvasProxy::finishDraw() {
 
 void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom, OHComposeNativePaint *paint) {
     LOGI("OHNativeCanvasProxy::drawRect: start");
-    // TODO:需要paint
     OH::NativeBasicShader *shader = paint->shader;
     const OH_Native_Drawing_Type drawingType =
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
-    // TODO:需要paint
 //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
     const uint64_t preHash = 0;
     const uint64_t drawingContentHash =
