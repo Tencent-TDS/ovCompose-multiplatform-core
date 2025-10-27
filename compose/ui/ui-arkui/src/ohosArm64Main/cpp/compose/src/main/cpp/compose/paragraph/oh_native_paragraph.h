@@ -63,7 +63,9 @@ public:
 
     // ========== 度量查询（Facade） ==========
 
-    double getWidth() const { return layoutWidth_; }
+    double getWidth() const {
+        return layoutWidth_;
+    }
     double getHeight() const;
     double getMinIntrinsicWidth() const;
     double getMaxIntrinsicWidth() const;
@@ -101,6 +103,15 @@ public:
     WordBoundary getWordBoundary(uint32_t offset) const;
     std::vector<TextRect> getRectsForRange(uint32_t start, uint32_t end) const;
 
+    // ========== 占位符查询 ==========
+
+    /**
+     * 获取占位符的矩形区域列表
+     * 返回与 placeholders_ 数组对应的矩形区域
+     * 参考 SkiaParagraph.placeholderRects 实现
+     */
+    std::vector<TextRect> getPlaceholderRects() const;
+
     // ========== 绘制 ==========
 
     void paint(float x, float y);
@@ -112,10 +123,13 @@ public:
 
     // ========== 文本内容访问 ==========
 
-    const std::string &getText() const { return text_; }
-    uint32_t getTextLength() const { return text_.length(); }
+    const std::string &getText() const {
+        return text_;
+    }
+    uint32_t getTextLength() const {
+        return text_.length();
+    }
     OH_DrawingNode_Type getType() override;
-
 
 protected:
     // ========== Template Method 步骤 ==========
@@ -133,7 +147,8 @@ protected:
     /**
      * 布局后处理（钩子方法）
      */
-    virtual void onLayoutComplete() {}
+    virtual void onLayoutComplete() {
+    }
 
 private:
     // ========== 资源创建 ==========
@@ -147,13 +162,59 @@ private:
 
     /**
      * 应用 SpanStyles 到 Typography Handler
+     * 使用 Cut-Op 机制（参考 SkiaParagraph）
      */
     void applySpanStyles(OH_Drawing_TypographyCreate *handler, OH_Drawing_TextStyle *baseStyle);
 
+    // ========== Cut-Op 机制的内部数据结构（仅在 .cpp 中可见）==========
+    struct StyleCut;
+    struct StyleOp;
+
+    // ========== 样式应用辅助方法 ==========
+
     /**
-     * 应用占位符到 Typography Handler
+     * Step 1: 生成样式切分点列表
      */
-    void applyPlaceholders(OH_Drawing_TypographyCreate *handler);
+    std::vector<StyleCut> generateStyleCuts();
+
+    /**
+     * Step 2: 将 Cut 转换为 Op（合并样式）
+     */
+    std::vector<StyleOp> convertCutsToOps(const std::vector<StyleCut> &cuts);
+
+    /**
+     * 处理样式添加（Cut::Add）
+     */
+    void handleStyleAdd(
+        const StyleCut &cut,
+        std::vector<const SpanStyleRange *> &activeStyles,
+        std::vector<StyleOp> &ops);
+
+    /**
+     * 处理样式移除（Cut::Remove）
+     */
+    void handleStyleRemove(
+        const StyleCut &cut,
+        std::vector<const SpanStyleRange *> &activeStyles,
+        std::vector<StyleOp> &ops);
+
+    /**
+     * Step 3: 根据 Op 构建段落
+     */
+    void buildParagraphFromOps(
+        OH_Drawing_TypographyCreate *handler,
+        const std::vector<StyleOp> &ops);
+
+    /**
+     * 创建合并样式（从活跃样式栈）
+     */
+    ResourceHandle<OH_Drawing_TextStyle> createMergedStyleFromStack(
+        const std::vector<const SpanStyleRange *> &activeStyles);
+
+    /**
+     * 应用单个 SpanStyleRange 到 TextStyle
+     */
+    void applySpanStyleToTextStyle(OH_Drawing_TextStyle *textStyle, const SpanStyleRange &span);
 
     // ========== 缓存构建器 ==========
 
@@ -190,6 +251,30 @@ private:
     // 位置
     ArkUI_Vector2PropertyHandle posProperty_ = nullptr;
 };
+
+/**
+ * 转换 PlaceholderVerticalAlign 到 OH_Drawing_PlaceholderVerticalAlignment
+ */
+static OH_Drawing_PlaceholderVerticalAlignment convertPlaceholderAlignment(PlaceholderVerticalAlign align) {
+    switch (align) {
+    case PlaceholderVerticalAlign::AboveBaseline:
+        return ALIGNMENT_ABOVE_BASELINE;
+    case PlaceholderVerticalAlign::Top:
+        return ALIGNMENT_TOP_OF_ROW_BOX;
+    case PlaceholderVerticalAlign::Bottom:
+        return ALIGNMENT_BOTTOM_OF_ROW_BOX;
+    case PlaceholderVerticalAlign::Center:
+        return ALIGNMENT_CENTER_OF_ROW_BOX;
+    case PlaceholderVerticalAlign::TextTop:
+        return ALIGNMENT_TOP_OF_ROW_BOX;
+    case PlaceholderVerticalAlign::TextBottom:
+        return ALIGNMENT_BELOW_BASELINE;
+    case PlaceholderVerticalAlign::TextCenter:
+        return ALIGNMENT_CENTER_OF_ROW_BOX;
+    default:
+        return ALIGNMENT_CENTER_OF_ROW_BOX;
+    }
+}
 
 } // namespace OH
 

@@ -198,9 +198,5 @@ void OHNativeCanvasProxy::drawParagraph(OH::Paragraph *paragraph) {
 };
 
 OHNativeCanvasProxy::~OHNativeCanvasProxy() {
-    if (paint_ != nullptr) {
-        delete paint_;
-        paint_ = nullptr;
-    }
 }
 } // namespace androidx::compose::ui::arkui::utils

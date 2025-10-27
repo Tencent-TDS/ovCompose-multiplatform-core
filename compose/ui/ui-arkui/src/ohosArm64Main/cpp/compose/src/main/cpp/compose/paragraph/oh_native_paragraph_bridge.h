@@ -82,6 +82,8 @@ void ParagraphBuilder_setNeedEllipsis(ParagraphHandle_Handle builder, bool needE
  */
 void ParagraphBuilder_setEllipsis(ParagraphHandle_Handle builder, const char *ellipsis, uint32_t length);
 
+void ParagraphBuilder_addSpanStyle(ParagraphHandle_Handle builder, SpanStyleRange_Handle spanStyleHandle);
+
 /**
  * 构建段落对象
  *
@@ -148,6 +150,25 @@ void Paragraph_paint(ParagraphHandle_Handle handle, double x, double y);
 
 uint32_t Paragraph_getLineForOffset(ParagraphHandle_Handle handle, uint32_t offset);
 uint32_t Paragraph_getLineForVerticalPosition(ParagraphHandle_Handle handle, double vertical);
+
+
+// ========== 富文本属性相关 ========
+SpanStyleRange_Handle Paragraph_CreateSpanStyleRange(int start, int end);
+void Paragraph_DestroySpanStyleRange(SpanStyleRange_Handle handle);
+
+// 属性设置
+void Paragraph_SpanStyleRange_setFontSize(SpanStyleRange_Handle handle, double fontSize);
+void Paragraph_SpanStyleRange_setFontWeight(SpanStyleRange_Handle handle, int weight /*100-900*/);
+void Paragraph_SpanStyleRange_setFontStyle(SpanStyleRange_Handle handle, int isItalic /*0|1*/);
+void Paragraph_SpanStyleRange_setColor(SpanStyleRange_Handle handle, uint32_t argb);
+void Paragraph_SpanStyleRange_setBackground(SpanStyleRange_Handle handle, uint32_t argb);
+void Paragraph_SpanStyleRange_setLetterSpacing(SpanStyleRange_Handle handle, double px);
+void Paragraph_SpanStyleRange_setBaselineShift(SpanStyleRange_Handle handle, float px);
+void Paragraph_SpanStyleRange_setDecoration(SpanStyleRange_Handle handle, int decoration);
+void Paragraph_SpanStyleRange_setShadow(SpanStyleRange_Handle handle, float ox, float oy, double blur, uint32_t argb);
+void Paragraph_SpanStyleRange_setFontFamily(SpanStyleRange_Handle handle, const char* family);
+void Paragraph_SpanStyleRange_setFontFeatureSettings(SpanStyleRange_Handle handle, const char* featureSettings /*UTF-8*/);
+
 
 #ifdef __cplusplus
 }

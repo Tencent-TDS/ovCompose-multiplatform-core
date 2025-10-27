@@ -29,7 +29,7 @@ actual object LogPrintUtil {
                 type = LOG_APP,
                 level = LOG_DEBUG,
                 domain = 0x0000u,
-                tag = "ovCompose",
+                tag = "ovComposeKt",
                 fmt = message
             )
         }

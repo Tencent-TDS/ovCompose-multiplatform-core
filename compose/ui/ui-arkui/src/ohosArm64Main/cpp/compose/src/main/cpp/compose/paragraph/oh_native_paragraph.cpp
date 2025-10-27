@@ -6,6 +6,34 @@
 
 namespace OH {
 
+// ========== Cut-Op 机制的内部数据结构 ==========
+
+/**
+ * Cut（切分点）：表示样式的添加或移除点
+ */
+struct Paragraph::StyleCut {
+    enum class Type { Add,
+                      Remove };
+
+    uint32_t position;
+    Type type;
+    const SpanStyleRange *style;
+
+    // 排序：先按位置，同位置时Remove在Add之前
+    bool operator<(const StyleCut &other) const {
+        if (position != other.position) return position < other.position;
+        return type > other.type; // Remove > Add
+    }
+};
+
+/**
+ * Op（操作）：表示在某个位置应用的合并样式
+ */
+struct Paragraph::StyleOp {
+    uint32_t position;
+    ResourceHandle<OH_Drawing_TextStyle> mergedStyle;
+};
+
 // ========== 构造函数和析构函数 ==========
 
 Paragraph::Paragraph(const std::string &text, std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
@@ -40,6 +68,7 @@ Paragraph::Paragraph(const std::string &text, std::unique_ptr<ITextStyleStrategy
 }
 
 Paragraph::~Paragraph() {
+    LOGI("Dispose paragraph related resources.");
     if (posProperty_) {
         OH_ArkUI_RenderNodeUtils_DisposeVector2Property(posProperty_);
     }
@@ -102,22 +131,48 @@ void Paragraph::createTypographyResources() {
     }
 
     // 如果没有 spanStyles，使用简单模式
-    if (spanStyles_.empty()) {
-        LOGI("[Paragraph] Simple text mode (no span styles)");
+    if (spanStyles_.empty() && placeholders_.empty()) {
+        LOGI("[Paragraph] Simple text mode (no span styles, no placeholders)");
         // 设置文本样式并添加文本
         OH_Drawing_TypographyHandlerPushTextStyle(handler.get(), textStyle.get());
         OH_Drawing_TypographyHandlerAddText(handler.get(), text_.c_str());
+    } else if (spanStyles_.empty() && !placeholders_.empty()) {
+        LOGI("[Paragraph] Simple text mode with %{public}zu placeholders", placeholders_.size());
+        // 只有占位符，没有样式变化
+        OH_Drawing_TypographyHandlerPushTextStyle(handler.get(), textStyle.get());
+
+        uint32_t currentPos = 0;
+        for (const auto &placeholder : placeholders_) {
+            // 添加占位符前的文本
+            if (placeholder.start > currentPos) {
+                std::string segment = text_.substr(currentPos, placeholder.start - currentPos);
+                OH_Drawing_TypographyHandlerAddText(handler.get(), segment.c_str());
+            }
+
+            // 添加占位符
+            OH_Drawing_PlaceholderSpan placeholderSpan;
+            placeholderSpan.width = static_cast<double>(placeholder.width);
+            placeholderSpan.height = static_cast<double>(placeholder.height);
+            placeholderSpan.alignment = convertPlaceholderAlignment(placeholder.verticalAlign);
+            placeholderSpan.baseline = TEXT_BASELINE_ALPHABETIC;
+            placeholderSpan.baselineOffset = 0.0;
+            OH_Drawing_TypographyHandlerAddPlaceholder(handler.get(), &placeholderSpan);
+
+            currentPos = placeholder.end;
+        }
+
+        // 添加最后剩余的文本
+        if (currentPos < text_.length()) {
+            std::string segment = text_.substr(currentPos);
+            OH_Drawing_TypographyHandlerAddText(handler.get(), segment.c_str());
+        }
     } else {
         LOGI("[Paragraph] Rich text mode with %{public}zu span styles", spanStyles_.size());
         // 富文本模式：需要为每个区间应用不同的样式
         applySpanStyles(handler.get(), textStyle.get());
     }
 
-    // 应用占位符（如果有）
-    if (!placeholders_.empty()) {
-        LOGI("[Paragraph] Applying %{public}zu placeholders", placeholders_.size());
-        applyPlaceholders(handler.get());
-    }
+    // 注意：占位符现在已集成到文本构建过程中，不需要单独调用 applyPlaceholders
 
     // 创建Typography对象
     typography_ = DrawingResourceFactory::createTypography(handler.get());
@@ -133,113 +188,230 @@ void Paragraph::createTypographyResources() {
 /**
  * 应用 SpanStyles 到文本的不同区间
  *
- * 算法：
- * 1. 按起始位置排序所有 spanStyles
- * 2. 遍历文本，为每个区间创建对应的 TextStyle
- * 3. 合并重叠的样式范围
+ * 参考 SkiaParagraph 的 Cut-Op 机制实现：
+ * 1. Cut（切分点）：将所有样式范围的起始和结束位置记录为切分点
+ * 2. Op（操作）：在每个位置合并所有活跃的样式，生成最终的样式操作
+ * 3. 优势：正确处理样式重叠、优先级和合并
  */
 void Paragraph::applySpanStyles(OH_Drawing_TypographyCreate *handler, OH_Drawing_TextStyle *baseStyle) {
-    if (text_.empty() || spanStyles_.empty()) {
+    if (text_.empty()) {
         OH_Drawing_TypographyHandlerPushTextStyle(handler, baseStyle);
         OH_Drawing_TypographyHandlerAddText(handler, text_.c_str());
         return;
     }
 
-    // 复制并排序 spanStyles（按起始位置）
-    std::vector<SpanStyleRange> sortedSpans = spanStyles_;
-    std::sort(sortedSpans.begin(), sortedSpans.end(),
-              [](const SpanStyleRange &a, const SpanStyleRange &b) { return a.start < b.start; });
-
-    uint32_t currentPos = 0;
-    const uint32_t textLength = text_.length();
-
-    for (const auto &span : sortedSpans) {
-        // 如果当前位置在 span 之前，先添加基础样式的文本
-        if (currentPos < span.start) {
-            OH_Drawing_TypographyHandlerPushTextStyle(handler, baseStyle);
-            std::string segment = text_.substr(currentPos, span.start - currentPos);
-            OH_Drawing_TypographyHandlerAddText(handler, segment.c_str());
-            currentPos = span.start;
-        }
-
-        // 创建新的 TextStyle 应用 span ���式
-        auto spanStyle = DrawingResourceFactory::createTextStyle();
-        if (!spanStyle.isValid())
-            continue;
-
-        // 先复制基础样式的所有属性
-        if (textStyleStrategy_) {
-            textStyleStrategy_->applyTo(spanStyle.get());
-        }
-
-        // 然后覆盖 span 指定的属性
-        if (span.fontSize > 0) {
-            OH_Drawing_SetTextStyleFontSize(spanStyle.get(), span.fontSize);
-        }
-        if (span.fontWeight >= 0) {
-            OH_Drawing_SetTextStyleFontWeight(spanStyle.get(), span.fontWeight);
-        }
-        if (span.fontStyle >= 0) {
-            OH_Drawing_SetTextStyleFontStyle(spanStyle.get(), span.fontStyle);
-        }
-        if (span.color != 0xFFFFFFFF) { // 0xFFFFFFFF 表示未设置
-            OH_Drawing_SetTextStyleColor(spanStyle.get(), span.color);
-        }
-        if (span.letterSpacing > -999.0) { // -999.0 表示未设置
-            OH_Drawing_SetTextStyleLetterSpacing(spanStyle.get(), span.letterSpacing);
-        }
-
-        // TODO: 应用 textDecoration
-        // if (span.textDecoration != TextDecoration::None) {
-        //     OH_Drawing_SetTextStyleDecoration(spanStyle.get(), ...);
-        // }
-
-        // TODO: 应用字体族
-        // if (!span.fontFamily.empty()) {
-        //     OH_Drawing_SetTextStyleFontFamilies(spanStyle.get(), ...);
-        // }
-
-        // 添加带样式的文本段
-        OH_Drawing_TypographyHandlerPushTextStyle(handler, spanStyle.get());
-
-        uint32_t spanEnd = std::min(span.end, textLength);
-        std::string segment = text_.substr(span.start, spanEnd - span.start);
-        OH_Drawing_TypographyHandlerAddText(handler, segment.c_str());
-
-        currentPos = spanEnd;
+    if (spanStyles_.empty()) {
+        OH_Drawing_TypographyHandlerPushTextStyle(handler, baseStyle);
+        OH_Drawing_TypographyHandlerAddText(handler, text_.c_str());
+        return;
     }
 
-    // 添加剩余的文本（如果有）
-    if (currentPos < textLength) {
-        OH_Drawing_TypographyHandlerPushTextStyle(handler, baseStyle);
-        std::string segment = text_.substr(currentPos);
-        OH_Drawing_TypographyHandlerAddText(handler, segment.c_str());
+    // ========== 执行三步处理流程 ==========
+
+    // Step 1: 生成切分点列表
+    auto cuts = generateStyleCuts();
+
+    // Step 2: 将 Cut 转换为 Op（合并样式）
+    auto ops = convertCutsToOps(cuts);
+
+    // Step 3: 根据 Op 构建段落
+    buildParagraphFromOps(handler, ops);
+}
+
+/**
+ * Step 1: 生成样式切分点列表
+ */
+std::vector<Paragraph::StyleCut> Paragraph::generateStyleCuts() {
+    std::vector<StyleCut> cuts;
+    cuts.reserve(spanStyles_.size() * 2);
+
+    for (const auto &span : spanStyles_) {
+        cuts.push_back({span.start, StyleCut::Type::Add, &span});
+        cuts.push_back({span.end, StyleCut::Type::Remove, &span});
+    }
+
+    std::sort(cuts.begin(), cuts.end());
+
+    LOGI("[Paragraph] Generated %{public}zu cuts from %{public}zu spans",
+         cuts.size(), spanStyles_.size());
+
+    return cuts;
+}
+
+/**
+ * Step 2: 将 Cut 转换为 Op（合并样式）
+ */
+std::vector<Paragraph::StyleOp> Paragraph::convertCutsToOps(
+    const std::vector<StyleCut> &cuts) {
+    std::vector<StyleOp> ops;
+    std::vector<const SpanStyleRange *> activeStyles; // 活跃样式栈
+
+    // 在位置 0 添加基础样式
+    auto initialStyle = DrawingResourceFactory::createTextStyle();
+    if (textStyleStrategy_) {
+        textStyleStrategy_->applyTo(initialStyle.get());
+    }
+    ops.push_back({0, std::move(initialStyle)});
+
+    // 处理所有切分点
+    for (const auto &cut : cuts) {
+        if (cut.type == StyleCut::Type::Add) {
+            handleStyleAdd(cut, activeStyles, ops);
+        } else { // Remove
+            handleStyleRemove(cut, activeStyles, ops);
+        }
+    }
+
+    LOGI("[Paragraph] Generated %{public}zu ops from %{public}zu cuts",
+         ops.size(), cuts.size());
+
+    return ops;
+}
+
+/**
+ * 处理样式添加（Cut::Add）
+ */
+void Paragraph::handleStyleAdd(
+    const StyleCut &cut,
+    std::vector<const SpanStyleRange *> &activeStyles,
+    std::vector<StyleOp> &ops) {
+    activeStyles.push_back(cut.style);
+
+    // 同一位置的多个 Add 合并到一个 Op
+    if (!ops.empty() && ops.back().position == cut.position) {
+        // 直接重新创建合并样式
+        ops.back().mergedStyle = createMergedStyleFromStack(activeStyles);
+    } else {
+        ops.push_back({cut.position, createMergedStyleFromStack(activeStyles)});
     }
 }
 
 /**
- * 应用占位符（Placeholders）
- *
- * 占位符用于在文本中预留空间，通常用于内联图片、组件等
+ * 处理样式移除（Cut::Remove）
  */
-void Paragraph::applyPlaceholders(OH_Drawing_TypographyCreate *handler) {
-    if (placeholders_.empty()) {
-        return;
+void Paragraph::handleStyleRemove(
+    const StyleCut &cut,
+    std::vector<const SpanStyleRange *> &activeStyles,
+    std::vector<StyleOp> &ops) {
+    auto it = std::find(activeStyles.begin(), activeStyles.end(), cut.style);
+    if (it != activeStyles.end()) {
+        activeStyles.erase(it);
     }
+    ops.push_back({cut.position, createMergedStyleFromStack(activeStyles)});
+}
 
-    for (const auto &placeholder : placeholders_) {
-        // TODO: 根据 HarmonyOS API 添加占位符
-        // 目前 HarmonyOS Drawing API 可能还不支持占位符
-        // 需要等待 API 更新或使用其他方案
+/**
+ * Step 3: 根据 Op 构建段落
+ * 同时处理占位符插入
+ */
+void Paragraph::buildParagraphFromOps(
+    OH_Drawing_TypographyCreate *handler,
+    const std::vector<StyleOp> &ops) {
+    const uint32_t textLength = text_.length();
+    size_t placeholderIndex = 0; // 当前处理的占位符索引
 
-        // 伪代码示例：
-        // OH_Drawing_PlaceholderStyle placeholderStyle;
-        // placeholderStyle.width = placeholder.width;
-        // placeholderStyle.height = placeholder.height;
-        // placeholderStyle.alignment = convertVerticalAlign(placeholder.verticalAlign);
-        // OH_Drawing_TypographyHandlerAddPlaceholder(handler, &placeholderStyle);
+    for (size_t i = 0; i < ops.size(); ++i) {
+        const auto &op = ops[i];
+
+        uint32_t startPos = op.position;
+        uint32_t endPos = (i + 1 < ops.size()) ? ops[i + 1].position : textLength;
+
+        if (startPos >= endPos || startPos >= textLength) {
+            continue;
+        }
+
+        // 检查当前段落中是否包含占位符
+        while (placeholderIndex < placeholders_.size() && placeholders_[placeholderIndex].start < endPos) {
+            const auto &placeholder = placeholders_[placeholderIndex];
+
+            // 添加占位符前的文本
+            if (placeholder.start > startPos) {
+                OH_Drawing_TypographyHandlerPushTextStyle(handler, op.mergedStyle.get());
+                std::string segment = text_.substr(startPos, placeholder.start - startPos);
+                OH_Drawing_TypographyHandlerAddText(handler, segment.c_str());
+            }
+
+            // 添加占位符
+            OH_Drawing_PlaceholderSpan placeholderSpan;
+            placeholderSpan.width = static_cast<double>(placeholder.width);
+            placeholderSpan.height = static_cast<double>(placeholder.height);
+            placeholderSpan.alignment = convertPlaceholderAlignment(placeholder.verticalAlign);
+            placeholderSpan.baseline = TEXT_BASELINE_ALPHABETIC;
+            placeholderSpan.baselineOffset = 0.0;
+
+            LOGI("[Paragraph] Inserting placeholder at position %{public}u: width=%{public}f, height=%{public}f",
+                 placeholder.start, placeholderSpan.width, placeholderSpan.height);
+
+            OH_Drawing_TypographyHandlerAddPlaceholder(handler, &placeholderSpan);
+
+            // 更新起始位置，跳过占位符覆盖的文本
+            startPos = placeholder.end;
+            placeholderIndex++;
+        }
+
+        // 添加剩余的文本段
+        if (startPos < endPos) {
+            OH_Drawing_TypographyHandlerPushTextStyle(handler, op.mergedStyle.get());
+            std::string segment = text_.substr(startPos, endPos - startPos);
+            OH_Drawing_TypographyHandlerAddText(handler, segment.c_str());
+        }
+
+        LOGI("[Paragraph] Applied style at pos %{public}u-%{public}u",
+             startPos, endPos);
     }
 }
+
+/**
+ * 创建合并样式（从活跃样式栈）
+ */
+ResourceHandle<OH_Drawing_TextStyle> Paragraph::createMergedStyleFromStack(
+    const std::vector<const SpanStyleRange *> &activeStyles) {
+    auto mergedStyle = DrawingResourceFactory::createTextStyle();
+
+    // 先应用基础样式
+    if (textStyleStrategy_) {
+        textStyleStrategy_->applyTo(mergedStyle.get());
+    }
+
+    // 按顺序叠加所有活跃样式（后面的覆盖前面的）
+    for (const auto *style : activeStyles) {
+        applySpanStyleToTextStyle(mergedStyle.get(), *style);
+    }
+
+    return mergedStyle;
+}
+
+/**
+ * 应用单个 SpanStyleRange 到 TextStyle
+ */
+void Paragraph::applySpanStyleToTextStyle(
+    OH_Drawing_TextStyle *textStyle,
+    const SpanStyleRange &span) {
+    if (span.fontSize > 0) {
+        OH_Drawing_SetTextStyleFontSize(textStyle, span.fontSize);
+    }
+    if (span.fontWeight > 0) {
+        OH_Drawing_SetTextStyleFontWeight(textStyle, span.fontWeight);
+    }
+    if (span.fontStyle >= 0) {
+        OH_Drawing_SetTextStyleFontStyle(textStyle, span.fontStyle);
+    }
+    if (span.color != 0xFFFFFFFF) {
+        OH_Drawing_SetTextStyleColor(textStyle, span.color);
+    }
+    if (span.letterSpacing > -999.0) {
+        OH_Drawing_SetTextStyleLetterSpacing(textStyle, span.letterSpacing);
+    }
+    if (span.textDecoration != TextDecoration::None) {
+        OH_Drawing_SetTextStyleDecoration(textStyle, static_cast<int>(span.textDecoration));
+    }
+    if (span.shadow) {
+        OH_Drawing_TextStyleAddShadow(textStyle, span.shadow);
+    }
+
+    // TODO: 应用背景色、字体族等其他属性
+}
+
 
 // ========== 布局操作 ==========
 
@@ -469,6 +641,52 @@ std::vector<TextRect> Paragraph::getRectsForRange(uint32_t start, uint32_t end) 
                             OH_Drawing_GetTopFromTextBox(textBox, static_cast<int>(i)),
                             OH_Drawing_GetRightFromTextBox(textBox, static_cast<int>(i)),
                             OH_Drawing_GetBottomFromTextBox(textBox, static_cast<int>(i)));
+    }
+
+    return result;
+}
+
+// ========== 占位符查询 ==========
+
+std::vector<TextRect> Paragraph::getPlaceholderRects() const {
+    std::vector<TextRect> result;
+
+    if (!typography_.isValid()) {
+        LOGE("[Paragraph] getPlaceholderRects: Typography is not valid");
+        return result;
+    }
+
+    if (placeholders_.empty()) {
+        LOGI("[Paragraph] getPlaceholderRects: No placeholders defined");
+        return result;
+    }
+
+    // 调用 HarmonyOS API 获取占位符的矩形区域
+    // 参考 SkiaParagraph.skiko.kt: paragraph.rectsForPlaceholders.map { it.rect.toComposeRect() }
+    OH_Drawing_TextBox *textBox = OH_Drawing_TypographyGetRectsForPlaceholders(typography_.get());
+
+    if (!textBox) {
+        LOGE("[Paragraph] getPlaceholderRects: Failed to get placeholder rects from typography");
+        // 返回空列表，与 placeholders_ 数量相同（所有为空）
+        result.resize(placeholders_.size());
+        return result;
+    }
+
+    uint32_t boxCount = OH_Drawing_GetSizeOfTextBox(textBox);
+    LOGI("[Paragraph] getPlaceholderRects: Retrieved %{public}u placeholder rects for %{public}zu placeholders",
+         boxCount, placeholders_.size());
+
+    // 为每个占位符创建对应的矩形
+    result.reserve(boxCount);
+    for (uint32_t i = 0; i < boxCount; ++i) {
+        result.emplace_back(
+            OH_Drawing_GetLeftFromTextBox(textBox, static_cast<int>(i)),
+            OH_Drawing_GetTopFromTextBox(textBox, static_cast<int>(i)),
+            OH_Drawing_GetRightFromTextBox(textBox, static_cast<int>(i)),
+            OH_Drawing_GetBottomFromTextBox(textBox, static_cast<int>(i)));
+
+        LOGI("[Paragraph] Placeholder[%{public}u] rect: (%{public}.2f, %{public}.2f, %{public}.2f, %{public}.2f)",
+             i, result.back().left, result.back().top, result.back().right, result.back().bottom);
     }
 
     return result;

@@ -2,6 +2,7 @@
 #define NATIVE_PARAGRAPH_TYPES_H
 
 #include <cstdint>
+#include <native_drawing/drawing_text_declaration.h>
 #include <string>
 
 namespace OH {
@@ -204,23 +205,25 @@ struct SpanStyleRange {
     uint32_t end;             // 结束位置
 
     // 可选样式属性（使用负值表示未设置）
-    double fontSize;          // 字体大小（-1.0表示未设置）
     int fontWeight;           // 字体粗细（-1表示未设置）
+    double fontSize;          // 字体大小（-1.0表示未设置）
     int fontStyle;            // 字体样式（-1表示未设置）
     uint32_t color;           // 颜色（使用特殊值0xFFFFFFFF表示未设置）
+    uint32_t background;
     double letterSpacing;     // 字母间距（-999.0表示未设置）
+    OH_Drawing_TextShadow *shadow;
     TextDecoration textDecoration; // 文本装饰
     std::string fontFamily;   // 字体族名称（空字符串表示未设置）
 
     SpanStyleRange()
         : start(0), end(0), fontSize(-1.0), fontWeight(-1),
           fontStyle(-1), color(0xFFFFFFFF), letterSpacing(-999.0),
-          textDecoration(TextDecoration::None), fontFamily("") {}
+          textDecoration(TextDecoration::None), fontFamily(""), shadow(nullptr) {}
 
     SpanStyleRange(uint32_t s, uint32_t e)
         : start(s), end(e), fontSize(-1.0), fontWeight(-1),
           fontStyle(-1), color(0xFFFFFFFF), letterSpacing(-999.0),
-          textDecoration(TextDecoration::None), fontFamily("") {}
+          textDecoration(TextDecoration::None), fontFamily(""), shadow(nullptr) {}
 };
 
 /**

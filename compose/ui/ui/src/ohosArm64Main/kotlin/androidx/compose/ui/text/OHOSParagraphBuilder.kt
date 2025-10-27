@@ -1,6 +1,7 @@
 package androidx.compose.ui.text
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.ui.arkui.utils.ParagraphBuilder_addSpanStyle
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_build
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_create
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_setColor
@@ -16,6 +17,19 @@ import androidx.compose.ui.arkui.utils.ParagraphBuilder_setText
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_setTextAlign
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_setTextDirection
 import androidx.compose.ui.arkui.utils.ParagraphBuilder_setWordSpacing
+import androidx.compose.ui.arkui.utils.Paragraph_CreateSpanStyleRange
+import androidx.compose.ui.arkui.utils.Paragraph_DestroySpanStyleRange
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setBackground
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setColor
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setDecoration
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setFontFamily
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setFontFeatureSettings
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setFontSize
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setFontStyle
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setFontWeight
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setLetterSpacing
+import androidx.compose.ui.arkui.utils.Paragraph_SpanStyleRange_setShadow
+import androidx.compose.ui.arkui.utils.SpanStyleRange_Handle
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -25,9 +39,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontListFontFamily
 import androidx.compose.ui.text.font.GenericFontFamily
 import androidx.compose.ui.text.style.ResolvedTextDirection
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import kotlinx.cinterop.memScoped
+import kotlin.native.ref.createCleaner
 
 /**
  * ParagraphBuilder负责构建Native段落适配器
@@ -96,10 +110,13 @@ internal class ParagraphBuilder(
                 ParagraphBuilder_setLetterSpacing(it, params.letterSpacing)
                 ParagraphBuilder_setWordSpacing(it, params.wordSpacing)
                 ParagraphBuilder_setLineHeight(it, params.lineHeight)
+                params.spanStyles.forEach { spanStyle ->
+                    ParagraphBuilder_addSpanStyle(it, spanStyle.handle)
+                }
                 ParagraphBuilder_build(it)
             }
         }
-        LogPrintUtil.verbose("OHOSNativeParagraphProxy::create, Creating NativeParagraph: $handle with params: $params")
+        LogPrintUtil.verbose("[Paragraph] OHOSNativeParagraphProxy::create, Creating NativeParagraph: $handle with params: $params")
         return handle?.let { OHOSNativeParagraphProxy(it) }
     }
 
@@ -157,24 +174,13 @@ internal class ParagraphBuilder(
         // 转换 spanStyles 为 Native 可识别的格式
         val nativeSpanStyles = spanStyles.map { range ->
             val spanStyle = range.item
-            SpanStyleRange(
-                start = range.start,
-                end = range.end,
-                fontSize = spanStyle.fontSize.takeIf { it.value > 0 }
-                    ?.let { it.value.toDouble() * densityValue },
-                fontWeight = spanStyle.fontWeight?.let { StyleMapperRegistry.fontWeight.map(it) },
-                fontStyle = spanStyle.fontStyle?.let { StyleMapperRegistry.fontStyle.map(it) },
-                color = spanStyle.color.toUInt(),
-                letterSpacing = spanStyle.letterSpacing?.takeIf { it.value.isFinite() }?.value?.toDouble(),
-                textDecoration = spanStyle.textDecoration?.let {
-                    // 映射 TextDecoration 为整数值
-                    when {
-                        it.contains(TextDecoration.Underline) && it.contains(TextDecoration.LineThrough) -> 3
-                        it.contains(TextDecoration.Underline) -> 1
-                        it.contains(TextDecoration.LineThrough) -> 2
-                        else -> 0
-                    }
-                },
+            LogPrintUtil.verbose("ParagraphBuilder::createParagraphParams, Converting SpanStyle: $spanStyle in range: $range")
+            val nativeSpanStyleRange = NativeSpanStyleRange(range.start, range.end).apply {
+                fontWeight =
+                    spanStyle.fontWeight?.let { StyleMapperRegistry.fontWeight.map(it) } ?: 0
+                fontStyle = spanStyle.fontStyle?.let { StyleMapperRegistry.fontStyle.map(it) } ?: 0
+                fontSize = (spanStyle.fontSize.takeIf { it.value > 0 }
+                    ?.let { it.value.toDouble() * densityValue }) ?: 0.0
                 fontFamily = spanStyle.fontFamily?.let { family ->
                     when (family) {
                         is GenericFontFamily -> family.name
@@ -184,7 +190,27 @@ internal class ParagraphBuilder(
 
                         else -> "sans-serif"
                     }
-                })
+                } ?: ""
+                color = spanStyle.color.toUInt()
+                background = spanStyle.background.toUInt()
+                letterSpacing =
+                    spanStyle.letterSpacing.takeIf { it.value.isFinite() }?.value?.toDouble() ?: 0.0
+                textDecoration = spanStyle.textDecoration?.let {
+                    StyleMapperRegistry.textDecoration.map(
+                        it
+                    )
+                } ?: 0
+                shadow = spanStyle.shadow?.let { shadow ->
+                    OHOSNativeShadow(
+                        color = shadow.color.toUInt(),
+                        offsetX = shadow.offset.x,
+                        offsetY = shadow.offset.y,
+                        blurRadius = shadow.blurRadius.toDouble()
+                    )
+                }
+            }
+            LogPrintUtil.verbose("ParagraphBuilder::createParagraphParams,  NativeSpanStyle: $nativeSpanStyleRange")
+            nativeSpanStyleRange
         }
 
         // 转换 placeholders 为 Native 可识别的格式
@@ -238,7 +264,7 @@ internal class ParagraphBuilder(
  * 3. 类型安全，避免参数顺序错误
  * 4. 支持富文本样式（spanStyles）和占位符（placeholders）
  */
-data class NativeParagraphParams(
+internal data class NativeParagraphParams(
     val text: String,
     val fontSize: Double,
     val fontWeight: Int,
@@ -251,7 +277,7 @@ data class NativeParagraphParams(
     val wordSpacing: Double = 0.0,
     val lineHeight: Double = 0.0,
     // 新增：支持富文本样式
-    val spanStyles: List<SpanStyleRange> = emptyList(),
+    val spanStyles: List<NativeSpanStyleRange> = emptyList(),
     // 支持占位符
     val placeholders: List<PlaceholderRange> = emptyList(),
     // 字体家族名称（由fontFamilyResolver解析后传入）
@@ -264,16 +290,121 @@ data class NativeParagraphParams(
  * SpanStyle范围数据类
  * 用于表示文本中的局部样式
  */
-data class SpanStyleRange(
-    val start: Int,
-    val end: Int,
-    val fontSize: Double? = null,
-    val fontWeight: Int? = null,
-    val fontStyle: Int? = null,
-    val color: UInt? = null,
-    val letterSpacing: Double? = null,
-    val textDecoration: Int? = null,
-    val fontFamily: String? = null
+internal class NativeSpanStyleRange(val start: Int, val end: Int) {
+
+    val handle: SpanStyleRange_Handle? = Paragraph_CreateSpanStyleRange(
+        start,
+        end
+    ).apply {
+        requireNotNull(this) { "Paragraph_CreateSpanStyleRange failed" }
+    }
+
+    /**
+     * 自动资源清理器
+     * 使用createCleaner确保Native资源在对象被GC时自动释放
+     */
+    @Suppress("unused")
+    private val cleaner = createCleaner(handle) { ptr ->
+        if (ptr != null) {
+            Paragraph_DestroySpanStyleRange(ptr)
+        }
+    }
+
+    var fontWeight: Int = 0
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setFontWeight(it, value) }
+            field = value
+        }
+    var fontStyle: Int = 0
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setFontStyle(it, value) }
+            field = value
+        }
+    var fontSize: Double = 0.0
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setFontSize(it, value) }
+            field = value
+        }
+
+    // TODO: 暂不支持字体合成
+    val fontSynthesis: Int = 0
+    var fontFamily: String? = null
+        set(value) {
+            if (value != null) {
+                handle?.let {
+                    Paragraph_SpanStyleRange_setFontFamily(it, value)
+                }
+            }
+            field = value
+        }
+
+    var fontFeatureSetting: String? = null
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setFontFeatureSettings(it, value) }
+            field = value
+        }
+
+    var color: UInt? = null
+        set(value) {
+            handle?.let {
+                if (value != null) {
+                    Paragraph_SpanStyleRange_setColor(it, value)
+                }
+            }
+            field = value
+        }
+
+    var background: UInt? = null
+        set(value) {
+            handle?.let {
+                if (value != null) {
+                    Paragraph_SpanStyleRange_setBackground(it, value)
+                }
+            }
+            field = value
+        }
+
+    var letterSpacing: Double = 0.0
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setLetterSpacing(it, value) }
+            field = value
+        }
+
+    var textDecoration: Int = 0
+        set(value) {
+            handle?.let { Paragraph_SpanStyleRange_setDecoration(it, value) }
+            field = value
+        }
+
+    var shadow: OHOSNativeShadow? = null
+        set(value) {
+            if (value != null) {
+                handle?.let {
+                    Paragraph_SpanStyleRange_setShadow(
+                        it,
+                        value.offsetX,
+                        value.offsetY,
+                        value.blurRadius,
+                        value.color
+                    )
+                }
+            }
+            field = value
+        }
+
+    override fun toString(): String {
+        return "NativeSpanStyleRange(start=$start, end=$end, fontWeight=$fontWeight, " +
+                "fontStyle=$fontStyle, fontSize=$fontSize, fontFamily=$fontFamily, " +
+                "fontFeatureSetting=$fontFeatureSetting, color=$color, background=$background, " +
+                "letterSpacing=$letterSpacing, textDecoration=$textDecoration, shadow=$shadow)"
+    }
+}
+
+data class OHOSNativeShadow(
+    val color: UInt,
+    val offsetX: Float,
+    val offsetY: Float,
+    val blurRadius: Double
 )
 
 /**

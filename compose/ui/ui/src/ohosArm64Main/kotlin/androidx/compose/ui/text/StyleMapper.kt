@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 
 /**
  * 样式映射器接口（策略模式）
@@ -122,6 +123,22 @@ object FontStyleMapper : StyleMapper<FontStyle, Int> {
     }
 }
 
+object TextDecorationMapper : StyleMapper<TextDecoration, Int> {
+    override fun map(value: TextDecoration?): Int {
+        var result = 0
+        if (value == null) {
+            return result
+        }
+        if (value.contains(TextDecoration.Underline)) {
+            result = result or 0x1
+        }
+        if (value.contains(TextDecoration.LineThrough)) {
+            result = result or 0x4
+        }
+        return result
+    }
+}
+
 /**
  * 样式映射器注册表（单例模式）
  *
@@ -135,6 +152,7 @@ object StyleMapperRegistry {
     val textDirection: StyleMapper<ResolvedTextDirection, Int> = TextDirectionMapper
     val fontWeight: StyleMapper<FontWeight, Int> = FontWeightMapper
     val fontStyle: StyleMapper<FontStyle, Int> = FontStyleMapper
+    val textDecoration: StyleMapper<TextDecoration, Int> = TextDecorationMapper
 
     /**
      * 验证所有映射器是否正确初始化
