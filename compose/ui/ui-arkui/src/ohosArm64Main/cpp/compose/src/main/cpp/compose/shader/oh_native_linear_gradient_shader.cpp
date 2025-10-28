@@ -10,6 +10,8 @@ NativeLinearGradientShader::NativeLinearGradientShader() {
     this->colorPositions = std::vector<float>();
     this->colors = std::vector<uint32_t>();
 }
+
+OH_Native_Shader_Type NativeLinearGradientShader::getType() { return OH_Native_Shader_Type::LinearGradientShader; };
 NativeLinearGradientShader::~NativeLinearGradientShader() {
 }
 

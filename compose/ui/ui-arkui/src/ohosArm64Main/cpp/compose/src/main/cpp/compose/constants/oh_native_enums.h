@@ -66,6 +66,7 @@ typedef enum {
     DrawingTypeShaderRowPoints,
     DrawingTypeRowVertices,
     DrawingTypeShaderRowVertices,
+    DrawingTypeDrawTextLayer,
     DrawingTypeDrawLayer,
     DrawingTypeSave,
     DrawingTypeRestore,
@@ -73,12 +74,30 @@ typedef enum {
     DrawingTypePop
 } OH_Native_Drawing_Type;
 
+typedef enum {
+    BaseNode,
+    LineNode,
+    ParagraphNode,
+    LineGradientNode,
+    RectGradientNode
+    // TODO: 每实现一个BaseRenderNode的派生类，就需要在此处添加对应的枚举值
+} OH_DrawingNode_Type;
+
 // Enum to specify the type of RenderNode save state
 typedef enum {
     SafeGuard, // Safe guard
     Save,      // Pure save operation
     Clip       // Clip operation
 } OH_RenderNode_SaveState_MakeType;
+
+typedef enum {
+    NoneTypeShader,
+    LinearGradientShader,
+    RadialGradientShader,
+    SweepGradientShader,
+    ImageShader
+    // TODO: 每实现一个BasicShader的派生类，就需要在此处添加对应的枚举值
+} OH_Native_Shader_Type;
 
 typedef enum {
     PathOpDifference,

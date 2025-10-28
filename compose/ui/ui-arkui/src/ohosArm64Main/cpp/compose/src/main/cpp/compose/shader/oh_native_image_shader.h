@@ -13,6 +13,7 @@ public:
     ~NativeImageShader();
 
     uint64_t propertyHash() override;
+    OH_Native_Shader_Type getType() override ; 
     NativeImageShader *setTileMode(OH_Drawing_TileMode tileModeX, OH_Drawing_TileMode tileModeY);
 
     OH_Drawing_TileMode tileModeX;

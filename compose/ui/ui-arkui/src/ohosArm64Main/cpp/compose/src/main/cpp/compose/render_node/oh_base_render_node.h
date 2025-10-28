@@ -37,7 +37,6 @@ namespace OH {
             return nodeHandle_;
         }
 
-
         template<typename T, auto CreateFunc, auto DisposeFunc>
         class ScopedOption {
         public:
@@ -48,6 +47,8 @@ namespace OH {
         private:
             T* option_;
         };
+    
+        virtual OH_DrawingNode_Type getType();
 
         BaseRenderNode* addChild(BaseRenderNode* child) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_AddChild(nodeHandle_, child->getHandle()));
@@ -176,6 +177,7 @@ namespace OH {
         }
 
     protected:
+        virtual void initModifier() {};
         static uint32_t generateHash() {
             static std::atomic<uint32_t> counter{0};
             return ++counter;

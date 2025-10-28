@@ -17,6 +17,7 @@
 
 #include "napi/native_api.h"
 #include "../constants/oh_native_enums.h"
+#include "../constants/oh_native_constants.h"
 #include "native_drawing/drawing_types.h"
 #include <arkui/native_render.h>
 
@@ -24,16 +25,11 @@
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVAS_EXPORT_H
 
 EXTERN_C_START
-typedef struct OHNativeCanvasProxy *OHNativeCanvasProxy_Handle;
-typedef struct OHComposeNativePaint *OHComposeNativePaint_Handle;
-typedef struct OH_Drawing_ShaderEffect *OH_Drawing_ShaderEffect_Handle;
-typedef struct OH_Drawing_ColorFilter *OH_Drawing_ColorFilter_Handle;
-typedef struct OH_Drawing_PathEffect *OH_Drawing_PathEffect_Handle;
-typedef struct BaseRenderNode *BaseRenderNode_Handle;
-typedef struct NativeBasicShader *NativeBasicShader_Handle;
 OHNativeCanvasProxy_Handle androidx_compose_ui_arkui_utils_createOHNativeCanvasProxy(void *factory);
-void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxy);
+void androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy(OHNativeCanvasProxy_Handle proxyHandle);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxyHandle);
 OHComposeNativePaint_Handle androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy);
+void androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(OHComposeNativePaint_Handle paintHandle);
 
 // OHNativeCanvasProxy state operations
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save(OHNativeCanvasProxy_Handle proxy);
@@ -48,6 +44,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity(OHNativeCanv
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(OHNativeCanvasProxy_Handle proxy, float left, float top, float right, float bottom, OHComposeNativePaint_Handle paint);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(OHNativeCanvasProxy_Handle proxy, BaseRenderNode_Handle renderNodeHandle);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph(OHNativeCanvasProxy_Handle proxy, BaseRenderNode_Handle paragraphHandle);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(OHNativeCanvasProxy_Handle proxy, OHNativeCanvasProxy_Handle parentProxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1, float x2, float y2, OHComposeNativePaint_Handle paint);

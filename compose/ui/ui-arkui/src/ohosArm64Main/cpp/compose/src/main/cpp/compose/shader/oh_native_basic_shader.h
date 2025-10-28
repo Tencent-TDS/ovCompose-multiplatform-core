@@ -13,8 +13,9 @@ namespace OH {
  */
 class NativeBasicShader {
 public:
-    virtual ~NativeBasicShader() = default;
+    virtual ~NativeBasicShader();
     virtual uint64_t propertyHash() = 0;
+    virtual OH_Native_Shader_Type getType();
 };
 } // namespace OH
 #endif

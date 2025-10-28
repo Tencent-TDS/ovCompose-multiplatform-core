@@ -3,6 +3,7 @@ package androidx.compose.ui.platform.nativefoundation
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.Boolean
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw
@@ -12,6 +13,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save
@@ -20,13 +22,22 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate
-
+import kotlin.native.ref.createCleaner
 
 /**
  * 封装 OHNativeCanvasProxy_Handle 结构体指针的 Kotlin 代理类
  * 提供类型安全和Kotlin风格的API访问Native方法
  */
 class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
+
+    /**
+     * 自动资源清理器
+     * 使用createCleaner确保Native资源在对象被GC时自动释放
+     */
+    @Suppress("unused")
+    private val cleaner = createCleaner(handle) { ptr ->
+        androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy(ptr)
+    }
     /**
      * 画布宽度属性
      */
@@ -59,15 +70,35 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     }
 
     fun setPosition(positionX: Int, positionY: Int) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(it, positionX, positionY) }
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(
+                proxy = it,
+                x = positionX,
+                y = positionY
+            )
+        }
     }
 
     fun setBounds(originX: Int, originY: Int, boundsWidth: Int, boundsHeight: Int) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(it, originX, originY, boundsWidth, boundsHeight) }
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(
+                proxy = it,
+                originX = originX,
+                originY = originY,
+                boundsWidth = boundsWidth,
+                boundsHeight = boundsHeight
+            )
+        }
     }
 
     fun setPivot(pivotFractionX: Float, pivotFractionY: Float) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot(it, pivotFractionX, pivotFractionY) }
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot(
+                proxy = it,
+                px = pivotFractionX,
+                py = pivotFractionY
+            )
+        }
     }
 
     fun setOpacity(opacity: Float) {
@@ -77,12 +108,12 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: UInt) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(
-                it,
-                left,
-                top,
-                right,
-                bottom,
-                clipOp
+                proxy = it,
+                left = left,
+                top = top,
+                right = right,
+                bottom = bottom,
+                clipOp = clipOp
             )
         }
     }
@@ -107,8 +138,20 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer(
-                it,
-                renderNodeHandle
+                proxy = it,
+                renderNodeHandle = renderNodeHandle
+            )
+        }
+    }
+
+    /**
+     * 绘制段落
+     */
+    fun drawParagraph(pargraphHandle: BaseRenderNode_Handle) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph(
+                proxy = it,
+                paragraphHandle = pargraphHandle
             )
         }
     }
@@ -137,12 +180,12 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     ) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(
-                it,
-                left,
-                top,
-                right,
-                bottom,
-                nativePaint.handle
+                proxy = it,
+                left = left,
+                top = top,
+                right = right,
+                bottom = bottom,
+                paint = nativePaint.handle
             )
         }
     }
@@ -150,19 +193,38 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     /**
      * 绘制圆角矩形
      */
-    fun drawRoundRect(left: Float, top: Float, right: Float, bottom: Float, radiusX: Float, radiusY: Float, nativePaint: OHComposeNativePaint) {
-        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(it, left, top, right, bottom, radiusX, radiusY, nativePaint.handle) }
+    fun drawRoundRect(
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        radiusX: Float,
+        radiusY: Float,
+        nativePaint: OHComposeNativePaint
+    ) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(
+                proxy = it,
+                left = left,
+                top = top,
+                right = right,
+                bottom = bottom,
+                radiusX = radiusX,
+                radiusY = radiusY,
+                paint = nativePaint.handle
+            )
+        }
     }
 
     fun drawLine(x1: Float, y1: Float, x2: Float, y2: Float, nativePaint: OHComposeNativePaint) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(
-                it,
-                x1,
-                y1,
-                x2,
-                y2,
-                nativePaint.handle
+                proxy = it,
+                x1 = x1,
+                y1 = y1,
+                x2 = x2,
+                y2 = y2,
+                paint = nativePaint.handle
             )
         }
     }
@@ -171,8 +233,8 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
     fun setParent(parentProxy: OHNativeCanvasProxy) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(
-                it,
-                parentProxy.handle
+                proxy = it,
+                parentProxy = parentProxy.handle
             )
         }
     }

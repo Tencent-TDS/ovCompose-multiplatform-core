@@ -6,8 +6,10 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <typeinfo>
 #include "../constants/oh_native_enums.h"
 #include "../constants/oh_native_constants.h"
+#include "../paragraph/oh_native_paragraph.h"
 #include "oh_native_picture_recorder_drawing_Item.h"
 #include "oh_native_render_node_save_state.h"
 #include "../render_node/oh_base_render_node.h"
@@ -107,9 +109,7 @@ public:
     void startRecording(BaseRenderNode &rootRenderNode);
     void finishRecording(BaseRenderNode &rootRenderNode);
 
-    OH_ALWAYS_INLINE void save() {
-        pushSaveStack(OH_RenderNode_SaveState_MakeType::Save);
-    }
+    OH_ALWAYS_INLINE void save() { pushSaveStack(OH_RenderNode_SaveState_MakeType::Save); }
 
     OH_ALWAYS_INLINE void restore() {
         if (saveStack.size() >= 2) {
@@ -149,10 +149,12 @@ public:
         return props->createAndAddRenderNode(type, itemHash);
     }
 
-    OH_ALWAYS_INLINE PictureRecorderUpdateInfo drawRenderNode(BaseRenderNode *renderNode) {
+    OH_ALWAYS_INLINE PictureRecorderUpdateInfo drawRenderNode(BaseRenderNode *renderNode, OH_DrawingNode_Type renderNodeType) {
         initPropsIfNeeded();
+        const OH_Native_Drawing_Type drawingType = (renderNodeType == OH_DrawingNode_Type::ParagraphNode)
+                                                       ? OH_Native_Drawing_Type::DrawingTypeDrawTextLayer
+                                                       : OH_Native_Drawing_Type::DrawingTypeDrawLayer;
 
-        const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeDrawLayer;
         const uint64_t renderNodeUniqueHash = renderNode->getHash();
 
         currentDrawHash = hashMerge(currentDrawHash, renderNodeUniqueHash);

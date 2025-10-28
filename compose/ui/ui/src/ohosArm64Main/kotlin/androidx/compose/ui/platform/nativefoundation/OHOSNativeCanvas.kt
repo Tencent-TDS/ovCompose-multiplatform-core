@@ -1,6 +1,7 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
+import androidx.compose.ui.arkui.utils.ParagraphHandle_Handle
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -28,6 +29,8 @@ interface OHOSNativeCanvas : Canvas {
     fun onPreDraw()
 
     fun drawLayer(renderNodeHandle: BaseRenderNode_Handle)
+
+    fun drawParagraph(paragraph: BaseRenderNode_Handle)
 
     fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas)
 

@@ -39,7 +39,8 @@ void OHRenderNodeDrawRect(float left, float top, float right, float bottom, Nati
     } else {
         // apply shader
         LOGI("OHRenderNodeDrawRect: apply shader start: %{public}p", shader);
-        ((RectGradientRenderNode *)renderNodeForDrawing)->drawRect(left, top, right, bottom, strokeWidth, shader, paint->style);
+        ((RectGradientRenderNode *)renderNodeForDrawing)
+            ->drawRect(left, top, right, bottom, strokeWidth, shader, paint->style);
     }
 }
 
@@ -78,8 +79,6 @@ void OHRenderNodeDrawRoundRect(float left, float top, float right, float bottom,
         ->setSize(width, height)
         ->setBorderCornerRadius(radiusX);
     if (!shader) {
-        // TODO：setMask(0)会导致不显示，需要了解具体怎么传值
-        // renderNodeForDrawing->setMask(0);
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
             renderNodeForDrawing->setBorderWidth(strokeWidth)
                 ->setBorderColor(paint->color)
@@ -87,7 +86,6 @@ void OHRenderNodeDrawRoundRect(float left, float top, float right, float bottom,
         } else {
             renderNodeForDrawing
                 ->setBorderWidth(0)
-                // TODO:需要通过paint获取颜色
                 ->setBackgroundColor(paint->color);
         }
     } else {
@@ -115,6 +113,24 @@ void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2, NativeBasicSha
             ->drawLine(x1, y1, x2, y2, strokeWidth, static_cast<NativeLinearGradientShader *>(shader),
                        paint->strokeCap);
     }
+}
+
+void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode) {
+    const float originX = saveState->translateX;
+    const float originY = saveState->translateY;
+    const int32_t width = paragraphNode->getWidth();
+    const int32_t height = paragraphNode->getHeight();
+//    LOGI("Transform matrix: %{public}s", saveState->transform.toReadableString().c_str());
+    
+    paragraphNode->setTransform(saveState->transform.data())
+        ->setTranslate(originX, originY)
+        ->setPosition(originX, originY)  
+        ->setSize(width, height);
+    
+    LOGI("OHRenderNodeDrawText: start drawing paragraph, translateX/Y: %{public}f, %{public}f, "
+         "position: 0, 0, size: %{public}d, %{public}d, transform applied",
+         originX, originY, width, height);
+    paragraphNode->paint(0, 0);
 }
 
 void OHRenderNodeDrawThrow(int32_t status) {

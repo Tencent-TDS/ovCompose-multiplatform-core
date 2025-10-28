@@ -19,6 +19,7 @@ package androidx.compose.common.interop
 import platform.Foundation.NSLog
 
 actual object LogPrintUtil {
+    private var _isLogEnabled: Boolean = false
     private val DefaultLogger = object : LogPrintInterface {
         override fun verbose(message: String) {
             NSLog(message)
@@ -28,6 +29,14 @@ actual object LogPrintUtil {
     actual var logPrintImpl: LogPrintInterface? = DefaultLogger
 
     actual fun verbose(message: String) {
-        this.logPrintImpl?.verbose("[shiqi]${message}")
+        if (isLogEnabled) {
+            this.logPrintImpl?.verbose("[shiqi]${message}")
+        }
     }
+
+    actual var isLogEnabled: Boolean
+        get() = _isLogEnabled
+        set(value) {
+            _isLogEnabled = value
+        }
 }

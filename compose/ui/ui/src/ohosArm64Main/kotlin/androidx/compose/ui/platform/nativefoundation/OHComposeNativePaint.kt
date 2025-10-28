@@ -7,6 +7,7 @@ import androidx.compose.ui.arkui.utils.OH_Native_Draw_FilterQuality
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_PaintingStyle
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_StrokeCap
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_StrokeJoin
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor
@@ -25,8 +26,9 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import platform.arkui.OH_Drawing_BlendMode
+import kotlin.native.ref.createCleaner
 
-internal fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
+internal inline fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
     return when (this) {
         BlendMode.Clear -> OH_Drawing_BlendMode.BLEND_MODE_CLEAR
         BlendMode.Src -> OH_Drawing_BlendMode.BLEND_MODE_SRC
@@ -60,7 +62,7 @@ internal fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
     }
 }
 
-internal fun PaintingStyle.asNativePaintStyle(): OH_Native_Draw_PaintingStyle {
+internal inline fun PaintingStyle.asNativePaintStyle(): OH_Native_Draw_PaintingStyle {
     return when (this) {
         PaintingStyle.Fill -> OH_Native_Draw_PaintingStyle.Fill
         PaintingStyle.Stroke -> OH_Native_Draw_PaintingStyle.Stroke
@@ -113,6 +115,16 @@ fun Paint.toReadableString(): String {
 }
 
 class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
+
+    /**
+     * 自动资源清理器
+     * 使用createCleaner确保Native资源在对象被GC时自动释放
+     */
+    @Suppress("unused")
+    private val cleaner = createCleaner(handle) { ptr ->
+        androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(ptr)
+    }
+
     fun sync(paint: Paint) {
         // 实现与 OHComposeNativePaint 的同步逻辑
         LogPrintUtil.verbose("OHComposeNativePaint::sync, compose paint: (${paint.toReadableString()})")

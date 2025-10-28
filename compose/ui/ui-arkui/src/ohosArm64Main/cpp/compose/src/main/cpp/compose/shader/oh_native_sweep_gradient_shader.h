@@ -14,6 +14,7 @@ public:
     ~NativeSweepGradientShader();
 
     uint64_t propertyHash() override;
+    OH_Native_Shader_Type getType() override ;
     NativeSweepGradientShader *setCenter(float x, float y);
     NativeSweepGradientShader *setColors(uint32_t *colors, float *colorPositions, uint32_t colorCount);
 

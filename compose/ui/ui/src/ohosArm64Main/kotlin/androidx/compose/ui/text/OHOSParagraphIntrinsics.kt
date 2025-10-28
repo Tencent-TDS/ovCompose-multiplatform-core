@@ -1,6 +1,5 @@
 /*
- * Tencent is pleased to support the open source community by making ovCompose available.
- * Copyright (C) 2025 Tencent. All rights reserved.
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,114 +16,98 @@
 
 package androidx.compose.ui.text
 
-import androidx.compose.ui.text.AnnotatedString.Range
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Density
-import org.jetbrains.skia.Point
-
+import kotlin.math.ceil
 
 /**
- * 对齐SkiaParagraphIntrinsics的实现，完成文本测量，返回测量结果给到[maxIntrinsicWidth]以及[minIntrinsicWidth]提供文本最大宽度与最小宽度
+ * 鸿蒙平台的ParagraphIntrinsics实现
+ *
+ * 负责计算文本的固有宽度（最小和最大）
+ *
+ * 设计思路：
+ * 1. 使用OHOSParagraphLayouter进行布局计算
+ * 2. 在初始化时计算并缓存固有宽度，避免重复计算
+ * 3. 提供layouter()方法获取可重用的Layouter实例，减少对象创建开销
  */
-class OHOSParagraphIntrinsics(
+internal class OHOSParagraphIntrinsics(
     val text: String,
     val style: TextStyle,
-    private val spanStyles: List<Range<SpanStyle>>,
-    private val placeholders: List<Range<Placeholder>>,
+    val spanStyles: List<AnnotatedString.Range<SpanStyle>>,
+    val placeholders: List<AnnotatedString.Range<Placeholder>>,
     val density: Density,
-    private val fontFamilyResolver: FontFamily.Resolver,
+    val fontFamilyResolver: FontFamily.Resolver,
 ) : ParagraphIntrinsics {
+    val textDirection = resolveTextDirection(
+        text,
+        style.textDirection,
+        style.localeList
+    )
 
-    internal val nativeParagraphProxy: OHNativeParagraphProxy = OHNativeParagraphProxy()
+    private var layouter: OHOSParagraphLayouter? = newLayouter()
 
-    /**
-     * 在[OHOSParagraph]将外部约束提供给文本进行测量，将文本测量结果保存
-     */
-    internal val localSize: Point by lazy {
-        nativeParagraphProxy.measureAndLayout(
-            text,
-            MAX_BOUNDS,
-            MAX_BOUNDS,
-            density
-        )
+    fun layouter(): OHOSParagraphLayouter {
+        val layouter = this.layouter ?: newLayouter()
+        this.layouter = null
+        return layouter
     }
 
-    override val minIntrinsicWidth: Float
-        get() = 0f
+    private fun newLayouter() = OHOSParagraphLayouter(
+        text = text,
+        textDirection = textDirection,
+        style = style,
+        spanStyles = spanStyles,
+        placeholders = placeholders,
+        density = density,
+        fontFamilyResolver = fontFamilyResolver
+    )
 
     /**
-     * 返回文本最大宽度
+     * 最小固有宽度：文本在所有软换行机会都使用时的宽度
      */
-    override val maxIntrinsicWidth: Float
-        get() = localSize.x
+    override var minIntrinsicWidth = 0f
+        private set
 
-    internal fun relayout(constraints: Constraints, maxLines: Int, ellipsis: Boolean) {
-        nativeParagraphProxy.relayoutWithMaxWidth(
-            constraints.maxWidth.toFloat(),
-            constraints.maxHeight.toFloat(),
-            maxLines,
-            ellipsis
-        )
+    /**
+     * 最大固有宽度：文本在单行显示时的宽度
+     */
+    override var maxIntrinsicWidth = 0f
+        private set
+
+    /**
+     * 初始化块，在对象创建时执行：
+     * 1. 使用 layouter 计算段落布局，宽度为无限大（单行显示）
+     * 2. 通过 para 获取并缓存最小和最大固有宽度，避免后续重复计算
+     */
+    init {
+        val para = layouter!!.layoutParagraph(Float.POSITIVE_INFINITY)
+        minIntrinsicWidth = ceil(para.getMinIntrinsicWidth()).toFloat()
+        maxIntrinsicWidth = ceil(para.getMaxIntrinsicWidth()).toFloat()
     }
+}
 
-    /**
-     * 将[TextStyle]转换成IOS上的[TMMComposeTextAttributes]
-     */
-//    private fun TextStyle.toTMMComposeTextAttributes(content: String): TMMComposeTextAttributes {
-//        val textAttributes = TMMComposeTextAttributes()
-//        textAttributes.content = content
-//        textAttributes.fontSize = fontSize.value.toInt()
-//        textAttributes.fontWeight = fontWeight?.toUIFontWeight() ?: UIFontWeightRegular
-//        textAttributes.align = textAlign.toNSTextAlignment()
-//        textAttributes.lineHeight = lineHeight.value
-//        textAttributes.letterSpace = letterSpacing.toSp(textAttributes.fontSize)
-//        textAttributes.backgroundColor = background.value
-//        textAttributes.italicType =
-//            fontStyle?.toTMMNativeItalicType() ?: TMMNativeItalicType.TMMNativeItalicNone
-//        textAttributes.spanStyles = createSpanStyleList()
-//        textAttributes.textDecorator = textDecoration?.toTMMNativeDecorator()
-//            ?: TMMNativeTextDecorator.TMMNativeTextDecoratorNone
-//        return textAttributes
-//    }
+fun Color.toUInt(): UInt {
+    val a = (alpha * 255.0f).toInt() and 0xFF
+    val r = (red * 255.0f).toInt() and 0xFF
+    val g = (green * 255.0f).toInt() and 0xFF
+    val b = (blue * 255.0f).toInt() and 0xFF
+    return ((a shl 24) or (r shl 16) or (g shl 8) or b).toUInt()
+}
 
-    /**
-     * 将富文本信息转换成[TMMComposeTextSpanAttributes]数组
-     */
-//    private fun createSpanStyleList(): List<TMMComposeTextSpanAttributes> {
-//        if (spanStyles.isEmpty()) {
-//            return emptyList()
-//        }
-//        return MutableList(spanStyles.size) { index ->
-//            spanStyles[index].toTMMComposeTextSpanStyle()
-//        }
-//    }
-
-
-    /**
-     * 将[Range<SpanStyle>]转换成[TMMComposeTextSpanAttributes]
-     */
-//    private fun Range<SpanStyle>.toTMMComposeTextSpanStyle(): TMMComposeTextSpanAttributes {
-//        return TMMComposeTextSpanAttributes(
-//            start = this.start,
-//            end = this.end,
-//            fontSize = this.item.fontSize.value.toInt(),
-//            fontWeight = this.item.fontWeight?.toUIFontWeight() ?: 0.0,
-//            // 默认的letterSpace是Unspecified，是Nan
-//            letterSpace = this.item.letterSpacing.value,
-//            fontFamily = null,
-//            foregroundColor = this.item.color.value,
-//            backgroundColor = this.item.background.value,
-//            // 由于富文本展示的斜体效果需要与整体文本设置结合展示，所以需要判断外部是否有设置斜体
-//            italicType = this.item.fontStyle?.toTMMNativeItalicType()
-//                ?: TMMNativeItalicType.TMMNativeItalicNone,
-//            textDecorator = this.item.textDecoration?.toTMMNativeDecorator()
-//                ?: TMMNativeTextDecorator.TMMNativeTextDecoratorNone
-//        )
-//    }
-
-    companion object Companion {
-        // Compose允许的最大宽度与高度
-        private const val MAX_BOUNDS = ((1 shl 24) - 1).toFloat()
+internal fun resolveTextDirection(
+    text: String,
+    textDirection: TextDirection? = null,
+    localeList: LocaleList? = null
+): ResolvedTextDirection {
+    return when (textDirection ?: TextDirection.Content) {
+        // 如果方向是明确的
+        TextDirection.Ltr -> ResolvedTextDirection.Ltr
+        TextDirection.Rtl -> ResolvedTextDirection.Rtl
+        // TODO Content方向需要根据文本和localeList进行推断
+        else -> error("Invalid TextDirection.")
     }
 }

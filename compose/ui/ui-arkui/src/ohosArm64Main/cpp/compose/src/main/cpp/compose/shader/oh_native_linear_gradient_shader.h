@@ -13,6 +13,7 @@ public:
     ~NativeLinearGradientShader();
 
     uint64_t propertyHash() override;
+    OH_Native_Shader_Type getType() override;
     NativeLinearGradientShader *setTileMode(OH_Drawing_TileMode mode);
     NativeLinearGradientShader *setStart(float x, float y);
     NativeLinearGradientShader *setEnd(float x, float y);
