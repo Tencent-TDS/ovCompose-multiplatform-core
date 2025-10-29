@@ -128,8 +128,7 @@ void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bot
     OH::NativeBasicShader *shader = paint->shader;
     const OH_Native_Drawing_Type drawingType =
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
-//    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
-    const uint64_t preHash = 0;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
     const uint64_t drawingContentHash =
         OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);

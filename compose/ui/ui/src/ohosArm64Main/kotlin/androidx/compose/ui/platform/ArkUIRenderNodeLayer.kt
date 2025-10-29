@@ -374,7 +374,10 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun invalidate() {
-        // TODO("Not yet implemented")
+        if (!isDestroyed && !isInvalidated) {
+            isInvalidated = true
+            invalidateParentLayer()
+        }
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::invalidate")
     }
 
