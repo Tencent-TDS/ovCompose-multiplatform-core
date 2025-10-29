@@ -36,10 +36,10 @@ public:
      * 构造函数（通过Builder创建）
      * 现在支持富文本样式、占位符和字体族
      */
-    Paragraph(const std::string &text, std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
+    Paragraph(std::string text, std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
               std::unique_ptr<IParagraphStyleStrategy> paragraphStyleStrategy,
               const std::vector<SpanStyleRange> &spanStyles = {},
-              const std::vector<PlaceholderRange> &placeholders = {}, const std::string &fontFamily = "");
+              const std::vector<PlaceholderRange> &placeholders = {}, std::string fontFamily = "");
 
     /**
      * 析构函数（RAII自动清理）
@@ -164,7 +164,7 @@ private:
      * 应用 SpanStyles 到 Typography Handler
      * 使用 Cut-Op 机制（参考 SkiaParagraph）
      */
-    void applySpanStyles(OH_Drawing_TypographyCreate *handler, OH_Drawing_TextStyle *baseStyle);
+    void applySpanStyles(OH_Drawing_TypographyCreate *handler, OH_Drawing_TextStyle *baseStyle) const;
 
     // ========== Cut-Op 机制的内部数据结构（仅在 .cpp 中可见）==========
     struct StyleCut;
@@ -175,12 +175,12 @@ private:
     /**
      * Step 1: 生成样式切分点列表
      */
-    std::vector<StyleCut> generateStyleCuts();
+    std::vector<StyleCut> generateStyleCuts() const;
 
     /**
      * Step 2: 将 Cut 转换为 Op（合并样式）
      */
-    std::vector<StyleOp> convertCutsToOps(const std::vector<StyleCut> &cuts);
+    std::vector<StyleOp> convertCutsToOps(const std::vector<StyleCut> &cuts) const;
 
     /**
      * 处理样式添加（Cut::Add）
@@ -188,7 +188,7 @@ private:
     void handleStyleAdd(
         const StyleCut &cut,
         std::vector<const SpanStyleRange *> &activeStyles,
-        std::vector<StyleOp> &ops);
+        std::vector<StyleOp> &ops) const;
 
     /**
      * 处理样式移除（Cut::Remove）
@@ -196,30 +196,30 @@ private:
     void handleStyleRemove(
         const StyleCut &cut,
         std::vector<const SpanStyleRange *> &activeStyles,
-        std::vector<StyleOp> &ops);
+        std::vector<StyleOp> &ops) const;
 
     /**
      * Step 3: 根据 Op 构建段落
      */
     void buildParagraphFromOps(
         OH_Drawing_TypographyCreate *handler,
-        const std::vector<StyleOp> &ops);
+        const std::vector<StyleOp> &ops) const;
 
     /**
      * 创建合并样式（从活跃样式栈）
      */
     ResourceHandle<OH_Drawing_TextStyle> createMergedStyleFromStack(
-        const std::vector<const SpanStyleRange *> &activeStyles);
+        const std::vector<const SpanStyleRange *> &activeStyles) const;
 
     /**
      * 应用单个 SpanStyleRange 到 TextStyle
      */
-    void applySpanStyleToTextStyle(OH_Drawing_TextStyle *textStyle, const SpanStyleRange &span);
+    static void applySpanStyleToTextStyle(OH_Drawing_TextStyle *textStyle, const SpanStyleRange &span);
 
     // ========== 缓存构建器 ==========
 
     std::vector<LineMetrics> buildLineMetricsCache();
-    ParagraphMetrics buildParagraphMetrics();
+    ParagraphMetrics buildParagraphMetrics() const;
 
     // ========== 成员变量 ==========
 

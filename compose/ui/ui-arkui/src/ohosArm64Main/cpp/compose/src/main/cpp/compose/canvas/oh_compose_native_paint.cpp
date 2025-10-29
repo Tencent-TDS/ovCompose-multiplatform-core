@@ -3,5 +3,5 @@
 
 namespace androidx::compose::ui::arkui::utils {
 OHComposeNativePaint::OHComposeNativePaint() {}
-OHComposeNativePaint::~OHComposeNativePaint() { }
+OHComposeNativePaint::~OHComposeNativePaint() = default;
 } // namespace androidx::compose::ui::arkui::utils
