@@ -1,6 +1,7 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.ui.arkui.RenderingBackend
 import androidx.compose.ui.graphics.setNativeShaderFactory
@@ -31,7 +32,8 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
     EnableOHOSParagraph = renderBackend == RenderingBackend.ArkUIRenderNode
 
     // TODO 暂时先将Compose在鸿蒙平台的日志开关放在此处，后续可以通过配置编译选项来控制
-    LogPrintUtil.isLogEnabled = true
+    LogPrintUtil.isLogEnabled = false
+    TraceUtil.isTraceEnabled = false
 
     /*注入 OHOS 平台的 Paragraph */
     platformParagraphFactory = object : PlatformParagraphFactory {

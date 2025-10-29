@@ -20,9 +20,15 @@ import platform.ohos.OH_HiTrace_FinishTrace
 import platform.ohos.OH_HiTrace_StartTrace
 
 actual object TraceUtil {
+    private var _isTraceEnabled = true
     private val DefaultTrace = object : SyncTraceInterface {
-        override fun startTrace(scene: String) { OH_HiTrace_StartTrace(scene) }
-        override fun endTrace(sectionName: String?) { OH_HiTrace_FinishTrace() }
+        override fun startTrace(scene: String) {
+            OH_HiTrace_StartTrace(scene)
+        }
+
+        override fun endTrace(sectionName: String?) {
+            OH_HiTrace_FinishTrace()
+        }
     }
 
     actual var traceImpl: SyncTraceInterface? = DefaultTrace
@@ -35,7 +41,17 @@ actual object TraceUtil {
     }
 
     actual inline fun <T> traceSync(sectionName: String, block: () -> T): T {
-        traceImpl?.startTrace("$sectionName[VsyncId:$globalVsyncId]")
-        return try { block() } finally { traceImpl?.endTrace(sectionName) }
+        if (isTraceEnabled) traceImpl?.startTrace("$sectionName[VsyncId:$globalVsyncId]")
+        return try {
+            block()
+        } finally {
+            if (isTraceEnabled) traceImpl?.endTrace(sectionName)
+        }
     }
+
+    actual var isTraceEnabled: Boolean
+        get() = _isTraceEnabled
+        set(value) {
+            _isTraceEnabled = value
+        }
 }

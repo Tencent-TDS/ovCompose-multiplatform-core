@@ -73,7 +73,15 @@ find_library(
     uv
 )
 
+find_library(
+    # Sets the name of the path variable.
+    hitrace-lib
+    # Specifies the name of the NDK library that
+    # you want CMake to locate.
+    hitrace_ndk.z
+)
+
 add_library(compose_arkui_utils STATIC napi_init.cpp ${SOURCES})
 target_link_libraries(compose_arkui_utils PUBLIC libace_napi.z.so)
-target_link_libraries(compose_arkui_utils PUBLIC ${EGL-lib} ${GLES-lib} ${hilog-lib} ${libace-lib} ${libnapi-lib} ${libuv-lib} libnative_display_manager.so
+target_link_libraries(compose_arkui_utils PUBLIC ${EGL-lib} ${GLES-lib} ${hilog-lib} ${libace-lib} ${libnapi-lib} ${libuv-lib} ${hitrace-lib} libnative_display_manager.so
         libnative_drawing.so libc++_shared.so)
