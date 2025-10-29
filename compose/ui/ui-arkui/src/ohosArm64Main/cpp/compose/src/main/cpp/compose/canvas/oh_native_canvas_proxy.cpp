@@ -21,6 +21,7 @@
 #include "../utils/oh_hash_funcs.h"
 #include "../constants/oh_native_enums.h"
 #include "oh_native_canvas_layer_drawer.h"
+#include "../trace/oh_systrace_section.h"
 #include "../paragraph/oh_native_paragraph.h"
 
 namespace androidx::compose::ui::arkui::utils {
@@ -123,6 +124,7 @@ void OHNativeCanvasProxy::finishDraw() {
 
 void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom, OHComposeNativePaint *paint) {
     LOGI("OHNativeCanvasProxy::drawRect: start");
+    OH::SystraceSection("OHNativeCanvasProxy::drawRect");
     OH::NativeBasicShader *shader = paint->shader;
     const OH_Native_Drawing_Type drawingType =
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
