@@ -6,15 +6,15 @@
 namespace OH {
 
 // 描述一个绘制指令
- struct DrawingItem {
+struct DrawingItem {
     uint64_t itemHash = 0;
     uint64_t contentsHash = 0;
     int clipIndex = 0;
     OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeNone;
 
-     static DrawingItem DrawingPopItem;
+    static DrawingItem DrawingPopItem;
 };
 
-}  // namespace OH
+} // namespace OH
 
-#endif  // OH_DRAWING_ITEM_H
+#endif // OH_NATIVE_PICTURE_RECORDER_DRAWING_ITEM_H

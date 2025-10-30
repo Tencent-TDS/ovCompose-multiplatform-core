@@ -1,8 +1,10 @@
 #ifndef TEXT_STYLE_STRATEGY_H
 #define TEXT_STYLE_STRATEGY_H
 
-#include <memory>
 #include <native_drawing/drawing_text_declaration.h>
+
+#include <memory>
+
 #include "oh_native_paragraph_types.h"
 
 namespace OH {
@@ -33,7 +35,7 @@ public:
 /**
  * 基础文本样式策略（具体策略）
  */
-class BasicTextStyleStrategy : public ITextStyleStrategy {
+class BasicTextStyleStrategy final : public ITextStyleStrategy {
 public:
     BasicTextStyleStrategy(double fontSize, FontWeight fontWeight, FontStyle fontStyle, uint32_t color);
 

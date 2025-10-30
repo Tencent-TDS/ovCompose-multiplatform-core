@@ -1,8 +1,11 @@
 #ifndef OH_HASH_FUNCS_H
 #define OH_HASH_FUNCS_H
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
 #include "../constants/oh_native_constants.h"
 
 namespace OH {
@@ -21,7 +24,7 @@ OH_ALWAYS_INLINE uint64_t hashMerge(size_t a, size_t b) noexcept {
     return base_hash ^ (ub * kHashPrime);
 }
 
-OH_ALWAYS_INLINE uint64_t hashMerge(size_t a, size_t b, size_t c) noexcept {
+OH_ALWAYS_INLINE uint64_t hashMerge(const size_t a, const size_t b, const size_t c) noexcept {
     const uint64_t ua = static_cast<uint64_t>(a);
     const uint64_t ub = static_cast<uint64_t>(b);
     const uint64_t uc = static_cast<uint64_t>(c);
@@ -58,8 +61,7 @@ OH_ALWAYS_INLINE uint64_t hashMerge(size_t a, size_t b, size_t c, size_t d) noex
     return h;
 }
 
-template <typename... Args>
-OH_ALWAYS_INLINE uint64_t hashMergeVariadic(Args... args) noexcept {
+template <typename... Args> OH_ALWAYS_INLINE uint64_t hashMergeVariadic(Args... args) noexcept {
     uint64_t result = 0;
 
     // 使用折叠表达式处理所有参数
@@ -101,8 +103,7 @@ OH_ALWAYS_INLINE uint64_t FNVHash(const void *data, size_t len) noexcept {
     return hash;
 }
 
-template <typename T>
-OH_ALWAYS_INLINE uint64_t FNVHashNumberArray(const std::vector<T> &data) noexcept {
+template <typename T> OH_ALWAYS_INLINE uint64_t FNVHashNumberArray(const std::vector<T> &data) noexcept {
     uint64_t hash = 14695981039346656037ULL;
     if (data.size() == 0) {
         return 0;
@@ -137,8 +138,7 @@ OH_ALWAYS_INLINE uint64_t hashMergeWithSeed(uint64_t seed, size_t value) noexcep
     return seed ^ (uvalue + kHashPrime + (seed << 6) + (seed >> 2));
 }
 
-template <typename... Args>
-OH_ALWAYS_INLINE uint64_t hashCombineSequential(Args... args) noexcept {
+template <typename... Args> OH_ALWAYS_INLINE uint64_t hashCombineSequential(Args... args) noexcept {
     uint64_t seed = 0;
 
     // 顺序合并所有参数
@@ -150,8 +150,7 @@ OH_ALWAYS_INLINE uint64_t hashCombineSequential(Args... args) noexcept {
 /// 从 Paint 上根据参数，计算出一个 hash
 /// 参考 iOS 平台的 TMMNativeDataHashFromPaint 实现
 /// - Parameter paint: OHComposeNativePaint*
-template <typename PaintType>
-OH_ALWAYS_INLINE uint64_t nativeDataHashFromPaint(PaintType *paint) noexcept {
+template <typename PaintType> OH_ALWAYS_INLINE uint64_t nativeDataHashFromPaint(PaintType *paint) noexcept {
     if (paint == nullptr) {
         return 0;
     }
@@ -170,18 +169,17 @@ OH_ALWAYS_INLINE uint64_t nativeDataHashFromPaint(PaintType *paint) noexcept {
     }
 
     // 将所有属性打包到数组中计算 hash
-    const float floats[11] = {
-        paint->alpha,
-        paint->strokeWidth,
-        paint->strokeMiterLimit,
-        static_cast<float>(paint->isAntiAlias),
-        static_cast<float>(paint->blendMode),
-        static_cast<float>(paint->style),
-        static_cast<float>(paint->strokeCap),
-        static_cast<float>(paint->strokeJoin),
-        static_cast<float>(paint->filterQuality),
-        static_cast<float>(shaderHash),
-        static_cast<float>(colorFilterHash)};
+    const float floats[11] = {paint->alpha,
+                              paint->strokeWidth,
+                              paint->strokeMiterLimit,
+                              static_cast<float>(paint->isAntiAlias),
+                              static_cast<float>(paint->blendMode),
+                              static_cast<float>(paint->style),
+                              static_cast<float>(paint->strokeCap),
+                              static_cast<float>(paint->strokeJoin),
+                              static_cast<float>(paint->filterQuality),
+                              static_cast<float>(shaderHash),
+                              static_cast<float>(colorFilterHash)};
 
     // 使用 FNV hash 算法计算数组的 hash
     uint64_t hash = FNVHash(floats, sizeof(floats));

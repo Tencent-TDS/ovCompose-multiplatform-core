@@ -1,47 +1,44 @@
 #include "oh_native_paragraph_bridge.h"
+
+#include <native_drawing/drawing_point.h>
+
+#include "../xcomponent_log.h"
 #include "oh_native_paragraph.h"
 #include "oh_native_paragraph_builder.h"
-#include "../xcomponent_log.h"
-#include <native_drawing/drawing_point.h>
 
 using namespace OH;
 
 // ========== 内部结构 ==========
 
 struct ParagraphHandle {
-    enum Type { BUILDER,
-                PARAGRAPH } type;
+    enum Type { BUILDER, PARAGRAPH } type;
 
     union {
         ParagraphBuilder *builder;
         Paragraph *paragraph;
-    } data;
+    } data{};
 
-    ParagraphHandle(ParagraphBuilder *paraBuilder) : type(BUILDER) {
-        data.builder = paraBuilder;
-    }
+    explicit ParagraphHandle(ParagraphBuilder *paraBuilder) : type(BUILDER) { data.builder = paraBuilder; }
 
-    ParagraphHandle(Paragraph *para) : type(PARAGRAPH) {
-        data.paragraph = para;
-    }
+    explicit ParagraphHandle(Paragraph *para) : type(PARAGRAPH) { data.paragraph = para; }
 };
 
 // ========== 辅助宏 ==========
 
-#define CHECK_BUILDER(handle)                                                         \
-    if (!handle || handle->type != ParagraphHandle::BUILDER || !handle->data.builder) \
+#define CHECK_BUILDER(handle)                                                                                          \
+    if (!handle || handle->type != ParagraphHandle::BUILDER || !handle->data.builder)                                  \
     return
 
-#define CHECK_BUILDER_RET(handle, ret)                                                \
-    if (!handle || handle->type != ParagraphHandle::BUILDER || !handle->data.builder) \
+#define CHECK_BUILDER_RET(handle, ret)                                                                                 \
+    if (!handle || handle->type != ParagraphHandle::BUILDER || !handle->data.builder)                                  \
     return ret
 
-#define CHECK_PARAGRAPH(handle)                                                           \
-    if (!handle || handle->type != ParagraphHandle::PARAGRAPH || !handle->data.paragraph) \
+#define CHECK_PARAGRAPH(handle)                                                                                        \
+    if (!handle || handle->type != ParagraphHandle::PARAGRAPH || !handle->data.paragraph)                              \
     return
 
-#define CHECK_PARAGRAPH_RET(handle, ret)                                                  \
-    if (!handle || handle->type != ParagraphHandle::PARAGRAPH || !handle->data.paragraph) \
+#define CHECK_PARAGRAPH_RET(handle, ret)                                                                               \
+    if (!handle || handle->type != ParagraphHandle::PARAGRAPH || !handle->data.paragraph)                              \
     return ret
 
 // ========== C API 实现 ==========
@@ -52,7 +49,7 @@ extern "C" {
 
 ParagraphHandle_Handle ParagraphBuilder_create() {
     try {
-        ParagraphBuilder *builder = new ParagraphBuilder();
+        auto *builder = new ParagraphBuilder();
         LOGI("ParagraphBuilder_create succeeded, Builder: %{public}p", builder);
         return new ParagraphHandle(builder);
     } catch (...) {
@@ -61,14 +58,14 @@ ParagraphHandle_Handle ParagraphBuilder_create() {
     }
 }
 
-void ParagraphBuilder_setText(ParagraphHandle_Handle handle, const char *text, uint32_t length) {
+void ParagraphBuilder_setText(ParagraphHandle_Handle handle, const char *text, const uint32_t length) {
     CHECK_BUILDER(handle);
     if (text) {
         handle->data.builder->setText(text, length);
     }
 }
 
-void ParagraphBuilder_setFontSize(ParagraphHandle_Handle handle, double fontSize) {
+void ParagraphBuilder_setFontSize(ParagraphHandle_Handle handle, const double fontSize) {
     CHECK_BUILDER(handle);
     handle->data.builder->setFontSize(fontSize);
 }
@@ -83,22 +80,22 @@ void ParagraphBuilder_setFontStyle(ParagraphHandle_Handle handle, int fontStyle)
     handle->data.builder->setFontStyle(static_cast<FontStyle>(fontStyle));
 }
 
-void ParagraphBuilder_setColor(ParagraphHandle_Handle handle, uint32_t color) {
+void ParagraphBuilder_setColor(ParagraphHandle_Handle handle, const uint32_t color) {
     CHECK_BUILDER(handle);
     handle->data.builder->setColor(color);
 }
 
-void ParagraphBuilder_setLetterSpacing(ParagraphHandle_Handle handle, double spacing) {
+void ParagraphBuilder_setLetterSpacing(ParagraphHandle_Handle handle, const double spacing) {
     CHECK_BUILDER(handle);
     handle->data.builder->setLetterSpacing(spacing);
 }
 
-void ParagraphBuilder_setWordSpacing(ParagraphHandle_Handle handle, double spacing) {
+void ParagraphBuilder_setWordSpacing(ParagraphHandle_Handle handle, const double spacing) {
     CHECK_BUILDER(handle);
     handle->data.builder->setWordSpacing(spacing);
 }
 
-void ParagraphBuilder_setLineHeight(ParagraphHandle_Handle handle, double lineHeight) {
+void ParagraphBuilder_setLineHeight(ParagraphHandle_Handle handle, const double lineHeight) {
     CHECK_BUILDER(handle);
     handle->data.builder->setLineHeight(lineHeight);
 }
@@ -113,7 +110,7 @@ void ParagraphBuilder_setTextDirection(ParagraphHandle_Handle handle, int textDi
     handle->data.builder->setTextDirection(static_cast<TextDirection>(textDirection));
 }
 
-void ParagraphBuilder_setMaxLines(ParagraphHandle_Handle handle, uint32_t maxLines) {
+void ParagraphBuilder_setMaxLines(ParagraphHandle_Handle handle, const uint32_t maxLines) {
     CHECK_BUILDER(handle);
     handle->data.builder->setMaxLines(maxLines);
 }
@@ -130,8 +127,7 @@ void ParagraphBuilder_setEllipsis(ParagraphHandle_Handle handle, const char *ell
 
 void ParagraphBuilder_addSpanStyle(ParagraphHandle_Handle handle, SpanStyleRange_Handle spanStyleHandle) {
     CHECK_BUILDER(handle);
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(spanStyleHandle);
-    if (spanStyle) {
+    if (const OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(spanStyleHandle)) {
         handle->data.builder->addSpanStyle(*spanStyle);
     }
 }
@@ -168,9 +164,11 @@ void Paragraph_destroy(ParagraphHandle_Handle handle) {
     delete handle;
 }
 
-void Paragraph_layout(ParagraphHandle_Handle handle, double maxWidth) {
+void Paragraph_layout(ParagraphHandle_Handle handle, const double maxWidth) {
     CHECK_PARAGRAPH(handle);
-    LOGI("[Paragraph_layout] Layout called: handle=%{public}p, maxWidth=%{public}.2f", handle, maxWidth);
+    LOGI("[Paragraph_layout] Layout called: handle=%{public}p, "
+         "maxWidth=%{public}.2f",
+         handle, maxWidth);
     handle->data.paragraph->layout(maxWidth);
 }
 
@@ -178,28 +176,28 @@ void Paragraph_layout(ParagraphHandle_Handle handle, double maxWidth) {
 
 double Paragraph_getWidth(ParagraphHandle_Handle handle) {
     CHECK_PARAGRAPH_RET(handle, 0.0);
-    double width = handle->data.paragraph->getWidth();
+    const double width = handle->data.paragraph->getWidth();
     LOGI("[Paragraph_getWidth] Width: %{public}.2f", width);
     return width;
 }
 
 double Paragraph_getHeight(ParagraphHandle_Handle handle) {
     CHECK_PARAGRAPH_RET(handle, 0.0);
-    double height = handle->data.paragraph->getHeight();
+    const double height = handle->data.paragraph->getHeight();
     LOGI("[Paragraph_getHeight] Height: %{public}.2f", height);
     return height;
 }
 
 double Paragraph_getMinIntrinsicWidth(ParagraphHandle_Handle handle) {
     CHECK_PARAGRAPH_RET(handle, 0.0);
-    double width = handle->data.paragraph->getMinIntrinsicWidth();
+    const double width = handle->data.paragraph->getMinIntrinsicWidth();
     LOGI("[Paragraph_getMinIntrinsicWidth] MinIntrinsicWidth: %{public}.2f", width);
     return width;
 }
 
 double Paragraph_getMaxIntrinsicWidth(ParagraphHandle_Handle handle) {
     CHECK_PARAGRAPH_RET(handle, 0.0);
-    double width = handle->data.paragraph->getMaxIntrinsicWidth();
+    const double width = handle->data.paragraph->getMaxIntrinsicWidth();
     LOGI("[Paragraph_getMaxIntrinsicWidth] MaxIntrinsicWidth: %{public}.2f", width);
     return width;
 }
@@ -289,7 +287,7 @@ uint32_t Paragraph_getOffsetForPosition(ParagraphHandle_Handle handle, double dx
 }
 
 void Paragraph_getCursorRect(ParagraphHandle_Handle handle, uint32_t offset, double *outLeft, double *outTop,
-        double *outRight, double *outBottom) {
+                             double *outRight, double *outBottom) {
     CHECK_PARAGRAPH(handle);
     if (!outLeft || !outTop || !outRight || !outBottom)
         return;
@@ -301,7 +299,8 @@ void Paragraph_getCursorRect(ParagraphHandle_Handle handle, uint32_t offset, dou
     *outBottom = rect.bottom;
 }
 
-void Paragraph_getWordBoundary(ParagraphHandle_Handle handle, uint32_t offset, uint32_t *outStart, uint32_t *outEnd) {
+void Paragraph_getWordBoundary(ParagraphHandle_Handle handle, const uint32_t offset, uint32_t *outStart,
+                               uint32_t *outEnd) {
     CHECK_PARAGRAPH(handle);
     if (!outStart || !outEnd)
         return;
@@ -311,14 +310,14 @@ void Paragraph_getWordBoundary(ParagraphHandle_Handle handle, uint32_t offset, u
     *outEnd = boundary.end;
 }
 
-uint32_t Paragraph_getRectsForRangeCount(ParagraphHandle_Handle handle, uint32_t start, uint32_t end) {
+uint32_t Paragraph_getRectsForRangeCount(ParagraphHandle_Handle handle, const uint32_t start, const uint32_t end) {
     CHECK_PARAGRAPH_RET(handle, 0);
     auto rects = handle->data.paragraph->getRectsForRange(start, end);
     return rects.size();
 }
 
-uint32_t Paragraph_getRectsForRange(ParagraphHandle_Handle handle, uint32_t start, uint32_t end, double *rects,
-        uint32_t capacity) {
+uint32_t Paragraph_getRectsForRange(ParagraphHandle_Handle handle, const uint32_t start, const uint32_t end,
+                                    double *rects, const uint32_t capacity) {
     CHECK_PARAGRAPH_RET(handle, 0);
     if (!rects || capacity == 0)
         return 0;
@@ -339,9 +338,11 @@ uint32_t Paragraph_getRectsForRange(ParagraphHandle_Handle handle, uint32_t star
 
 // ========== 绘制 ==========
 
-void Paragraph_paint(ParagraphHandle_Handle handle, double x, double y) {
+void Paragraph_paint(ParagraphHandle_Handle handle, const double x, const double y) {
     CHECK_PARAGRAPH(handle);
-    LOGI("[Paragraph_paint] Paint called from bridge: handle=%{public}p, position=(%{public}.2f, %{public}.2f)", handle, x, y);
+    LOGI("[Paragraph_paint] Paint called from bridge: handle=%{public}p, "
+         "position=(%{public}.2f, %{public}.2f)",
+         handle, x, y);
     handle->data.paragraph->paint(x, y);
 }
 
@@ -349,24 +350,26 @@ void Paragraph_paint(ParagraphHandle_Handle handle, double x, double y) {
 
 BaseRenderNode_Handle Paragraph_getBaseRenderNode(ParagraphHandle_Handle handle) {
     CHECK_PARAGRAPH_RET(handle, nullptr);
-    LOGI("Paragraph_getBaseRenderNode, handle=%{public}p, BaseRenderNode: %{public}p", handle, handle->data.paragraph);
+    LOGI("Paragraph_getBaseRenderNode, handle=%{public}p, BaseRenderNode: "
+         "%{public}p",
+         handle, handle->data.paragraph);
     return reinterpret_cast<BaseRenderNode_Handle>(handle->data.paragraph);
 }
 
-uint32_t Paragraph_getLineForOffset(ParagraphHandle_Handle handle, uint32_t offset) {
+uint32_t Paragraph_getLineForOffset(ParagraphHandle_Handle handle, const uint32_t offset) {
     CHECK_PARAGRAPH_RET(handle, 0);
     return handle->data.paragraph->getLineForOffset(offset);
 }
 
-uint32_t Paragraph_getLineForVerticalPosition(ParagraphHandle_Handle handle, double vertical) {
+uint32_t Paragraph_getLineForVerticalPosition(ParagraphHandle_Handle handle, const double vertical) {
     CHECK_PARAGRAPH_RET(handle, 0);
     return handle->data.paragraph->getLineForVerticalPosition(vertical);
 }
 
 // ========== 富文本样式相关 =========
 
-SpanStyleRange_Handle Paragraph_CreateSpanStyleRange(int start, int end) {
-    OH::SpanStyleRange *spanStyle = new OH::SpanStyleRange(start, end);
+SpanStyleRange_Handle Paragraph_CreateSpanStyleRange(const int start, const int end) {
+    auto *spanStyle = new OH::SpanStyleRange(start, end);
     return reinterpret_cast<SpanStyleRange_Handle>(spanStyle);
 }
 
@@ -374,58 +377,58 @@ void Paragraph_DestroySpanStyleRange(SpanStyleRange_Handle handle) {
     if (!handle)
         return;
 
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    const auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     delete spanStyle;
 }
 
 // 属性设置
-void Paragraph_SpanStyleRange_setFontSize(SpanStyleRange_Handle handle, double fontSize) {
+void Paragraph_SpanStyleRange_setFontSize(const SpanStyleRange_Handle handle, const double fontSize) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->fontSize = fontSize;
 }
-void Paragraph_SpanStyleRange_setFontWeight(SpanStyleRange_Handle handle, int weight /*100-900*/) {
+void Paragraph_SpanStyleRange_setFontWeight(const SpanStyleRange_Handle handle, const int weight /*100-900*/) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->fontWeight = weight;
 }
-void Paragraph_SpanStyleRange_setFontStyle(SpanStyleRange_Handle handle, int isItalic /*0|1*/) {
+void Paragraph_SpanStyleRange_setFontStyle(SpanStyleRange_Handle handle, const int isItalic /*0|1*/) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->fontStyle = isItalic ? 1 : 0;
 }
-void Paragraph_SpanStyleRange_setColor(SpanStyleRange_Handle handle, uint32_t argb) {
+void Paragraph_SpanStyleRange_setColor(SpanStyleRange_Handle handle, const uint32_t argb) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->color = argb;
 }
-void Paragraph_SpanStyleRange_setBackground(SpanStyleRange_Handle handle, uint32_t argb) {
+void Paragraph_SpanStyleRange_setBackground(SpanStyleRange_Handle handle, const uint32_t argb) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->background = argb;
 }
-void Paragraph_SpanStyleRange_setLetterSpacing(SpanStyleRange_Handle handle, double px) {
+void Paragraph_SpanStyleRange_setLetterSpacing(SpanStyleRange_Handle handle, const double px) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->letterSpacing = px;
 }
 void Paragraph_SpanStyleRange_setBaselineShift(SpanStyleRange_Handle handle, float px) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     // TODO
     return;
 }
@@ -436,11 +439,12 @@ void Paragraph_SpanStyleRange_setDecoration(SpanStyleRange_Handle handle, int de
     OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->textDecoration = static_cast<OH::TextDecoration>(decoration);
 }
-void Paragraph_SpanStyleRange_setShadow(SpanStyleRange_Handle handle, float ox, float oy, double blur, uint32_t argb) {
+void Paragraph_SpanStyleRange_setShadow(SpanStyleRange_Handle handle, const float ox, const float oy, const double blur,
+                                        const uint32_t argb) {
     if (!handle) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     if (spanStyle->shadow) {
         delete spanStyle->shadow;
         spanStyle->shadow = nullptr;
@@ -455,10 +459,11 @@ void Paragraph_SpanStyleRange_setFontFamily(SpanStyleRange_Handle handle, const 
     if (!handle || !family) {
         return;
     }
-    OH::SpanStyleRange *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
+    auto *spanStyle = reinterpret_cast<OH::SpanStyleRange *>(handle);
     spanStyle->fontFamily = std::string(family);
 }
-void Paragraph_SpanStyleRange_setFontFeatureSettings(SpanStyleRange_Handle handle, const char *featureSettings /*UTF-8*/) {
+void Paragraph_SpanStyleRange_setFontFeatureSettings(SpanStyleRange_Handle handle,
+                                                     const char *featureSettings /*UTF-8*/) {
     if (!handle || !featureSettings) {
         return;
     }

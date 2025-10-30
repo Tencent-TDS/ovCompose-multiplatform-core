@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-#include <arkui/native_render.h>
-#include "../xcomponent_log.h"
 #include "oh_native_canvas_proxy.h"
-#include "../utils/oh_hash_funcs.h"
+#include <arkui/native_render.h>
 #include "../constants/oh_native_enums.h"
-#include "oh_native_canvas_layer_drawer.h"
-#include "../trace/oh_systrace_section.h"
 #include "../paragraph/oh_native_paragraph.h"
+#include "../trace/oh_systrace_section.h"
+#include "../utils/oh_hash_funcs.h"
+#include "../xcomponent_log.h"
+#include "oh_native_canvas_layer_drawer.h"
 
 namespace androidx::compose::ui::arkui::utils {
-OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {
+OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode* rootNode) : rootNode_(rootNode) {
     ArkUI_RenderNodeHandle renderNodeHandle = OH_ArkUI_RenderNodeUtils_CreateNode();
     canvasNode_ = std::make_unique<OH::BaseRenderNode>(renderNodeHandle);
 }
 
-OHComposeNativePaint *OHNativeCanvasProxy::Paint() {
+OHComposeNativePaint* OHNativeCanvasProxy::Paint() {
     if (paint_ == nullptr) {
         paint_ = new OHComposeNativePaint();
     }
@@ -42,77 +42,82 @@ void OHNativeCanvasProxy::beginDraw() {
     _pictureRecorder.startRecording(*canvasNode_);
 }
 
-void OHNativeCanvasProxy::attachToRootView() {
+void OHNativeCanvasProxy::attachToRootView() const {
     LOGI("OHNativeCanvasProxy::attachToRootView: start");
     if (canvasNode_->getParent() != rootNode_) {
         rootNode_->addChild(canvasNode_.get());
     }
 }
 
-void OHNativeCanvasProxy::setParent(OHNativeCanvasProxy *canvasParentProxy) {
+void OHNativeCanvasProxy::setParent(const OHNativeCanvasProxy* canvasParentProxy) const {
     LOGI("OHNativeCanvasProxy::setParent: start");
-    OH::BaseRenderNode *parentNode = canvasParentProxy->getRenderNode();
-    if (canvasNode_->getParent() != parentNode) {
-        // parentNode->addChild(canvasNode_.get());
+    if (OH::BaseRenderNode* parentNode = canvasParentProxy->getRenderNode(); canvasNode_->getParent() != parentNode) {
         canvasNode_->setParent(parentNode);
     }
 }
 
-void OHNativeCanvasProxy::setPosition(int32_t x, int32_t y) {
+void OHNativeCanvasProxy::setPosition(const int32_t x, const int32_t y) const {
     LOGI("OHNativeCanvasProxy::setPosition: start");
     if (canvasNode_ != nullptr) {
         canvasNode_->setPosition(x, y);
     }
 }
 
-void OHNativeCanvasProxy::setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) {
+void OHNativeCanvasProxy::setBounds(const int32_t originX, const int32_t originY, const int32_t boundsWidth,
+                                    const int32_t boundsHeight) const {
     LOGI("OHNativeCanvasProxy::setBounds: start");
     if (canvasNode_ != nullptr) {
         canvasNode_->setBounds(originX, originY, boundsWidth, boundsHeight);
     }
 }
 
-void OHNativeCanvasProxy::setPivot(float px, float py) {
+void OHNativeCanvasProxy::setPivot(const float px, const float py) const {
     LOGI("OHNativeCanvasProxy::setPivot: start");
     if (canvasNode_ != nullptr) {
         canvasNode_->setPivot(px, py);
     }
 }
 
-void OHNativeCanvasProxy::setOpacity(float opacity) {
+void OHNativeCanvasProxy::setOpacity(const float opacity) const {
     LOGI("OHNativeCanvasProxy::setOpacity: start");
     if (canvasNode_ != nullptr) {
         canvasNode_->setOpacity(opacity);
     }
 }
 
-void OHNativeCanvasProxy::clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp) {
+void OHNativeCanvasProxy::clipRect(const float left, const float top, const float right, const float bottom,
+                                   const OH_Native_Draw_ClipOp clipOp) {
     LOGI("OHNativeCanvasProxy::clipRect: start");
     const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(clipOp));
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
-    bool isDirty = updateItem.isDirty;
-    if (isDirty) {
-        OH::BaseRenderNode *renderNodeForDrawing =
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode* renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawClipRect(left, top, right, bottom, &(updateItem.saveState), renderNodeForDrawing);
     }
 }
 
-void OHNativeCanvasProxy::save() { _pictureRecorder.save(); }
+void OHNativeCanvasProxy::save() {
+    _pictureRecorder.save();
+}
 
-void OHNativeCanvasProxy::restore() { _pictureRecorder.restore(); }
+void OHNativeCanvasProxy::restore() {
+    _pictureRecorder.restore();
+}
 
-void OHNativeCanvasProxy::translate(float dx, float dy) { _pictureRecorder.translate(dx, dy); }
+void OHNativeCanvasProxy::translate(const float dx, const float dy) {
+    _pictureRecorder.translate(dx, dy);
+}
 
-void OHNativeCanvasProxy::drawLayerWithSubproxy(OHNativeCanvasProxy *subproxy) {
+void OHNativeCanvasProxy::drawLayerWithSubproxy(const OHNativeCanvasProxy* subProxy) {
     LOGI("OHNativeCanvasProxy::drawLayerWithSubproxy: start");
-    if (subproxy->canvasNode_ != nullptr) {
-        auto canvasNode = subproxy->canvasNode_.get();
+    if (subProxy->canvasNode_ != nullptr) {
+        const auto canvasNode = subProxy->canvasNode_.get();
         _pictureRecorder.drawRenderNode(canvasNode, canvasNode->getType());
     }
 }
 
-OH::BaseRenderNode *OHNativeCanvasProxy::getRenderNode() {
+OH::BaseRenderNode* OHNativeCanvasProxy::getRenderNode() const {
     LOGI("OHNativeCanvasProxy::getRenderNode: start");
     return canvasNode_.get();
 }
@@ -122,19 +127,19 @@ void OHNativeCanvasProxy::finishDraw() {
     _pictureRecorder.finishRecording(*canvasNode_);
 }
 
-void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bottom, OHComposeNativePaint *paint) {
+void OHNativeCanvasProxy::drawRect(const float left, const float top, const float right, const float bottom,
+                                   OHComposeNativePaint* paint) {
     LOGI("OHNativeCanvasProxy::drawRect: start");
-    OH::SystraceSection("OHNativeCanvasProxy::drawRect");
-    OH::NativeBasicShader *shader = paint->shader;
+    // OH::SystraceSection("OHNativeCanvasProxy::drawRect");
+    OH::NativeBasicShader* shader = paint->shader;
     const OH_Native_Drawing_Type drawingType =
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
     const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
     const uint64_t drawingContentHash =
         OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
-    bool isDirty = updateItem.isDirty;
-    OH::BaseRenderNode *renderNodeForDrawing = nullptr;
-    if (isDirty) {
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode* renderNodeForDrawing = nullptr;
         renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawRect(left, top, right, bottom, shader, &(updateItem.saveState), renderNodeForDrawing,
@@ -142,20 +147,18 @@ void OHNativeCanvasProxy::drawRect(float left, float top, float right, float bot
     }
 }
 
-void OHNativeCanvasProxy::drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
-                                        OHComposeNativePaint *paint) {
+void OHNativeCanvasProxy::drawRoundRect(const float left, const float top, const float right, const float bottom,
+                                        const float radiusX, const float radiusY, OHComposeNativePaint* paint) {
     LOGI("OHNativeCanvasProxy::drawRoundRect: start");
-    OH::NativeBasicShader *shader = paint->shader;
+    OH::NativeBasicShader* shader = paint->shader;
     const OH_Native_Drawing_Type drawingType =
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
-    //    const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
-    const uint64_t preHash = 0;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
     const uint64_t drawingContentHash =
         OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
-    bool isDirty = updateItem.isDirty;
-    OH::BaseRenderNode *renderNodeForDrawing = nullptr;
-    if (isDirty) {
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode* renderNodeForDrawing = nullptr;
         renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawRoundRect(left, top, right, bottom, radiusX, radiusY, shader, &(updateItem.saveState),
@@ -163,39 +166,34 @@ void OHNativeCanvasProxy::drawRoundRect(float left, float top, float right, floa
     }
 }
 
-void OHNativeCanvasProxy::drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint *paint) {
+void OHNativeCanvasProxy::drawLine(const float x1, const float y1, const float x2, const float y2,
+                                   OHComposeNativePaint* paint) {
     LOGI("OHNativeCanvasProxy::drawLine: start");
-    // TODO:需要paint
-    // TMMNativeBasicShader *shader = [paint shader];
     const OH_Native_Drawing_Type drawingType =
         paint->shader ? OH_Native_Drawing_Type::DrawingTypeShaderLine : OH_Native_Drawing_Type::DrawingTypeLine;
-    // const uint64_t preHash = hashMerge(TMMNativeDataHashFromPaint(paint), drawingType);
-    const uint64_t preHash = 0;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
     const uint64_t drawingContentHash = OH::hashCombineSequential(x1, y1, x2, y2, static_cast<float>(preHash));
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
 
-    bool isDirty = updateItem.isDirty;
-    OH::BaseRenderNode *renderNodeForDrawing = nullptr;
-    if (isDirty) {
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode* renderNodeForDrawing = nullptr;
         renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawLine(x1, y1, x2, y2, paint->shader, &(updateItem.saveState), renderNodeForDrawing, paint);
     }
 };
 
-void OHNativeCanvasProxy::drawLayer(OH::BaseRenderNode *renderNode) {
+void OHNativeCanvasProxy::drawLayer(OH::BaseRenderNode* renderNode) {
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(renderNode, renderNode->getType());
 };
 
-void OHNativeCanvasProxy::drawParagraph(OH::Paragraph *paragraph) {
+void OHNativeCanvasProxy::drawParagraph(OH::Paragraph* paragraph) {
     LOGI("OHNativeCanvasProxy::drawParagraph: start %{public}f", paragraph->getHeight());
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(paragraph, paragraph->getType());
-    bool isDirty = updateItem.isDirty;
-    if (isDirty) {
+    if (updateItem.isDirty) {
         OH::OHRenderNodeDrawText(&(updateItem.saveState), paragraph);
     }
 };
 
-OHNativeCanvasProxy::~OHNativeCanvasProxy() {
-}
-} // namespace androidx::compose::ui::arkui::utils
+OHNativeCanvasProxy::~OHNativeCanvasProxy() = default;
+}  // namespace androidx::compose::ui::arkui::utils

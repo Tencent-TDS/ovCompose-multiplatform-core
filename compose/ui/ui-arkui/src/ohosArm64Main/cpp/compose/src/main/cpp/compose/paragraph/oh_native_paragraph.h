@@ -1,15 +1,15 @@
 #ifndef REFACTORED_PARAGRAPH_H
 #define REFACTORED_PARAGRAPH_H
 
-#include <native_drawing/drawing_canvas.h>
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
+
+#include "../render_node/oh_base_render_node.h"
+#include "oh_cache_manager.h"
 #include "oh_native_paragraph_types.h"
 #include "oh_native_text_style_strategy.h"
 #include "oh_resource_manager.h"
-#include "oh_cache_manager.h"
-#include "../render_node/oh_base_render_node.h"
 
 namespace OH {
 
@@ -30,7 +30,7 @@ namespace OH {
  * 4. 高性能：智能缓存策略
  * 5. 易测试：接口与实现分离
  */
-class Paragraph : public BaseRenderNode {
+class Paragraph final : public BaseRenderNode {
 public:
     /**
      * 构造函数（通过Builder创建）
@@ -44,7 +44,7 @@ public:
     /**
      * 析构函数（RAII自动清理）
      */
-    ~Paragraph();
+    ~Paragraph() override;
 
     // 禁止拷贝和赋值（唯一所有权）
     Paragraph(const Paragraph &) = delete;
@@ -63,9 +63,7 @@ public:
 
     // ========== 度量查询（Facade） ==========
 
-    double getWidth() const {
-        return layoutWidth_;
-    }
+    double getWidth() const { return layoutWidth_; }
     double getHeight() const;
     double getMinIntrinsicWidth() const;
     double getMaxIntrinsicWidth() const;
@@ -97,7 +95,7 @@ public:
 
     // ========== 位置查询 ==========
 
-    double getHorizontalPosition(uint32_t offset, bool usePrimaryDirection = true) const;
+    static double getHorizontalPosition(uint32_t offset, bool usePrimaryDirection = true);
     uint32_t getOffsetForPosition(double dx, double dy) const;
     TextRect getCursorRect(uint32_t offset) const;
     WordBoundary getWordBoundary(uint32_t offset) const;
@@ -123,12 +121,8 @@ public:
 
     // ========== 文本内容访问 ==========
 
-    const std::string &getText() const {
-        return text_;
-    }
-    uint32_t getTextLength() const {
-        return text_.length();
-    }
+    const std::string &getText() const { return text_; }
+    uint32_t getTextLength() const { return text_.length(); }
     OH_DrawingNode_Type getType() override;
 
 protected:
@@ -147,8 +141,7 @@ protected:
     /**
      * 布局后处理（钩子方法）
      */
-    virtual void onLayoutComplete() {
-    }
+    virtual void onLayoutComplete() {}
 
 private:
     // ========== 资源创建 ==========
@@ -185,31 +178,25 @@ private:
     /**
      * 处理样式添加（Cut::Add）
      */
-    void handleStyleAdd(
-        const StyleCut &cut,
-        std::vector<const SpanStyleRange *> &activeStyles,
-        std::vector<StyleOp> &ops) const;
+    void handleStyleAdd(const StyleCut &cut, std::vector<const SpanStyleRange *> &activeStyles,
+                        std::vector<StyleOp> &ops) const;
 
     /**
      * 处理样式移除（Cut::Remove）
      */
-    void handleStyleRemove(
-        const StyleCut &cut,
-        std::vector<const SpanStyleRange *> &activeStyles,
-        std::vector<StyleOp> &ops) const;
+    void handleStyleRemove(const StyleCut &cut, std::vector<const SpanStyleRange *> &activeStyles,
+                           std::vector<StyleOp> &ops) const;
 
     /**
      * Step 3: 根据 Op 构建段落
      */
-    void buildParagraphFromOps(
-        OH_Drawing_TypographyCreate *handler,
-        const std::vector<StyleOp> &ops) const;
+    void buildParagraphFromOps(OH_Drawing_TypographyCreate *handler, const std::vector<StyleOp> &ops) const;
 
     /**
      * 创建合并样式（从活跃样式栈）
      */
-    ResourceHandle<OH_Drawing_TextStyle> createMergedStyleFromStack(
-        const std::vector<const SpanStyleRange *> &activeStyles) const;
+    ResourceHandle<OH_Drawing_TextStyle>
+    createMergedStyleFromStack(const std::vector<const SpanStyleRange *> &activeStyles) const;
 
     /**
      * 应用单个 SpanStyleRange 到 TextStyle
@@ -231,7 +218,7 @@ private:
     std::unique_ptr<IParagraphStyleStrategy> paragraphStyleStrategy_;
 
     // 布局状态
-    double layoutWidth_;
+    double layoutWidth_{};
     mutable bool isLayouted_;
 
     // 资源管理（RAII）

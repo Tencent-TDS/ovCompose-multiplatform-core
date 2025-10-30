@@ -1,11 +1,11 @@
 #ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHCOMPOSENATIVEPATIN_H
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHCOMPOSENATIVEPATIN_H
 
-#include <cstdint>
 #include <native_drawing/drawing_types.h>
+#include <cstdint>
+
 #include "../constants/oh_native_enums.h"
 #include "../shader/oh_native_basic_shader.h"
-
 
 namespace androidx::compose::ui::arkui::utils {
 class OHComposeNativePaint {
@@ -43,13 +43,13 @@ public:
     bool isAntiAlias{};
 
     // kt侧设置的 shader
-    OH::NativeBasicShader* shader{};
+    OH::NativeBasicShader *shader{};
 
     // kt侧设置的 pathEffect
-    OH_Drawing_PathEffect* pathEffect{};
+    OH_Drawing_PathEffect *pathEffect{};
 
     // kt侧设置的 颜色 filter，通常是 OHGaussianBlurFilter
-    OH_Drawing_ColorFilter* colorFilter{};
+    OH_Drawing_ColorFilter *colorFilter{};
 };
 } // namespace androidx::compose::ui::arkui::utils
 

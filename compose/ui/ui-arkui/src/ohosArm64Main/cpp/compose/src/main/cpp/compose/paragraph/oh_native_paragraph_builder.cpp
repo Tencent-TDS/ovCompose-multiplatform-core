@@ -1,15 +1,15 @@
-#include <stdexcept>
 #include "oh_native_paragraph_builder.h"
-#include "oh_native_paragraph.h"
+
+#include <stdexcept>
+
 #include "../xcomponent_log.h"
+#include "oh_native_paragraph.h"
 
 namespace OH {
 
 // ========== 构造函数 ==========
 
-ParagraphBuilder::ParagraphBuilder() {
-    setDefaults();
-}
+ParagraphBuilder::ParagraphBuilder() { setDefaults(); }
 
 void ParagraphBuilder::setDefaults() {
     LOGI("ParagraphBuilder: Setting default values");
@@ -44,7 +44,7 @@ ParagraphBuilder &ParagraphBuilder::setText(const std::string &text) {
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setText(const char *text, uint32_t length) {
+ParagraphBuilder &ParagraphBuilder::setText(const char *text, const uint32_t length) {
     LOGI("ParagraphBuilder: Setting text, text: %{public}s, length: %{public}u", text, length);
     if (text) {
         // 使用 strlen 获取实际字节长度，而不是使用传入的字符数
@@ -57,41 +57,41 @@ ParagraphBuilder &ParagraphBuilder::setText(const char *text, uint32_t length) {
 
 // ========== 基础样式设置 ==========
 
-ParagraphBuilder &ParagraphBuilder::setFontSize(double fontSize) {
+ParagraphBuilder &ParagraphBuilder::setFontSize(const double fontSize) {
     if (fontSize > 0.0) {
         fontSize_ = fontSize;
     }
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setFontWeight(FontWeight fontWeight) {
+ParagraphBuilder &ParagraphBuilder::setFontWeight(const FontWeight fontWeight) {
     fontWeight_ = fontWeight;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setFontStyle(FontStyle fontStyle) {
+ParagraphBuilder &ParagraphBuilder::setFontStyle(const FontStyle fontStyle) {
     fontStyle_ = fontStyle;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setColor(uint32_t color) {
+ParagraphBuilder &ParagraphBuilder::setColor(const uint32_t color) {
     color_ = color;
     return *this;
 }
 
 // ========== 高级样式设置 ==========
 
-ParagraphBuilder &ParagraphBuilder::setLetterSpacing(double letterSpacing) {
+ParagraphBuilder &ParagraphBuilder::setLetterSpacing(const double letterSpacing) {
     letterSpacing_ = letterSpacing;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setWordSpacing(double wordSpacing) {
+ParagraphBuilder &ParagraphBuilder::setWordSpacing(const double wordSpacing) {
     wordSpacing_ = wordSpacing;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setLineHeight(double lineHeight) {
+ParagraphBuilder &ParagraphBuilder::setLineHeight(const double lineHeight) {
     if (lineHeight >= 0.0) {
         lineHeight_ = lineHeight;
     }
@@ -100,29 +100,29 @@ ParagraphBuilder &ParagraphBuilder::setLineHeight(double lineHeight) {
 
 // ========== 段落样式设置 ==========
 
-ParagraphBuilder &ParagraphBuilder::setTextAlign(TextAlign textAlign) {
+ParagraphBuilder &ParagraphBuilder::setTextAlign(const TextAlign textAlign) {
     textAlign_ = textAlign;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setTextDirection(TextDirection textDirection) {
+ParagraphBuilder &ParagraphBuilder::setTextDirection(const TextDirection textDirection) {
     textDirection_ = textDirection;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setMaxLines(int maxLines) {
+ParagraphBuilder &ParagraphBuilder::setMaxLines(const int maxLines) {
     if (maxLines > 0) {
         maxLines_ = maxLines;
     }
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setNeedEllipsis(bool needEllipsis) {
+ParagraphBuilder &ParagraphBuilder::setNeedEllipsis(const bool needEllipsis) {
     needEllipsis_ = needEllipsis;
     return *this;
 }
 
-ParagraphBuilder &ParagraphBuilder::setEllipsis(const char *ellipsis, uint32_t length) {
+ParagraphBuilder &ParagraphBuilder::setEllipsis(const char *ellipsis, const uint32_t length) {
     ellipsis_ = std::string(ellipsis, length);
     return *this;
 }
@@ -190,8 +190,9 @@ ParagraphBuilder &ParagraphBuilder::setParagraphStyleStrategy(std::unique_ptr<IP
 // ========== 构建方法 ==========
 
 std::unique_ptr<Paragraph> ParagraphBuilder::build() {
-    LOGI("[ParagraphBuilder::build] Building paragraph: text='%{public}s', fontSize=%{public}.2f, maxLines=%{public}d",
-         text_.c_str(), fontSize_,  maxLines_);
+    LOGI("[ParagraphBuilder::build] Building paragraph: text='%{public}s', "
+         "fontSize=%{public}.2f, maxLines=%{public}d",
+         text_.c_str(), fontSize_, maxLines_);
 
     // 验证必需参数
     if (!validate()) {
@@ -209,16 +210,14 @@ std::unique_ptr<Paragraph> ParagraphBuilder::build() {
     LOGI("[ParagraphBuilder::build] Paragraph style strategy created");
 
     // 构建段落对象，传递富文本参数
-    LOGI("[ParagraphBuilder::build] Creating Paragraph object with %{public}zu spanStyles and %{public}zu placeholders",
+    LOGI("[ParagraphBuilder::build] Creating Paragraph object with %{public}zu "
+         "spanStyles and %{public}zu placeholders",
          spanStyles_.size(), placeholders_.size());
 
-    auto paragraph = std::make_unique<Paragraph>(
-        text_,
-        std::move(textStyleStrategy),
-        std::move(paragraphStyleStrategy),
-        spanStyles_,   // 传递 spanStyles
-        placeholders_, // 传递 placeholders
-        fontFamily_    // 传递 fontFamily
+    auto paragraph = std::make_unique<Paragraph>(text_, std::move(textStyleStrategy), std::move(paragraphStyleStrategy),
+                                                 spanStyles_,   // 传递 spanStyles
+                                                 placeholders_, // 传递 placeholders
+                                                 fontFamily_    // 传递 fontFamily
     );
 
     LOGI("[ParagraphBuilder::build] Paragraph built successfully: %{public}p", paragraph.get());
@@ -263,7 +262,8 @@ std::unique_ptr<ITextStyleStrategy> ParagraphBuilder::createDefaultTextStyleStra
 }
 
 std::unique_ptr<IParagraphStyleStrategy> ParagraphBuilder::createDefaultParagraphStyleStrategy() {
-    return std::make_unique<StandardParagraphStyleStrategy>(textAlign_, textDirection_, maxLines_, needEllipsis_, ellipsis_);
+    return std::make_unique<StandardParagraphStyleStrategy>(textAlign_, textDirection_, maxLines_, needEllipsis_,
+                                                            ellipsis_);
 }
 
 } // namespace OH

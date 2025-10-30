@@ -1,8 +1,9 @@
 #ifndef PARAGRAPH_BUILDER_H
 #define PARAGRAPH_BUILDER_H
 
-#include <string>
 #include <memory>
+#include <string>
+
 #include "oh_native_paragraph_types.h"
 #include "oh_native_text_style_strategy.h"
 

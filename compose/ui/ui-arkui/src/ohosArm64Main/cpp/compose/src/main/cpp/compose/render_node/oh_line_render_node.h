@@ -6,12 +6,12 @@
 namespace OH {
 class LineRenderNode : public BaseRenderNode {
 public:
-    ~LineRenderNode();
+    ~LineRenderNode() override;
     LineRenderNode();
 
-    void drawLine(float x1, float y1, float x2, float y2, float lineWidth,
-                  uint32_t lineColor, OH_Native_Draw_StrokeCap strokeCap);
-    
+    void drawLine(float x1, float y1, float x2, float y2, float lineWidth, uint32_t lineColor,
+                  OH_Native_Draw_StrokeCap strokeCap);
+
     OH_DrawingNode_Type getType() override;
 
 private:

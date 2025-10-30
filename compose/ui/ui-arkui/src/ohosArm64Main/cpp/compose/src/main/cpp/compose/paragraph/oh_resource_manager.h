@@ -1,8 +1,9 @@
 #ifndef RESOURCE_MANAGER_H
 #define RESOURCE_MANAGER_H
 
-#include <native_drawing/drawing_text_typography.h>
 #include <native_drawing/drawing_text_declaration.h>
+#include <native_drawing/drawing_text_typography.h>
+
 #include <functional>
 
 namespace OH {
@@ -16,22 +17,19 @@ namespace OH {
  * 3. 避免内存泄漏和double-free
  * 4. 统一资源管理接口
  */
-template <typename T>
-class ResourceHandle {
+template <typename T> class ResourceHandle {
 public:
     using Deleter = std::function<void(T *)>;
 
     /**
      * 构造函数：接管资源所有权
      */
-    ResourceHandle(T *resource, Deleter deleter) : resource_(resource), deleter_(deleter) {
-    }
+    ResourceHandle(T *resource, Deleter deleter) : resource_(resource), deleter_(deleter) {}
 
     /**
      * 移动构造（支持转移所有权）
      */
-    ResourceHandle(ResourceHandle &&other) noexcept
-        : resource_(other.resource_), deleter_(std::move(other.deleter_)) {
+    ResourceHandle(ResourceHandle &&other) noexcept : resource_(other.resource_), deleter_(std::move(other.deleter_)) {
         other.resource_ = nullptr;
     }
 
@@ -57,30 +55,22 @@ public:
     /**
      * 析构函数：自动释放资源
      */
-    ~ResourceHandle() {
-        reset();
-    }
+    ~ResourceHandle() { reset(); }
 
     /**
      * 获取原始指针
      */
-    T *get() const {
-        return resource_;
-    }
+    T *get() const { return resource_; }
 
     /**
      * 检查是否有效
      */
-    bool isValid() const {
-        return resource_ != nullptr;
-    }
+    bool isValid() const { return resource_ != nullptr; }
 
     /**
      * 显式类型转换
      */
-    explicit operator bool() const {
-        return isValid();
-    }
+    explicit operator bool() const { return isValid(); }
 
     /**
      * 释放资源
@@ -131,15 +121,13 @@ public:
     /**
      * 创建TypographyCreate资源句柄
      */
-    static ResourceHandle<OH_Drawing_TypographyCreate> createTypographyHandler(
-        OH_Drawing_TypographyStyle *typoStyle,
-        OH_Drawing_FontCollection *fontCollection);
+    static ResourceHandle<OH_Drawing_TypographyCreate>
+    createTypographyHandler(OH_Drawing_TypographyStyle *typoStyle, OH_Drawing_FontCollection *fontCollection);
 
     /**
      * 创建Typography资源句柄
      */
-    static ResourceHandle<OH_Drawing_Typography> createTypography(
-        OH_Drawing_TypographyCreate *handler);
+    static ResourceHandle<OH_Drawing_Typography> createTypography(OH_Drawing_TypographyCreate *handler);
 };
 
 /**

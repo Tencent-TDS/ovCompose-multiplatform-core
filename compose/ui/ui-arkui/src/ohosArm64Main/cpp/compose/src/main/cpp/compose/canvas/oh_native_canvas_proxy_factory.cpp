@@ -20,11 +20,11 @@
 
 namespace androidx::compose::ui::arkui::utils {
 
-OHNativeCanvasProxy *OHNativeCanvasProxyFactory::CreateOHNativeCanvasProxy() {
+OHNativeCanvasProxy* OHNativeCanvasProxyFactory::CreateOHNativeCanvasProxy() const {
     return new OHNativeCanvasProxy(this->rootNode_);
 }
 
-OHNativeCanvasProxyFactory::OHNativeCanvasProxyFactory(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {}
+OHNativeCanvasProxyFactory::OHNativeCanvasProxyFactory(OH::BaseRenderNode* rootNode) : rootNode_(rootNode) {}
 
-OHNativeCanvasProxyFactory::~OHNativeCanvasProxyFactory() { } 
-} // namespace androidx::compose::ui::arkui::utils
+OHNativeCanvasProxyFactory::~OHNativeCanvasProxyFactory() {}
+}  // namespace androidx::compose::ui::arkui::utils

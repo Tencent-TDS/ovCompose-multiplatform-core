@@ -8,39 +8,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef enum {
-    Fill,
-    Stroke
-} OH_Native_Draw_PaintingStyle;
+typedef enum { Fill, Stroke } OH_Native_Draw_PaintingStyle;
 
-typedef enum {
-    Empty,
-    EvenOdd
-} OH_Native_Draw_PathFillType;
+typedef enum { Empty, EvenOdd } OH_Native_Draw_PathFillType;
 
-typedef enum {
-    StrokeCapButt,
-    StrokeCapRound,
-    StrokeCapSquare
-} OH_Native_Draw_StrokeCap;
+typedef enum { StrokeCapButt, StrokeCapRound, StrokeCapSquare } OH_Native_Draw_StrokeCap;
 
-typedef enum {
-    StrokeJoinMitter,
-    StrokeJoinRound,
-    StrokeJoinBevel
-} OH_Native_Draw_StrokeJoin;
+typedef enum { StrokeJoinMitter, StrokeJoinRound, StrokeJoinBevel } OH_Native_Draw_StrokeJoin;
 
-typedef enum {
-    None,
-    Low,
-    Medium,
-    High
-} OH_Native_Draw_FilterQuality;
+typedef enum { None, Low, Medium, High } OH_Native_Draw_FilterQuality;
 
-typedef enum {
-    Difference,
-    Intersect
-} OH_Native_Draw_ClipOp;
+typedef enum { Difference, Intersect } OH_Native_Draw_ClipOp;
 
 typedef enum {
     DrawingTypeNone,
@@ -107,11 +85,7 @@ typedef enum {
     PathOpReverseDifference
 } OH_Native_Draw_Path_Operation;
 
-typedef enum {
-    Points,
-    Lines,
-    Polygon
-} OH_Native_Draw_PointMode;
+typedef enum { Points, Lines, Polygon } OH_Native_Draw_PointMode;
 
 typedef enum {
     BlendModeClear,

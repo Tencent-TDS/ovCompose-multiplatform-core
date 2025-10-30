@@ -1,22 +1,20 @@
-#include <native_drawing/drawing_text_typography.h>
 #include "oh_native_text_style_strategy.h"
+
+#include <native_drawing/drawing_text_typography.h>
+
+#include <utility>
 
 namespace OH {
 
 // ========== BasicTextStyleStrategy 实现 ==========
 
-BasicTextStyleStrategy::BasicTextStyleStrategy(
-    double fontSize,
-    FontWeight fontWeight,
-    FontStyle fontStyle,
-    uint32_t color) : fontSize_(fontSize),
-                      fontWeight_(fontWeight),
-                      fontStyle_(fontStyle),
-                      color_(color) {
-}
+BasicTextStyleStrategy::BasicTextStyleStrategy(const double fontSize, const FontWeight fontWeight,
+                                               const FontStyle fontStyle, const uint32_t color)
+    : fontSize_(fontSize), fontWeight_(fontWeight), fontStyle_(fontStyle), color_(color) {}
 
 void BasicTextStyleStrategy::applyTo(OH_Drawing_TextStyle *textStyle) const {
-    if (!textStyle) return;
+    if (!textStyle)
+        return;
 
     OH_Drawing_SetTextStyleColor(textStyle, color_);
     OH_Drawing_SetTextStyleFontSize(textStyle, fontSize_);
@@ -26,24 +24,20 @@ void BasicTextStyleStrategy::applyTo(OH_Drawing_TextStyle *textStyle) const {
 }
 
 std::unique_ptr<ITextStyleStrategy> BasicTextStyleStrategy::clone() const {
-    return std::make_unique<BasicTextStyleStrategy>(
-        fontSize_, fontWeight_, fontStyle_, color_);
+    return std::make_unique<BasicTextStyleStrategy>(fontSize_, fontWeight_, fontStyle_, color_);
 }
 
 // ========== AdvancedTextStyleStrategy 实现 ==========
 
-AdvancedTextStyleStrategy::AdvancedTextStyleStrategy(
-    std::unique_ptr<ITextStyleStrategy> baseStrategy,
-    double letterSpacing,
-    double wordSpacing,
-    double lineHeight) : baseStrategy_(std::move(baseStrategy)),
-                         letterSpacing_(letterSpacing),
-                         wordSpacing_(wordSpacing),
-                         lineHeight_(lineHeight) {
-}
+AdvancedTextStyleStrategy::AdvancedTextStyleStrategy(std::unique_ptr<ITextStyleStrategy> baseStrategy,
+                                                     const double letterSpacing, const double wordSpacing,
+                                                     const double lineHeight)
+    : baseStrategy_(std::move(baseStrategy)), letterSpacing_(letterSpacing), wordSpacing_(wordSpacing),
+      lineHeight_(lineHeight) {}
 
 void AdvancedTextStyleStrategy::applyTo(OH_Drawing_TextStyle *textStyle) const {
-    if (!textStyle) return;
+    if (!textStyle)
+        return;
 
     // 先应用基础样式
     if (baseStrategy_) {
@@ -65,33 +59,27 @@ void AdvancedTextStyleStrategy::applyTo(OH_Drawing_TextStyle *textStyle) const {
 }
 
 std::unique_ptr<ITextStyleStrategy> AdvancedTextStyleStrategy::clone() const {
-    return std::make_unique<AdvancedTextStyleStrategy>(
-        baseStrategy_ ? baseStrategy_->clone() : nullptr,
-        letterSpacing_, wordSpacing_, lineHeight_);
+    return std::make_unique<AdvancedTextStyleStrategy>(baseStrategy_ ? baseStrategy_->clone() : nullptr, letterSpacing_,
+                                                       wordSpacing_, lineHeight_);
 }
 
 // ========== StandardParagraphStyleStrategy 实现 ==========
 
-StandardParagraphStyleStrategy::StandardParagraphStyleStrategy(
-    TextAlign textAlign,
-    TextDirection textDirection,
-    int maxLines,
-    bool needEllipsis,
-    std::string ellipsis) : textAlign_(textAlign),
-                     textDirection_(textDirection),
-                     maxLines_(maxLines),
-                     needEllipsis_(needEllipsis),
-                     ellipsis_(ellipsis) {
-}
+StandardParagraphStyleStrategy::StandardParagraphStyleStrategy(const TextAlign textAlign,
+                                                               const TextDirection textDirection, const int maxLines,
+                                                               const bool needEllipsis, std::string ellipsis)
+    : textAlign_(textAlign), textDirection_(textDirection), maxLines_(maxLines), needEllipsis_(needEllipsis),
+      ellipsis_(std::move(ellipsis)) {}
 
 void StandardParagraphStyleStrategy::applyTo(OH_Drawing_TypographyStyle *typoStyle) const {
-    if (!typoStyle) return;
+    if (!typoStyle)
+        return;
 
     OH_Drawing_SetTypographyTextDirection(typoStyle, static_cast<int>(textDirection_));
     OH_Drawing_SetTypographyTextAlign(typoStyle, static_cast<int>(textAlign_));
     OH_Drawing_SetTypographyTextMaxLines(typoStyle, maxLines_);
 
-    if (ellipsis_.length() > 0 && needEllipsis_) {
+    if (!ellipsis_.empty() && needEllipsis_) {
         OH_Drawing_SetTypographyTextEllipsis(typoStyle, ellipsis_.c_str());
     }
 
@@ -100,7 +88,7 @@ void StandardParagraphStyleStrategy::applyTo(OH_Drawing_TypographyStyle *typoSty
 }
 
 std::unique_ptr<IParagraphStyleStrategy> StandardParagraphStyleStrategy::clone() const {
-    return std::make_unique<StandardParagraphStyleStrategy>(
-        textAlign_, textDirection_, maxLines_, needEllipsis_, ellipsis_);
+    return std::make_unique<StandardParagraphStyleStrategy>(textAlign_, textDirection_, maxLines_, needEllipsis_,
+                                                            ellipsis_);
 }
 } // namespace OH

@@ -1,36 +1,38 @@
 #ifndef OH_NATIVE_PICTURE_RECORDER_H
 #define OH_NATIVE_PICTURE_RECORDER_H
 
-#include <vector>
-#include <unordered_map>
 #include <array>
-#include <functional>
 #include <memory>
-#include <typeinfo>
-#include "../constants/oh_native_enums.h"
+#include <unordered_map>
+#include <vector>
 #include "../constants/oh_native_constants.h"
+#include "../constants/oh_native_enums.h"
 #include "../paragraph/oh_native_paragraph.h"
-#include "oh_native_picture_recorder_drawing_Item.h"
-#include "oh_native_render_node_save_state.h"
 #include "../render_node/oh_base_render_node.h"
-#include "../render_node/oh_line_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
+#include "../render_node/oh_line_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
 #include "../utils/oh_hash_funcs.h"
 #include "../xcomponent_log.h"
+#include "oh_native_picture_recorder_drawing_Item.h"
+#include "oh_native_render_node_save_state.h"
 
 namespace OH {
 
 /**
- * @brief Creates a specific type of drawing render node based on the given OH_Native_Drawing_Type.
+ * @brief Creates a specific type of drawing render node based on the given
+ * OH_Native_Drawing_Type.
  *
- * This function returns a std::unique_ptr to a newly created render node object corresponding
- * to the specified drawing type. For certain types, specialized render node subclasses are created,
- * while for others, a generic BaseRenderNode is returned. If the type is not supported, an
+ * This function returns a std::unique_ptr to a newly created render node object
+ * corresponding to the specified drawing type. For certain types, specialized
+ * render node subclasses are created, while for others, a generic
+ * BaseRenderNode is returned. If the type is not supported, an
  * std::invalid_argument exception is thrown.
  *
- * @param type The OH_Native_Drawing_Type specifying the type of render node to create.
- * @return std::unique_ptr<BaseRenderNode> A unique pointer to the created render node.
+ * @param type The OH_Native_Drawing_Type specifying the type of render node to
+ * create.
+ * @return std::unique_ptr<BaseRenderNode> A unique pointer to the created
+ * render node.
  * @throws std::invalid_argument If the provided type is unsupported.
  */
 OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType(OH_Native_Drawing_Type type) {
@@ -78,7 +80,7 @@ constexpr static const uint64_t OHInitialHash = 0x811c9dc5;
 constexpr static const int OHReverseNumber = 30;
 
 inline uint64_t XXH64(const void *data, size_t len, uint64_t seed) {
-    const uint8_t *bytes = static_cast<const uint8_t *>(data);
+    const auto *bytes = static_cast<const uint8_t *>(data);
     uint64_t hash = seed;
 
     for (size_t i = 0; i < len; ++i) {
@@ -128,14 +130,17 @@ public:
 
     OH_ALWAYS_INLINE void scale(float sx, float sy) {
         RenderNodeSaveState &currentState = topState();
-        // currentState.transform = Transform3D::Scale(currentState.transform, sx, sy, 1);
+        // currentState.transform = Transform3D::Scale(currentState.transform, sx,
+        // sy, 1);
     }
     OH_ALWAYS_INLINE void rotate(float degrees) {
         RenderNodeSaveState &currentState = topState();
-        // currentState.transform = Transform3D::Rotate(currentState.transform, degrees * (M_PI / 180), 0, 0, 1);
+        // currentState.transform = Transform3D::Rotate(currentState.transform,
+        // degrees * (M_PI / 180), 0, 0, 1);
     }
 
-    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateRenderNodeForDrawing(OH_Native_Drawing_Type type, uint64_t itemHash) {
+    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateRenderNodeForDrawing(const OH_Native_Drawing_Type type,
+                                                                     const uint64_t itemHash) {
         initPropsIfNeeded();
 
         if (type == OH_Native_Drawing_Type::DrawingTypeClip) {
@@ -149,7 +154,8 @@ public:
         return props->createAndAddRenderNode(type, itemHash);
     }
 
-    OH_ALWAYS_INLINE PictureRecorderUpdateInfo drawRenderNode(BaseRenderNode *renderNode, OH_DrawingNode_Type renderNodeType) {
+    OH_ALWAYS_INLINE PictureRecorderUpdateInfo drawRenderNode(BaseRenderNode *renderNode,
+                                                              OH_DrawingNode_Type renderNodeType) {
         initPropsIfNeeded();
         const OH_Native_Drawing_Type drawingType = (renderNodeType == OH_DrawingNode_Type::ParagraphNode)
                                                        ? OH_Native_Drawing_Type::DrawingTypeDrawTextLayer
@@ -160,9 +166,7 @@ public:
         currentDrawHash = hashMerge(currentDrawHash, renderNodeUniqueHash);
 
         props->currentDrawingItems.emplace_back(DrawingItem{
-            .itemHash = renderNodeUniqueHash,
-            .contentsHash = renderNodeUniqueHash,
-            .drawingType = drawingType});
+            .itemHash = renderNodeUniqueHash, .contentsHash = renderNodeUniqueHash, .drawingType = drawingType});
 
         // 将已有的BaseRenderNode添加到缓存池
         props->renderNodePool[renderNodeUniqueHash] = renderNode;
@@ -170,13 +174,10 @@ public:
         const RenderNodeSaveState &saveState = topState();
 
         return PictureRecorderUpdateInfo{
-            .isDirty = true,
-            .itemHash = renderNodeUniqueHash,
-            .drawingType = drawingType,
-            .saveState = saveState};
+            .isDirty = true, .itemHash = renderNodeUniqueHash, .drawingType = drawingType, .saveState = saveState};
     }
 
-    OH_ALWAYS_INLINE PictureRecorderUpdateInfo clip(uint64_t drawingContentHash) {
+    OH_ALWAYS_INLINE PictureRecorderUpdateInfo clip(const uint64_t drawingContentHash) {
         PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeClip, drawingContentHash);
         pushClip();
         LOGI("PictureRecorder::clip 的 itemHash: =%{public}d", updateItem.itemHash);
@@ -201,17 +202,17 @@ private:
 
         void prepareForReuse();
 
-        BaseRenderNode *findRenderNode(uint64_t hash) {
-            auto it = renderNodePool.find(hash);
+        BaseRenderNode *findRenderNode(const uint64_t hash) {
+            const auto it = renderNodePool.find(hash);
             return it != renderNodePool.end() ? it->second : nullptr;
         }
 
-        BaseRenderNode *findClipNode(uint64_t hash) {
-            auto it = clipPool.find(hash);
+        BaseRenderNode *findClipNode(const uint64_t hash) {
+            const auto it = clipPool.find(hash);
             return it != clipPool.end() ? it->second : nullptr;
         }
 
-        BaseRenderNode *createAndAddRenderNode(OH_Native_Drawing_Type type, uint64_t hash) {
+        BaseRenderNode *createAndAddRenderNode(const OH_Native_Drawing_Type type, const uint64_t hash) {
             auto node = createDrawingRenderNodeFromType(type);
             BaseRenderNode *ptr = node.get();
             renderNodePool[hash] = ptr;
@@ -266,7 +267,7 @@ private:
     constexpr void resetSequenceTableIndex();
     constexpr void resetSequenceTable();
 
-    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateClipRenderNode(uint64_t itemHash) {
+    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateClipRenderNode(const uint64_t itemHash) {
         initPropsIfNeeded();
 
         if (auto *cachedNode = props->findClipNode(itemHash)) {
@@ -289,7 +290,5 @@ private:
     void popClip();
     void resetDrawingItemContentsHash(OH_Native_Drawing_Type type, uint64_t itemHash);
 };
-
 } // namespace OH
-
-#endif // OH_PICTURE_RECORDER_H
+#endif // OH_NATIVE_PICTURE_RECORDER_H

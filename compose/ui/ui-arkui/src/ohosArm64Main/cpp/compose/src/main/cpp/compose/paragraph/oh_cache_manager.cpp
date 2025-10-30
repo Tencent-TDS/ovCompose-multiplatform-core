@@ -1,16 +1,15 @@
-#include <algorithm>
 #include "oh_cache_manager.h"
+
+#include <algorithm>
 
 namespace OH {
 
 // ========== LineMetricsCacheManager 实现 ==========
 
-LineMetricsCacheManager::LineMetricsCacheManager(CacheBuilder builder) :
-    builder_(std::move(builder)),
-    isValid_(false) {
-}
+LineMetricsCacheManager::LineMetricsCacheManager(CacheBuilder builder)
+    : builder_(std::move(builder)), isValid_(false) {}
 
-const LineMetrics *LineMetricsCacheManager::getLineMetrics(uint32_t lineIndex) {
+const LineMetrics *LineMetricsCacheManager::getLineMetrics(const uint32_t lineIndex) {
     if (!isValid_) {
         buildCache();
     }
@@ -35,11 +34,9 @@ void LineMetricsCacheManager::invalidate() {
     notifyObservers();
 }
 
-uint32_t LineMetricsCacheManager::getCachedLineCount() const {
-    return cache_.size();
-}
+uint32_t LineMetricsCacheManager::getCachedLineCount() const { return cache_.size(); }
 
-void LineMetricsCacheManager::addObserver(std::shared_ptr<ICacheObserver> observer) {
+void LineMetricsCacheManager::addObserver(const std::shared_ptr<ICacheObserver> &observer) {
     if (observer) {
         observers_.push_back(observer);
     }
@@ -48,15 +45,11 @@ void LineMetricsCacheManager::addObserver(std::shared_ptr<ICacheObserver> observ
 void LineMetricsCacheManager::removeObserver(ICacheObserver *observer) {
     observers_.erase(
         std::remove_if(observers_.begin(), observers_.end(),
-                       [observer](const std::shared_ptr<ICacheObserver> &obs) {
-                           return obs.get() == observer;
-                       }),
+                       [observer](const std::shared_ptr<ICacheObserver> &obs) { return obs.get() == observer; }),
         observers_.end());
 }
 
-void LineMetricsCacheManager::reserve(uint32_t capacity) {
-    cache_.reserve(capacity);
-}
+void LineMetricsCacheManager::reserve(const uint32_t capacity) { cache_.reserve(capacity); }
 
 void LineMetricsCacheManager::buildCache() {
     if (builder_) {
@@ -65,7 +58,7 @@ void LineMetricsCacheManager::buildCache() {
     }
 }
 
-void LineMetricsCacheManager::notifyObservers() {
+void LineMetricsCacheManager::notifyObservers() const {
     for (auto &observer : observers_) {
         if (observer) {
             observer->onCacheInvalidated();
@@ -75,10 +68,7 @@ void LineMetricsCacheManager::notifyObservers() {
 
 // ========== MetricsCacheManager 实现 ==========
 
-MetricsCacheManager::MetricsCacheManager(MetricsProvider provider) :
-    provider_(std::move(provider)),
-    isValid_(false) {
-}
+MetricsCacheManager::MetricsCacheManager(MetricsProvider provider) : provider_(std::move(provider)), isValid_(false) {}
 
 const ParagraphMetrics &MetricsCacheManager::getMetrics() {
     if (!isValid_ && provider_) {
@@ -89,7 +79,5 @@ const ParagraphMetrics &MetricsCacheManager::getMetrics() {
     return cachedMetrics_;
 }
 
-void MetricsCacheManager::invalidate() {
-    isValid_ = false;
-}
+void MetricsCacheManager::invalidate() { isValid_ = false; }
 } // namespace OH

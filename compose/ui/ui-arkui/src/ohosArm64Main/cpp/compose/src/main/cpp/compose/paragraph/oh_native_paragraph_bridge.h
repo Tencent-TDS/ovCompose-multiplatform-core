@@ -2,6 +2,7 @@
 #define NATIVE_PARAGRAPH_BRIDGE_H
 
 #include <stdint.h>
+
 #include "../constants/oh_native_constants.h"
 
 #ifdef __cplusplus
@@ -151,7 +152,6 @@ void Paragraph_paint(ParagraphHandle_Handle handle, double x, double y);
 uint32_t Paragraph_getLineForOffset(ParagraphHandle_Handle handle, uint32_t offset);
 uint32_t Paragraph_getLineForVerticalPosition(ParagraphHandle_Handle handle, double vertical);
 
-
 // ========== 富文本属性相关 ========
 SpanStyleRange_Handle Paragraph_CreateSpanStyleRange(int start, int end);
 void Paragraph_DestroySpanStyleRange(SpanStyleRange_Handle handle);
@@ -166,9 +166,9 @@ void Paragraph_SpanStyleRange_setLetterSpacing(SpanStyleRange_Handle handle, dou
 void Paragraph_SpanStyleRange_setBaselineShift(SpanStyleRange_Handle handle, float px);
 void Paragraph_SpanStyleRange_setDecoration(SpanStyleRange_Handle handle, int decoration);
 void Paragraph_SpanStyleRange_setShadow(SpanStyleRange_Handle handle, float ox, float oy, double blur, uint32_t argb);
-void Paragraph_SpanStyleRange_setFontFamily(SpanStyleRange_Handle handle, const char* family);
-void Paragraph_SpanStyleRange_setFontFeatureSettings(SpanStyleRange_Handle handle, const char* featureSettings /*UTF-8*/);
-
+void Paragraph_SpanStyleRange_setFontFamily(SpanStyleRange_Handle handle, const char *family);
+void Paragraph_SpanStyleRange_setFontFeatureSettings(SpanStyleRange_Handle handle,
+                                                     const char *featureSettings /*UTF-8*/);
 
 #ifdef __cplusplus
 }

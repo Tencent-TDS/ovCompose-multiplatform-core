@@ -1,7 +1,6 @@
 #ifndef OH_NATIVE_BASIC_SHADER_H
 #define OH_NATIVE_BASIC_SHADER_H
 
-#include <cstdint>
 #include "../constants/oh_native_enums.h"
 
 namespace OH {

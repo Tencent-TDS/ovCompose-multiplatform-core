@@ -1,19 +1,19 @@
 #ifndef OH_LINE_GRADIENT_RENDER_NODE_H
 #define OH_LINE_GRADIENT_RENDER_NODE_H
 
-#include "oh_base_render_node.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
+#include "oh_base_render_node.h"
 
 namespace OH {
 class LineGradientRenderNode : public BaseRenderNode {
 public:
-    ~LineGradientRenderNode();
+    ~LineGradientRenderNode() override;
     LineGradientRenderNode();
 
     void drawLine(float x1, float y1, float x2, float y2, float lineWidth, NativeLinearGradientShader *shader,
                   OH_Native_Draw_StrokeCap stokeCap);
 
-    OH_DrawingNode_Type getType() override ;
+    OH_DrawingNode_Type getType() override;
 
 private:
     void createOrUpdateStartPointProperty(float x, float y);

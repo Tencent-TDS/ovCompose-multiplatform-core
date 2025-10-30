@@ -1,10 +1,10 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
 
-#include <vector>
-#include <unordered_map>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <vector>
+
 #include "oh_native_paragraph_types.h"
 
 namespace OH {
@@ -64,9 +64,7 @@ public:
     /**
      * 检查缓存是否有效
      */
-    bool isValid() const {
-        return isValid_;
-    }
+    bool isValid() const { return isValid_; }
 
     /**
      * 获取缓存的行数
@@ -76,7 +74,7 @@ public:
     /**
      * 添加观察者
      */
-    void addObserver(std::shared_ptr<ICacheObserver> observer);
+    void addObserver(const std::shared_ptr<ICacheObserver> &observer);
 
     /**
      * 移除观察者
@@ -90,7 +88,7 @@ public:
 
 private:
     void buildCache();
-    void notifyObservers();
+    void notifyObservers() const;
 
     CacheBuilder builder_;
     std::vector<LineMetrics> cache_;
@@ -120,9 +118,7 @@ public:
     /**
      * 检查缓存是否有效
      */
-    bool isValid() const {
-        return isValid_;
-    }
+    bool isValid() const { return isValid_; }
 
 private:
     MetricsProvider provider_;

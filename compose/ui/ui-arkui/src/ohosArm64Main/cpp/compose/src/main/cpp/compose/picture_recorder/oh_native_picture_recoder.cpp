@@ -1,10 +1,8 @@
-#include <memory>
-#include <vector>
-#include <unordered_map>
 #include <array>
-#include <cmath>
-#include <cstdint>
 #include <cassert>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 #include "oh_native_picture_recorder.h"
 
 namespace OH {
@@ -95,8 +93,9 @@ OH_ALWAYS_INLINE void PictureRecorder::resetDrawingItemContentsHash(OH_Native_Dr
     }
 }
 
-PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(OH_Native_Drawing_Type type, uint64_t currentContentsHash) {
-    const size_t typeIdx = static_cast<size_t>(type);
+PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(const OH_Native_Drawing_Type type,
+                                                                     const uint64_t currentContentsHash) {
+    const auto typeIdx = static_cast<size_t>(type);
     SequenceTypeItem &info = sequenceTable[typeIdx];
     const uint64_t itemIndex = info.itemIndex;
     info.itemIndex++;
@@ -109,8 +108,7 @@ PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(OH_Native_D
         previousHash = info.itemHashArray[position];
         info.itemHashArray[position] = currentContentsHash;
     } else {
-        auto it = info.itemHashMap.find(itemIndex);
-        if (it != info.itemHashMap.end()) {
+        if (auto it = info.itemHashMap.find(itemIndex); it != info.itemHashMap.end()) {
             previousHash = it->second;
         }
         info.itemHashMap[itemIndex] = currentContentsHash;
@@ -122,9 +120,7 @@ PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(OH_Native_D
     };
 }
 
-RenderNodeSaveState &PictureRecorder::topState() {
-    return saveStack[saveStack.size() - 1];
-}
+RenderNodeSaveState &PictureRecorder::topState() { return saveStack[saveStack.size() - 1]; }
 
 void PictureRecorder::pushSaveStack(OH_RenderNode_SaveState_MakeType type) {
     const RenderNodeSaveState &currentState = topState();
@@ -182,17 +178,11 @@ PictureRecorderUpdateInfo PictureRecorder::draw(OH_Native_Drawing_Type drawingTy
     const SequenceIdInfo &drawingItemSequenceId = allocSequenceIdInfo(drawingType, finialDrawingContentHash);
     const uint64_t drawingItemHash = drawingItemSequenceId.itemIndex;
 
-    props->currentDrawingItems.emplace_back(DrawingItem{
-        .itemHash = drawingItemHash,
-        .contentsHash = finialDrawingContentHash,
-        .drawingType = drawingType});
+    props->currentDrawingItems.emplace_back(
+        DrawingItem{.itemHash = drawingItemHash, .contentsHash = finialDrawingContentHash, .drawingType = drawingType});
 
     currentDrawHash = hashMerge(currentDrawHash, drawingItemHash);
-    return PictureRecorderUpdateInfo{
-        drawingItemSequenceId.isDirty,
-        drawingItemHash,
-        drawingType,
-        saveState};
+    return PictureRecorderUpdateInfo{drawingItemSequenceId.isDirty, drawingItemHash, drawingType, saveState};
 }
 
 void PictureRecorder::prepareForNextRecording(BaseRenderNode &rootRenderNode) {
@@ -238,7 +228,8 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
             auto *parentRenderNode = stack[stack.size() - 1];
             auto *drawingRenderNode = getOrCreateRenderNodeForDrawing(drawingType, drawingItem.itemHash);
             parentRenderNode->addChild(drawingRenderNode);
-            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p drawingType: %{public}d, "
+            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p "
+                 "drawingType: %{public}d, "
                  "drawingItem.itemHash: %{public}lu",
                  parentRenderNode, drawingRenderNode, drawingType, drawingItem.itemHash);
             break;
@@ -247,7 +238,8 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
     }
 }
 
-void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash) {
+void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType,
+                                       uint64_t itemHash) {
     switch (drawingType) {
     case OH_Native_Drawing_Type::DrawingTypeClip: {
         auto it = props->clipPool.find(itemHash);

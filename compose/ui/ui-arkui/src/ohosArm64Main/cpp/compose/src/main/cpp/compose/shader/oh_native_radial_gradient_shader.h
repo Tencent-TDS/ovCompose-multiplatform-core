@@ -8,13 +8,13 @@
 #include "oh_native_basic_shader.h"
 
 namespace OH {
-class NativeRadialGradientShader : public NativeBasicShader {
+class NativeRadialGradientShader final : public NativeBasicShader {
 public:
     NativeRadialGradientShader();
-    ~NativeRadialGradientShader();
+    ~NativeRadialGradientShader() override;
 
     uint64_t propertyHash() override;
-    OH_Native_Shader_Type getType() override ;
+    OH_Native_Shader_Type getType() override;
     NativeRadialGradientShader *setTileMode(OH_Drawing_TileMode mode);
     NativeRadialGradientShader *setCenter(float x, float y);
     NativeRadialGradientShader *setRadius(float radius);
