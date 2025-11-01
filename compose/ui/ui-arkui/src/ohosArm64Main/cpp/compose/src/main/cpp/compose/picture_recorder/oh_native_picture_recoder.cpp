@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include "oh_native_picture_recorder.h"
+#include "oh_native_picture_recorder_diff.h"
 
 namespace OH {
 PictureRecorder::PictureRecorderProps::PictureRecorderProps() noexcept {
@@ -241,33 +242,26 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
 void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType,
                                        uint64_t itemHash) {
     switch (drawingType) {
-    case OH_Native_Drawing_Type::DrawingTypeClip: {
-        auto it = props->clipPool.find(itemHash);
-        if (it != props->clipPool.end()) {
-            auto *clipRenderNode = it->second;
-            props->clipPool.erase(itemHash);
-            rootRenderNode.removeChild(clipRenderNode);
+        case OH_Native_Drawing_Type::DrawingTypeClip: {
+            auto it = props->clipPool.find(itemHash);
+            if (it != props->clipPool.end()) {
+                auto *willBeDeleteClipRenderNode = it->second;
+                props->clipPool.erase(itemHash);
+                willBeDeleteClipRenderNode->removeFromParent();
+                props->eraseFromOwnedNodes(willBeDeleteClipRenderNode);
+            }
+            break;
         }
-        break;
-    }
-    case OH_Native_Drawing_Type::DrawingTypeDrawLayer: {
-        auto iterator = props->renderNodePool.find(itemHash);
-        if (iterator != props->renderNodePool.end()) {
-            auto *layerWillBeDelete = iterator->second;
-            props->renderNodePool.erase(iterator);
-            rootRenderNode.removeChild(layerWillBeDelete);
+        default: {
+            auto iterator = props->renderNodePool.find(itemHash);
+            if (iterator != props->renderNodePool.end()) {
+                auto *willBeDeleteRenderNode = iterator->second;
+                props->renderNodePool.erase(iterator);
+                willBeDeleteRenderNode->removeFromParent();
+                props->eraseFromOwnedNodes(willBeDeleteRenderNode);
+            }
+            break;
         }
-        break;
-    }
-    default: {
-        auto iterator = props->renderNodePool.find(itemHash);
-        if (iterator != props->renderNodePool.end()) {
-            auto *layerWillBeDelete = iterator->second;
-            props->renderNodePool.erase(iterator);
-            rootRenderNode.removeChild(layerWillBeDelete);
-        }
-        break;
-    }
     }
 }
 
@@ -301,30 +295,31 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
         return;
     }
 
-    bool shouldRebuildRenderNodeHierarchy = false;
+    const DiffResult diffResult = diffDrawCommands(oldArray, newArray);
 
-    for (size_t i = 0; i < oldSize; i++) {
-        bool found = false;
-        for (size_t j = 0; j < newSize; j++) {
-            if (oldArray[i].itemHash == newArray[j].itemHash) {
-                found = true;
-                break;
-            }
+    const int deleteSize = diffResult.deletsItems.size();
+    const int insertSize = diffResult.insertItems.size();
+
+    bool shouldRebuildRenderNodeHierarchy = insertSize > 0 || diffResult.movedItems.size() > 0;
+
+    for (size_t i = 0; i < deleteSize; i++) {
+        auto removeIndex = diffResult.deletsItems[i];
+        const DrawingItem &commandToBeDelete = oldArray[removeIndex];
+        auto willBeDeleteDrawingType = commandToBeDelete.drawingType;
+        const uint64_t itemHash = commandToBeDelete.itemHash;
+
+        if (willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
+            willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
+            willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypePop) {
+            resetDrawingItemContentsHash(willBeDeleteDrawingType, itemHash);
         }
-        if (!found) {
-            const DrawingItem &commandToBeDelete = oldArray[i];
 
-            if (commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
-                commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
-                commandToBeDelete.drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
-                resetDrawingItemContentsHash(commandToBeDelete.drawingType, commandToBeDelete.itemHash);
-            }
-
-            detachRenderNode(rootRenderNode, commandToBeDelete.drawingType, commandToBeDelete.itemHash);
-            shouldRebuildRenderNodeHierarchy =
-                shouldRebuildRenderNodeHierarchy ||
-                (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
-        }
+        detachRenderNode(rootRenderNode, willBeDeleteDrawingType, itemHash);
+        shouldRebuildRenderNodeHierarchy =
+            shouldRebuildRenderNodeHierarchy ||
+            (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
+        LOGI("[PictureRecorder] diffDrawingItems insert: %{public}d, moveSize: %{public}d, clip: %{public}d ", insertSize, diffResult.movedItems.size(),
+                commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
     }
 
     if (shouldRebuildRenderNodeHierarchy) {

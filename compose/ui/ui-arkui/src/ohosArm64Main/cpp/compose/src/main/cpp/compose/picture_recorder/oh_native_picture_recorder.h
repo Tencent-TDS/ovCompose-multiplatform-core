@@ -202,6 +202,19 @@ private:
 
         void prepareForReuse();
 
+        void eraseFromOwnedNodes(BaseRenderNode *node) {
+            auto ownedIt = std::find_if(
+                    ownedNodes.begin(),
+                    ownedNodes.end(),
+                    [node](const std::unique_ptr<BaseRenderNode>& ptr) {
+                        return ptr.get() == node;
+                    });
+
+            if (ownedIt != ownedNodes.end()) {
+                ownedNodes.erase(ownedIt);
+            }
+        }
+
         BaseRenderNode *findRenderNode(const uint64_t hash) {
             const auto it = renderNodePool.find(hash);
             return it != renderNodePool.end() ? it->second : nullptr;

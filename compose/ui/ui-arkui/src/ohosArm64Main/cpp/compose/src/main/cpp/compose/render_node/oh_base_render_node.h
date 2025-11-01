@@ -61,6 +61,15 @@ class BaseRenderNode {
     return this;
   }
 
+  BaseRenderNode * removeFromParent() {
+      if (parent_) {
+          maybeThrow(
+                  OH_ArkUI_RenderNodeUtils_RemoveChild(parent_->getHandle(), nodeHandle_));
+      }
+      this->setParent(nullptr);
+      return this;
+  }
+
   BaseRenderNode *getParent() const { return parent_; }
 
   BaseRenderNode *setPosition(const int32_t x, const int32_t y) {
