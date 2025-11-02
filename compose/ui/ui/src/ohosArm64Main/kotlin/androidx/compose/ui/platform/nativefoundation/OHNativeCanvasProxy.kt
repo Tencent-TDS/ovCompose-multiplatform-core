@@ -1,9 +1,11 @@
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.Boolean
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw
@@ -256,12 +258,20 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
         translationY: Float,
         m34Transform: Double
     ) {
-//        handle?.let {
-//            OHNativeCanvasProxy_applyTransformMatrix(
-//                it, rotationX, rotationY, rotationZ,
-//                scaleX, scaleY, translationX, translationY, m34Transform
-//            )
-//        }
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix(
+                it, rotationX, rotationY, rotationZ,
+                scaleX, scaleY, translationX, translationY, m34Transform
+            )
+        }
+
+        // 临时日志：帮助验证方法是否被调用
+        LogPrintUtil.verbose(
+            "[OHOS] applyTransformMatrix called but NOT IMPLEMENTED! " +
+                    "translation=($translationX, $translationY), " +
+                    "scale=($scaleX, $scaleY), " +
+                    "rotation=($rotationX, $rotationY, $rotationZ)"
+        )
     }
 
     /**

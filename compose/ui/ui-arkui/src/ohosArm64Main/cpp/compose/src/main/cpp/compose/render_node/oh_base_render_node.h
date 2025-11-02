@@ -10,56 +10,74 @@
 
 namespace OH {
 class BaseRenderNode {
- public:
-  explicit BaseRenderNode(ArkUI_RenderNodeHandle node);
+public:
+    explicit BaseRenderNode(ArkUI_RenderNodeHandle node);
 
-  BaseRenderNode();
+    BaseRenderNode();
 
-  virtual ~BaseRenderNode();
+    virtual ~BaseRenderNode();
 
-  BaseRenderNode(const BaseRenderNode &) = delete;
+    BaseRenderNode(const BaseRenderNode &) = delete;
 
-  BaseRenderNode &operator=(const BaseRenderNode &) = delete;
+    BaseRenderNode &operator=(const BaseRenderNode &) = delete;
 
-  BaseRenderNode(BaseRenderNode &&) noexcept;
+    BaseRenderNode(BaseRenderNode &&) noexcept;
 
-  BaseRenderNode &operator=(BaseRenderNode &&) noexcept;
+    BaseRenderNode &operator=(BaseRenderNode &&) noexcept;
 
-  ArkUI_RenderNodeHandle getHandle() const { return nodeHandle_; }
-
-  operator ArkUI_RenderNodeHandle() const { return nodeHandle_; }
-
-  template <typename T, auto CreateFunc, auto DisposeFunc>
-  class ScopedOption {
-   public:
-    ScopedOption() : option_(CreateFunc()) {}
-    ~ScopedOption() {
-      if (option_) DisposeFunc(option_);
+    ArkUI_RenderNodeHandle getHandle() const {
+        return nodeHandle_;
     }
-    T *get() const { return option_; }
-    operator T *() const { return option_; }
 
-   private:
-    T *option_;
-  };
+    operator ArkUI_RenderNodeHandle() const {
+        return nodeHandle_;
+    }
 
-  virtual OH_DrawingNode_Type getType();
+    template <typename T, auto CreateFunc, auto DisposeFunc>
+    class ScopedOption {
+    public:
+        ScopedOption() :
+            option_(CreateFunc()) {
+        }
+        ~ScopedOption() {
+            if (option_) DisposeFunc(option_);
+        }
+        T *get() const {
+            return option_;
+        }
+        operator T *() const {
+            return option_;
+        }
 
-  BaseRenderNode *addChild(BaseRenderNode *child) {
-    maybeThrow(
-        OH_ArkUI_RenderNodeUtils_AddChild(nodeHandle_, child->getHandle()));
-    child->setParent(this);
-    return this;
-  }
+    private:
+        T *option_;
+    };
 
-  void setParent(BaseRenderNode *parent) { parent_ = parent; }
+    virtual OH_DrawingNode_Type getType();
 
-  BaseRenderNode *removeChild(BaseRenderNode *child) {
-    maybeThrow(
-        OH_ArkUI_RenderNodeUtils_RemoveChild(nodeHandle_, child->getHandle()));
-    child->setParent(nullptr);
-    return this;
-  }
+    BaseRenderNode *addChild(BaseRenderNode *child) {
+        maybeThrow(
+            OH_ArkUI_RenderNodeUtils_AddChild(nodeHandle_, child->getHandle()));
+        child->setParent(this);
+        return this;
+    }
+
+    void setParent(BaseRenderNode *parent) {
+        parent_ = parent;
+    }
+
+    BaseRenderNode *markSelfAsNodeGroup() {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetMarkNodeGroup(nodeHandle_, true));
+        return this;
+    }
+
+
+    BaseRenderNode *removeChild(BaseRenderNode *child) {
+        maybeThrow(
+            OH_ArkUI_RenderNodeUtils_RemoveChild(nodeHandle_, child->getHandle()));
+        child->setParent(nullptr);
+        return this;
+    }
 
   BaseRenderNode * removeFromParent() {
       if (parent_) {
@@ -72,148 +90,155 @@ class BaseRenderNode {
 
   BaseRenderNode *getParent() const { return parent_; }
 
-  BaseRenderNode *setPosition(const int32_t x, const int32_t y) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetPosition(nodeHandle_, x, y));
-    return this;
-  }
-
-  BaseRenderNode *setSize(const int32_t width, const int32_t height) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetSize(nodeHandle_, width, height));
-    return this;
-  }
-
-  BaseRenderNode *setTransform(float *matrix) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(nodeHandle_, matrix));
-    return this;
-  }
-
-  BaseRenderNode *setTransform(const float *matrix) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(
-        nodeHandle_, const_cast<float *>(matrix)));
-    return this;
-  }
-
-  BaseRenderNode *setTranslate(const float translateX, const float translateY) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetTranslation(nodeHandle_, translateX,
-                                                       translateY));
-    return this;
-  }
-
-  BaseRenderNode *setClip(ArkUI_RenderNodeClipOption *clipOption) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetClip(nodeHandle_, clipOption));
-    OH_ArkUI_RenderNodeUtils_DisposeRenderNodeClipOption(clipOption);
-    return this;
-  }
-
-  BaseRenderNode *setMask(const float left, const float top, const float right,
-                          const float bottom) {
-    if (ArkUI_RectShapeOption *shape =
-            OH_ArkUI_RenderNodeUtils_CreateRectShapeOption()) {
-      OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
-          shape, left, ARKUI_EDGE_DIRECTION_LEFT);
-      OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
-          shape, top, ARKUI_EDGE_DIRECTION_TOP);
-      OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
-          shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
-      OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
-          shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
-      if (ArkUI_RenderNodeMaskOption *mask =
-              OH_ArkUI_RenderNodeUtils_CreateRenderNodeMaskOptionFromRectShape(
-                  shape)) {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetMask(nodeHandle_, mask));
-        OH_ArkUI_RenderNodeUtils_DisposeRenderNodeMaskOption(mask);
-      }
-      OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
+    BaseRenderNode *setPosition(const int32_t x, const int32_t y) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetPosition(nodeHandle_, x, y));
+        return this;
     }
-    return this;
-  }
 
-  BaseRenderNode *setBounds(const int32_t x, const int32_t y,
-                            const int32_t width, const int32_t height) {
-    maybeThrow(
-        OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
-    return this;
-  }
-
-  BaseRenderNode *setPivot(float px, float py) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetPivot(nodeHandle_, px, py));
-    return this;
-  }
-
-  BaseRenderNode *setOpacity(float opacity) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetOpacity(nodeHandle_, opacity));
-    return this;
-  }
-
-  BaseRenderNode *setBorderWidth(float borderWidth) {
-    using BorderWidthOption =
-        ScopedOption<ArkUI_NodeBorderWidthOption,
-                     OH_ArkUI_RenderNodeUtils_CreateNodeBorderWidthOption,
-                     OH_ArkUI_RenderNodeUtils_DisposeNodeBorderWidthOption>;
-    const BorderWidthOption borderWidthOption;
-    OH_ArkUI_RenderNodeUtils_SetNodeBorderWidthOptionEdgeWidth(
-        borderWidthOption, borderWidth, ARKUI_EDGE_DIRECTION_ALL);
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetBorderWidth(nodeHandle_,
-                                                       borderWidthOption));
-    return this;
-  }
-
-  BaseRenderNode *setBorderColor(uint32_t borderColors) {
-    using BorderColorOption =
-        ScopedOption<ArkUI_NodeBorderColorOption,
-                     OH_ArkUI_RenderNodeUtils_CreateNodeBorderColorOption,
-                     OH_ArkUI_RenderNodeUtils_DisposeNodeBorderColorOption>;
-    const BorderColorOption colorOption;
-    OH_ArkUI_RenderNodeUtils_SetNodeBorderColorOptionEdgeColor(
-        colorOption, borderColors, ARKUI_EDGE_DIRECTION_ALL);
-    maybeThrow(
-        OH_ArkUI_RenderNodeUtils_SetBorderColor(nodeHandle_, colorOption));
-    return this;
-  }
-
-  BaseRenderNode *setBorderCornerRadius(const uint32_t cornerRadius) {
-    using BorderRadiusOption =
-        ScopedOption<ArkUI_NodeBorderRadiusOption,
-                     OH_ArkUI_RenderNodeUtils_CreateNodeBorderRadiusOption,
-                     OH_ArkUI_RenderNodeUtils_DisposeNodeBorderRadiusOption>;
-    BorderRadiusOption borderRadius;
-    OH_ArkUI_RenderNodeUtils_SetNodeBorderRadiusOptionCornerRadius(
-        borderRadius, cornerRadius, ARKUI_CORNER_DIRECTION_ALL);
-    maybeThrow(
-        OH_ArkUI_RenderNodeUtils_SetBorderRadius(nodeHandle_, borderRadius));
-    return this;
-  }
-
-  BaseRenderNode *setBackgroundColor(const uint32_t backgroundColor) {
-    maybeThrow(OH_ArkUI_RenderNodeUtils_SetBackgroundColor(nodeHandle_,
-                                                           backgroundColor));
-    return this;
-  }
-
-  uint32_t getHash() const { return hash_; }
-
-  void setHostingHash(const uint32_t hostingHash) {
-    hostingHash_ = hostingHash;
-  }
-
- protected:
-  virtual void initModifier() {};
-  static uint32_t generateHash() {
-    static std::atomic<uint32_t> counter{0};
-    return ++counter;
-  }
-
-  static void maybeThrow(const int32_t status) {
-    if (status != ARKUI_ERROR_CODE_NO_ERROR) {
-      LOGE("OHRenderNode operation failed with status: %{public}d", status);
-      throw std::runtime_error("OHRenderNode operation failed");
+    BaseRenderNode *setSize(const int32_t width, const int32_t height) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetSize(nodeHandle_, width, height));
+        return this;
     }
-  }
 
-  uint32_t hash_;
-  uint32_t hostingHash_ = 0;
-  ArkUI_RenderNodeHandle nodeHandle_;
-  BaseRenderNode *parent_ = nullptr;
+    BaseRenderNode *setTransform(float *matrix) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(nodeHandle_, matrix));
+        return this;
+    }
+
+    BaseRenderNode *setTransform(const float *matrix) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(
+            nodeHandle_, const_cast<float *>(matrix)));
+        return this;
+    }
+
+    BaseRenderNode *setTranslate(const float translateX, const float translateY) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetTranslation(nodeHandle_, translateX,
+                                                           translateY));
+        return this;
+    }
+
+    BaseRenderNode *setClip(ArkUI_RenderNodeClipOption *clipOption) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetClip(nodeHandle_, clipOption));
+        OH_ArkUI_RenderNodeUtils_DisposeRenderNodeClipOption(clipOption);
+        return this;
+    }
+
+    BaseRenderNode *clearClip() {
+        // TODO: implement clear clip in native render node utils
+        return this;
+    }
+
+    BaseRenderNode *setMask(const float left, const float top, const float right,
+                            const float bottom) {
+        if (ArkUI_RectShapeOption *shape =
+                OH_ArkUI_RenderNodeUtils_CreateRectShapeOption()) {
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
+                shape, left, ARKUI_EDGE_DIRECTION_LEFT);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
+                shape, top, ARKUI_EDGE_DIRECTION_TOP);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
+                shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
+            OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(
+                shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
+            if (ArkUI_RenderNodeMaskOption *mask =
+                    OH_ArkUI_RenderNodeUtils_CreateRenderNodeMaskOptionFromRectShape(
+                        shape)) {
+                maybeThrow(OH_ArkUI_RenderNodeUtils_SetMask(nodeHandle_, mask));
+                OH_ArkUI_RenderNodeUtils_DisposeRenderNodeMaskOption(mask);
+            }
+            OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
+        }
+        return this;
+    }
+
+    BaseRenderNode *setBounds(const int32_t x, const int32_t y,
+                              const int32_t width, const int32_t height) {
+        maybeThrow(
+            OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
+        return this;
+    }
+
+    BaseRenderNode *setPivot(float px, float py) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetPivot(nodeHandle_, px, py));
+        return this;
+    }
+
+    BaseRenderNode *setOpacity(float opacity) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetOpacity(nodeHandle_, opacity));
+        return this;
+    }
+
+    BaseRenderNode *setBorderWidth(float borderWidth) {
+        using BorderWidthOption =
+            ScopedOption<ArkUI_NodeBorderWidthOption,
+                         OH_ArkUI_RenderNodeUtils_CreateNodeBorderWidthOption,
+                         OH_ArkUI_RenderNodeUtils_DisposeNodeBorderWidthOption>;
+        const BorderWidthOption borderWidthOption;
+        OH_ArkUI_RenderNodeUtils_SetNodeBorderWidthOptionEdgeWidth(
+            borderWidthOption, borderWidth, ARKUI_EDGE_DIRECTION_ALL);
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetBorderWidth(nodeHandle_,
+                                                           borderWidthOption));
+        return this;
+    }
+
+    BaseRenderNode *setBorderColor(uint32_t borderColors) {
+        using BorderColorOption =
+            ScopedOption<ArkUI_NodeBorderColorOption,
+                         OH_ArkUI_RenderNodeUtils_CreateNodeBorderColorOption,
+                         OH_ArkUI_RenderNodeUtils_DisposeNodeBorderColorOption>;
+        const BorderColorOption colorOption;
+        OH_ArkUI_RenderNodeUtils_SetNodeBorderColorOptionEdgeColor(
+            colorOption, borderColors, ARKUI_EDGE_DIRECTION_ALL);
+        maybeThrow(
+            OH_ArkUI_RenderNodeUtils_SetBorderColor(nodeHandle_, colorOption));
+        return this;
+    }
+
+    BaseRenderNode *setBorderCornerRadius(const uint32_t cornerRadius) {
+        using BorderRadiusOption =
+            ScopedOption<ArkUI_NodeBorderRadiusOption,
+                         OH_ArkUI_RenderNodeUtils_CreateNodeBorderRadiusOption,
+                         OH_ArkUI_RenderNodeUtils_DisposeNodeBorderRadiusOption>;
+        BorderRadiusOption borderRadius;
+        OH_ArkUI_RenderNodeUtils_SetNodeBorderRadiusOptionCornerRadius(
+            borderRadius, cornerRadius, ARKUI_CORNER_DIRECTION_ALL);
+        maybeThrow(
+            OH_ArkUI_RenderNodeUtils_SetBorderRadius(nodeHandle_, borderRadius));
+        return this;
+    }
+
+    BaseRenderNode *setBackgroundColor(const uint32_t backgroundColor) {
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetBackgroundColor(nodeHandle_,
+                                                               backgroundColor));
+        return this;
+    }
+
+    uint32_t getHash() const {
+        return hash_;
+    }
+
+    void setHostingHash(const uint32_t hostingHash) {
+        hostingHash_ = hostingHash;
+    }
+
+protected:
+    virtual void initModifier() {};
+    static uint32_t generateHash() {
+        static std::atomic<uint32_t> counter{0};
+        return ++counter;
+    }
+
+    static void maybeThrow(const int32_t status) {
+        if (status != ARKUI_ERROR_CODE_NO_ERROR) {
+            LOGE("OHRenderNode operation failed with status: %{public}d", status);
+            throw std::runtime_error("OHRenderNode operation failed");
+        }
+    }
+
+    uint32_t hash_;
+    uint32_t hostingHash_ = 0;
+    ArkUI_RenderNodeHandle nodeHandle_;
+    BaseRenderNode *parent_ = nullptr;
 };
-}  // namespace OH
+} // namespace OH
 #endif

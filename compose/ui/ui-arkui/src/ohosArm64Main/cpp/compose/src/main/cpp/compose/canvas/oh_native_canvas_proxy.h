@@ -24,6 +24,8 @@ public:
     void setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) const;
     void setPivot(float px, float py) const;
     void setOpacity(float opacity) const;
+    void applyTransformMatrix(float rotationX, float rotationY, float rotationZ, float scaleX, float scaleY,
+                             float translateX, float translateY, double transformM34) const;
 
     void drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint);
     void drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,

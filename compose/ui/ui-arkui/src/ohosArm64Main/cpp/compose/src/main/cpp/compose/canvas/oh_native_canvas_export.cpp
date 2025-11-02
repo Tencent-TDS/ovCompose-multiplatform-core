@@ -187,6 +187,21 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity(OHNativeCanv
          opacity);
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix(OHNativeCanvasProxy_Handle handle,
+                                                                              const float rotationX, const float rotationY,
+                                                                              const float rotationZ, const float scaleX,
+                                                                              const float scaleY, const float translateX,
+                                                                              const float translateY, const double transformM34) {
+    const auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(handle);
+    canvasProxy->applyTransformMatrix(rotationX, rotationY, rotationZ, scaleX, scaleY, translateX, translateY,
+                                      transformM34);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix: "
+         "rotationX=%{public}f, rotationY=%{public}f, rotationZ=%{public}f, "
+         "scaleX=%{public}f, scaleY=%{public}f, translateX=%{public}f, translateY=%{public}f, "
+         "transformM34=%{public}lf",
+         rotationX, rotationY, rotationZ, scaleX, scaleY, translateX, translateY, transformM34);
+}
+
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save(OHNativeCanvasProxy_Handle proxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->save();

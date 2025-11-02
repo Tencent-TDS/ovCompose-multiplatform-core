@@ -32,7 +32,7 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
     EnableOHOSParagraph = renderBackend == RenderingBackend.ArkUIRenderNode
 
     // TODO 暂时先将Compose在鸿蒙平台的日志开关放在此处，后续可以通过配置编译选项来控制
-    LogPrintUtil.isLogEnabled = false
+    LogPrintUtil.isLogEnabled = true
     TraceUtil.isTraceEnabled = false
 
     /*注入 OHOS 平台的 Paragraph */

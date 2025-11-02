@@ -42,6 +42,11 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(OHNativeCan
                                                                      int32_t y);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot(OHNativeCanvasProxy_Handle proxy, float px, float py);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setOpacity(OHNativeCanvasProxy_Handle proxy, float alpha);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix(OHNativeCanvasProxy_Handle proxy,
+                                                                              float rotationX, float rotationY,
+                                                                              float rotationZ, float scaleX,
+                                                                              float scaleY, float translateX,
+                                                                              float translateY, double transformM34);
 
 // OHNativeCanvasProxy drawCommand
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(OHNativeCanvasProxy_Handle proxy, float left,

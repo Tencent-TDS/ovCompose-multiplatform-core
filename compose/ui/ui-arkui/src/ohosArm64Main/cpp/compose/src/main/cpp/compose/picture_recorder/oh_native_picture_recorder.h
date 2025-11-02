@@ -291,7 +291,7 @@ private:
     }
 
     SequenceIdInfo allocSequenceIdInfo(OH_Native_Drawing_Type type, uint64_t currentContentsHash);
-    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash);
+    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash) const;
 
     void prepareForNextRecording(BaseRenderNode &rootRenderNode);
     void rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode);
