@@ -36,6 +36,7 @@ import androidx.compose.ui.node.ComposeUiNode.Companion.SetCompositeKeyHash
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetMeasurePolicy
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetModifier
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetResolvedCompositionLocals
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.checkMeasuredSize
 import androidx.compose.ui.unit.Constraints
@@ -277,7 +278,8 @@ private class FixedSizeIntrinsicsPlaceable(width: Int, height: Int) : Placeable(
     override fun placeAt(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType
     ) {
     }
 }

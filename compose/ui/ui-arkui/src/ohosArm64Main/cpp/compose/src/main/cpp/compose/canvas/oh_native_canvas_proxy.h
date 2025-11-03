@@ -35,6 +35,7 @@ public:
     void drawParagraph(OH::Paragraph* paragraph);
     void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);
     void drawLayerWithSubproxy(const OHNativeCanvasProxy* subProxy);
+    void markSelfAsNodeGroup() const;
 
 private:
     OHComposeNativePaint* paint_;

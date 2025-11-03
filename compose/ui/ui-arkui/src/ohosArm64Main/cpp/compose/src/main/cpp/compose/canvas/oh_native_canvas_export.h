@@ -65,6 +65,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvas
                                                                   OHComposeNativePaint_Handle paint);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy(OHNativeCanvasProxy_Handle proxy,
                                                                                OHNativeCanvasProxy_Handle subProxy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,
                                                                   uint32_t clipOp);

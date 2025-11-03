@@ -229,7 +229,7 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
             auto *parentRenderNode = stack[stack.size() - 1];
             auto *drawingRenderNode = getOrCreateRenderNodeForDrawing(drawingType, drawingItem.itemHash);
             parentRenderNode->addChild(drawingRenderNode);
-            LOGI("[PictureRecorder] parentNode: %{public}p addChild: %{public}p "
+            LOGI("[PV] parentNode: %{public}p addChild: %{public}p "
                  "drawingType: %{public}d, "
                  "drawingItem.itemHash: %{public}lu",
                  parentRenderNode, drawingRenderNode, drawingType, drawingItem.itemHash);
@@ -249,6 +249,9 @@ void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native
                 props->clipPool.erase(itemHash);
                 willBeDeleteClipRenderNode->removeFromParent();
                 props->eraseFromOwnedNodes(willBeDeleteClipRenderNode);
+                LOGI("[PV] renderNode:%{public}p clipPool remove clipView:%{public}p, itemHash%{public}llu", &rootRenderNode, nodeWillBeDelete, itemHash);
+            } else {
+                LOGI("[PV] renderNode:%{public}p clipPool remove failed, itemHash%{public}llu", &rootRenderNode, itemHash);
             }
             break;
         }

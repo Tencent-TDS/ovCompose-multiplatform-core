@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Vertices
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.cinterop.COpaquePointer
@@ -47,7 +48,10 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
  * @param factory A native pointer to the canvas factory used to create the native canvas proxy
  */
 @OptIn(ExperimentalObjCRefinement::class)
-internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
+internal class AdaptiveCanvas(
+    factory: COpaquePointer,
+    private val sourceType: LayerSourceType = LayerSourceType.REGULAR
+) : OHOSNativeCanvas {
     override val canvasType: CanvasType get() = CanvasType.Native
 
     val nativeCanvasProxy: OHNativeCanvasProxy
@@ -84,7 +88,11 @@ internal class AdaptiveCanvas(factory: COpaquePointer) : OHOSNativeCanvas {
     }
 
     override fun onPostDraw() {
-        nativeCanvasProxy.finishDraw()
+        nativeCanvasProxy.finishDraw().also {
+            if (sourceType == LayerSourceType.LAZY_LIST_ITEM) {
+                nativeCanvasProxy.markSelfAsNodeGroup()
+            }
+        }
         LogPrintUtil.verbose("AdaptiveCanvas::clipRoundRect")
     }
 

@@ -23,5 +23,15 @@ interface LogPrintInterface {
 expect object LogPrintUtil {
     var logPrintImpl: LogPrintInterface?
     var isLogEnabled: Boolean
-    fun verbose(message: String)
+
+    /**
+     * Lazy evaluation version of verbose. The message lambda is only evaluated when logging is enabled.
+     * This avoids unnecessary string concatenation when logging is disabled.
+     * 
+     * Usage:
+     * ```
+     * LogPrintUtil.verbose { "AdaptiveCanvas::translate, dx: $dx, dy: $dy" }
+     * ```
+     */
+    inline fun verbose(message: () -> String)
 }

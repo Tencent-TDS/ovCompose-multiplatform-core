@@ -36,9 +36,9 @@ actual object LogPrintUtil {
     }
     actual var logPrintImpl: LogPrintInterface? = DefaultLogger
 
-    actual fun verbose(message: String) {
+    actual inline fun verbose(message: () -> String) {
         if (isLogEnabled) {
-            this.logPrintImpl?.verbose(message)
+            this.logPrintImpl?.verbose(message())
         }
     }
 

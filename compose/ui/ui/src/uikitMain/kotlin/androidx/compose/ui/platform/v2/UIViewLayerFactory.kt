@@ -1,6 +1,7 @@
 package androidx.compose.ui.platform.v2
 
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.unit.Density
@@ -16,7 +17,8 @@ class UIViewLayerFactory(
         density: Density,
         drawBlock: (Canvas) -> Unit,
         invalidateParentLayer: () -> Unit,
-        onDestroy: () -> Unit
+        onDestroy: () -> Unit,
+        sourceType: LayerSourceType
     ): OwnedLayer {
         return UIViewLayer(
             density,

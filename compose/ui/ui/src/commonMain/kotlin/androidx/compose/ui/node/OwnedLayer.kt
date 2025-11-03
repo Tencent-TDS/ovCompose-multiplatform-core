@@ -116,6 +116,17 @@ internal interface OwnedLayer {
      */
     fun inverseTransform(matrix: Matrix)
 
+    /**
+     * Returns the source type of this layer, which indicates whether it was created
+     * by a LazyList item or regular composable.
+     *
+     * This is used to enable different lifecycle management strategies on certain platforms
+     * (e.g., OHOS where LazyList item layers need special pooling).
+     *
+     * @return [LayerSourceType] indicating the creation source, or null if not applicable
+     */
+    fun getSourceType(): LayerSourceType? = null
+
     //region iOS Binding
     fun setPlaced(isPlaced: Boolean) = Unit
 

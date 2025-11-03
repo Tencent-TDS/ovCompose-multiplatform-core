@@ -138,6 +138,12 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy(O
          "drawLayerWithSubproxy");
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(const OHNativeCanvasProxy_Handle proxy) {
+    const auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->markSelfAsNodeGroup();
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup");
+}
+
 /// OHNativeCanvasProxy state operations
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,

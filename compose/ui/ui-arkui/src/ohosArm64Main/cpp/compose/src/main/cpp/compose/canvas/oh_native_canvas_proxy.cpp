@@ -186,6 +186,13 @@ void OHNativeCanvasProxy::drawLayerWithSubproxy(const OHNativeCanvasProxy *subPr
     }
 }
 
+void OHNativeCanvasProxy::markSelfAsNodeGroup() const {
+    LOGI("OHNativeCanvasProxy::markSelfAsGroupNode: start");
+    if (canvasNode_ != nullptr) {
+        canvasNode_->markSelfAsNodeGroup();
+    }
+}
+
 OH::BaseRenderNode *OHNativeCanvasProxy::getRenderNode() const {
     LOGI("OHNativeCanvasProxy::getRenderNode: start");
     return canvasNode_.get();

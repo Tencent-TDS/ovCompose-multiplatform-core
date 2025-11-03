@@ -17,6 +17,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds
@@ -117,6 +118,12 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
                 bottom = bottom,
                 clipOp = clipOp
             )
+        }
+    }
+
+    fun markSelfAsNodeGroup() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(it)
         }
     }
 

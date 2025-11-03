@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.alphaMultiplier
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.platform.nativefoundation.AdaptiveCanvas
 import androidx.compose.ui.platform.nativefoundation.OHOSNativeCanvas
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -56,7 +57,8 @@ internal class ArkUIRenderNodeLayer(
     private val invalidateParentLayer: () -> Unit,
     private val drawBlock: (Canvas) -> Unit,
     private val onDestroy: () -> Unit = {},
-    nativeCanvasFactory: COpaquePointer
+    nativeCanvasFactory: COpaquePointer,
+    private val sourceType: LayerSourceType = LayerSourceType.REGULAR
 ): OwnedLayer {
     // ---- 基础属性 ----
     // 当前层的尺寸（宽度和高度），以像素为单位。通过 resize 方法更新
@@ -118,7 +120,8 @@ internal class ArkUIRenderNodeLayer(
 
     // ---- 绘制相关 ----
     // 当前层的画布对象，用于绘制内容
-    private val canvas = AdaptiveCanvas(nativeCanvasFactory)
+    private val canvas = AdaptiveCanvas(nativeCanvasFactory, sourceType)
+
     // 当前层的视图代理，用于与底层平台（iOS的UIView）交互
     val nativeCanvasProxy: OHNativeCanvasProxy = canvas.nativeCanvasProxy
     // 当前层的父层缓存，用于优化层级关系的更新
@@ -270,6 +273,13 @@ internal class ArkUIRenderNodeLayer(
         } else {
             LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer - SKIPPING redraw (not invalidated)")
         }
+
+        if (canvas is OHOSNativeCanvas) {
+            canvas.drawLayerWithNativeCanvas(this.canvas)
+        } else {
+            // TODO this.nativeCanvasProxy.bringSelfToFroun()
+        }
+
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer END - id=$id")
     }
 
@@ -469,6 +479,14 @@ internal class ArkUIRenderNodeLayer(
         // TODO("Not yet implemented")
         LogPrintUtil.verbose("ArkUIRenderNodeLayer::setPlaced")
     }
+
+    override fun getSourceType(): LayerSourceType = sourceType
+
+    /**
+     * Helper method to check if this layer was created by a LazyList item.
+     * This is useful for implementing special pooling strategies on OHOS platform.
+     */
+    fun isLazyListItem(): Boolean = sourceType == LayerSourceType.LAZY_LIST_ITEM
 
     private inline fun didUpdateParentLayer(superLayer: ArkUIRenderNodeLayer) {
         superRenderEffect = superLayer.renderEffect ?: superLayer.superRenderEffect
