@@ -127,7 +127,7 @@ class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
 
     fun sync(paint: Paint) {
         // 实现与 OHComposeNativePaint 的同步逻辑
-        LogPrintUtil.verbose("OHComposeNativePaint::sync, compose paint: (${paint.toReadableString()})")
+        LogPrintUtil.verbose { "OHComposeNativePaint::sync, compose paint: (${paint.toReadableString()})" }
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(handle, paint.alpha)
         androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(
             handle,

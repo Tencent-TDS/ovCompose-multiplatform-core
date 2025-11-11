@@ -224,10 +224,10 @@ internal class OHOSParagraph(
         drawStyle: DrawStyle?,
         blendMode: BlendMode
     ) {
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "OHOSParagraph::paint, canvas=$canvas, color=$color, shadow=$shadow, " +
                     "textDecoration=$textDecoration, drawStyle=$drawStyle, blendMode=$blendMode"
-        )
+        }
         nativeParagraph = with(layouter) {
             setTextStyle(
                 color = color,
@@ -253,11 +253,11 @@ internal class OHOSParagraph(
         drawStyle: DrawStyle?,
         blendMode: BlendMode
     ) {
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "OHOSParagraph::paint with brush, canvas=$canvas, brush=$brush, " +
                     "alpha=$alpha, shadow=$shadow, textDecoration=$textDecoration, " +
                     "drawStyle=$drawStyle, blendMode=$blendMode"
-        )
+        }
 
         nativeParagraph = with(layouter) {
             setTextStyle(

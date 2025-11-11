@@ -16,6 +16,15 @@
 
 package androidx.compose.common.interop
 
+/**
+ * Compile-time constant to control verbose logging.
+ * When set to false, the compiler will completely remove all verbose log code (zero overhead).
+ * When set to true, verbose logging is controlled at runtime via [LogPrintUtil.isLogEnabled].
+ * 
+ * To disable verbose logging at compile time, set this to false before building.
+ */
+const val ENABLE_VERBOSE_LOG_COMPILE_TIME = false
+
 interface LogPrintInterface {
     fun verbose(message: String)
 }
@@ -27,6 +36,9 @@ expect object LogPrintUtil {
     /**
      * Lazy evaluation version of verbose. The message lambda is only evaluated when logging is enabled.
      * This avoids unnecessary string concatenation when logging is disabled.
+     * 
+     * When [ENABLE_VERBOSE_LOG_COMPILE_TIME] is false, the compiler will completely remove
+     * this code at compile time, resulting in zero overhead.
      * 
      * Usage:
      * ```

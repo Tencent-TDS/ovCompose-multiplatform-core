@@ -216,7 +216,7 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun isInLayer(position: Offset): Boolean {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::isInLayer")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::isInLayer" }
         val x = position.x
         val y = position.y
         if (outlineCache.shape === RectangleShape) {
@@ -227,19 +227,19 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun move(position: IntOffset) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::move - id=$id, oldPos=${this.position}, newPos=$position")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - id=$id, oldPos=${this.position}, newPos=$position" }
         if (position != this.position) {
             this.position = position
             updateLayerPosition()
             invalidateParentLayer()
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::move - UPDATED position to $position")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - UPDATED position to $position" }
         } else {
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::move - SKIPPED (same position)")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - SKIPPED (same position)" }
         }
     }
 
     override fun resize(size: IntSize) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::resize - id=$id, oldSize=${this.size}, newSize=$size")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - id=$id, oldSize=${this.size}, newSize=$size" }
         if (size != this.size) {
             this.size = size  // ← 关键修复：更新 size 变量
             outlineCache.size = size
@@ -247,31 +247,31 @@ internal class ArkUIRenderNodeLayer(
             updateLayerPosition()
             updateMatrix()
             invalidate()
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::resize - UPDATED size to $size")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - UPDATED size to $size" }
         } else {
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::resize - SKIPPED (same size)")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - SKIPPED (same size)" }
         }
     }
 
     private fun updateLayerPosition() {
         nativeCanvasProxy.setPosition(position.x, position.y)
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::updateLayerPosition - id=$id, position=$position")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::updateLayerPosition - id=$id, position=$position" }
     }
 
     override fun drawLayer(canvas: Canvas) {
         val canvasType = if (canvas is OHOSNativeCanvas) "OHOSNativeCanvas" else canvas::class.simpleName
         val parentLayerId = (cachedParentLayer as? ArkUIRenderNodeLayer)?.id ?: "null"
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer START - id=$id, parent=$parentLayerId, size=$size, position=$position, canvasType=$canvasType, isInvalidated=$isInvalidated, isDestroyed=$isDestroyed")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer START - id=$id, parent=$parentLayerId, size=$size, position=$position, canvasType=$canvasType, isInvalidated=$isInvalidated, isDestroyed=$isDestroyed" }
 
         if (isInvalidated) {
             isInvalidated = false
             val bounds = size.toSize().toRect()
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer - Redrawing, bounds=$bounds")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - Redrawing, bounds=$bounds" }
             this.canvas.onPreDraw()
             performDrawLayer(this.canvas, bounds)
             this.canvas.onPostDraw()
         } else {
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer - SKIPPING redraw (not invalidated)")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - SKIPPING redraw (not invalidated)" }
         }
 
         if (canvas is OHOSNativeCanvas) {
@@ -280,11 +280,11 @@ internal class ArkUIRenderNodeLayer(
             // TODO this.nativeCanvasProxy.bringSelfToFroun()
         }
 
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::drawLayer END - id=$id")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer END - id=$id" }
     }
 
     private fun performDrawLayer(canvas: OHOSNativeCanvas, bounds: Rect) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::performDrawLayer - id=$id, bounds=$bounds, clip=$clip, alpha=$alpha")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::performDrawLayer - id=$id, bounds=$bounds, clip=$clip, alpha=$alpha" }
 
         if (clip) {
             canvas.save()
@@ -323,9 +323,9 @@ internal class ArkUIRenderNodeLayer(
                 }
         }
 
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::performDrawLayer - Calling drawBlock")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::performDrawLayer - Calling drawBlock" }
         drawBlock(canvas)
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::performDrawLayer - drawBlock completed")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::performDrawLayer - drawBlock completed" }
 
         canvas.restore()
         if (clip) {
@@ -335,7 +335,7 @@ internal class ArkUIRenderNodeLayer(
 
     override fun updateDisplayList() {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::updateDisplayList")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::updateDisplayList" }
     }
 
     private fun updateMatrix() {
@@ -393,22 +393,22 @@ internal class ArkUIRenderNodeLayer(
             translationY / density.density,
             m34Transform
         )
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::updateMatrix")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::updateMatrix" }
     }
 
     override fun invalidate() {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::invalidate - id=$id, isDestroyed=$isDestroyed, isInvalidated=$isInvalidated")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::invalidate - id=$id, isDestroyed=$isDestroyed, isInvalidated=$isInvalidated" }
         if (!isDestroyed && !isInvalidated) {
             isInvalidated = true
             invalidateParentLayer()
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::invalidate - MARKED as invalidated")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::invalidate - MARKED as invalidated" }
         } else {
-            LogPrintUtil.verbose("ArkUIRenderNodeLayer::invalidate - SKIPPED (isDestroyed=$isDestroyed, isInvalidated=$isInvalidated)")
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::invalidate - SKIPPED (isDestroyed=$isDestroyed, isInvalidated=$isInvalidated)" }
         }
     }
 
     override fun destroy() {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::destroy")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::destroy" }
         if (!isDestroyed) {
             isDestroyed = true
             onDestroy()
@@ -431,7 +431,7 @@ internal class ArkUIRenderNodeLayer(
         rect: MutableRect,
         inverse: Boolean
     ) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::mapBounds")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::mapBounds" }
         if (inverse) {
             inverseMatrix
         } else {
@@ -443,7 +443,7 @@ internal class ArkUIRenderNodeLayer(
         drawBlock: (Canvas) -> Unit,
         invalidateParentLayer: () -> Unit
     ) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::reuseLayer - id=$id, isDestroyed=$isDestroyed (This method is called when LazyColumn reuses a layer)")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::reuseLayer - id=$id, isDestroyed=$isDestroyed (This method is called when LazyColumn reuses a layer)" }
         // Note: Currently this is just a placeholder as LazyColumn might not be destroying layers
         // If layers are being destroyed and reused, we would need to:
         // 1. Reset isDestroyed flag
@@ -453,16 +453,16 @@ internal class ArkUIRenderNodeLayer(
 
     override fun transform(matrix: Matrix) {
         matrix.timesAssign(this.matrix)
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::transform")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::transform" }
     }
 
     override fun inverseTransform(matrix: Matrix) {
         matrix.timesAssign(inverseMatrix)
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::inverseTransform")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::inverseTransform" }
     }
 
     override fun updateParentLayer(parentLayer: OwnedLayer?) {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::updateParentLayer")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::updateParentLayer" }
         val parentViewLayer = (parentLayer as? ArkUIRenderNodeLayer)
         if (parentViewLayer != null) {
             if (cachedParentLayer != parentViewLayer) {
@@ -477,7 +477,7 @@ internal class ArkUIRenderNodeLayer(
 
     override fun setPlaced(isPlaced: Boolean) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("ArkUIRenderNodeLayer::setPlaced")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::setPlaced" }
     }
 
     override fun getSourceType(): LayerSourceType = sourceType

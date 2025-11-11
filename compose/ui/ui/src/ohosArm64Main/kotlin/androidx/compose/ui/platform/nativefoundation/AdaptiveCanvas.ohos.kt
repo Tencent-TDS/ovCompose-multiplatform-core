@@ -69,22 +69,22 @@ internal class AdaptiveCanvas(
 
     override fun onPreDraw() {
         nativeCanvasProxy.beginDraw()
-        LogPrintUtil.verbose("AdaptiveCanvas::beginDraw")
+        LogPrintUtil.verbose { "AdaptiveCanvas::beginDraw" }
     }
 
     override fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
         nativeCanvasProxy.drawLayer(renderNodeHandle)
-        LogPrintUtil.verbose("AdaptiveCanvas::drawLayer")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawLayer" }
     }
 
     override fun drawParagraph(paragraph: BaseRenderNode_Handle) {
         nativeCanvasProxy.drawParagraph(paragraph)
-        LogPrintUtil.verbose("AdaptiveCanvas::drawParagraph")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraph" }
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {
         nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
-        LogPrintUtil.verbose("AdaptiveCanvas::drawLayerWithNativeCanvas")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawLayerWithNativeCanvas" }
     }
 
     override fun onPostDraw() {
@@ -93,12 +93,12 @@ internal class AdaptiveCanvas(
                 nativeCanvasProxy.markSelfAsNodeGroup()
             }
         }
-        LogPrintUtil.verbose("AdaptiveCanvas::clipRoundRect")
+        LogPrintUtil.verbose { "AdaptiveCanvas::onPostDraw complete" }
     }
 
     override fun clipRoundRect(rect: RoundRect) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::clipRoundRect")
+        LogPrintUtil.verbose { "AdaptiveCanvas::clipRoundRect" }
     }
 
     override fun applyTransformMatrix(
@@ -121,7 +121,7 @@ internal class AdaptiveCanvas(
             translationY,
             m34Transform
         )
-        LogPrintUtil.verbose("AdaptiveCanvas::applyTransformMatrix")
+        LogPrintUtil.verbose { "AdaptiveCanvas::applyTransformMatrix" }
     }
 
     override fun drawParagraphImage(
@@ -131,7 +131,7 @@ internal class AdaptiveCanvas(
         paragraphHashCode: Int
     ) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawParagraphImage")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraphImage" }
     }
 
     override fun needRedrawImageWithHashCode(
@@ -149,91 +149,91 @@ internal class AdaptiveCanvas(
         height: Int
     ) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::asyncDrawIntoCanvas")
+        LogPrintUtil.verbose { "AdaptiveCanvas::asyncDrawIntoCanvas" }
     }
 
     override fun imageFromImageBitmap(paragraphHashCode: Int, imageBitmap: ImageBitmap): Long {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::imageFromImageBitMap")
+        LogPrintUtil.verbose { "AdaptiveCanvas::imageFromImageBitMap" }
         return 0L
     }
 
     override fun applyRenderEffect(renderEffect: RenderEffect?) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::applyRenderEffect")
+        LogPrintUtil.verbose { "AdaptiveCanvas::applyRenderEffect" }
     }
 
     override fun clearClip() {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::clearClip")
+        LogPrintUtil.verbose { "AdaptiveCanvas::clearClip" }
     }
 
     override fun save() {
         nativeCanvasProxy.save()
-        LogPrintUtil.verbose("AdaptiveCanvas::save")
+        LogPrintUtil.verbose { "AdaptiveCanvas::save" }
     }
 
     override fun restore() {
         nativeCanvasProxy.restore()
-        LogPrintUtil.verbose("AdaptiveCanvas::restore")
+        LogPrintUtil.verbose { "AdaptiveCanvas::restore" }
     }
 
     override fun saveLayer(bounds: Rect, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::saveLayer")
+        LogPrintUtil.verbose { "AdaptiveCanvas::saveLayer" }
     }
 
     override fun translate(dx: Float, dy: Float) {
         nativeCanvasProxy.translate(dx, dy)
-        LogPrintUtil.verbose("AdaptiveCanvas::translate, dx: $dx, dy: $dy")
+        LogPrintUtil.verbose { "AdaptiveCanvas::translate, dx: $dx, dy: $dy" }
     }
 
     override fun scale(sx: Float, sy: Float) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::scale")
+        LogPrintUtil.verbose { "AdaptiveCanvas::scale" }
     }
 
     override fun rotate(degrees: Float) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::rotate")
+        LogPrintUtil.verbose { "AdaptiveCanvas::rotate" }
     }
 
     override fun skew(sx: Float, sy: Float) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::skew")
+        LogPrintUtil.verbose { "AdaptiveCanvas::skew" }
     }
 
     override fun concat(matrix: Matrix) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::concat, matrix: $matrix")
+        LogPrintUtil.verbose { "AdaptiveCanvas::concat, matrix: $matrix" }
     }
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
         nativeCanvasProxy.clipRect(left, top, right, bottom, clipOp.asNativeEnum().value)
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::clipRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, clipOp: $clipOp"
-        )
+        }
     }
 
     override fun clipPath(path: Path, clipOp: ClipOp) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::clipPath, path: $path, clipOp: $clipOp")
+        LogPrintUtil.verbose { "AdaptiveCanvas::clipPath, path: $path, clipOp: $clipOp" }
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
         nativePaint.sync(paint)
         nativeCanvasProxy.drawLine(p1.x, p1.y, p2.x, p2.y, nativePaint)
-        LogPrintUtil.verbose("AdaptiveCanvas::drawLine, p1: $p1, p2: $p2, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawLine, p1: $p1, p2: $p2, paint: $paint" }
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
         nativePaint.sync(paint)
         nativeCanvasProxy.drawRect(left, top, right, bottom, nativePaint)
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::drawRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
-        )
+        }
     }
 
     override fun drawRoundRect(
@@ -247,24 +247,24 @@ internal class AdaptiveCanvas(
     ) {
         nativePaint.sync(paint)
         nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::drawRoundRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, " +
                     "radiusX: $radiusX, radiusY: $radiusY, paint: $paint"
-        )
+        }
     }
 
     override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::drawRoundRect, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
-        )
+        }
     }
 
     override fun drawCircle(center: Offset, radius: Float, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawCircle, center: $center, radius: $radius, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawCircle, center: $center, radius: $radius, paint: $paint" }
     }
 
     override fun drawArc(
@@ -278,22 +278,22 @@ internal class AdaptiveCanvas(
         paint: Paint
     ) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::drawArc, " +
                     "left: $left, top: $top, right: $right, bottom: $bottom, " +
                     "startAngle: $startAngle, sweepAngle: $sweepAngle, " +
                     "useCenter: $useCenter, paint: $paint"
-        )
+        }
     }
 
     override fun drawPath(path: Path, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawPath, path: $path, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawPath, path: $path, paint: $paint" }
     }
 
     override fun drawImage(image: ImageBitmap, topLeftOffset: Offset, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawImage, image: $image, topLeftOffset: $topLeftOffset, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawImage, image: $image, topLeftOffset: $topLeftOffset, paint: $paint" }
     }
 
     override fun drawImageRect(
@@ -305,41 +305,41 @@ internal class AdaptiveCanvas(
         paint: Paint
     ) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "AdaptiveCanvas::drawImageRect, " +
                     "image: $image, srcOffset: $srcOffset, srcSize: $srcSize" +
                     "dstOffset: $dstOffset, dstSize: $dstSize, paint: $paint"
-        )
+        }
     }
 
     override fun drawPoints(pointMode: PointMode, points: List<Offset>, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawPoints, pointMode: $pointMode, points: $points, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawPoints, pointMode: $pointMode, points: $points, paint: $paint" }
 
     }
 
     override fun drawRawPoints(pointMode: PointMode, points: FloatArray, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawRawPoints, pointMode: $pointMode, points: $points, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawRawPoints, pointMode: $pointMode, points: $points, paint: $paint" }
     }
 
     override fun drawVertices(vertices: Vertices, blendMode: BlendMode, paint: Paint) {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::drawRawVertices, vertices: $vertices, blendMode: $blendMode, paint: $paint")
+        LogPrintUtil.verbose { "AdaptiveCanvas::drawRawVertices, vertices: $vertices, blendMode: $blendMode, paint: $paint" }
     }
 
     override fun enableZ() {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::enableZ")
+        LogPrintUtil.verbose { "AdaptiveCanvas::enableZ" }
     }
 
     override fun disableZ() {
         // TODO("Not yet implemented")
-        LogPrintUtil.verbose("AdaptiveCanvas::disableZ")
+        LogPrintUtil.verbose { "AdaptiveCanvas::disableZ" }
     }
 
     fun destroy() {
         // TODO: destroy some resources
-        LogPrintUtil.verbose("AdaptiveCanvas::destroy")
+        LogPrintUtil.verbose { "AdaptiveCanvas::destroy" }
     }
 }

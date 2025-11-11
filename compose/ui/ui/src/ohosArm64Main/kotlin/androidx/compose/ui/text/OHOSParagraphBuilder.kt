@@ -118,7 +118,7 @@ internal class ParagraphBuilder(
                 ParagraphBuilder_build(it)
             }
         }
-        LogPrintUtil.verbose("[Paragraph] OHOSNativeParagraphProxy::create, Creating NativeParagraph: $handle with params: $params")
+        LogPrintUtil.verbose { "[Paragraph] OHOSNativeParagraphProxy::create, Creating NativeParagraph: $handle with params: $params" }
         return handle?.let { OHOSNativeParagraphProxy(it) }
     }
 
@@ -179,7 +179,7 @@ internal class ParagraphBuilder(
             // 需要将start和end转换为字节位置
             val startByteIndex = text.substring(0, range.start).encodeToByteArray().size
             val endByteIndex = text.substring(0, range.end).encodeToByteArray().size
-            LogPrintUtil.verbose("ParagraphBuilder::createParagraphParams, Converting SpanStyle: $spanStyle in range: $range")
+            LogPrintUtil.verbose { "ParagraphBuilder::createParagraphParams, Converting SpanStyle: $spanStyle in range: $range" }
             val nativeSpanStyleRange = NativeSpanStyleRange(startByteIndex, endByteIndex).apply {
                 spanStyle.fontWeight?.let { fontWeight = StyleMapperRegistry.fontWeight.map(it) }
                 spanStyle.fontStyle?.let { fontStyle = StyleMapperRegistry.fontStyle.map(it) }
@@ -206,7 +206,7 @@ internal class ParagraphBuilder(
                     )
                 }
             }
-            LogPrintUtil.verbose("ParagraphBuilder::createParagraphParams,  NativeSpanStyle: $nativeSpanStyleRange")
+            LogPrintUtil.verbose { "ParagraphBuilder::createParagraphParams,  NativeSpanStyle: $nativeSpanStyleRange" }
             nativeSpanStyleRange
         }
 

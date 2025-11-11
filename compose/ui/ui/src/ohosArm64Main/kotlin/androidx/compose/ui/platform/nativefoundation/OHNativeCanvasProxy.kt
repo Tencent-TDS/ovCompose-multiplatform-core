@@ -273,12 +273,12 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
         }
 
         // 临时日志：帮助验证方法是否被调用
-        LogPrintUtil.verbose(
+        LogPrintUtil.verbose {
             "[OHOS] applyTransformMatrix called but NOT IMPLEMENTED! " +
                     "translation=($translationX, $translationY), " +
                     "scale=($scaleX, $scaleY), " +
                     "rotation=($rotationX, $rotationY, $rotationZ)"
-        )
+        }
     }
 
     /**

@@ -41,11 +41,15 @@ actual object TraceUtil {
     }
 
     actual inline fun <T> traceSync(sectionName: String, block: () -> T): T {
-        if (isTraceEnabled) traceImpl?.startTrace("$sectionName[VsyncId:$globalVsyncId]")
-        return try {
-            block()
-        } finally {
-            if (isTraceEnabled) traceImpl?.endTrace(sectionName)
+        if (ENABLE_VERBOSE_TRACE_COMPILE_TIME) {
+            if (isTraceEnabled) traceImpl?.startTrace("$sectionName[VsyncId:$globalVsyncId]")
+            return try {
+                block()
+            } finally {
+                if (isTraceEnabled) traceImpl?.endTrace(sectionName)
+            }
+        } else {
+            return block()
         }
     }
 

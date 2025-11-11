@@ -35,7 +35,7 @@ class ArkUIRenderNodeLayerFactory(
         onDestroy: () -> Unit,
         sourceType: LayerSourceType
     ): OwnedLayer {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayerFactory::createLayer - sourceType=$sourceType")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayerFactory::createLayer - sourceType=$sourceType" }
         return ArkUIRenderNodeLayer(
             density,
             invalidateParentLayer,

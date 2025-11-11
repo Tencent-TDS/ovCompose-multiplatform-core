@@ -16,6 +16,8 @@
 
 package androidx.compose.common.interop
 
+const val ENABLE_VERBOSE_TRACE_COMPILE_TIME = false
+
 interface SyncTraceInterface {
     fun startTrace(scene: String)
     fun endTrace(sectionName: String?)
