@@ -134,11 +134,16 @@ internal class ParagraphBuilder(
         } else {
             16.0f * densityValue  // 默认字体大小
         }
-        // 转换行高（考虑density）
-        val lineHeightInPx = if (textStyle.lineHeight.value > 0) {
-            textStyle.lineHeight.value * densityValue
+        
+        // 修复：OH_Drawing_SetTextStyleFontHeight 期望的是行高缩放系数（倍数），而不是像素值
+        // 需要计算 lineHeight 相对于 fontSize 的比例
+        val lineHeightMultiplier = if (textStyle.lineHeight.value > 0 && fontSizeInPx > 0) {
+            // 计算行高的像素值
+            val lineHeightInPx = textStyle.lineHeight.value * densityValue
+            // 返回相对于字体大小的倍数
+            lineHeightInPx / fontSizeInPx
         } else {
-            0.0f  // 0表示使用默认行高
+            0.0f  // 0 表示使用默认行高
         }
 
         // 转换字母间距（安全处理无限值）
@@ -243,7 +248,7 @@ internal class ParagraphBuilder(
             ellipsis = ellipsis,
             letterSpacing = letterSpacingValue.toDouble(),
             wordSpacing = 0.0,
-            lineHeight = lineHeightInPx.toDouble(),
+            lineHeight = lineHeightMultiplier.toDouble(),  // 修复：传递倍数而不是像素值
             spanStyles = nativeSpanStyles,  // 传递富文本样式
             placeholders = nativePlaceholders,  // 传递占位符
             maxLines = maxLinesCount,

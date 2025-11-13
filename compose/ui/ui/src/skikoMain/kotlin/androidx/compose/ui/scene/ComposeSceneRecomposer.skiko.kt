@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.scene
 
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.Recomposer
@@ -78,7 +79,9 @@ internal class ComposeSceneRecomposer(
      * performing in the recomposition scope.
      */
     fun performScheduledTasks() {
-        recomposeDispatcher.flush()
+        TraceUtil.traceSync("ComposeSceneRecomposer:performScheduledTasks") {
+            recomposeDispatcher.flush()
+        }
     }
 
     /**

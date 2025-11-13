@@ -1,6 +1,6 @@
 package androidx.compose.ui.platform.nativefoundation
 
-import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.ui.arkui.utils.NativeBasicShader_Handle
 import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_FilterQuality
@@ -8,17 +8,7 @@ import androidx.compose.ui.arkui.utils.OH_Native_Draw_PaintingStyle
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_StrokeCap
 import androidx.compose.ui.arkui.utils.OH_Native_Draw_StrokeJoin
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Paint
@@ -126,48 +116,25 @@ class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
     }
 
     fun sync(paint: Paint) {
-        // 实现与 OHComposeNativePaint 的同步逻辑
-        LogPrintUtil.verbose { "OHComposeNativePaint::sync, compose paint: (${paint.toReadableString()})" }
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(handle, paint.alpha)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(
-            handle,
-            paint.isAntiAlias
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor(handle, paint.color.value)
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(
-            handle,
-            paint.strokeWidth
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(
-            handle,
-            paint.blendMode.asNativeBlendMode().value
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle(
-            handle,
-            paint.style.asNativePaintStyle().value
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(
-            handle,
-            paint.strokeCap.asNativeStrokeCap().value
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(
-            handle,
-            paint.strokeJoin.asNativeStrokeJoin().value
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(
-            handle,
-            paint.filterQuality.asNativeFilterQuality().value
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(
-            handle,
-            paint.strokeMiterLimit
-        )
-        androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(
-            handle,
-            paint.shader?.nativeShader as NativeBasicShader_Handle?
-        )
-        // TODO setColorFilter
-        // androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(handle, paint.colorFilter?.nativeColorFilter)
+        TraceUtil.traceSync("OHComposeNativePaint:sync") {
+            // 使用批量同步函数，将11次FFI调用合并为1次，大幅提升性能
+            androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
+                handle,
+                paint.alpha,
+                paint.isAntiAlias,
+                paint.color.value,
+                paint.strokeWidth,
+                paint.blendMode.asNativeBlendMode().value,
+                paint.style.asNativePaintStyle().value,
+                paint.strokeCap.asNativeStrokeCap().value,
+                paint.strokeJoin.asNativeStrokeJoin().value,
+                paint.filterQuality.asNativeFilterQuality().value,
+                paint.strokeMiterLimit,
+                paint.shader?.nativeShader as NativeBasicShader_Handle?
+            )
+            // TODO setColorFilter
+            // androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(handle, paint.colorFilter?.nativeColorFilter)
+        }
     }
 }
 

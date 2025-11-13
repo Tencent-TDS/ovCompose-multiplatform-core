@@ -17,6 +17,7 @@
 package androidx.compose.foundation
 
 import androidx.annotation.FloatRange
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
@@ -150,13 +151,15 @@ private class BackgroundNode(
     private var lastShape: Shape? = null
 
     override fun ContentDrawScope.draw() {
-        if (shape === RectangleShape) {
-            // shortcut to avoid Outline calculation and allocation
-            drawRect()
-        } else {
-            drawOutline()
+        TraceUtil.traceSync("BackgroundNode:draw") {
+            if (shape === RectangleShape) {
+                // shortcut to avoid Outline calculation and allocation
+                drawRect()
+            } else {
+                drawOutline()
+            }
+            drawContent()
         }
-        drawContent()
     }
 
     private fun ContentDrawScope.drawRect() {

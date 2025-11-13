@@ -9,26 +9,30 @@
 #include "oh_compose_native_paint.h"
 
 namespace OH {
-void OHRenderNodeDrawRect(float left, float top, float right, float bottom, NativeBasicShader* shader,
-                          const RenderNodeSaveState* saveState, BaseRenderNode* renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint);
+void OHRenderNodeDrawRect(float left, float top, float right, float bottom, NativeBasicShader *shader,
+                          const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint);
 
 void OHRenderNodeDrawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
-                               const NativeBasicShader* shader, const RenderNodeSaveState* saveState,
-                               BaseRenderNode* renderNodeForDrawing,
-                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint);
+                               const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
+                               BaseRenderNode *renderNodeForDrawing,
+                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint);
 
-void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2, NativeBasicShader* shader,
-                          const RenderNodeSaveState* saveState, BaseRenderNode* renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint);
+void OHRenderNodeDrawLine(float x1, float y1, float x2, float y2, NativeBasicShader *shader,
+                          const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint);
 
-void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom, const RenderNodeSaveState* saveState,
-                              BaseRenderNode* renderNodeForDrawing);
+void OHRenderNodeDrawCircle(float centerX, float centerY, float radius, const NativeBasicShader *shader,
+                            const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                            const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint);
 
-void OHRenderNodeDrawText(const RenderNodeSaveState* saveState, Paragraph* paragraphNode);
+void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom, const RenderNodeSaveState *saveState,
+                              BaseRenderNode *renderNodeForDrawing);
+
+void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode);
 
 void OHRenderNodeDrawThrow(int32_t status);
 
-OH_Drawing_ShaderEffect* CreateShaderEffect(NativeBasicShader* shader);
-}  // namespace OH
+OH_Drawing_ShaderEffect *CreateShaderEffect(NativeBasicShader *shader);
+} // namespace OH
 #endif

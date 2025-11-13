@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.layout.AlignmentLine
@@ -373,46 +374,48 @@ internal class LayoutNodeLayoutDelegate(
         }
 
         override fun layoutChildren() {
-            layingOutChildren = true
-            alignmentLines.recalculateQueryOwner()
+            TraceUtil.traceSync("LayoutNodeLayoutDelegate:layoutChildren") {
+                layingOutChildren = true
+                alignmentLines.recalculateQueryOwner()
 
-            if (layoutPending) {
-                onBeforeLayoutChildren()
-            }
-            // as a result of the previous operation we can figure out a child has been resized
-            // and we need to be remeasured, not relaid out
-            if (layoutPendingForAlignment ||
-                (!duringAlignmentLinesQuery && !innerCoordinator.isPlacingForAlignment &&
-                    layoutPending)
-            ) {
-                layoutPending = false
-                val oldLayoutState = layoutState
-                layoutState = LayoutState.LayingOut
-                coordinatesAccessedDuringPlacement = false
-                with(layoutNode) {
-                    val owner = requireOwner()
-                    owner.snapshotObserver.observeLayoutSnapshotReads(
-                        this,
-                        affectsLookahead = false,
-                        block = layoutChildrenBlock
-                    )
+                if (layoutPending) {
+                    onBeforeLayoutChildren()
                 }
-                layoutState = oldLayoutState
-
-                if (innerCoordinator.isPlacingForAlignment &&
-                    coordinatesAccessedDuringPlacement
+                // as a result of the previous operation we can figure out a child has been resized
+                // and we need to be remeasured, not relaid out
+                if (layoutPendingForAlignment ||
+                    (!duringAlignmentLinesQuery && !innerCoordinator.isPlacingForAlignment &&
+                        layoutPending)
                 ) {
-                    requestLayout()
+                    layoutPending = false
+                    val oldLayoutState = layoutState
+                    layoutState = LayoutState.LayingOut
+                    coordinatesAccessedDuringPlacement = false
+                    with(layoutNode) {
+                        val owner = requireOwner()
+                        owner.snapshotObserver.observeLayoutSnapshotReads(
+                            this,
+                            affectsLookahead = false,
+                            block = layoutChildrenBlock
+                        )
+                    }
+                    layoutState = oldLayoutState
+
+                    if (innerCoordinator.isPlacingForAlignment &&
+                        coordinatesAccessedDuringPlacement
+                    ) {
+                        requestLayout()
+                    }
+                    layoutPendingForAlignment = false
                 }
-                layoutPendingForAlignment = false
-            }
 
-            if (alignmentLines.usedDuringParentLayout) {
-                alignmentLines.previousUsedDuringParentLayout = true
-            }
-            if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
+                if (alignmentLines.usedDuringParentLayout) {
+                    alignmentLines.previousUsedDuringParentLayout = true
+                }
+                if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
 
-            layingOutChildren = false
+                layingOutChildren = false
+            }
         }
 
         private fun checkChildrenPlaceOrderForUpdates() {
@@ -1627,23 +1630,25 @@ internal class LayoutNodeLayoutDelegate(
      * and after the measurement.
      */
     private fun performMeasure(constraints: Constraints) {
-        check(layoutState == LayoutState.Idle) {
-            "layout state is not idle before measure starts"
-        }
-        layoutState = LayoutState.Measuring
-        measurePending = false
-        performMeasureConstraints = constraints
-        layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(
-            layoutNode,
-            affectsLookahead = false,
-            performMeasureBlock
-        )
-        // The resulting layout state might be Ready. This can happen when the layout node's
-        // own modifier is querying an alignment line during measurement, therefore we
-        // need to also layout the layout node.
-        if (layoutState == LayoutState.Measuring) {
-            markLayoutPending()
-            layoutState = LayoutState.Idle
+        TraceUtil.traceSync("LayoutNodeLayoutDelegate:performMeasure") {
+            check(layoutState == LayoutState.Idle) {
+                "layout state is not idle before measure starts"
+            }
+            layoutState = LayoutState.Measuring
+            measurePending = false
+            performMeasureConstraints = constraints
+            layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(
+                layoutNode,
+                affectsLookahead = false,
+                performMeasureBlock
+            )
+            // The resulting layout state might be Ready. This can happen when the layout node's
+            // own modifier is querying an alignment line during measurement, therefore we
+            // need to also layout the layout node.
+            if (layoutState == LayoutState.Measuring) {
+                markLayoutPending()
+                layoutState = LayoutState.Idle
+            }
         }
     }
 

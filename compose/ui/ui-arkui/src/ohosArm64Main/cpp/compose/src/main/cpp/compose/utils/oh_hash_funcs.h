@@ -2,11 +2,11 @@
 #define OH_HASH_FUNCS_H
 
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <vector>
 
 #include "../constants/oh_native_constants.h"
+#include "../trace/oh_systrace_section.h"
 
 namespace OH {
 
@@ -139,6 +139,7 @@ OH_ALWAYS_INLINE uint64_t hashMergeWithSeed(uint64_t seed, size_t value) noexcep
 }
 
 template <typename... Args> OH_ALWAYS_INLINE uint64_t hashCombineSequential(Args... args) noexcept {
+    OH::SystraceSection trace("hashCombineSequential");
     uint64_t seed = 0;
 
     // 顺序合并所有参数
@@ -151,6 +152,7 @@ template <typename... Args> OH_ALWAYS_INLINE uint64_t hashCombineSequential(Args
 /// 参考 iOS 平台的 TMMNativeDataHashFromPaint 实现
 /// - Parameter paint: OHComposeNativePaint*
 template <typename PaintType> OH_ALWAYS_INLINE uint64_t nativeDataHashFromPaint(PaintType *paint) noexcept {
+    OH::SystraceSection trace("nativeDataHashFromPaint");
     if (paint == nullptr) {
         return 0;
     }

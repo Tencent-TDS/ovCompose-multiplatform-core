@@ -9,13 +9,13 @@
 namespace androidx::compose::ui::arkui::utils {
 class OHNativeCanvasProxy {
 public:
-    explicit OHNativeCanvasProxy(OH::BaseRenderNode* rootNode);
+    explicit OHNativeCanvasProxy(OH::BaseRenderNode *rootNode);
     ~OHNativeCanvasProxy();
-    OHComposeNativePaint* Paint();
-    OH::BaseRenderNode* getRenderNode() const;
+    OHComposeNativePaint *Paint();
+    OH::BaseRenderNode *getRenderNode() const;
     void beginDraw();
     void attachToRootView() const;
-    void setParent(const OHNativeCanvasProxy* canvasParentProxy) const;
+    void setParent(const OHNativeCanvasProxy *canvasParentProxy) const;
     void finishDraw();
     void save();
     void restore();
@@ -25,24 +25,25 @@ public:
     void setPivot(float px, float py) const;
     void setOpacity(float opacity) const;
     void applyTransformMatrix(float rotationX, float rotationY, float rotationZ, float scaleX, float scaleY,
-                             float translateX, float translateY, double transformM34) const;
+                              float translateX, float translateY, double transformM34) const;
 
-    void drawRect(float left, float top, float right, float bottom, OHComposeNativePaint* paint);
+    void drawRect(float left, float top, float right, float bottom, OHComposeNativePaint *paint);
     void drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
-                       OHComposeNativePaint* paint);
-    void drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint* paint);
-    void drawLayer(OH::BaseRenderNode* renderNode);
-    void drawParagraph(OH::Paragraph* paragraph);
+                       OHComposeNativePaint *paint);
+    void drawLine(float x1, float y1, float x2, float y2, OHComposeNativePaint *paint);
+    void drawCircle(float centerX, float centerY, float radius, OHComposeNativePaint *paint);
+    void drawLayer(OH::BaseRenderNode *renderNode);
+    void drawParagraph(OH::Paragraph *paragraph);
     void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);
-    void drawLayerWithSubproxy(const OHNativeCanvasProxy* subProxy);
+    void drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy);
     void markSelfAsNodeGroup() const;
 
 private:
-    OHComposeNativePaint* paint_;
-    OH::BaseRenderNode* rootNode_;
+    OHComposeNativePaint *paint_{};
+    OH::BaseRenderNode *rootNode_;
     std::unique_ptr<OH::BaseRenderNode> canvasNode_;
     OH::PictureRecorder _pictureRecorder;
 };
-}  // namespace androidx::compose::ui::arkui::utils
+} // namespace androidx::compose::ui::arkui::utils
 
 #endif

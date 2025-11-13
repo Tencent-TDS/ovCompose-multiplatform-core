@@ -1,6 +1,7 @@
 package androidx.compose.ui.platform.nativefoundation
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.OHComposeNativePaint_Handle
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
@@ -68,32 +69,42 @@ internal class AdaptiveCanvas(
 
 
     override fun onPreDraw() {
-        nativeCanvasProxy.beginDraw()
-        LogPrintUtil.verbose { "AdaptiveCanvas::beginDraw" }
+        TraceUtil.traceSync("AdaptiveCanvas:onPreDraw") {
+            nativeCanvasProxy.beginDraw()
+            LogPrintUtil.verbose { "AdaptiveCanvas::beginDraw" }
+        }
     }
 
     override fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
-        nativeCanvasProxy.drawLayer(renderNodeHandle)
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawLayer" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawLayer") {
+            nativeCanvasProxy.drawLayer(renderNodeHandle)
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawLayer" }
+        }
     }
 
     override fun drawParagraph(paragraph: BaseRenderNode_Handle) {
-        nativeCanvasProxy.drawParagraph(paragraph)
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraph" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawParagraph") {
+            nativeCanvasProxy.drawParagraph(paragraph)
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraph" }
+        }
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {
-        nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawLayerWithNativeCanvas" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawLayerWithNativeCanvas") {
+            nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawLayerWithNativeCanvas" }
+        }
     }
 
     override fun onPostDraw() {
-        nativeCanvasProxy.finishDraw().also {
-            if (sourceType == LayerSourceType.LAZY_LIST_ITEM) {
-                nativeCanvasProxy.markSelfAsNodeGroup()
+        TraceUtil.traceSync("AdaptiveCanvas:onPostDraw") {
+            nativeCanvasProxy.finishDraw().also {
+                if (sourceType == LayerSourceType.LAZY_LIST_ITEM) {
+                    nativeCanvasProxy.markSelfAsNodeGroup()
+                }
             }
+            LogPrintUtil.verbose { "AdaptiveCanvas::onPostDraw complete" }
         }
-        LogPrintUtil.verbose { "AdaptiveCanvas::onPostDraw complete" }
     }
 
     override fun clipRoundRect(rect: RoundRect) {
@@ -228,11 +239,13 @@ internal class AdaptiveCanvas(
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-        nativePaint.sync(paint)
-        nativeCanvasProxy.drawRect(left, top, right, bottom, nativePaint)
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::drawRect, " +
-                    "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
+        TraceUtil.traceSync("AdaptiveCanvas:drawRect") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawRect(left, top, right, bottom, nativePaint)
+            LogPrintUtil.verbose {
+                "AdaptiveCanvas::drawRect, " +
+                        "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
+            }
         }
     }
 
@@ -245,12 +258,14 @@ internal class AdaptiveCanvas(
         radiusY: Float,
         paint: Paint
     ) {
-        nativePaint.sync(paint)
-        nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::drawRoundRect, " +
-                    "left: $left, top: $top, right: $right, bottom: $bottom, " +
-                    "radiusX: $radiusX, radiusY: $radiusY, paint: $paint"
+        TraceUtil.traceSync("AdaptiveCanvas:drawRoundRect") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
+            LogPrintUtil.verbose {
+                "AdaptiveCanvas::drawRoundRect, " +
+                        "left: $left, top: $top, right: $right, bottom: $bottom, " +
+                        "radiusX: $radiusX, radiusY: $radiusY, paint: $paint"
+            }
         }
     }
 
@@ -263,8 +278,11 @@ internal class AdaptiveCanvas(
     }
 
     override fun drawCircle(center: Offset, radius: Float, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawCircle, center: $center, radius: $radius, paint: $paint" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawCircle") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawCircle(center.x, center.y, radius, nativePaint)
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawCircle, center: $center, radius: $radius, paint: $paint" }
+        }
     }
 
     override fun drawArc(

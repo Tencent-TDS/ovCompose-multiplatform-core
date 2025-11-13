@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.layout
 
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Measurable
@@ -188,12 +189,14 @@ private class OffsetNode(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        val placeable = measurable.measure(constraints)
-        return layout(placeable.width, placeable.height) {
-            if (rtlAware) {
-                placeable.placeRelative(x.roundToPx(), y.roundToPx())
-            } else {
-                placeable.place(x.roundToPx(), y.roundToPx())
+        return TraceUtil.traceSync("OffsetNode:measure") {
+            val placeable = measurable.measure(constraints)
+            layout(placeable.width, placeable.height) {
+                if (rtlAware) {
+                    placeable.placeRelative(x.roundToPx(), y.roundToPx())
+                } else {
+                    placeable.place(x.roundToPx(), y.roundToPx())
+                }
             }
         }
     }

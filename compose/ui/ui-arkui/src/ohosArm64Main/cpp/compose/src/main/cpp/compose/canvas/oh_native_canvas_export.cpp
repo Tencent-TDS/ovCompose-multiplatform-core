@@ -79,6 +79,15 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeC
     canvasProxy->drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint);
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(OHNativeCanvasProxy_Handle proxy, float centerX,
+                                                                    float centerY, float radius,
+                                                                    OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawCircle(centerX, centerY, radius, nativePaint);
+}
+
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1,
                                                                   float x2, float y2,
                                                                   OHComposeNativePaint_Handle paint) {
@@ -353,6 +362,40 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHCompo
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter: "
          "colorFilter=%{public}p",
          colorFilter);
+}
+
+// Batch sync all paint properties in a single FFI call to optimize performance
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
+    OHComposeNativePaint_Handle paint,
+    const float alpha,
+    const bool isAntiAlias,
+    const uint64_t color,
+    const float strokeWidth,
+    uint32_t blendMode,
+    uint32_t style,
+    uint32_t strokeCap,
+    uint32_t strokeJoin,
+    uint32_t filterQuality,
+    const float strokeMiterLimit,
+    NativeBasicShader_Handle shader) {
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+
+    // Set all properties in one batch
+    nativePaint->alpha = alpha;
+    nativePaint->isAntiAlias = isAntiAlias;
+    nativePaint->color = static_cast<uint32_t>(color >> 32);
+    nativePaint->strokeWidth = strokeWidth;
+    nativePaint->blendMode = static_cast<OH_Drawing_BlendMode>(blendMode);
+    nativePaint->style = static_cast<OH_Native_Draw_PaintingStyle>(style);
+    nativePaint->strokeCap = static_cast<OH_Native_Draw_StrokeCap>(strokeCap);
+    nativePaint->strokeJoin = static_cast<OH_Native_Draw_StrokeJoin>(strokeJoin);
+    nativePaint->filterQuality = static_cast<OH_Native_Draw_FilterQuality>(filterQuality);
+    nativePaint->strokeMiterLimit = strokeMiterLimit;
+    nativePaint->shader = reinterpret_cast<OH::NativeBasicShader *>(shader);
+
+    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll: "
+         "alpha=%{public}f, color=0x%{public}X, strokeWidth=%{public}f",
+         alpha, nativePaint->color, strokeWidth);
 }
 
 /// NativeShader related methods

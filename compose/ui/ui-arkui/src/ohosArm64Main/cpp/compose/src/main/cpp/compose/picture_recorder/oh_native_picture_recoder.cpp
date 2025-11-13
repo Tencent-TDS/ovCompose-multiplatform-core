@@ -5,6 +5,7 @@
 #include <vector>
 #include "oh_native_picture_recorder.h"
 #include "oh_native_picture_recorder_diff.h"
+#include "../trace/oh_systrace_section.h"
 
 namespace OH {
 PictureRecorder::PictureRecorderProps::PictureRecorderProps() noexcept {
@@ -16,6 +17,7 @@ PictureRecorder::PictureRecorderProps::PictureRecorderProps() noexcept {
 }
 
 void PictureRecorder::PictureRecorderProps::prepareForReuse() {
+    LOGI("[PV] this:%{public}p prepareForReuse currentDrawingItems.clear finalDrawingItems.clear", this);
     renderNodePool.clear();
     clipPool.clear();
     currentDrawingItems.clear();
@@ -33,6 +35,7 @@ PictureRecorder::PictureRecorder() noexcept {
 PictureRecorder::~PictureRecorder() = default;
 
 void PictureRecorder::startRecording(BaseRenderNode &rootRenderNode) {
+    OH::SystraceSection trace("PictureRecorder:startRecording");
     clipCountDuringOnceOperation = 0;
     rootRenderNodeHash = rootRenderNode.getHash();
     resetSequenceTableIndex();
@@ -42,18 +45,23 @@ void PictureRecorder::startRecording(BaseRenderNode &rootRenderNode) {
 }
 
 void PictureRecorder::finishRecording(BaseRenderNode &rootRenderNode) {
+    OH::SystraceSection trace("PictureRecorder:finishRecording");
     if (!props) {
         return;
     }
 
     if (currentDrawHash == finishDrawHash) {
+        LOGI("[PV] renderNode:%{public}p finishRecording 差异为0", &rootRenderNode);
         return;
     }
 
     if (isFirstRender) {
         isFirstRender = false;
+        LOGI("[PV] renderNode:%{public}p finishRecording 首次提交命令，直接 rebuildRenderNodeHierarchy",
+             &rootRenderNode);
         rebuildRenderNodeHierarchy(rootRenderNode);
     } else {
+        LOGI("[PV] renderNode:%{public}p finishRecording 非首次提交命令 且存在差异开始", &rootRenderNode);
         diffDrawingItems(rootRenderNode);
     }
 }
@@ -170,6 +178,7 @@ void PictureRecorder::popClip() {
 }
 
 PictureRecorderUpdateInfo PictureRecorder::draw(OH_Native_Drawing_Type drawingType, uint64_t drawingContentHash) {
+    OH::SystraceSection trace("PictureRecorder:draw");
     initPropsIfNeeded();
 
     const RenderNodeSaveState &saveState = topState();
@@ -187,6 +196,7 @@ PictureRecorderUpdateInfo PictureRecorder::draw(OH_Native_Drawing_Type drawingTy
 }
 
 void PictureRecorder::prepareForNextRecording(BaseRenderNode &rootRenderNode) {
+    OH::SystraceSection trace("PictureRecorder:prepareForNextRecording");
     props->finalDrawingItems.swap(props->currentDrawingItems);
     props->currentDrawingItems.clear();
 
@@ -195,28 +205,38 @@ void PictureRecorder::prepareForNextRecording(BaseRenderNode &rootRenderNode) {
 
     saveStack.clear();
     saveStack.emplace_back(RenderNodeSaveStateCreateSafeGuard());
+    LOGI("[PV] renderNode:%{public}p did prepareForNextRecording", &rootRenderNode);
 }
 
 void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode) {
+    OH::SystraceSection trace("PictureRecorder:rebuildRenderNodeHierarchy");
     const std::vector<DrawingItem> &finialDrawingItems = props->currentDrawingItems;
     const size_t size = finialDrawingItems.size();
 
     std::vector<BaseRenderNode *> stack;
     stack.emplace_back(&rootRenderNode);
 
+    LOGI("[PV] renderNode:%{public}p 开始处理视图层级 size:%{public}zu", &rootRenderNode, size);
     for (size_t i = 0; i < size; i++) {
         const DrawingItem &drawingItem = finialDrawingItems[i];
         const OH_Native_Drawing_Type drawingType = drawingItem.drawingType;
+        LOGI("[PV] renderNode:%{public}p loop i=%{public}zu drawingItem hash:%{public}llu", &rootRenderNode, i,
+             drawingItem.itemHash);
         switch (drawingType) {
         case OH_Native_Drawing_Type::DrawingTypeSave:
             break;
         case OH_Native_Drawing_Type::DrawingTypeClip: {
             auto *clipRenderNode = getOrCreateClipRenderNode(drawingItem.itemHash);
+            clipRenderNode->setHostingHash(static_cast<uint32_t>(rootRenderNodeHash));
             if (drawingItem.clipIndex == 1) {
                 rootRenderNode.addChild(clipRenderNode);
+                LOGI("[PV] renderNode:%{public}p addChild clipRenderNode:%{public}p clipIndex:%{public}d",
+                     &rootRenderNode, clipRenderNode, drawingItem.clipIndex);
             } else {
                 auto *parentRenderNode = stack[stack.size() - 1];
                 parentRenderNode->addChild(clipRenderNode);
+                LOGI("[PV] renderNode:%{public}p addChild clipRenderNode:%{public}p clipIndex:%{public}d",
+                     parentRenderNode, clipRenderNode, drawingItem.clipIndex);
             }
             stack.emplace_back(clipRenderNode);
             break;
@@ -228,47 +248,57 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
         default: {
             auto *parentRenderNode = stack[stack.size() - 1];
             auto *drawingRenderNode = getOrCreateRenderNodeForDrawing(drawingType, drawingItem.itemHash);
+            drawingRenderNode->setHostingHash(static_cast<uint32_t>(rootRenderNodeHash));
             parentRenderNode->addChild(drawingRenderNode);
             LOGI("[PV] parentNode: %{public}p addChild: %{public}p "
                  "drawingType: %{public}d, "
-                 "drawingItem.itemHash: %{public}lu",
+                 "drawingItem.itemHash: %{public}llu",
                  parentRenderNode, drawingRenderNode, drawingType, drawingItem.itemHash);
             break;
         }
         }
     }
+    LOGI("[PV] renderNode:%{public}p 结束处理视图层级", &rootRenderNode);
 }
 
-void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType,
-                                       uint64_t itemHash) {
+void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, const OH_Native_Drawing_Type drawingType,
+                                       const uint64_t itemHash) {
     switch (drawingType) {
-        case OH_Native_Drawing_Type::DrawingTypeClip: {
-            auto it = props->clipPool.find(itemHash);
-            if (it != props->clipPool.end()) {
-                auto *willBeDeleteClipRenderNode = it->second;
-                props->clipPool.erase(itemHash);
-                willBeDeleteClipRenderNode->removeFromParent();
-                props->eraseFromOwnedNodes(willBeDeleteClipRenderNode);
-                LOGI("[PV] renderNode:%{public}p clipPool remove clipView:%{public}p, itemHash%{public}llu", &rootRenderNode, nodeWillBeDelete, itemHash);
-            } else {
-                LOGI("[PV] renderNode:%{public}p clipPool remove failed, itemHash%{public}llu", &rootRenderNode, itemHash);
-            }
-            break;
+    case OH_Native_Drawing_Type::DrawingTypeClip: {
+        auto it = props->clipPool.find(itemHash);
+        if (it != props->clipPool.end()) {
+            auto *willBeDeleteClipRenderNode = it->second;
+            props->clipPool.erase(itemHash);
+            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode begin:%{public}p, itemHash%{public}llu",
+                 &rootRenderNode, willBeDeleteClipRenderNode, itemHash);
+            willBeDeleteClipRenderNode->removeFromParent();
+            props->eraseFromOwnedNodes(willBeDeleteClipRenderNode);
+            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode finish:%{public}p, itemHash%{public}llu",
+                 &rootRenderNode, willBeDeleteClipRenderNode, itemHash);
+        } else {
+            LOGI("[PV] renderNode:%{public}p clipPool remove failed, itemHash%{public}llu", &rootRenderNode, itemHash);
         }
-        default: {
-            auto iterator = props->renderNodePool.find(itemHash);
-            if (iterator != props->renderNodePool.end()) {
-                auto *willBeDeleteRenderNode = iterator->second;
-                props->renderNodePool.erase(iterator);
-                willBeDeleteRenderNode->removeFromParent();
-                props->eraseFromOwnedNodes(willBeDeleteRenderNode);
-            }
-            break;
+        break;
+    }
+    default: {
+        auto iterator = props->renderNodePool.find(itemHash);
+        if (iterator != props->renderNodePool.end()) {
+            auto *willBeDeleteRenderNode = iterator->second;
+            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode begin:%{public}p, itemHash%{public}llu",
+                 &rootRenderNode, willBeDeleteRenderNode, itemHash);
+            props->renderNodePool.erase(iterator);
+            willBeDeleteRenderNode->removeFromParent();
+            props->eraseFromOwnedNodes(willBeDeleteRenderNode);
+            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode finish:%{public}p, itemHash%{public}llu",
+                 &rootRenderNode, willBeDeleteRenderNode, itemHash);
         }
+        break;
+    }
     }
 }
 
 void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
+    OH::SystraceSection trace("PictureRecorder:diffDrawingItems");
     const std::vector<DrawingItem> &oldArray = props->finalDrawingItems;
     const std::vector<DrawingItem> &newArray = props->currentDrawingItems;
 
@@ -276,11 +306,13 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
     const size_t oldSize = oldArray.size();
 
     if (oldSize == 0 && newSize > 0) {
+        LOGI("[PV] renderNode:%{public}p 纯新增 newSize:%{public}zu", &rootRenderNode, newSize);
         rebuildRenderNodeHierarchy(rootRenderNode);
         return;
     }
 
     if (oldSize > 0 && newSize == 0) {
+        LOGI("[PV] renderNode:%{public}p 纯删除", &rootRenderNode);
         for (size_t i = 0; i < oldSize; i++) {
             const DrawingItem &commandToBeDelete = oldArray[i];
             const OH_Native_Drawing_Type drawingType = commandToBeDelete.drawingType;
@@ -305,6 +337,8 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
 
     bool shouldRebuildRenderNodeHierarchy = insertSize > 0 || diffResult.movedItems.size() > 0;
 
+    LOGI("[PV] renderNode:%{public}p diff 结果 deleteSize:%{public}d insertSize:%{public}d movedSize:%{public}zu",
+         &rootRenderNode, deleteSize, insertSize, diffResult.movedItems.size());
     for (size_t i = 0; i < deleteSize; i++) {
         auto removeIndex = diffResult.deletsItems[i];
         const DrawingItem &commandToBeDelete = oldArray[removeIndex];
@@ -318,13 +352,14 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
         }
 
         detachRenderNode(rootRenderNode, willBeDeleteDrawingType, itemHash);
-        shouldRebuildRenderNodeHierarchy =
-            shouldRebuildRenderNodeHierarchy ||
-            (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
-        LOGI("[PictureRecorder] diffDrawingItems insert: %{public}d, moveSize: %{public}d, clip: %{public}d ", insertSize, diffResult.movedItems.size(),
-                commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
+        shouldRebuildRenderNodeHierarchy = shouldRebuildRenderNodeHierarchy ||
+                                           (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
+        LOGI("[PV] diffDrawingItems insert: %{public}d, moveSize: %{public}d, clip: %{public}d ", insertSize,
+             diffResult.movedItems.size(), commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
     }
 
+    LOGI("[PV] renderNode:%{public}p 完成 diff 差异 apply shouldRebuildRenderNodeHierarchy:%{public}d", &rootRenderNode,
+         shouldRebuildRenderNodeHierarchy ? 1 : 0);
     if (shouldRebuildRenderNodeHierarchy) {
         rebuildRenderNodeHierarchy(rootRenderNode);
     }

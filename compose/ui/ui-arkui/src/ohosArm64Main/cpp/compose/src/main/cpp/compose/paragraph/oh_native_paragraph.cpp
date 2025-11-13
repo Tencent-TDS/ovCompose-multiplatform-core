@@ -431,7 +431,8 @@ void Paragraph::performLayout(const double maxWidth) {
     OH_Drawing_TypographyLayout(typography_.get(), maxWidth);
     isLayouted_ = true;
 
-    LOGI("[Paragraph::performLayout] Layout performed, invalidating caches");
+    LOGI("[Paragraph::performLayout] Layout performed, maxWidth=%{public}.2f, text_='%{public}s', invalidating caches",
+         maxWidth, text_.c_str());
 
     // 使缓存失效
     if (lineMetricsCache_) {
@@ -447,7 +448,11 @@ void Paragraph::performLayout(const double maxWidth) {
 double Paragraph::getHeight() const {
     if (!typography_.isValid())
         return 0.0;
-    return OH_Drawing_TypographyGetHeight(typography_.get());
+    const double height = OH_Drawing_TypographyGetHeight(typography_.get());
+    LOGI("[Paragraph::getHeight] this=%{public}p, layoutWidth_=%{public}.2f, "
+         "height=%{public}.2f, text='%{public}s'",
+         this, layoutWidth_, height, text_.c_str());
+    return height;
 }
 
 double Paragraph::getMinIntrinsicWidth() const {

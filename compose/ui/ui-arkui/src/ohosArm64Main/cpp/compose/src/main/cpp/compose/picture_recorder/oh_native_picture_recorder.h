@@ -12,6 +12,7 @@
 #include "../render_node/oh_line_gradient_render_node.h"
 #include "../render_node/oh_line_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
+#include "../trace/oh_systrace_section.h"
 #include "../utils/oh_hash_funcs.h"
 #include "../xcomponent_log.h"
 #include "oh_native_picture_recorder_drawing_Item.h"
@@ -111,7 +112,9 @@ public:
     void startRecording(BaseRenderNode &rootRenderNode);
     void finishRecording(BaseRenderNode &rootRenderNode);
 
-    OH_ALWAYS_INLINE void save() { pushSaveStack(OH_RenderNode_SaveState_MakeType::Save); }
+    OH_ALWAYS_INLINE void save() {
+        pushSaveStack(OH_RenderNode_SaveState_MakeType::Save);
+    }
 
     OH_ALWAYS_INLINE void restore() {
         if (saveStack.size() >= 2) {
@@ -141,6 +144,7 @@ public:
 
     OH_ALWAYS_INLINE BaseRenderNode *getOrCreateRenderNodeForDrawing(const OH_Native_Drawing_Type type,
                                                                      const uint64_t itemHash) {
+        OH::SystraceSection trace("PictureRecorder:getOrCreateRenderNodeForDrawing");
         initPropsIfNeeded();
 
         if (type == OH_Native_Drawing_Type::DrawingTypeClip) {
@@ -148,18 +152,20 @@ public:
         }
 
         if (auto *cachedNode = props->findRenderNode(itemHash)) {
+            LOGI("[PV] getOrCreateRenderNodeForDrawing from cache type:%{public}d itemHash:%{public}llu renderNode:%{public}p", type, itemHash, cachedNode);
             return cachedNode;
         }
 
-        return props->createAndAddRenderNode(type, itemHash);
+        auto *renderNode = props->createAndAddRenderNode(type, itemHash);
+        LOGI("[PV] getOrCreateRenderNodeForDrawing from no cache type:%{public}d itemHash:%{public}llu renderNode:%{public}p", type, itemHash, renderNode);
+        return renderNode;
     }
 
     OH_ALWAYS_INLINE PictureRecorderUpdateInfo drawRenderNode(BaseRenderNode *renderNode,
                                                               OH_DrawingNode_Type renderNodeType) {
+        OH::SystraceSection trace("PictureRecorder:drawRenderNode");
         initPropsIfNeeded();
-        const OH_Native_Drawing_Type drawingType = (renderNodeType == OH_DrawingNode_Type::ParagraphNode)
-                                                       ? OH_Native_Drawing_Type::DrawingTypeDrawTextLayer
-                                                       : OH_Native_Drawing_Type::DrawingTypeDrawLayer;
+        const OH_Native_Drawing_Type drawingType = (renderNodeType == OH_DrawingNode_Type::ParagraphNode) ? OH_Native_Drawing_Type::DrawingTypeDrawTextLayer : OH_Native_Drawing_Type::DrawingTypeDrawLayer;
 
         const uint64_t renderNodeUniqueHash = renderNode->getHash();
 
@@ -178,6 +184,7 @@ public:
     }
 
     OH_ALWAYS_INLINE PictureRecorderUpdateInfo clip(const uint64_t drawingContentHash) {
+        OH::SystraceSection trace("PictureRecorder:clip");
         PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeClip, drawingContentHash);
         pushClip();
         LOGI("PictureRecorder::clip 的 itemHash: =%{public}d", updateItem.itemHash);
@@ -204,13 +211,16 @@ private:
 
         void eraseFromOwnedNodes(BaseRenderNode *node) {
             auto ownedIt = std::find_if(
-                    ownedNodes.begin(),
-                    ownedNodes.end(),
-                    [node](const std::unique_ptr<BaseRenderNode>& ptr) {
-                        return ptr.get() == node;
-                    });
+                ownedNodes.begin(),
+                ownedNodes.end(),
+                [node](const std::unique_ptr<BaseRenderNode> &ptr) {
+                    return ptr.get() == node;
+                });
 
             if (ownedIt != ownedNodes.end()) {
+                // 在 erase 之前，先清理所有子节点的 parent 指针
+                // 防止子节点后续调用 removeFromParent() 时访问已 dispose 的父节点
+                node->clearChildren();
                 ownedNodes.erase(ownedIt);
             }
         }
@@ -284,14 +294,17 @@ private:
         initPropsIfNeeded();
 
         if (auto *cachedNode = props->findClipNode(itemHash)) {
+            LOGI("[PV] getOrCreateClipRenderNode:%{public}p fromCache itemHash:%{public}llu", cachedNode, itemHash);
             return cachedNode;
         }
 
-        return props->createAndAddClipNode(itemHash);
+        auto *clipRenderNode = props->createAndAddClipNode(itemHash);
+        LOGI("[PV] getOrCreateClipRenderNode create clipRenderNode:%{public}p itemHash:%{public}llu", clipRenderNode, itemHash);
+        return clipRenderNode;
     }
 
     SequenceIdInfo allocSequenceIdInfo(OH_Native_Drawing_Type type, uint64_t currentContentsHash);
-    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash) const;
+    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash);
 
     void prepareForNextRecording(BaseRenderNode &rootRenderNode);
     void rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode);

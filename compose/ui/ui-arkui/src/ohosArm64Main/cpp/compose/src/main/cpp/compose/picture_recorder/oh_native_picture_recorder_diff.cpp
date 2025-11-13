@@ -1,4 +1,7 @@
 #include "oh_native_picture_recorder_diff.h"
+
+#include "compose/trace/oh_systrace_section.h"
+
 #include <unordered_map>
 #include <deque>
 #include <cstdint>
@@ -28,6 +31,7 @@ static constexpr size_t kNotFound = static_cast<size_t>(-1);
 
 DiffResult diffDrawCommands(const std::vector<DrawingItem>& oldArray,
                             const std::vector<DrawingItem>& newArray) {
+    OH::SystraceSection trace("DiffDrawCommands");
     const size_t newCount = newArray.size();
     const size_t oldCount = oldArray.size();
 

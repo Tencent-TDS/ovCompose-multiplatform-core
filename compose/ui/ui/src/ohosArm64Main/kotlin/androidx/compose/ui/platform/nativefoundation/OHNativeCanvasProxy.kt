@@ -12,6 +12,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
@@ -238,6 +239,18 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
         }
     }
 
+    fun drawCircle(centerX: Float, centerY: Float, radius: Float, nativePaint: OHComposeNativePaint) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(
+                proxy = it,
+                centerX = centerX,
+                centerY = centerY,
+                radius = radius,
+                paint = nativePaint.handle
+            )
+        }
+    }
+
 
     fun setParent(parentProxy: OHNativeCanvasProxy) {
         handle?.let {
@@ -270,14 +283,6 @@ class OHNativeCanvasProxy(private val handle: OHNativeCanvasProxy_Handle?) {
                 it, rotationX, rotationY, rotationZ,
                 scaleX, scaleY, translationX, translationY, m34Transform
             )
-        }
-
-        // 临时日志：帮助验证方法是否被调用
-        LogPrintUtil.verbose {
-            "[OHOS] applyTransformMatrix called but NOT IMPLEMENTED! " +
-                    "translation=($translationX, $translationY), " +
-                    "scale=($scaleX, $scaleY), " +
-                    "rotation=($rotationX, $rotationY, $rotationZ)"
         }
     }
 

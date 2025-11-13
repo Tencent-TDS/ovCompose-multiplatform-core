@@ -1,7 +1,9 @@
 #ifndef OH_SYSTRACE_SECTION_H
 #define OH_SYSTRACE_SECTION_H
-#include <hitrace/trace.h>
 
+#ifdef DEBUG
+
+#include <hitrace/trace.h>
 #include <sstream>
 #include <string>
 
@@ -16,8 +18,28 @@ public:
         OH_HiTrace_StartTrace(result.c_str());
     }
 
-    ~SystraceSection() { OH_HiTrace_FinishTrace(); }
+    ~SystraceSection() {
+        OH_HiTrace_FinishTrace();
+    }
 };
 } // namespace OH
 
-#endif
+#else
+
+namespace OH {
+struct SystraceSection {
+public:
+    template <typename... ConvertsToStringPiece>
+    explicit SystraceSection(const char *name, ConvertsToStringPiece &&...args) {
+        // No-op in non-DEBUG builds
+    }
+
+    ~SystraceSection() {
+        // No-op in non-DEBUG builds
+    }
+};
+} // namespace OH
+
+#endif // DEBUG
+
+#endif // OH_SYSTRACE_SECTION_H

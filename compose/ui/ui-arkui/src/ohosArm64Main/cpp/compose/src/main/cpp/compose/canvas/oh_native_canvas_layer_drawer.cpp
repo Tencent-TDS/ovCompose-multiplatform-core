@@ -11,12 +11,14 @@
 #include "../shader/oh_native_image_shader.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
 #include "../xcomponent_log.h"
+#include "compose/trace/oh_systrace_section.h"
 
 namespace OH {
 void OHRenderNodeDrawRect(const float left, const float top, const float right, const float bottom,
-                          NativeBasicShader* shader, const RenderNodeSaveState* saveState,
-                          BaseRenderNode* renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint) {
+                          NativeBasicShader *shader, const RenderNodeSaveState *saveState,
+                          BaseRenderNode *renderNodeForDrawing,
+                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRect");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
     const int32_t y = top - strokeWidth / 2;
@@ -24,7 +26,7 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
-    renderNodeForDrawing->setTransform(const_cast<float*>(saveState->transform.data()))
+    renderNodeForDrawing->setTransform(saveState->transform.data())
         ->setTranslate(saveState->translateX, saveState->translateY)
         ->setPosition(x, y)
         ->setSize(width, height)
@@ -40,33 +42,35 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
     } else {
         // apply shader
         LOGI("OHRenderNodeDrawRect: apply shader start: %{public}p", shader);
-        static_cast<RectGradientRenderNode*>(renderNodeForDrawing)
+        static_cast<RectGradientRenderNode *>(renderNodeForDrawing)
             ->drawRect(left, top, right, bottom, strokeWidth, shader, paint->style);
     }
 }
 
 void OHRenderNodeDrawClipRect(const float left, const float top, const float right, const float bottom,
-                              const RenderNodeSaveState* saveState, BaseRenderNode* renderNodeForDrawing) {
-    ArkUI_RectShapeOption* shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
+                              const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipRect");
+    ArkUI_RectShapeOption *shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
     if (shape) {
         OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, left, ARKUI_EDGE_DIRECTION_LEFT);
         OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, top, ARKUI_EDGE_DIRECTION_TOP);
         OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
         OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
     }
-    ArkUI_RenderNodeClipOption* clipOption = OH_ArkUI_RenderNodeUtils_CreateRenderNodeClipOptionFromRectShape(shape);
+    ArkUI_RenderNodeClipOption *clipOption = OH_ArkUI_RenderNodeUtils_CreateRenderNodeClipOptionFromRectShape(shape);
     OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
     if (clipOption) {
-        renderNodeForDrawing->setTransform(const_cast<float*>(saveState->transform.data()))
+        renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
             ->setTranslate(saveState->translateX, saveState->translateY)
             ->setClip(clipOption);
     }
 }
 
 void OHRenderNodeDrawRoundRect(const float left, const float top, const float right, const float bottom,
-                               const float radiusX, const float radiusY, const NativeBasicShader* shader,
-                               const RenderNodeSaveState* saveState, BaseRenderNode* renderNodeForDrawing,
-                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint) {
+                               const float radiusX, const float radiusY, const NativeBasicShader *shader,
+                               const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRoundRect");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
     const int32_t y = top - strokeWidth / 2;
@@ -74,7 +78,7 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
-    renderNodeForDrawing->setTransform(const_cast<float*>(saveState->transform.data()))
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
         ->setTranslate(saveState->translateX, saveState->translateY)
         ->setPosition(x, y)
         ->setSize(width, height)
@@ -91,37 +95,65 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
     }
 }
 
-void OHRenderNodeDrawLine(const float x1, const float y1, const float x2, const float y2, NativeBasicShader* shader,
-                          const RenderNodeSaveState* saveState, BaseRenderNode* renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint* paint) {
+void OHRenderNodeDrawLine(const float x1, const float y1, const float x2, const float y2, NativeBasicShader *shader,
+                          const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = std::min(x1, x2);
     const int32_t y = std::min(y1, y2);
     const int32_t width = abs(x2 - x1);
     const int32_t height = abs(y2 - y1);
 
-    renderNodeForDrawing->setTransform(const_cast<float*>(saveState->transform.data()))
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
         ->setTranslate(saveState->translateX, saveState->translateY)
         ->setPosition(x, y)
         ->setSize(width, height);
 
     if (!shader) {
-        static_cast<LineRenderNode*>(renderNodeForDrawing)
+        static_cast<LineRenderNode *>(renderNodeForDrawing)
             ->drawLine(x1, y1, x2, y2, strokeWidth, paint->color, paint->strokeCap);
     } else {
-        static_cast<LineGradientRenderNode*>(renderNodeForDrawing)
-            ->drawLine(x1, y1, x2, y2, strokeWidth, dynamic_cast<NativeLinearGradientShader*>(shader),
+        static_cast<LineGradientRenderNode *>(renderNodeForDrawing)
+            ->drawLine(x1, y1, x2, y2, strokeWidth, dynamic_cast<NativeLinearGradientShader *>(shader),
                        paint->strokeCap);
     }
 }
 
-void OHRenderNodeDrawText(const RenderNodeSaveState* saveState, Paragraph* paragraphNode) {
+void OHRenderNodeDrawCircle(const float centerX, const float centerY, const float radius,
+                            const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
+                            BaseRenderNode *renderNodeForDrawing,
+                            const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawCircle");
+
+    const float strokeWidth = paint->strokeWidth;
+    const int32_t x = centerX - radius - strokeWidth / 2;
+    const int32_t y = centerY - radius - strokeWidth / 2;
+
+    const int32_t width = 2 * radius + strokeWidth;
+    const int32_t height = 2 * radius + strokeWidth;
+
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setPosition(x, y)
+        ->setSize(width, height)
+        ->setBorderCornerRadius(static_cast<uint32_t>(radius));
+    if (!shader) {
+        if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
+            renderNodeForDrawing->setBorderWidth(strokeWidth)
+                ->setBorderColor(paint->color)
+                ->setBackgroundColor(CLEAR_COLOR);
+        } else {
+            renderNodeForDrawing->setBorderWidth(0)->setBackgroundColor(paint->color);
+        }
+    } else {
+    }
+}
+
+void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode) {
     const float originX = saveState->translateX;
     const float originY = saveState->translateY;
     const int32_t width = paragraphNode->getWidth();
     const int32_t height = paragraphNode->getHeight();
-    //    LOGI("Transform matrix: %{public}s",
-    //    saveState->transform.toReadableString().c_str());
 
     paragraphNode->setTransform(saveState->transform.data())
         ->setTranslate(originX, originY)
@@ -142,4 +174,4 @@ void OHRenderNodeDrawThrow(const int32_t status) {
         throw std::runtime_error("OHRenderNode operation failed");
     }
 }
-}  // namespace OH
+} // namespace OH

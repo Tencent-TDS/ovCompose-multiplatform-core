@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.common.interop.LogPrintUtil
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.ui.geometry.MutableRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -160,38 +161,40 @@ internal class ArkUIRenderNodeLayer(
         layoutDirection: LayoutDirection,
         density: Density
     ) {
-        val maybeChangedFields = scope.mutatedFields or mutatedFields
-        if (this.transformOrigin != scope.transformOrigin) {
-            this.transformOrigin = scope.transformOrigin
-            // TODO: move this to updateMatrix together with the updating of anchorPoint
-            //  after we properly handle the transitions on the out most draw call.
-            updateLayerPosition()
+        TraceUtil.traceSync("ArkUIRenderNodeLayer:updateLayerProperties") {
+            val maybeChangedFields = scope.mutatedFields or mutatedFields
+            if (this.transformOrigin != scope.transformOrigin) {
+                this.transformOrigin = scope.transformOrigin
+                // TODO: move this to updateMatrix together with the updating of anchorPoint
+                //  after we properly handle the transitions on the out most draw call.
+                updateLayerPosition()
+            }
+            this.translationX = scope.translationX
+            this.translationY = scope.translationY
+            this.rotationX = scope.rotationX
+            this.rotationY = scope.rotationY
+            this.rotationZ = scope.rotationZ
+            this.cameraDistance = max(scope.cameraDistance, 0.001f)
+            this.scaleX = scope.scaleX
+            this.scaleY = scope.scaleY
+            this.alpha = scope.alpha
+            this.clip = scope.clip
+            this.shadowElevation = scope.shadowElevation
+            this.density = density
+            this.renderEffect = scope.renderEffect
+            this.ambientShadowColor = scope.ambientShadowColor
+            this.spotShadowColor = scope.spotShadowColor
+            this.compositingStrategy = scope.compositingStrategy
+            outlineCache.shape = scope.shape
+            outlineCache.layoutDirection = layoutDirection
+            outlineCache.density = density
+            if (maybeChangedFields and Fields.MatrixAffectingFields != 0) {
+                updateMatrix()
+            }
+            mutatedFields = scope.mutatedFields
+            this.nativeCanvasProxy.setOpacity(scope.alpha)
+            updateShadow()
         }
-        this.translationX = scope.translationX
-        this.translationY = scope.translationY
-        this.rotationX = scope.rotationX
-        this.rotationY = scope.rotationY
-        this.rotationZ = scope.rotationZ
-        this.cameraDistance = max(scope.cameraDistance, 0.001f)
-        this.scaleX = scope.scaleX
-        this.scaleY = scope.scaleY
-        this.alpha = scope.alpha
-        this.clip = scope.clip
-        this.shadowElevation = scope.shadowElevation
-        this.density = density
-        this.renderEffect = scope.renderEffect
-        this.ambientShadowColor = scope.ambientShadowColor
-        this.spotShadowColor = scope.spotShadowColor
-        this.compositingStrategy = scope.compositingStrategy
-        outlineCache.shape = scope.shape
-        outlineCache.layoutDirection = layoutDirection
-        outlineCache.density = density
-        if (maybeChangedFields and Fields.MatrixAffectingFields != 0) {
-            updateMatrix()
-        }
-        mutatedFields = scope.mutatedFields
-        this.nativeCanvasProxy.setOpacity(scope.alpha)
-        updateShadow()
     }
 
     private fun updateShadow() {
@@ -227,29 +230,33 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun move(position: IntOffset) {
-        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - id=$id, oldPos=${this.position}, newPos=$position" }
-        if (position != this.position) {
-            this.position = position
-            updateLayerPosition()
-            invalidateParentLayer()
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - UPDATED position to $position" }
-        } else {
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - SKIPPED (same position)" }
+        TraceUtil.traceSync("ArkUIRenderNodeLayer:move") {
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - id=$id, oldPos=${this.position}, newPos=$position" }
+            if (position != this.position) {
+                this.position = position
+                updateLayerPosition()
+                invalidateParentLayer()
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - UPDATED position to $position" }
+            } else {
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::move - SKIPPED (same position)" }
+            }
         }
     }
 
     override fun resize(size: IntSize) {
-        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - id=$id, oldSize=${this.size}, newSize=$size" }
-        if (size != this.size) {
-            this.size = size  // ← 关键修复：更新 size 变量
-            outlineCache.size = size
-            nativeCanvasProxy.setBounds(0, 0, size.width, size.height)
-            updateLayerPosition()
-            updateMatrix()
-            invalidate()
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - UPDATED size to $size" }
-        } else {
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - SKIPPED (same size)" }
+        TraceUtil.traceSync("ArkUIRenderNodeLayer:resize") {
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - id=$id, oldSize=${this.size}, newSize=$size" }
+            if (size != this.size) {
+                this.size = size  // ← 关键修复：更新 size 变量
+                outlineCache.size = size
+                nativeCanvasProxy.setBounds(0, 0, size.width, size.height)
+                updateLayerPosition()
+                updateMatrix()
+                invalidate()
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - UPDATED size to $size" }
+            } else {
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::resize - SKIPPED (same size)" }
+            }
         }
     }
 
@@ -259,28 +266,30 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun drawLayer(canvas: Canvas) {
-        val canvasType = if (canvas is OHOSNativeCanvas) "OHOSNativeCanvas" else canvas::class.simpleName
-        val parentLayerId = (cachedParentLayer as? ArkUIRenderNodeLayer)?.id ?: "null"
-        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer START - id=$id, parent=$parentLayerId, size=$size, position=$position, canvasType=$canvasType, isInvalidated=$isInvalidated, isDestroyed=$isDestroyed" }
+        TraceUtil.traceSync("ArkUIRenderNodeLayer:drawLayer") {
+            val canvasType = if (canvas is OHOSNativeCanvas) "OHOSNativeCanvas" else canvas::class.simpleName
+            val parentLayerId = (cachedParentLayer as? ArkUIRenderNodeLayer)?.id ?: "null"
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer START - id=$id, parent=$parentLayerId, size=$size, position=$position, canvasType=$canvasType, isInvalidated=$isInvalidated, isDestroyed=$isDestroyed" }
 
-        if (isInvalidated) {
-            isInvalidated = false
-            val bounds = size.toSize().toRect()
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - Redrawing, bounds=$bounds" }
-            this.canvas.onPreDraw()
-            performDrawLayer(this.canvas, bounds)
-            this.canvas.onPostDraw()
-        } else {
-            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - SKIPPING redraw (not invalidated)" }
+            if (isInvalidated) {
+                isInvalidated = false
+                val bounds = size.toSize().toRect()
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - Redrawing, bounds=$bounds" }
+                this.canvas.onPreDraw()
+                performDrawLayer(this.canvas, bounds)
+                this.canvas.onPostDraw()
+            } else {
+                LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer - SKIPPING redraw (not invalidated)" }
+            }
+
+            if (canvas is OHOSNativeCanvas) {
+                canvas.drawLayerWithNativeCanvas(this.canvas)
+            } else {
+                // TODO this.nativeCanvasProxy.bringSelfToFroun()
+            }
+
+            LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer END - id=$id" }
         }
-
-        if (canvas is OHOSNativeCanvas) {
-            canvas.drawLayerWithNativeCanvas(this.canvas)
-        } else {
-            // TODO this.nativeCanvasProxy.bringSelfToFroun()
-        }
-
-        LogPrintUtil.verbose { "ArkUIRenderNodeLayer::drawLayer END - id=$id" }
     }
 
     private fun performDrawLayer(canvas: OHOSNativeCanvas, bounds: Rect) {

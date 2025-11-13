@@ -73,31 +73,17 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeC
                                                                        float top, float right, float bottom,
                                                                        float radiusX, float radiusY,
                                                                        OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(OHNativeCanvasProxy_Handle proxy, float centerX,
+                                                                    float centerY, float radius,
+                                                                    OHComposeNativePaint_Handle paint);
 
 // OHComposeNativePaint set paint properties
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(OHComposeNativePaint_Handle paint, float alpha);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(OHComposeNativePaint_Handle paint,
-                                                                         bool isAntiAlias);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor(OHComposeNativePaint_Handle paint, uint64_t color);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(OHComposeNativePaint_Handle paint,
-                                                                         float strokeWidth);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(OHComposeNativePaint_Handle paint,
-                                                                       uint32_t blendMode);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle(OHComposeNativePaint_Handle paint, uint32_t style);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(OHComposeNativePaint_Handle paint,
-                                                                       uint32_t strokeCap);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(OHComposeNativePaint_Handle paint,
-                                                                        uint32_t strokeJoin);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(OHComposeNativePaint_Handle paint,
-                                                                              float miterLimit);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(OHComposeNativePaint_Handle paint,
-                                                                           uint32_t quality);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint,
-                                                                    NativeBasicShader_Handle shader);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect(OHComposeNativePaint_Handle paint,
-                                                                        OH_Drawing_PathEffect_Handle pathEffect);
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHComposeNativePaint_Handle paint,
-                                                                         OH_Drawing_ColorFilter_Handle colorFilter);
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(OHComposeNativePaint_Handle paint, float alpha,
+                                                                  bool isAntiAlias, uint64_t color, float strokeWidth,
+                                                                  uint32_t blendMode, uint32_t style,
+                                                                  uint32_t strokeCap, uint32_t strokeJoin,
+                                                                  uint32_t filterQuality, float strokeMiterLimit,
+                                                                  NativeBasicShader_Handle shader);
 
 // NativeShader related methods
 NativeBasicShader_Handle
