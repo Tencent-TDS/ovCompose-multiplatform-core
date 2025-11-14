@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathType
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Vertices
@@ -270,10 +271,13 @@ internal class AdaptiveCanvas(
     }
 
     override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::drawRoundRect, " +
-                    "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
+        TraceUtil.traceSync("AdaptiveCanvas:drawOval") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawOval(left, top, right, bottom, nativePaint)
+            LogPrintUtil.verbose {
+                "AdaptiveCanvas::drawOval, " +
+                        "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
+            }
         }
     }
 
@@ -295,23 +299,58 @@ internal class AdaptiveCanvas(
         useCenter: Boolean,
         paint: Paint
     ) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::drawArc, " +
-                    "left: $left, top: $top, right: $right, bottom: $bottom, " +
-                    "startAngle: $startAngle, sweepAngle: $sweepAngle, " +
-                    "useCenter: $useCenter, paint: $paint"
+        TraceUtil.traceSync("AdaptiveCanvas:drawArc") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawArc(left, top, right, bottom, startAngle, sweepAngle, useCenter, nativePaint)
+            LogPrintUtil.verbose {
+                "AdaptiveCanvas::drawArc, " +
+                        "left: $left, top: $top, right: $right, bottom: $bottom, " +
+                        "startAngle: $startAngle, sweepAngle: $sweepAngle, " +
+                        "useCenter: $useCenter, paint: $paint"
+            }
         }
     }
 
     override fun drawPath(path: Path, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawPath, path: $path, paint: $paint" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawPath") {
+            nativePaint.sync(paint)
+            // Try to use NativePathImpl first (similar to iOS implementation)
+            path.pathType = PathType.Native
+            val currentPath = path.currentPath
+            if (currentPath is NativePathImpl && currentPath.nativeRef != null) {
+                nativeCanvasProxy.drawPath(currentPath.nativeRef, nativePaint)
+            } else {
+                return
+            }
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawPath, path: $path, paint: $paint" }
+        }
     }
 
     override fun drawImage(image: ImageBitmap, topLeftOffset: Offset, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawImage, image: $image, topLeftOffset: $topLeftOffset, paint: $paint" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawImage") {
+            nativePaint.sync(paint)
+            // 参考iOS实现：drawImage简化为调用drawImageRect
+            // srcRect = (0, 0, image.width, image.height)
+            // dstRect = (topLeftOffset.x, topLeftOffset.y, image.width, image.height)
+            val pixelMap = image.asNativePixelMap()
+            if (pixelMap == null) {
+                LogPrintUtil.verbose { "AdaptiveCanvas::drawImage: failed to convert ImageBitmap to NativePixelMap, image: $image (${image.width}x${image.height})" }
+                return
+            }
+            nativeCanvasProxy.drawImageRect(
+                pixelMap = pixelMap,
+                srcX = 0,
+                srcY = 0,
+                srcWidth = image.width,
+                srcHeight = image.height,
+                dstX = topLeftOffset.x.toInt(),
+                dstY = topLeftOffset.y.toInt(),
+                dstWidth = image.width,
+                dstHeight = image.height,
+                nativePaint
+            )
+            LogPrintUtil.verbose { "AdaptiveCanvas::drawImage, image: $image, topLeftOffset: $topLeftOffset, paint: $paint" }
+        }
     }
 
     override fun drawImageRect(
@@ -322,11 +361,35 @@ internal class AdaptiveCanvas(
         dstSize: IntSize,
         paint: Paint
     ) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::drawImageRect, " +
-                    "image: $image, srcOffset: $srcOffset, srcSize: $srcSize" +
-                    "dstOffset: $dstOffset, dstSize: $dstSize, paint: $paint"
+        TraceUtil.traceSync("AdaptiveCanvas:drawImageRect") {
+            nativePaint.sync(paint)
+            val pixelMap = image.asNativePixelMap()
+            if (pixelMap == null) {
+                LogPrintUtil.verbose {
+                    "AdaptiveCanvas::drawImageRect: failed to convert ImageBitmap to NativePixelMap, " +
+                            "image: $image (${image.width}x${image.height}), " +
+                            "srcOffset: $srcOffset, srcSize: $srcSize, " +
+                            "dstOffset: $dstOffset, dstSize: $dstSize"
+                }
+                return
+            }
+            nativeCanvasProxy.drawImageRect(
+                pixelMap = pixelMap,
+                srcX = srcOffset.x,
+                srcY = srcOffset.y,
+                srcWidth = srcSize.width,
+                srcHeight = srcSize.height,
+                dstX = dstOffset.x,
+                dstY = dstOffset.y,
+                dstWidth = dstSize.width,
+                dstHeight = dstSize.height,
+                nativePaint
+            )
+            LogPrintUtil.verbose {
+                "AdaptiveCanvas::drawImageRect, " +
+                        "image: $image, srcOffset: $srcOffset, srcSize: $srcSize" +
+                        "dstOffset: $dstOffset, dstSize: $dstSize, paint: $paint"
+            }
         }
     }
 

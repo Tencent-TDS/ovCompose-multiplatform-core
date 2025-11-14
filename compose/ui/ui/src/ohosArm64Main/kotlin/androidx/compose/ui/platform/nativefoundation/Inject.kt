@@ -4,6 +4,7 @@ import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.ui.arkui.RenderingBackend
+import androidx.compose.ui.graphics.setNativePathFactory
 import androidx.compose.ui.graphics.setNativeShaderFactory
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.OHOSParagraph
@@ -28,6 +29,10 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
 
     /* 注入 OHOS 平台的 Shader */
     setNativeShaderFactory(NativeShaderFactoryImpl)
+
+    setNativePathFactory {
+        NativePathImpl()
+    }
 
     EnableOHOSParagraph = renderBackend == RenderingBackend.ArkUIRenderNode
 

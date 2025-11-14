@@ -1,129 +1,108 @@
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_path.h>
 #include <native_drawing/drawing_pen.h>
+#include <cfloat>
 #include "oh_line_gradient_render_node.h"
 #include "../shader/oh_native_shader_utils.h"
 
 namespace OH {
 LineGradientRenderNode::~LineGradientRenderNode() {
-    // dispose properties and modifier
-    if (startPointProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeVector2Property(startPointProperty_);
-    }
-    if (endPointProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeVector2Property(endPointProperty_);
-    }
-    if (widthProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeFloatProperty(widthProperty_);
+    if (invalidateCountProperty_) {
+        OH_ArkUI_RenderNodeUtils_DisposeFloatProperty(invalidateCountProperty_);
     }
     if (modifier_) {
         OH_ArkUI_RenderNodeUtils_DisposeContentModifier(modifier_);
     }
 }
 
-LineGradientRenderNode::LineGradientRenderNode() { this->LineGradientRenderNode::initModifier(); }
+LineGradientRenderNode::LineGradientRenderNode() {
+    this->LineGradientRenderNode::initModifier();
+}
 
-OH_DrawingNode_Type LineGradientRenderNode::getType() { return OH_DrawingNode_Type::LineGradientNode; };
+OH_DrawingNode_Type LineGradientRenderNode::getType() {
+    return OH_DrawingNode_Type::LineGradientNode;
+};
 
-/**
- * @brief Draws a line with a linear gradient shader and specified stroke
- * properties.
- *
- * This method sets the start and end points, line width, shader, and stroke cap
- * for the line. It updates the internal properties accordingly to prepare for
- * rendering.
- *
- * @param x1 The x-coordinate of the start point of the line.
- * @param y1 The y-coordinate of the start point of the line.
- * @param x2 The x-coordinate of the end point of the line.
- * @param y2 The y-coordinate of the end point of the line.
- * @param lineWidth The width of the line.
- * @param shader Pointer to the NativeLinearGradientShader to be used for the
- * line.
- * @param strokeCap The style of the stroke cap to be applied to the ends of the
- * line.
- */
 void LineGradientRenderNode::drawLine(const float x1, const float y1, const float x2, const float y2,
                                       const float lineWidth, NativeLinearGradientShader *shader,
                                       const OH_Native_Draw_StrokeCap strokeCap) {
-    // create or update properties
+    // 直接更新成员变量
+    x1_ = x1;
+    y1_ = y1;
+    x2_ = x2;
+    y2_ = y2;
+    lineWidth_ = lineWidth;
     this->shader = shader;
     this->strokeCap = strokeCap;
-    this->createOrUpdateStartPointProperty(x1, y1);
-    this->createOrUpdateEndPointProperty(x2, y2);
-    this->createOrUpdateWidthProperty(lineWidth);
+
+    // 调用invalidate()触发onDraw
+    invalidate();
 }
 
-void LineGradientRenderNode::createOrUpdateStartPointProperty(const float x, const float y) {
-    if (!startPointProperty_) {
-        startPointProperty_ = OH_ArkUI_RenderNodeUtils_CreateVector2Property(x, y);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachVector2Property(modifier_, startPointProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetVector2PropertyValue(startPointProperty_, x, y));
+void LineGradientRenderNode::invalidate() {
+    if (!invalidateCountProperty_) {
+        return;
     }
+
+    // 读取当前值
+    float currentCount = 0.0f;
+    OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
+
+    // 加1，处理溢出（回绕到0）
+    const float newCount = (currentCount >= FLT_MAX - 1.0f) ? 0.0f : (currentCount + 1.0f);
+
+    // 设置新值，触发onDraw回调
+    OH_ArkUI_RenderNodeUtils_SetFloatPropertyValue(invalidateCountProperty_, newCount);
 }
 
-void LineGradientRenderNode::createOrUpdateEndPointProperty(const float x, const float y) {
-    if (!endPointProperty_) {
-        endPointProperty_ = OH_ArkUI_RenderNodeUtils_CreateVector2Property(x, y);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachVector2Property(modifier_, endPointProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetVector2PropertyValue(endPointProperty_, x, y));
-    }
-}
-void LineGradientRenderNode::createOrUpdateWidthProperty(float width) {
-    if (!widthProperty_) {
-        widthProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(width);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, widthProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetFloatPropertyValue(widthProperty_, width));
-    }
-}
-/**
- * @brief Initializes the content modifier for the LineGradientRenderNode.
- *
- * This method creates and attaches a content modifier if it does not already
- * exist. It sets up a custom drawing callback that renders a line with a
- * gradient shader effect using the current properties of the node, such as
- * start and end points, stroke width, and stroke cap style. The drawing
- * callback constructs a path, configures a pen with the appropriate shader and
- * style, and draws the path onto the canvas. All drawing resources are properly
- * released after rendering.
- *
- * Throws an exception if any of the modifier or drawing operations fail.
- */
 void LineGradientRenderNode::initModifier() {
     if (!modifier_) {
         modifier_ = OH_ArkUI_RenderNodeUtils_CreateContentModifier();
         maybeThrow(OH_ArkUI_RenderNodeUtils_AttachContentModifier(nodeHandle_, modifier_));
+
+        // 创建invalidateCount PropertyHandle
+        invalidateCountProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(0.0f);
+        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, invalidateCountProperty_));
+
         maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(
             modifier_, this, [](ArkUI_DrawContext *context, void *userData) {
                 const auto *data = static_cast<LineGradientRenderNode *>(userData);
                 auto *canvas1 = OH_ArkUI_DrawContext_GetCanvas(context);
                 auto *canvas = static_cast<OH_Drawing_Canvas *>(canvas1);
-                OH_Drawing_ShaderEffect *shaderEffect = CreateShaderEffect(data->shader);
 
-                const auto path = OH_Drawing_PathCreate();
-                float startX = 0;
-                float startY = 0;
-                float endX = 0;
-                float endY = 0;
-                float width = 0;
-                OH_Drawing_PenLineCapStyle lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_FLAT_CAP;
+                // 计算最小坐标（RenderNode的position设置为min(x1, x2) - halfStroke, min(y1, y2) - halfStroke）
+                const float minX = (data->x1_ < data->x2_) ? data->x1_ : data->x2_;
+                const float minY = (data->y1_ < data->y2_) ? data->y1_ : data->y2_;
+                const float halfStroke = data->lineWidth_ / 2.0f;
+
+                // 使用相对坐标（相对于RenderNode的(0,0)点）
+                // 由于RenderNode的position已经减去了halfStroke，所以相对坐标需要加上halfStroke
+                const float relStartX = data->x1_ - minX + halfStroke;
+                const float relStartY = data->y1_ - minY + halfStroke;
+                const float relEndX = data->x2_ - minX + halfStroke;
+                const float relEndY = data->y2_ - minY + halfStroke;
+                const float width = data->lineWidth_;
                 const OH_Native_Draw_StrokeCap nativeStokeCap = data->strokeCap;
 
-                OH_ArkUI_RenderNodeUtils_GetVector2PropertyValue(data->startPointProperty_, &startX, &startY);
-                OH_ArkUI_RenderNodeUtils_GetVector2PropertyValue(data->endPointProperty_, &endX, &endY);
-                OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(data->widthProperty_, &width);
+                // 使用CreateShaderEffectWithScaledSize将渐变坐标从绝对坐标缩放为相对坐标
+                // 参考iOS归一化方案：使用除法进行缩放
+                // drawWidth和drawHeight是直线的宽度和高度（相对坐标）
+                const float drawWidth = fabs(relEndX - relStartX);
+                const float drawHeight = fabs(relEndY - relStartY);
+                OH_Drawing_ShaderEffect *shaderEffect = CreateShaderEffectWithScaledSize(
+                    data->shader, drawWidth, drawHeight);
+
+                OH_Drawing_PenLineCapStyle lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_FLAT_CAP;
                 if (nativeStokeCap == OH_Native_Draw_StrokeCap::StrokeCapRound) {
                     lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_ROUND_CAP;
                 } else if (nativeStokeCap == OH_Native_Draw_StrokeCap::StrokeCapSquare) {
                     lineCapStyle = OH_Drawing_PenLineCapStyle::LINE_SQUARE_CAP;
                 }
 
-                OH_Drawing_PathMoveTo(path, startX, startY);
-                OH_Drawing_PathLineTo(path, endX, endY);
-                OH_Drawing_PathClose(path);
+                const auto path = OH_Drawing_PathCreate();
+                OH_Drawing_PathMoveTo(path, relStartX, relStartY);
+                OH_Drawing_PathLineTo(path, relEndX, relEndY);
+                // 注意：对于直线，不应该调用PathClose，否则会绘制一个闭合的形状
 
                 const auto pen = OH_Drawing_PenCreate();
                 OH_Drawing_PenSetShaderEffect(pen, shaderEffect);
@@ -134,7 +113,7 @@ void LineGradientRenderNode::initModifier() {
 
                 // 释放绘制资源
                 OH_Drawing_CanvasDetachPen(canvas);
-                OH_Drawing_PathClose(path);
+                OH_Drawing_PathDestroy(path);
                 OH_Drawing_PenDestroy(pen);
                 OH_Drawing_ShaderEffectDestroy(shaderEffect);
             }));

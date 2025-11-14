@@ -1,24 +1,30 @@
 #ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVEENUM_H
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVEENUM_H
 
-#include "stdbool.h"
-#include "stddef.h"
-#include "stdint.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef enum { Fill, Stroke } OH_Native_Draw_PaintingStyle;
+typedef enum { Fill,
+               Stroke } OH_Native_Draw_PaintingStyle;
 
-typedef enum { Empty, EvenOdd } OH_Native_Draw_PathFillType;
+typedef enum { Empty,
+               EvenOdd } OH_Native_Draw_PathFillType;
 
-typedef enum { StrokeCapButt, StrokeCapRound, StrokeCapSquare } OH_Native_Draw_StrokeCap;
+typedef enum { StrokeCapButt,
+               StrokeCapRound,
+               StrokeCapSquare } OH_Native_Draw_StrokeCap;
 
-typedef enum { StrokeJoinMitter, StrokeJoinRound, StrokeJoinBevel } OH_Native_Draw_StrokeJoin;
+typedef enum { StrokeJoinMitter,
+               StrokeJoinRound,
+               StrokeJoinBevel } OH_Native_Draw_StrokeJoin;
 
-typedef enum { None, Low, Medium, High } OH_Native_Draw_FilterQuality;
+typedef enum { None,
+               Low,
+               Medium,
+               High } OH_Native_Draw_FilterQuality;
 
-typedef enum { Difference, Intersect } OH_Native_Draw_ClipOp;
+typedef enum { Difference,
+               Intersect } OH_Native_Draw_ClipOp;
 
 typedef enum {
     DrawingTypeNone,
@@ -57,7 +63,12 @@ typedef enum {
     LineNode,
     ParagraphNode,
     LineGradientNode,
-    RectGradientNode
+    RectGradientNode,
+    OvalNode,
+    ArcNode,
+    PathNode,
+    ImageDisplayNode, // 图片显示节点（判断是否需要裁剪）
+    ImageClipNode     // 图片裁剪节点（使用 clip 和 transform）
     // TODO: 每实现一个BaseRenderNode的派生类，就需要在此处添加对应的枚举值
 } OH_DrawingNode_Type;
 
@@ -85,7 +96,9 @@ typedef enum {
     PathOpReverseDifference
 } OH_Native_Draw_Path_Operation;
 
-typedef enum { Points, Lines, Polygon } OH_Native_Draw_PointMode;
+typedef enum { Points,
+               Lines,
+               Polygon } OH_Native_Draw_PointMode;
 
 typedef enum {
     BlendModeClear,

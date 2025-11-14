@@ -76,6 +76,26 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeC
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(OHNativeCanvasProxy_Handle proxy, float centerX,
                                                                     float centerY, float radius,
                                                                     OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                  float top, float right, float bottom,
+                                                                  OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                 float top, float right, float bottom,
+                                                                 float startAngle, float sweepAngle, bool useCenter,
+                                                                 OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath(OHNativeCanvasProxy_Handle proxy,
+                                                                  OH_Drawing_Path *path,
+                                                                  OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect(OHNativeCanvasProxy_Handle proxy,
+                                                                       void *pixelMap, int32_t srcX, int32_t srcY,
+                                                                       int32_t srcWidth, int32_t srcHeight,
+                                                                       int32_t dstX, int32_t dstY, int32_t dstWidth,
+                                                                       int32_t dstHeight,
+                                                                       OHComposeNativePaint_Handle paint);
+
+// ImageBitmap to NativePixelMap conversion
+void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
+    uint8_t *pixelData, size_t dataLength, int32_t width, int32_t height, bool hasAlpha);
 
 // OHComposeNativePaint set paint properties
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(OHComposeNativePaint_Handle paint, float alpha,

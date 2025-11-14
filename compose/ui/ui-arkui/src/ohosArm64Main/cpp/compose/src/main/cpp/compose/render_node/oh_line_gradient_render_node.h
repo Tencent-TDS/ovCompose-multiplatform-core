@@ -16,17 +16,21 @@ public:
     OH_DrawingNode_Type getType() override;
 
 private:
-    void createOrUpdateStartPointProperty(float x, float y);
-    void createOrUpdateEndPointProperty(float x, float y);
-    void createOrUpdateWidthProperty(float width);
+    void invalidate();
     void initModifier() override;
 
-    ArkUI_Vector2PropertyHandle startPointProperty_ = nullptr;
-    ArkUI_Vector2PropertyHandle endPointProperty_ = nullptr;
-    ArkUI_FloatPropertyHandle widthProperty_ = nullptr;
-    ArkUI_RenderContentModifierHandle modifier_ = nullptr;
+    // 普通成员变量存储属性值
+    float x1_ = 0.0f;
+    float y1_ = 0.0f;
+    float x2_ = 0.0f;
+    float y2_ = 0.0f;
+    float lineWidth_ = 0.0f;
     NativeBasicShader *shader = nullptr;
-    OH_Native_Draw_StrokeCap strokeCap;
+    OH_Native_Draw_StrokeCap strokeCap = OH_Native_Draw_StrokeCap::StrokeCapButt;
+
+    // 只保留一个PropertyHandle用于触发onDraw
+    ArkUI_FloatPropertyHandle invalidateCountProperty_ = nullptr;
+    ArkUI_RenderContentModifierHandle modifier_ = nullptr;
 };
 } // namespace OH
 #endif

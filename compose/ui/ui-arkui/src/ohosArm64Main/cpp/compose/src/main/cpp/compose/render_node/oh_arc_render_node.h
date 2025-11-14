@@ -1,17 +1,16 @@
-#ifndef OH_RECT_GRADIENT_RENDER_NODE_H
-#define OH_RECT_GRADIENT_RENDER_NODE_H
+#ifndef OH_ARC_RENDER_NODE_H
+#define OH_ARC_RENDER_NODE_H
 
-#include "../shader/oh_native_linear_gradient_shader.h"
 #include "oh_base_render_node.h"
 
 namespace OH {
-class RectGradientRenderNode : public BaseRenderNode {
+class ArcRenderNode : public BaseRenderNode {
 public:
-    ~RectGradientRenderNode() override;
-    RectGradientRenderNode();
+    ~ArcRenderNode() override;
+    ArcRenderNode();
 
-    void drawRect(float left, float top, float right, float bottom, float strokeWidth, NativeBasicShader *shader,
-                  OH_Native_Draw_PaintingStyle style);
+    void drawArc(float left, float top, float right, float bottom, float startAngle, float sweepAngle,
+                 bool useCenter, float strokeWidth, uint32_t color, OH_Native_Draw_PaintingStyle style);
 
     OH_DrawingNode_Type getType() override;
 
@@ -24,8 +23,11 @@ private:
     float top_ = 0.0f;
     float right_ = 0.0f;
     float bottom_ = 0.0f;
+    float startAngle_ = 0.0f;
+    float sweepAngle_ = 0.0f;
+    bool useCenter_ = false;
     float strokeWidth_ = 0.0f;
-    NativeBasicShader *shader = nullptr;
+    uint32_t color_ = 0;
     OH_Native_Draw_PaintingStyle paintingStyle = OH_Native_Draw_PaintingStyle::Fill;
 
     // 只保留一个PropertyHandle用于触发onDraw

@@ -20,6 +20,7 @@ typedef struct BaseRenderNode *BaseRenderNode_Handle;
 typedef struct ParagraphHandle *ParagraphHandle_Handle;
 typedef struct NativeBasicShader *NativeBasicShader_Handle;
 typedef struct SpanStyleRange *SpanStyleRange_Handle;
+typedef struct OH_Drawing_Path *OH_Drawing_Path_Handle;
 
 const uint32_t CLEAR_COLOR = 0x00000000;
 

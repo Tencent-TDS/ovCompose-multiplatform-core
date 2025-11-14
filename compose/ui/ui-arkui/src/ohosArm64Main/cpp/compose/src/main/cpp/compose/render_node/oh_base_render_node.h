@@ -218,8 +218,14 @@ public:
 
     BaseRenderNode *setTranslate(const float translateX, const float translateY) {
         OH::SystraceSection trace("BaseRenderNode::setTranslate");
-        // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.translateSet || (propertyCache_.cachedTranslateX != translateX && translateX >= 0.01) || propertyCache_.cachedTranslateY != translateY && translateY >= 0.01) {
+
+        const float EPSILON = 0.01f;
+        const bool xChanged = !propertyCache_.translateSet || 
+                             (std::abs(propertyCache_.cachedTranslateX - translateX) >= EPSILON);
+        const bool yChanged = !propertyCache_.translateSet || 
+                             (std::abs(propertyCache_.cachedTranslateY - translateY) >= EPSILON);
+        
+        if (xChanged || yChanged) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTranslation(nodeHandle_, translateX, translateY));
             propertyCache_.translateSet = true;
             propertyCache_.cachedTranslateX = translateX;

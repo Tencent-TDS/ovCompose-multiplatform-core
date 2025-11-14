@@ -1,23 +1,9 @@
-/*
- * Tencent is pleased to support the open source community by making ovCompose available.
- * Copyright (C) 2025 Tencent. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "oh_native_canvas_proxy.h"
 #include <arkui/native_render.h>
 #include <cmath>
+#include <multimedia/image_framework/image/pixelmap_native.h>
+#include <native_drawing/drawing_path.h>
+#include <native_drawing/drawing_rect.h>
 #include "../constants/oh_native_enums.h"
 #include "../graphics/oh_native_transform.h"
 #include "../paragraph/oh_native_paragraph.h"
@@ -293,6 +279,107 @@ void OHNativeCanvasProxy::drawCircle(const float centerX, const float centerY, c
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawCircle(centerX, centerY, radius, shader, &(updateItem.saveState), renderNodeForDrawing,
                                    paint);
+    }
+}
+
+void OHNativeCanvasProxy::drawOval(const float left, const float top, const float right, const float bottom,
+                                   OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:drawOval");
+    LOGI("OHNativeCanvasProxy::drawOval: start");
+    OH::NativeBasicShader *shader = paint->shader;
+    const OH_Native_Drawing_Type drawingType =
+        shader ? OH_Native_Drawing_Type::DrawingTypeShaderOval : OH_Native_Drawing_Type::DrawingTypeOval;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
+    const uint64_t drawingContentHash =
+        OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
+        renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawOval(left, top, right, bottom, shader, &(updateItem.saveState), renderNodeForDrawing,
+                                 paint);
+    }
+}
+
+void OHNativeCanvasProxy::drawArc(const float left, const float top, const float right, const float bottom,
+                                  const float startAngle, const float sweepAngle, const bool useCenter,
+                                  OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:drawArc");
+    LOGI("OHNativeCanvasProxy::drawArc: start");
+    OH::NativeBasicShader *shader = paint->shader;
+    const OH_Native_Drawing_Type drawingType =
+        shader ? OH_Native_Drawing_Type::DrawingTypeShaderArc : OH_Native_Drawing_Type::DrawingTypeArc;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
+    const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, startAngle, sweepAngle,
+                                                                  useCenter ? 1.0f : 0.0f, static_cast<float>(preHash));
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
+        renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawArc(left, top, right, bottom, startAngle, sweepAngle, useCenter, shader,
+                                &(updateItem.saveState), renderNodeForDrawing, paint);
+    }
+}
+
+void OHNativeCanvasProxy::drawImageRect(void *pixelMap, int32_t srcX, int32_t srcY, int32_t srcWidth, int32_t srcHeight,
+                                        int32_t dstX, int32_t dstY, int32_t dstWidth, int32_t dstHeight,
+                                        OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:drawImageRect");
+    LOGI("OHNativeCanvasProxy::drawImageRect: start");
+    // 图像不支持shader，所以使用DrawingTypeImageRect
+    const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageRect;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
+    const uint64_t drawingContentHash = OH::hashCombineSequential(
+        reinterpret_cast<uint64_t>(pixelMap), static_cast<float>(srcX), static_cast<float>(srcY),
+        static_cast<float>(srcWidth), static_cast<float>(srcHeight), static_cast<float>(dstX), static_cast<float>(dstY),
+        static_cast<float>(dstWidth), static_cast<float>(dstHeight), static_cast<float>(preHash));
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
+        renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawImageRect(reinterpret_cast<OH_PixelmapNative *>(pixelMap), srcX, srcY, srcWidth, srcHeight,
+                                      dstX, dstY, dstWidth, dstHeight, &(updateItem.saveState), renderNodeForDrawing,
+                                      paint);
+    }
+}
+
+void OHNativeCanvasProxy::drawPath(OH_Drawing_Path *path, OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:drawPath");
+    LOGI("OHNativeCanvasProxy::drawPath: start");
+    OH::NativeBasicShader *shader = paint->shader;
+    const OH_Native_Drawing_Type drawingType =
+        shader ? OH_Native_Drawing_Type::DrawingTypeShaderPath : OH_Native_Drawing_Type::DrawingTypePath;
+    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
+
+    // 使用Path的bounds来计算hash，而不是指针
+    // 这样当Path内容变化时（如动画中reset和重建），bounds会变化，hash也会变化
+    // 从而触发PictureRecorder的更新检测
+    float pathLeft = 0.0f, pathTop = 0.0f, pathRight = 0.0f, pathBottom = 0.0f;
+    if (path != nullptr) {
+        OH_Drawing_Rect *boundsRect = OH_Drawing_RectCreate(0.0f, 0.0f, 0.0f, 0.0f);
+        if (boundsRect != nullptr) {
+            OH_Drawing_PathGetBounds(path, boundsRect);
+            pathLeft = OH_Drawing_RectGetLeft(boundsRect);
+            pathTop = OH_Drawing_RectGetTop(boundsRect);
+            pathRight = OH_Drawing_RectGetRight(boundsRect);
+            pathBottom = OH_Drawing_RectGetBottom(boundsRect);
+            OH_Drawing_RectDestroy(boundsRect);
+        }
+    }
+
+    // 使用bounds的四个值来计算hash，确保Path内容变化时hash也会变化
+    const uint64_t drawingContentHash =
+        OH::hashCombineSequential(pathLeft, pathTop, pathRight, pathBottom, static_cast<float>(preHash));
+
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
+        renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawPath(path, shader, &(updateItem.saveState), renderNodeForDrawing, paint);
     }
 }
 

@@ -19,6 +19,9 @@ package androidx.compose.common.interop
 import platform.ohos.OH_HiTrace_FinishTrace
 import platform.ohos.OH_HiTrace_StartTrace
 
+
+const val ENABLE_VERBOSE_TRACE_COMPILE_TIME = false
+
 actual object TraceUtil {
     private var _isTraceEnabled = true
     private val DefaultTrace = object : SyncTraceInterface {

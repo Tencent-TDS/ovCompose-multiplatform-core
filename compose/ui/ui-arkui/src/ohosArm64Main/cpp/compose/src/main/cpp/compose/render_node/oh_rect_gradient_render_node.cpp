@@ -3,26 +3,27 @@
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
+#include <cfloat>
 #include "../shader/oh_native_shader_utils.h"
 #include "../xcomponent_log.h"
 
 namespace OH {
 RectGradientRenderNode::~RectGradientRenderNode() {
-    // dispose properties and modifier
-    if (leftTopPosProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeVector2Property(leftTopPosProperty_);
-    }
-    if (rightBottomProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeVector2Property(rightBottomProperty_);
+    if (invalidateCountProperty_) {
+        OH_ArkUI_RenderNodeUtils_DisposeFloatProperty(invalidateCountProperty_);
     }
     if (modifier_) {
         OH_ArkUI_RenderNodeUtils_DisposeContentModifier(modifier_);
     }
 }
 
-RectGradientRenderNode::RectGradientRenderNode() { this->RectGradientRenderNode::initModifier(); }
+RectGradientRenderNode::RectGradientRenderNode() {
+    this->RectGradientRenderNode::initModifier();
+}
 
-OH_DrawingNode_Type RectGradientRenderNode::getType() { return OH_DrawingNode_Type::RectGradientNode; };
+OH_DrawingNode_Type RectGradientRenderNode::getType() {
+    return OH_DrawingNode_Type::RectGradientNode;
+};
 
 /**
  * @brief Draws a rectangle with the specified coordinates, stroke width,
@@ -45,61 +46,79 @@ OH_DrawingNode_Type RectGradientRenderNode::getType() { return OH_DrawingNode_Ty
 void RectGradientRenderNode::drawRect(const float left, const float top, const float right, const float bottom,
                                       const float strokeWidth, NativeBasicShader *shader,
                                       OH_Native_Draw_PaintingStyle style) {
-    // create or update properties
-    this->paintingStyle = style;
+    // 直接更新成员变量
+    left_ = left;
+    top_ = top;
+    right_ = right;
+    bottom_ = bottom;
+    strokeWidth_ = strokeWidth;
     this->shader = shader;
-    this->createOrUpdateLeftTopPosProperty(left, top);
-    this->createOrUpdateRightBottomPosProperty(right, bottom);
-    this->createOrUpdateStrokeWidthProperty(strokeWidth);
+    this->paintingStyle = style;
+
+    // 调用invalidate()触发onDraw
+    invalidate();
 }
 
-/**
- * @brief Initializes the content modifier for the RectGradientRenderNode.
- *
- * This function creates and attaches a content modifier to the render node if
- * it does not already exist. It sets up a custom drawing callback that renders
- * a rectangle with a gradient shader effect, supporting both stroke and fill
- * painting styles. The drawing logic retrieves the necessary properties (width,
- * height, position, and stroke width) and uses the appropriate drawing APIs to
- * render the rectangle with the specified gradient effect. All drawing
- * resources are properly managed and released after use.
- *
- * The function ensures that the modifier is only initialized once and handles
- * any errors that may occur during the creation or attachment of the modifier.
- */
+void RectGradientRenderNode::invalidate() {
+    if (!invalidateCountProperty_) {
+        return;
+    }
+
+    // 读取当前值
+    float currentCount = 0.0f;
+    OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
+
+    // 加1，处理溢出（回绕到0）
+    float newCount = (currentCount >= FLT_MAX - 1.0f) ? 0.0f : (currentCount + 1.0f);
+
+    // 设置新值，触发onDraw回调
+    OH_ArkUI_RenderNodeUtils_SetFloatPropertyValue(invalidateCountProperty_, newCount);
+}
+
 void RectGradientRenderNode::initModifier() {
     if (!modifier_) {
         modifier_ = OH_ArkUI_RenderNodeUtils_CreateContentModifier();
         maybeThrow(OH_ArkUI_RenderNodeUtils_AttachContentModifier(nodeHandle_, modifier_));
+
+        // 创建invalidateCount PropertyHandle
+        invalidateCountProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(0.0f);
+        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, invalidateCountProperty_));
+
         maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(
             modifier_, this, [](ArkUI_DrawContext *context, void *userData) {
                 const auto *data = static_cast<RectGradientRenderNode *>(userData);
                 auto *canvas1 = OH_ArkUI_DrawContext_GetCanvas(context);
                 auto *canvas = static_cast<OH_Drawing_Canvas *>(canvas1);
-                OH_Drawing_ShaderEffect *shaderEffect = CreateShaderEffect(data->shader);
 
-                float left = 0.0f;
-                float top = 0.0f;
-                float right = 0.0f;
-                float bottom = 0.0f;
-                float strokeWidth = 0.0f;
-
-                OH_ArkUI_RenderNodeUtils_GetVector2PropertyValue(data->leftTopPosProperty_, &left, &top);
-                OH_ArkUI_RenderNodeUtils_GetVector2PropertyValue(data->rightBottomProperty_, &right, &bottom);
+                // 使用相对坐标（相对于RenderNode的(0,0)点）
+                // RenderNode的position已经设置为(left - strokeWidth/2, top - strokeWidth/2)
+                // 因此onDraw中应该使用(0, 0)作为左上角
+                const float relLeft = 0.0f;
+                const float relTop = 0.0f;
+                const float relRight = data->right_ - data->left_;
+                const float relBottom = data->bottom_ - data->top_;
+                const float strokeWidth = data->strokeWidth_;
+                
+                // 使用CreateShaderEffectWithScaledSize将渐变坐标从绝对坐标缩放为相对坐标
+                // 参考iOS归一化方案：使用除法进行缩放
+                // drawWidth和drawHeight是绘制区域的宽度和高度（相对坐标）
+                const float drawWidth = relRight - relLeft;
+                const float drawHeight = relBottom - relTop;
+                OH_Drawing_ShaderEffect *shaderEffect = CreateShaderEffectWithScaledSize(
+                    data->shader, drawWidth, drawHeight);
 
                 if (data->paintingStyle == OH_Native_Draw_PaintingStyle::Stroke) {
                     LOGI("OHRenderNodeDrawRect: draw stroke with shader: %{public}p", shaderEffect);
                     // 创建画笔并绑定渐变
                     OH_Drawing_Pen *pen = OH_Drawing_PenCreate();
                     OH_Drawing_PenSetShaderEffect(pen, shaderEffect);
-                    OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(data->strokeWidthProperty_, &strokeWidth);
                     LOGI("OHRenderNodeDrawRect: strokeWidth: %{public}f", strokeWidth);
                     OH_Drawing_PenSetWidth(pen, strokeWidth);
 
                     OH_Drawing_CanvasAttachPen(canvas, pen);
 
                     // 绘制矩形
-                    OH_Drawing_Rect *rect = OH_Drawing_RectCreate(left, top, right, bottom);
+                    OH_Drawing_Rect *rect = OH_Drawing_RectCreate(relLeft, relTop, relRight, relBottom);
                     OH_Drawing_CanvasDrawRect(canvas, rect);
 
                     // 释放绘制资源
@@ -115,7 +134,7 @@ void RectGradientRenderNode::initModifier() {
                     OH_Drawing_CanvasAttachBrush(canvas, brush);
 
                     // 绘制矩形
-                    OH_Drawing_Rect *rect = OH_Drawing_RectCreate(left, top, right, bottom);
+                    OH_Drawing_Rect *rect = OH_Drawing_RectCreate(relLeft, relTop, relRight, relBottom);
                     OH_Drawing_CanvasDrawRect(canvas, rect);
 
                     // 释放绘制资源
@@ -126,33 +145,6 @@ void RectGradientRenderNode::initModifier() {
                 }
                 LOGI("OHRenderNodeDrawRect: draw with shader finish: %{public}p", shaderEffect);
             }));
-    }
-}
-
-void RectGradientRenderNode::createOrUpdateLeftTopPosProperty(const float left, const float top) {
-    if (!leftTopPosProperty_) {
-        leftTopPosProperty_ = OH_ArkUI_RenderNodeUtils_CreateVector2Property(left, top);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachVector2Property(modifier_, leftTopPosProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetVector2PropertyValue(leftTopPosProperty_, left, top));
-    }
-}
-
-void RectGradientRenderNode::createOrUpdateRightBottomPosProperty(const float right, const float bottom) {
-    if (!rightBottomProperty_) {
-        rightBottomProperty_ = OH_ArkUI_RenderNodeUtils_CreateVector2Property(right, bottom);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachVector2Property(modifier_, rightBottomProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetVector2PropertyValue(rightBottomProperty_, right, bottom));
-    }
-}
-
-void RectGradientRenderNode::createOrUpdateStrokeWidthProperty(const float strokeWidth) {
-    if (!strokeWidthProperty_) {
-        strokeWidthProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(strokeWidth);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, strokeWidthProperty_));
-    } else {
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetFloatPropertyValue(strokeWidthProperty_, strokeWidth));
     }
 }
 } // namespace OH

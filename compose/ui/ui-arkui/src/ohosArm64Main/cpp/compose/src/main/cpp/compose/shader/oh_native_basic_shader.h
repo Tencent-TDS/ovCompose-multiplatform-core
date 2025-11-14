@@ -3,6 +3,8 @@
 
 #include "../constants/oh_native_enums.h"
 
+#include <cstdint>
+
 namespace OH {
 /**
  * @brief Abstract base class representing a native basic shader.

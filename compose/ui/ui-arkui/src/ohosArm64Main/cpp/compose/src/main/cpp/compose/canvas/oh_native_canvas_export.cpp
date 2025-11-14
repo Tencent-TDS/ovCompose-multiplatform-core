@@ -23,10 +23,14 @@
 #include "../shader/oh_native_radial_gradient_shader.h"
 #include "../shader/oh_native_sweep_gradient_shader.h"
 #include "../xcomponent_log.h"
-#include "native_drawing/drawing_shader_effect.h"
+#include "../paragraph/oh_native_paragraph.h"
 #include "oh_compose_native_paint.h"
 #include "oh_native_canvas_proxy.h"
 #include "oh_native_canvas_proxy_factory.h"
+
+#include <multimedia/image_framework/image/pixelmap_native.h>
+#include <native_drawing/drawing_shader_effect.h>
+#include <cstring>
 
 EXTERN_C_START
 /// OHNativeCanvasProxy related methods
@@ -86,6 +90,45 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(OHNativeCanv
     auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawCircle(centerX, centerY, radius, nativePaint);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                  float top, float right, float bottom,
+                                                                  OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawOval(left, top, right, bottom, nativePaint);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                 float top, float right, float bottom,
+                                                                 float startAngle, float sweepAngle, bool useCenter,
+                                                                 OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawArc(left, top, right, bottom, startAngle, sweepAngle, useCenter, nativePaint);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath(OHNativeCanvasProxy_Handle proxy,
+                                                                  OH_Drawing_Path_Handle path,
+                                                                  OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawPath(path, nativePaint);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect(OHNativeCanvasProxy_Handle proxy, void *pixelMap,
+                                                                       int32_t srcX, int32_t srcY, int32_t srcWidth,
+                                                                       int32_t srcHeight, int32_t dstX, int32_t dstY,
+                                                                       int32_t dstWidth, int32_t dstHeight,
+                                                                       OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect: start");
+    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawImageRect(pixelMap, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, nativePaint);
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1,
@@ -450,6 +493,49 @@ NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader
          "tileModeY=%{public}u",
          image, tileModeX, tileModeY);
     return reinterpret_cast<NativeBasicShader_Handle>(shader);
+}
+
+void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
+    uint8_t *pixelData, size_t dataLength, int32_t width, int32_t height, bool hasAlpha) {
+    LOGI("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: "
+         "width=%{public}d, height=%{public}d, hasAlpha=%{public}d, dataLength=%{public}zu",
+         width, height, hasAlpha, dataLength);
+
+    if (pixelData == nullptr || dataLength == 0 || width <= 0 || height <= 0) {
+        LOGE("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: invalid parameters");
+        return nullptr;
+    }
+
+    // 创建InitializationOptions
+    OH_Pixelmap_InitializationOptions *options = nullptr;
+    Image_ErrorCode result = OH_PixelmapInitializationOptions_Create(&options);
+    if (result != IMAGE_SUCCESS || options == nullptr) {
+        LOGE("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: failed to create options, error=%{public}d", result);
+        return nullptr;
+    }
+
+    // 设置图像属性
+    OH_PixelmapInitializationOptions_SetWidth(options, static_cast<uint32_t>(width));
+    OH_PixelmapInitializationOptions_SetHeight(options, static_cast<uint32_t>(height));
+    OH_PixelmapInitializationOptions_SetPixelFormat(options, PIXEL_FORMAT_BGRA_8888);
+    OH_PixelmapInitializationOptions_SetSrcPixelFormat(options, PIXEL_FORMAT_BGRA_8888);
+    OH_PixelmapInitializationOptions_SetAlphaType(options, hasAlpha ? PIXELMAP_ALPHA_TYPE_UNPREMULTIPLIED : PIXELMAP_ALPHA_TYPE_OPAQUE);
+    OH_PixelmapInitializationOptions_SetEditable(options, false); // 只读
+
+    // 创建NativePixelMap
+    OH_PixelmapNative *pixelMap = nullptr;
+    result = OH_PixelmapNative_CreatePixelmap(pixelData, dataLength, options, &pixelMap);
+
+    // 释放options
+    OH_PixelmapInitializationOptions_Release(options);
+
+    if (result != IMAGE_SUCCESS || pixelMap == nullptr) {
+        LOGE("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: failed to create pixelmap, error=%{public}d", result);
+        return nullptr;
+    }
+
+    LOGI("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: success, pixelMap=%{public}p", pixelMap);
+    return reinterpret_cast<void *>(pixelMap);
 }
 
 EXTERN_C_END

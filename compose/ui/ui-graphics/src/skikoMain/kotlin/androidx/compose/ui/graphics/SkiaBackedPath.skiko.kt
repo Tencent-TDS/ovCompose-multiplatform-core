@@ -28,7 +28,7 @@ import org.jetbrains.skia.PathOp
 
 // region Tencent Code
 actual fun Path(): Path =
-    if(CurrentPlatform != PlatformType.IOS) SkiaBackedPath() else PathProxy()
+    if(CurrentPlatform == PlatformType.IOS || CurrentPlatform == PlatformType.HARMONY)  PathProxy() else SkiaBackedPath()
 
 actual fun LocalPath(): Path = SkiaBackedPath()
 

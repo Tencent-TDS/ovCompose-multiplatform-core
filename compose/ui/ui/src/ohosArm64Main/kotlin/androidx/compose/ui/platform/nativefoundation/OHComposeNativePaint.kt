@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import platform.arkui.OH_Drawing_BlendMode
-import kotlin.native.ref.createCleaner
 
 internal inline fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
     return when (this) {
@@ -104,16 +103,11 @@ fun Paint.toReadableString(): String {
             "colorFilter=$colorFilter)"
 }
 
-class OHComposeNativePaint(val handle: OHComposeNativePaint_Handle?) {
-
-    /**
-     * 自动资源清理器
-     * 使用createCleaner确保Native资源在对象被GC时自动释放
-     */
-    @Suppress("unused")
-    private val cleaner = createCleaner(handle) { ptr ->
-        androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(ptr)
-    }
+class OHComposeNativePaint(handle: OHComposeNativePaint_Handle?)
+    : NativeResourceHolder<OHComposeNativePaint_Handle>(
+        handle,
+        ::androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint
+    ) {
 
     fun sync(paint: Paint) {
         TraceUtil.traceSync("OHComposeNativePaint:sync") {

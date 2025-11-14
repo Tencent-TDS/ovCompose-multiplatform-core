@@ -2,6 +2,7 @@
 #define OH_NATIVE_PICTURE_RECORDER_DRAWING_ITEM_H
 
 #include "../constants/oh_native_enums.h"
+#include <stdint.h>
 
 namespace OH {
 

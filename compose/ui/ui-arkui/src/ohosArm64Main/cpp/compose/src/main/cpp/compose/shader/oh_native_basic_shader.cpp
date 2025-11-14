@@ -1,5 +1,7 @@
 #include "oh_native_basic_shader.h"
 
+#include <cstdint>
+
 namespace OH {
 NativeBasicShader::~NativeBasicShader() = default;
 
