@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.platform.nativefoundation.NativeResourceHolder
 import androidx.compose.ui.text.AnnotatedString.Range
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontListFontFamily
@@ -134,7 +135,7 @@ internal class ParagraphBuilder(
         } else {
             16.0f * densityValue  // 默认字体大小
         }
-        
+
         // 修复：OH_Drawing_SetTextStyleFontHeight 期望的是行高缩放系数（倍数），而不是像素值
         // 需要计算 lineHeight 相对于 fontSize 的比例
         val lineHeightMultiplier = if (textStyle.lineHeight.value > 0 && fontSizeInPx > 0) {
@@ -185,32 +186,45 @@ internal class ParagraphBuilder(
             val startByteIndex = text.substring(0, range.start).encodeToByteArray().size
             val endByteIndex = text.substring(0, range.end).encodeToByteArray().size
             LogPrintUtil.verbose { "ParagraphBuilder::createParagraphParams, Converting SpanStyle: $spanStyle in range: $range" }
-            val nativeSpanStyleRange = NativeSpanStyleRange(startByteIndex, endByteIndex).apply {
-                spanStyle.fontWeight?.let { fontWeight = StyleMapperRegistry.fontWeight.map(it) }
-                spanStyle.fontStyle?.let { fontStyle = StyleMapperRegistry.fontStyle.map(it) }
-                spanStyle.fontSize.let { if (it != TextUnit.Unspecified) fontSize = it.value.toDouble() * densityValue }
-                spanStyle.fontFamily?.let {
-                    fontFamily = when (it) {
-                        is GenericFontFamily -> it.name
-                        is FontListFontFamily -> {
-                            it.fonts.firstOrNull()?.toString() ?: "sans-serif"
+            val nativeSpanStyleRange =
+                NativeSpanStyleRange(startByteIndex, endByteIndex).apply {
+                    spanStyle.fontWeight?.let {
+                        fontWeight = StyleMapperRegistry.fontWeight.map(it)
+                    }
+                    spanStyle.fontStyle?.let { fontStyle = StyleMapperRegistry.fontStyle.map(it) }
+                    spanStyle.fontSize.let {
+                        if (it != TextUnit.Unspecified) fontSize =
+                            it.value.toDouble() * densityValue
+                    }
+                    spanStyle.fontFamily?.let {
+                        fontFamily = when (it) {
+                            is GenericFontFamily -> it.name
+                            is FontListFontFamily -> {
+                                it.fonts.firstOrNull()?.toString() ?: "sans-serif"
+                            }
+
+                            else -> "sans-serif"
                         }
-                        else -> "sans-serif"
+                    }
+                    spanStyle.color.let { if (it != Color.Unspecified) color = it.toUInt() }
+                    spanStyle.background.let {
+                        if (it != Color.Unspecified) background = it.toUInt()
+                    }
+                    spanStyle.letterSpacing.let {
+                        if (it != TextUnit.Unspecified) letterSpacing = it.value.toDouble()
+                    }
+                    spanStyle.textDecoration.let {
+                        if (it != null) textDecoration = StyleMapperRegistry.textDecoration.map(it)
+                    }
+                    spanStyle.shadow?.let {
+                        shadow = OHOSNativeShadow(
+                            color = it.color.toUInt(),
+                            offsetX = it.offset.x,
+                            offsetY = it.offset.y,
+                            blurRadius = it.blurRadius.toDouble()
+                        )
                     }
                 }
-                spanStyle.color.let { if (it != Color.Unspecified) color = it.toUInt() }
-                spanStyle.background.let { if (it != Color.Unspecified) background = it.toUInt() }
-                spanStyle.letterSpacing.let { if (it != TextUnit.Unspecified) letterSpacing = it.value.toDouble() }
-                spanStyle.textDecoration.let { if (it != null) textDecoration = StyleMapperRegistry.textDecoration.map(it) }
-                spanStyle.shadow?.let {
-                    shadow  = OHOSNativeShadow(
-                        color = it.color.toUInt(),
-                        offsetX = it.offset.x,
-                        offsetY = it.offset.y,
-                        blurRadius = it.blurRadius.toDouble()
-                    )
-                }
-            }
             LogPrintUtil.verbose { "ParagraphBuilder::createParagraphParams,  NativeSpanStyle: $nativeSpanStyleRange" }
             nativeSpanStyleRange
         }
@@ -292,25 +306,13 @@ internal data class NativeParagraphParams(
  * SpanStyle范围数据类
  * 用于表示文本中的局部样式
  */
-internal class NativeSpanStyleRange(val start: Int, val end: Int) {
-
-    val handle: SpanStyleRange_Handle? = Paragraph_CreateSpanStyleRange(
-        start,
-        end
-    ).apply {
-        requireNotNull(this) { "Paragraph_CreateSpanStyleRange failed" }
-    }
-
-    /**
-     * 自动资源清理器
-     * 使用createCleaner确保Native资源在对象被GC时自动释放
-     */
-    @Suppress("unused")
-    private val cleaner = createCleaner(handle) { ptr ->
-        if (ptr != null) {
-            Paragraph_DestroySpanStyleRange(ptr)
-        }
-    }
+internal class NativeSpanStyleRange(val start: Int, val end: Int) :
+    NativeResourceHolder<SpanStyleRange_Handle>(
+        handle = Paragraph_CreateSpanStyleRange(start, end).apply {
+            requireNotNull(this) { "Paragraph_CreateSpanStyleRange failed" }
+        },
+        ::Paragraph_DestroySpanStyleRange
+    ) {
 
     var fontWeight: Int = 0
         set(value) {

@@ -70,30 +70,13 @@ private inline fun PathOperation.asOHDrawingPathOpMode(): UInt {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-internal class NativePathImpl : Path {
-    internal val nativeRef: OH_Drawing_Path_Handle? = OHPath_create()
-
-    /**
-     * 使用组合方式管理资源生命周期
-     * 由于NativePathImpl需要实现Path接口，且nativeRef在类内部创建，
-     * 所以使用组合而非继承的方式使用NativeResourceHolder
-     */
-    private class PathResourceHolder(handle: OH_Drawing_Path_Handle?)
-        : NativeResourceHolder<OH_Drawing_Path_Handle>(handle, ::OHPath_destroy)
-
-    private val resourceHolder = PathResourceHolder(nativeRef)
+internal class NativePathImpl() : Path,
+    NativeResourceHolder<OH_Drawing_Path_Handle>(handle = OHPath_create(), ::OHPath_destroy) {
 
     init {
-        if (nativeRef == null) {
+        if (handle == null) {
             LogPrintUtil.verbose { "NativePathImpl: Failed to create OH_Drawing_Path" }
         }
-    }
-
-    /**
-     * 显式释放方法：在明确生命周期结束且当前线程为主线程时调用
-     */
-    fun dispose() {
-        resourceHolder.dispose()
     }
 
     override var pathType = PathType.Native
@@ -102,63 +85,63 @@ internal class NativePathImpl : Path {
 
     override var fillType: PathFillType
         get() {
-            if (nativeRef == null) return PathFillType.NonZero
-            val fillTypeValue = OHPath_getFillType(nativeRef)
+            if (handle == null) return PathFillType.NonZero
+            val fillTypeValue = OHPath_getFillType(handle)
             return fillTypeValue.asPathFillType()
         }
         set(value) {
-            if (nativeRef == null) return
+            if (handle == null) return
             OHPath_setFillType(
-                nativeRef,
+                handle,
                 value.asOHDrawingPathFillType()
             )
         }
 
     override val isConvex: Boolean
         get() {
-            if (nativeRef == null) return false
-            return OHPath_isConvex(nativeRef)
+            if (handle == null) return false
+            return OHPath_isConvex(handle)
         }
 
     override val isEmpty: Boolean
         get() {
-            if (nativeRef == null) return true
-            return OHPath_isEmpty(nativeRef)
+            if (handle == null) return true
+            return OHPath_isEmpty(handle)
         }
 
     override fun moveTo(x: Float, y: Float) {
-        if (nativeRef == null) return
-        OHPath_moveTo(nativeRef, x, y)
+        if (handle == null) return
+        OHPath_moveTo(handle, x, y)
     }
 
     override fun relativeMoveTo(dx: Float, dy: Float) {
-        if (nativeRef == null) return
-        OHPath_rMoveTo(nativeRef, dx, dy)
+        if (handle == null) return
+        OHPath_rMoveTo(handle, dx, dy)
     }
 
     override fun lineTo(x: Float, y: Float) {
-        if (nativeRef == null) return
-        OHPath_lineTo(nativeRef, x, y)
+        if (handle == null) return
+        OHPath_lineTo(handle, x, y)
     }
 
     override fun relativeLineTo(dx: Float, dy: Float) {
-        if (nativeRef == null) return
-        OHPath_rLineTo(nativeRef, dx, dy)
+        if (handle == null) return
+        OHPath_rLineTo(handle, dx, dy)
     }
 
     override fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float) {
-        if (nativeRef == null) return
-        OHPath_quadTo(nativeRef, x1, y1, x2, y2)
+        if (handle == null) return
+        OHPath_quadTo(handle, x1, y1, x2, y2)
     }
 
     override fun relativeQuadraticBezierTo(dx1: Float, dy1: Float, dx2: Float, dy2: Float) {
-        if (nativeRef == null) return
-        OHPath_rQuadTo(nativeRef, dx1, dy1, dx2, dy2)
+        if (handle == null) return
+        OHPath_rQuadTo(handle, dx1, dy1, dx2, dy2)
     }
 
     override fun cubicTo(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {
-        if (nativeRef == null) return
-        OHPath_cubicTo(nativeRef, x1, y1, x2, y2, x3, y3)
+        if (handle == null) return
+        OHPath_cubicTo(handle, x1, y1, x2, y2, x3, y3)
     }
 
     override fun relativeCubicTo(
@@ -169,9 +152,9 @@ internal class NativePathImpl : Path {
         dx3: Float,
         dy3: Float
     ) {
-        if (nativeRef == null) return
+        if (handle == null) return
         OHPath_rCubicTo(
-            nativeRef,
+            handle,
             dx1,
             dy1,
             dx2,
@@ -187,7 +170,7 @@ internal class NativePathImpl : Path {
         sweepAngleDegrees: Float,
         forceMoveTo: Boolean
     ) {
-        if (nativeRef == null) return
+        if (handle == null) return
         // Note: OHOS arcTo doesn't support forceMoveTo directly
         // We need to handle it by checking if we need to moveTo first
         if (forceMoveTo) {
@@ -196,7 +179,7 @@ internal class NativePathImpl : Path {
             // This may not be 100% accurate but should work for most cases
         }
         OHPath_arcTo(
-            nativeRef,
+            handle,
             rect.left,
             rect.top,
             rect.right,
@@ -207,9 +190,9 @@ internal class NativePathImpl : Path {
     }
 
     override fun addRect(rect: Rect) {
-        if (nativeRef == null) return
+        if (handle == null) return
         OHPath_addRect(
-            nativeRef,
+            handle,
             rect.left,
             rect.top,
             rect.right,
@@ -218,9 +201,9 @@ internal class NativePathImpl : Path {
     }
 
     override fun addOval(oval: Rect) {
-        if (nativeRef == null) return
+        if (handle == null) return
         OHPath_addOval(
-            nativeRef,
+            handle,
             oval.left,
             oval.top,
             oval.right,
@@ -233,11 +216,11 @@ internal class NativePathImpl : Path {
         startAngleRadians: Float,
         sweepAngleRadians: Float
     ) {
-        if (nativeRef == null) return
+        if (handle == null) return
         val startAngleDegrees = (startAngleRadians * 180.0 / PI).toFloat()
         val sweepAngleDegrees = (sweepAngleRadians * 180.0 / PI).toFloat()
         OHPath_addArc(
-            nativeRef,
+            handle,
             oval.left,
             oval.top,
             oval.right,
@@ -252,9 +235,9 @@ internal class NativePathImpl : Path {
         startAngleDegrees: Float,
         sweepAngleDegrees: Float
     ) {
-        if (nativeRef == null) return
+        if (handle == null) return
         OHPath_addArc(
-            nativeRef,
+            handle,
             oval.left,
             oval.top,
             oval.right,
@@ -265,7 +248,7 @@ internal class NativePathImpl : Path {
     }
 
     override fun addRoundRect(roundRect: RoundRect) {
-        if (nativeRef == null) return
+        if (handle == null) return
         // Note: OHOS doesn't have direct RoundRect support
         // We need to build the path manually using arcs and lines
         // For now, we'll approximate by creating a path with rounded corners
@@ -326,32 +309,32 @@ internal class NativePathImpl : Path {
     }
 
     override fun addPath(path: Path, offset: Offset) {
-        if (nativeRef == null) return
+        if (handle == null) return
         path.pathType = PathType.Native
         val realPath = path.currentPath
-        if (realPath !is NativePathImpl || realPath.nativeRef == null) return
+        if (realPath !is NativePathImpl || realPath.handle == null) return
         OHPath_addPath(
-            nativeRef,
-            realPath.nativeRef,
+            handle,
+            realPath.handle,
             offset.x,
             offset.y
         )
     }
 
     override fun translate(offset: Offset) {
-        if (nativeRef == null) return
-        OHPath_translate(nativeRef, offset.x, offset.y)
+        if (handle == null) return
+        OHPath_translate(handle, offset.x, offset.y)
     }
 
     override fun getBounds(): Rect {
-        if (nativeRef == null) return Rect.Zero
+        if (handle == null) return Rect.Zero
         return memScoped {
             val leftPtr = alloc<FloatVar>()
             val topPtr = alloc<FloatVar>()
             val rightPtr = alloc<FloatVar>()
             val bottomPtr = alloc<FloatVar>()
             OHPath_getBounds(
-                nativeRef,
+                handle,
                 leftPtr.ptr,
                 topPtr.ptr,
                 rightPtr.ptr,
@@ -371,13 +354,13 @@ internal class NativePathImpl : Path {
         path2: Path,
         operation: PathOperation
     ): Boolean {
-        if (nativeRef == null) return false
+        if (handle == null) return false
         path1.pathType = PathType.Native
         path2.pathType = PathType.Native
         val realPath1 = path1.currentPath
         val realPath2 = path2.currentPath
         if (realPath1 !is NativePathImpl || realPath2 !is NativePathImpl) return false
-        if (realPath1.nativeRef == null || realPath2.nativeRef == null) return false
+        if (realPath1.handle == null || realPath2.handle == null) return false
 
         // Note: OHOS PathOp requires both paths to be valid
         // We need to use OH_Drawing_PathOp which is not yet exposed
@@ -387,13 +370,13 @@ internal class NativePathImpl : Path {
     }
 
     override fun close() {
-        if (nativeRef == null) return
-        OHPath_close(nativeRef)
+        if (handle == null) return
+        OHPath_close(handle)
     }
 
     override fun reset() {
-        if (nativeRef == null) return
-        OHPath_reset(nativeRef)
+        if (handle == null) return
+        OHPath_reset(handle)
     }
 
     override fun rewind() {

@@ -31,10 +31,9 @@ import androidx.compose.ui.arkui.utils.Paragraph_getWidth
 import androidx.compose.ui.arkui.utils.Paragraph_getWordBoundary
 import androidx.compose.ui.arkui.utils.Paragraph_layout
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.nativefoundation.NativeResourceHolder
 import androidx.compose.ui.platform.nativefoundation.OHOSNativeCanvas
 import kotlinx.cinterop.*
-import kotlin.native.ref.createCleaner
-import kotlinx.atomicfu.atomic
 
 /**
  * 鸿蒙平台的Native段落代理
@@ -47,40 +46,11 @@ import kotlinx.atomicfu.atomic
  * 3. 实现自动资源清理，防止内存泄漏
  */
 internal class OHOSNativeParagraphProxy(
-    private val handle: ParagraphHandle_Handle
+    handle: ParagraphHandle_Handle
+) : NativeResourceHolder<ParagraphHandle_Handle>(
+    handle = handle,
+    ::Paragraph_destroy
 ) {
-
-    // --- Main-thread destruction support ---
-    private class CleanerPayload(val handle: ParagraphHandle_Handle) {
-        var disposed: Boolean = false
-    }
-
-    private val cleanerPayload = CleanerPayload(handle)
-
-    /**
-     * 自动资源清理器
-     * 注意：createCleaner 的回调运行在 Kotlin/Native 的清理工作线程上，不能保证是主线程。
-     * 这里不直接销毁，而是将句柄放入待销毁队列，等待主线程主动 flush。
-     */
-    @Suppress("unused")
-    private val cleaner = createCleaner(cleanerPayload) { payload ->
-        if (!payload.disposed) {
-            ParagraphHandleReleaser.enqueue(payload.handle)
-        }
-    }
-
-    /**
-     * 可选的显式释放方法：在明确生命周期结束且当前线程为主线程时调用。
-     * 调用后：
-     * 1. 标记已释放，防止 cleaner 再次尝试释放。
-     * 2. 立即执行销毁。
-     */
-    fun dispose() {
-        if (!cleanerPayload.disposed) {
-            cleanerPayload.disposed = true
-            Paragraph_destroy(cleanerPayload.handle)
-        }
-    }
 
     // ========== 查询接口 ==========
 
@@ -341,43 +311,4 @@ internal class OHOSNativeParagraphProxy(
     fun layout(maxWidth: Double) {
         Paragraph_layout(handle, maxWidth)
     }
-}
-
-/**
- * 将需要在主线程销毁的 Paragraph 句柄集中管理。
- * 使用策略：
- *  - cleaner 回调线程只做 enqueue，不做真正 Paragraph_destroy（避免跨线程 UI / 渲染崩溃）
- *  - 在主线程合适的时机（如每帧 / Composition 结束 / 显式调用）执行 flush()
- */
-internal object ParagraphHandleReleaser {
-    private val pending = atomic<Array<ParagraphHandle_Handle>?>(null)
-
-    fun enqueue(handle: ParagraphHandle_Handle) {
-        while (true) {
-            val cur = pending.value
-            val newArr = if (cur == null) arrayOf(handle) else cur + handle
-            if (pending.compareAndSet(cur, newArr)) break
-        }
-    }
-
-    /**
-     * 必须在主线程调用。不会抛出异常，即使重复调用。
-     */
-    fun flush() {
-        val toDestroy = pending.getAndSet(null) ?: return
-        toDestroy.forEach { h ->
-            try {
-                Paragraph_destroy(h)
-            } catch (_: Throwable) {
-            }
-        }
-    }
-}
-
-/**
- * 对外暴露的便捷函数：在主线程周期性调用以确保及时释放。
- * 可在一个统一的帧调度或某个 CompositionEffect 中循环调用。
- */
-internal fun flushNativeParagraphHandlesOnMainThread() {
-    ParagraphHandleReleaser.flush()
 }

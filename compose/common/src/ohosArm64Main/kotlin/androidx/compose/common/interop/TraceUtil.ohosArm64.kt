@@ -20,6 +20,11 @@ import platform.ohos.OH_HiTrace_FinishTrace
 import platform.ohos.OH_HiTrace_StartTrace
 
 
+/**
+ * Compile-time constant to control verbose tracing.
+ * When set to false, the compiler will completely remove all verbose trace code (zero overhead).
+ * When set to true, verbose tracing is controlled at runtime via [TraceUtil.isTraceEnabled].
+ */
 const val ENABLE_VERBOSE_TRACE_COMPILE_TIME = false
 
 actual object TraceUtil {

@@ -317,8 +317,8 @@ internal class AdaptiveCanvas(
             // Try to use NativePathImpl first (similar to iOS implementation)
             path.pathType = PathType.Native
             val currentPath = path.currentPath
-            if (currentPath is NativePathImpl && currentPath.nativeRef != null) {
-                nativeCanvasProxy.drawPath(currentPath.nativeRef, nativePaint)
+            if (currentPath is NativePathImpl && currentPath.handle != null) {
+                nativeCanvasProxy.drawPath(currentPath.handle, nativePaint)
             } else {
                 return
             }

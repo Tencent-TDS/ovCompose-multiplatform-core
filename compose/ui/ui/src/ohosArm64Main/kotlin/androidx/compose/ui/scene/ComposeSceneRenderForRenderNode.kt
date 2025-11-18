@@ -4,7 +4,6 @@ import androidx.compose.common.interop.TraceUtil
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.platform.nativefoundation.flushNativeResourcesOnMainThread
 import androidx.compose.ui.platform.v2.DumpComposeCanvas
-import androidx.compose.ui.text.flushNativeParagraphHandlesOnMainThread
 import org.jetbrains.skia.Rect
 
 class ComposeSceneRenderForRenderNode(
@@ -30,8 +29,6 @@ class ComposeSceneRenderForRenderNode(
             renderDelegate.render(canvas, timestamp)
             // 释放所有待释放的Native资源（必须在UI线程执行）
             flushNativeResourcesOnMainThread()
-            // 释放Paragraph句柄（保持向后兼容）
-            flushNativeParagraphHandlesOnMainThread()
         }
     }
 

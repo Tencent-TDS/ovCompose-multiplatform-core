@@ -34,11 +34,11 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
         NativePathImpl()
     }
 
-    EnableOHOSParagraph = renderBackend == RenderingBackend.ArkUIRenderNode
+    EnableOHOSParagraph = true
 
     // TODO 暂时先将Compose在鸿蒙平台的日志开关放在此处，后续可以通过配置编译选项来控制
-    LogPrintUtil.isLogEnabled = false
-    TraceUtil.isTraceEnabled = false
+    LogPrintUtil.isLogEnabled = true
+    TraceUtil.isTraceEnabled = true
 
     /*注入 OHOS 平台的 Paragraph */
     platformParagraphFactory = object : PlatformParagraphFactory {
@@ -47,12 +47,18 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
             maxLines: Int,
             ellipsis: Boolean,
             constraints: Constraints
-        ): Paragraph? = if (renderBackend == RenderingBackend.ArkUIRenderNode) OHOSParagraph(
-            intrinsics as OHOSParagraphIntrinsics,
-            maxLines,
-            ellipsis,
-            constraints
-        ) else null
+        ): Paragraph? {
+            if (RenderingBackendContext.current() != RenderingBackend.ArkUIRenderNode && EnableOHOSParagraph) {
+                return null
+            }
+            val ohosIntrinsics = intrinsics as? OHOSParagraphIntrinsics ?: return null
+            return OHOSParagraph(
+                ohosIntrinsics,
+                maxLines,
+                ellipsis,
+                constraints
+            )
+        }
 
         override fun createParagraphIntrinsics(
             text: String,
@@ -62,13 +68,17 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
             density: Density,
             fontFamilyResolver: FontFamily.Resolver
         ): ParagraphIntrinsics? =
-            if (renderBackend == RenderingBackend.ArkUIRenderNode) OHOSParagraphIntrinsics(
-                text,
-                style,
-                spanStyles,
-                placeholders,
-                density,
-                fontFamilyResolver
-            ) else null
+            if (RenderingBackendContext.current() == RenderingBackend.ArkUIRenderNode && EnableOHOSParagraph) {
+                OHOSParagraphIntrinsics(
+                    text,
+                    style,
+                    spanStyles,
+                    placeholders,
+                    density,
+                    fontFamilyResolver
+                )
+            } else {
+                null
+            }
     }
 }
