@@ -1,5 +1,5 @@
-#ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHCOMPOSENATIVEPATIN_H
-#define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHCOMPOSENATIVEPATIN_H
+#ifndef OHCOMPOSENATIVEPATIN_H
+#define OHCOMPOSENATIVEPATIN_H
 
 #include <native_drawing/drawing_types.h>
 #include <cstdint>
@@ -7,7 +7,7 @@
 #include "../constants/oh_native_enums.h"
 #include "../shader/oh_native_basic_shader.h"
 
-namespace androidx::compose::ui::arkui::utils {
+namespace OH {
 class OHComposeNativePaint {
 public:
     OHComposeNativePaint();

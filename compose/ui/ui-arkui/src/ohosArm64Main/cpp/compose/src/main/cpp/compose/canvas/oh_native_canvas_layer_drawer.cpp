@@ -4,7 +4,9 @@
 #include <arkui/native_type.h>
 #include <native_drawing/drawing_path.h>
 #include <native_drawing/drawing_rect.h>
+#include <multimedia/image_framework/image/pixelmap_native.h>
 
+#include "../cache/oh_native_text_image_cache.h"
 #include "../constants/oh_native_constants.h"
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_arc_render_node.h"
@@ -13,17 +15,18 @@
 #include "../render_node/oh_line_render_node.h"
 #include "../render_node/oh_oval_render_node.h"
 #include "../render_node/oh_path_render_node.h"
+#include "../render_node/oh_points_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
 #include "../shader/oh_native_image_shader.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
 #include "../xcomponent_log.h"
-#include "compose/trace/oh_systrace_section.h"
+#include "../trace/oh_systrace_section.h"
 
 namespace OH {
 void OHRenderNodeDrawRect(const float left, const float top, const float right, const float bottom,
                           NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                           BaseRenderNode *renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                          const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRect");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
@@ -75,7 +78,7 @@ void OHRenderNodeDrawClipRect(const float left, const float top, const float rig
 void OHRenderNodeDrawRoundRect(const float left, const float top, const float right, const float bottom,
                                const float radiusX, const float radiusY, const NativeBasicShader *shader,
                                const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
-                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                               const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRoundRect");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
@@ -103,7 +106,7 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
 
 void OHRenderNodeDrawLine(const float x1, const float y1, const float x2, const float y2, NativeBasicShader *shader,
                           const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                          const OH::OHComposeNativePaint *paint) {
     const float strokeWidth = paint->strokeWidth;
     const float halfStroke = strokeWidth / 2.0f;
     // 考虑strokeWidth，调整position和size
@@ -130,7 +133,7 @@ void OHRenderNodeDrawLine(const float x1, const float y1, const float x2, const 
 void OHRenderNodeDrawCircle(const float centerX, const float centerY, const float radius,
                             const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                             BaseRenderNode *renderNodeForDrawing,
-                            const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                            const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawCircle");
 
     const float strokeWidth = paint->strokeWidth;
@@ -160,7 +163,7 @@ void OHRenderNodeDrawCircle(const float centerX, const float centerY, const floa
 void OHRenderNodeDrawOval(const float left, const float top, const float right, const float bottom,
                           const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                           BaseRenderNode *renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                          const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawOval");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
@@ -185,7 +188,7 @@ void OHRenderNodeDrawArc(const float left, const float top, const float right, c
                          const float startAngle, const float sweepAngle, const bool useCenter,
                          const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                          BaseRenderNode *renderNodeForDrawing,
-                         const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                         const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawArc");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = left - strokeWidth / 2;
@@ -209,7 +212,7 @@ void OHRenderNodeDrawArc(const float left, const float top, const float right, c
 
 void OHRenderNodeDrawPath(OH_Drawing_Path *path, const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                           BaseRenderNode *renderNodeForDrawing,
-                          const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                          const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawPath");
     const float strokeWidth = paint->strokeWidth;
 
@@ -261,7 +264,7 @@ void OHRenderNodeDrawPath(OH_Drawing_Path *path, const NativeBasicShader *shader
 void OHRenderNodeDrawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_t srcY, int32_t srcWidth,
                                int32_t srcHeight, int32_t dstX, int32_t dstY, int32_t dstWidth, int32_t dstHeight,
                                const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
-                               const androidx::compose::ui::arkui::utils::OHComposeNativePaint *paint) {
+                               const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawImageRect");
     LOGI("OHRenderNodeDrawImageRect: src=(%{public}d, %{public}d, %{public}d, %{public}d), "
          "dst=(%{public}d, %{public}d, %{public}d, %{public}d)",
@@ -278,23 +281,110 @@ void OHRenderNodeDrawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_
                              paint->filterQuality);
 }
 
+void OHRenderNodeDrawPoints(OH_Drawing_PointMode pointMode, const float *points, size_t pointCount,
+                            const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                            OH::OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawPoints");
+    LOGI("OHRenderNodeDrawPoints: pointMode=%{public}d, pointCount=%{public}zu", pointMode, pointCount);
+
+    // 设置RenderNode的transform和translate
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY);
+
+    // 调用PointsRenderNode的drawPoints方法
+    // PointsRenderNode会自己计算边界框并设置position和size
+    static_cast<PointsRenderNode *>(renderNodeForDrawing)
+        ->drawPoints(pointMode, points, pointCount, paint);
+}
+
 void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode) {
+    static int frameCount = 0;
+    frameCount++;
+    
     const float originX = saveState->translateX;
     const float originY = saveState->translateY;
     const int32_t width = paragraphNode->getWidth();
     const int32_t height = paragraphNode->getHeight();
 
+    // 保存绘制位置到 Paragraph 对象
     paragraphNode->setTransform(saveState->transform.data())
         ->setTranslate(originX, originY)
-        ->setPosition(originX, originY)
         ->setSize(width, height);
+    paragraphNode->paint();
+}
 
-    LOGI(
-        "OHRenderNodeDrawText: start drawing paragraph, translateX/Y: "
-        "%{public}f, %{public}f, "
-        "position: 0, 0, size: %{public}d, %{public}d, transform applied",
-        originX, originY, width, height);
-    paragraphNode->paint(0, 0);
+void OHRenderNodeDrawTextPixelMap(OH_PixelmapNative *pixelMap, int32_t cacheKey, int32_t width, int32_t height,
+                                  const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawTextPixelMap");
+    LOGI("OHRenderNodeDrawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d", cacheKey, width, height);
+
+    // 缓存 PixelMap
+    if (pixelMap != nullptr) {
+        OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMap);
+    }
+
+    // 设置RenderNode的transform和translate
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY);
+
+    auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
+
+    // 绘制完整图像（文本图像通常不需要裁剪）
+    // 使用 (0, 0, width, height) 作为源矩形，目标矩形也是 (0, 0, width, height)
+    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height,
+                             OH_Native_Draw_FilterQuality::None);
+}
+
+void OHRenderNodeDrawTextPixelMapWithPtr(OH_PixelmapNative *pixelMap, int32_t width, int32_t height,
+                                         const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawTextPixelMapWithPtr");
+    LOGI("OHRenderNodeDrawTextPixelMapWithPtr: width=%{public}d, height=%{public}d", width, height);
+
+    if (pixelMap == nullptr) {
+        LOGE("OHRenderNodeDrawTextPixelMapWithPtr: pixelMap is null");
+        return;
+    }
+
+    // 设置RenderNode的transform和translate
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY);
+
+    auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
+
+    // 绘制完整图像（使用缓存的 PixelMap）
+    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height,
+                             OH_Native_Draw_FilterQuality::None);
+}
+
+OH_PixelmapNative *OHNativeComposeHasTextImageCache(int32_t cacheKey) {
+    OH::SystraceSection trace("LayerDrawer:OHNativeComposeHasTextImageCache");
+    LOGI("OHNativeComposeHasTextImageCache: cacheKey=%{public}d", cacheKey);
+
+    OH_PixelmapNative *pixelMap = OHNativeTextImageCache::sharedInstance().getPixelMap(cacheKey);
+    if (pixelMap != nullptr) {
+        LOGI("OHNativeComposeHasTextImageCache: found cache for key=%{public}d", cacheKey);
+        // 注意：返回的指针需要由调用者负责管理生命周期（类似 iOS 的 __bridge_retained）
+        return pixelMap;
+    }
+
+    LOGI("OHNativeComposeHasTextImageCache: cache miss for key=%{public}d", cacheKey);
+    return nullptr;
+}
+
+OH_PixelmapNative *OHNativeComposePixelMapFromImageBitmap(OH_PixelmapNative *pixelMapNative, int32_t cacheKey) {
+    OH::SystraceSection trace("LayerDrawer:OHNativeComposePixelMapFromImageBitmap");
+    LOGI("OHNativeComposePixelMapFromImageBitmap: cacheKey=%{public}d", cacheKey);
+
+    if (pixelMapNative == nullptr) {
+        LOGE("OHNativeComposePixelMapFromImageBitmap: pixelMapNative is null");
+        return nullptr;
+    }
+
+    // 缓存 PixelMap
+    OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMapNative);
+    LOGI("OHNativeComposePixelMapFromImageBitmap: cached pixelMap for key=%{public}d", cacheKey);
+
+    return pixelMapNative;
 }
 
 void OHRenderNodeDrawThrow(const int32_t status) {

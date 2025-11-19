@@ -84,4 +84,4 @@ find_library(
 add_library(compose_arkui_utils STATIC napi_init.cpp ${SOURCES})
 target_link_libraries(compose_arkui_utils PUBLIC libace_napi.z.so)
 target_link_libraries(compose_arkui_utils PUBLIC ${EGL-lib} ${GLES-lib} ${hilog-lib} ${libace-lib} ${libnapi-lib} ${libuv-lib} ${hitrace-lib} libnative_display_manager.so
-        libnative_drawing.so libc++_shared.so)
+        libnative_drawing.so libc++_shared.so libpixelmap.so)

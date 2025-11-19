@@ -14,6 +14,7 @@
 #include "../render_node/oh_line_render_node.h"
 #include "../render_node/oh_oval_render_node.h"
 #include "../render_node/oh_path_render_node.h"
+#include "../render_node/oh_points_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
 #include "../trace/oh_systrace_section.h"
 #include "../utils/oh_hash_funcs.h"
@@ -54,12 +55,14 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
     case OH_Native_Drawing_Type::DrawingTypePath:
         return std::make_unique<PathRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeImageRect:
+    case OH_Native_Drawing_Type::DrawingTypeImageData:
+    case OH_Native_Drawing_Type::DrawingTypeImage:
         return std::make_unique<ImageDisplayRenderNode>();
+    case OH_Native_Drawing_Type::DrawingTypePoints:
+    case OH_Native_Drawing_Type::DrawingTypeShaderPoints:
+        return std::make_unique<PointsRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeRect:
     case OH_Native_Drawing_Type::DrawingTypeCircle:
-    case OH_Native_Drawing_Type::DrawingTypeImage:
-    case OH_Native_Drawing_Type::DrawingTypeImageData:
-    case OH_Native_Drawing_Type::DrawingTypePoints:
     case OH_Native_Drawing_Type::DrawingTypeRowPoints:
     case OH_Native_Drawing_Type::DrawingTypeRowVertices:
     case OH_Native_Drawing_Type::DrawingTypeClip:
@@ -71,7 +74,6 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
     case OH_Native_Drawing_Type::DrawingTypeShaderArc:
     case OH_Native_Drawing_Type::DrawingTypeShaderPath:
     case OH_Native_Drawing_Type::DrawingTypeShaderImage:
-    case OH_Native_Drawing_Type::DrawingTypeShaderPoints:
     case OH_Native_Drawing_Type::DrawingTypeShaderRowPoints:
     case OH_Native_Drawing_Type::DrawingTypeShaderRowVertices:
         LOGI("OH_Native_Drawing_Type::%{public}d: create BaseRenderNode", type);
@@ -98,8 +100,6 @@ inline uint64_t XXH64(const void *data, size_t len, uint64_t seed) {
 inline uint64_t RenderNodeSaveStateHash(const RenderNodeSaveState &saveState) {
     return XXH64(&saveState, sizeof(RenderNodeSaveState), 0);
 }
-
-class OHComposeNativePaint;
 
 struct PictureRecorderUpdateInfo {
     bool isDirty;
@@ -308,7 +308,7 @@ private:
     }
 
     SequenceIdInfo allocSequenceIdInfo(OH_Native_Drawing_Type type, uint64_t currentContentsHash);
-    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash);
+    void detachRenderNode(BaseRenderNode &rootRenderNode, OH_Native_Drawing_Type drawingType, uint64_t itemHash) const;
 
     void prepareForNextRecording(BaseRenderNode &rootRenderNode);
     void rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode);

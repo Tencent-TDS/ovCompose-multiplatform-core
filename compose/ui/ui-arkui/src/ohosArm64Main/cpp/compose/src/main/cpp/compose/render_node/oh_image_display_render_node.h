@@ -58,7 +58,7 @@ private:
     OH_Native_Draw_FilterQuality filterQuality_ = OH_Native_Draw_FilterQuality::None;
 
     // ImageClipRenderNode 子节点（需要裁剪时使用）
-    std::unique_ptr<ImageClipRenderNode> imageClipNode_;
+    std::unique_ptr<ImageClipRenderNode> imageClipNode_ = nullptr;
 
     // 触发重绘
     ArkUI_FloatPropertyHandle invalidateCountProperty_ = nullptr;

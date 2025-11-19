@@ -343,7 +343,7 @@ void Paragraph_paint(ParagraphHandle_Handle handle, const double x, const double
     LOGI("[Paragraph_paint] Paint called from bridge: handle=%{public}p, "
          "position=(%{public}.2f, %{public}.2f)",
          handle, x, y);
-    handle->data.paragraph->paint(x, y);
+    handle->data.paragraph->paint();
 }
 
 // ========== 辅助查询 ==========

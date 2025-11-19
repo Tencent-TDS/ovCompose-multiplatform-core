@@ -13,9 +13,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import platform.arkui.OH_Drawing_BlendMode
+import platform.native.OH_Drawing_PointMode
 
 internal inline fun BlendMode.asNativeBlendMode(): OH_Drawing_BlendMode {
     return when (this) {
@@ -85,6 +87,15 @@ private inline fun FilterQuality.asNativeFilterQuality(): OH_Native_Draw_FilterQ
         FilterQuality.Medium -> OH_Native_Draw_FilterQuality.Medium
         FilterQuality.None -> OH_Native_Draw_FilterQuality.None
         else -> throw RuntimeException("Unsupported FilterQuality: $this")
+    }
+}
+
+internal inline fun PointMode.asNativePointMode(): OH_Drawing_PointMode {
+    return when (this) {
+        PointMode.Points -> OH_Drawing_PointMode.POINT_MODE_POINTS
+        PointMode.Lines -> OH_Drawing_PointMode.POINT_MODE_LINES
+        PointMode.Polygon -> OH_Drawing_PointMode.POINT_MODE_POLYGON
+        else -> throw RuntimeException("Unsupported PointMode: $this")
     }
 }
 

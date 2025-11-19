@@ -39,13 +39,6 @@ struct PropertyCache {
     float cachedPivotX = 0.0f;
     float cachedPivotY = 0.0f;
 
-    // Bounds
-    bool boundsSet = false;
-    int32_t cachedBoundsX = 0;
-    int32_t cachedBoundsY = 0;
-    int32_t cachedBoundsWidth = 0;
-    int32_t cachedBoundsHeight = 0;
-
     // BackgroundColor
     bool backgroundColorSet = false;
     uint32_t cachedBackgroundColor = 0;
@@ -74,7 +67,6 @@ struct PropertyCache {
         translateSet = false;
         opacitySet = false;
         pivotSet = false;
-        boundsSet = false;
         backgroundColorSet = false;
         borderWidthSet = false;
         borderColorSet = false;
@@ -208,7 +200,7 @@ public:
     BaseRenderNode *setTransform(const float *matrix) {
         OH::SystraceSection trace("BaseRenderNode::setTransform");
         // 检查缓存，避免重复设置相同的矩阵
-         if (!propertyCache_.transformSet || transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
+        if (!propertyCache_.transformSet || transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(nodeHandle_, const_cast<float *>(matrix)));
             propertyCache_.transformSet = true;
             std::memcpy(propertyCache_.cachedTransform, matrix, sizeof(float) * 16);
@@ -220,11 +212,9 @@ public:
         OH::SystraceSection trace("BaseRenderNode::setTranslate");
 
         const float EPSILON = 0.01f;
-        const bool xChanged = !propertyCache_.translateSet || 
-                             (std::abs(propertyCache_.cachedTranslateX - translateX) >= EPSILON);
-        const bool yChanged = !propertyCache_.translateSet || 
-                             (std::abs(propertyCache_.cachedTranslateY - translateY) >= EPSILON);
-        
+        const bool xChanged = !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateX - translateX) >= EPSILON);
+        const bool yChanged = !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateY - translateY) >= EPSILON);
+
         if (xChanged || yChanged) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTranslation(nodeHandle_, translateX, translateY));
             propertyCache_.translateSet = true;
@@ -266,13 +256,15 @@ public:
     BaseRenderNode *setBounds(const int32_t x, const int32_t y, const int32_t width, const int32_t height) {
         OH::SystraceSection trace("BaseRenderNode::setBounds");
         // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.boundsSet || propertyCache_.cachedBoundsX != x || propertyCache_.cachedBoundsY != y || propertyCache_.cachedBoundsWidth != width || propertyCache_.cachedBoundsHeight != height) {
+        if (!propertyCache_.sizeSet || !propertyCache_.positionSet || propertyCache_.cachedX != x|| propertyCache_.cachedY != y
+            || propertyCache_.cachedWidth != width || propertyCache_.cachedHeight != height) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
-            propertyCache_.boundsSet = true;
-            propertyCache_.cachedBoundsX = x;
-            propertyCache_.cachedBoundsY = y;
-            propertyCache_.cachedBoundsWidth = width;
-            propertyCache_.cachedBoundsHeight = height;
+            propertyCache_.sizeSet = true;
+            propertyCache_.positionSet = true;
+            propertyCache_.cachedX = x;
+            propertyCache_.cachedY = y;
+            propertyCache_.cachedWidth = width;
+            propertyCache_.cachedHeight = height;
         }
         return this;
     }

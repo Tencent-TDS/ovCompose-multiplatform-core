@@ -72,28 +72,24 @@ internal class AdaptiveCanvas(
     override fun onPreDraw() {
         TraceUtil.traceSync("AdaptiveCanvas:onPreDraw") {
             nativeCanvasProxy.beginDraw()
-            LogPrintUtil.verbose { "AdaptiveCanvas::beginDraw" }
         }
     }
 
     override fun drawLayer(renderNodeHandle: BaseRenderNode_Handle) {
         TraceUtil.traceSync("AdaptiveCanvas:drawLayer") {
             nativeCanvasProxy.drawLayer(renderNodeHandle)
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawLayer" }
         }
     }
 
     override fun drawParagraph(paragraph: BaseRenderNode_Handle) {
         TraceUtil.traceSync("AdaptiveCanvas:drawParagraph") {
             nativeCanvasProxy.drawParagraph(paragraph)
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraph" }
         }
     }
 
     override fun drawLayerWithNativeCanvas(nativeCanvas: OHOSNativeCanvas) {
         TraceUtil.traceSync("AdaptiveCanvas:drawLayerWithNativeCanvas") {
             nativeCanvasProxy.drawLayerWithSubproxy((nativeCanvas as AdaptiveCanvas).nativeCanvasProxy)
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawLayerWithNativeCanvas" }
         }
     }
 
@@ -104,7 +100,6 @@ internal class AdaptiveCanvas(
                     nativeCanvasProxy.markSelfAsNodeGroup()
                 }
             }
-            LogPrintUtil.verbose { "AdaptiveCanvas::onPostDraw complete" }
         }
     }
 
@@ -133,7 +128,6 @@ internal class AdaptiveCanvas(
             translationY,
             m34Transform
         )
-        LogPrintUtil.verbose { "AdaptiveCanvas::applyTransformMatrix" }
     }
 
     override fun drawParagraphImage(
@@ -142,8 +136,18 @@ internal class AdaptiveCanvas(
         height: Int,
         paragraphHashCode: Int
     ) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawParagraphImage" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawParagraphImage") {
+            // 将 ImageBitmap 转换为 NativePixelMap
+            val pixelMap = image.asNativePixelMap() ?: return
+
+            // 调用 nativeCanvasProxy 绘制文本图像
+            nativeCanvasProxy.drawTextPixelMap(
+                pixelMap = pixelMap,
+                cacheKey = paragraphHashCode,
+                width = width,
+                height = height
+            )
+        }
     }
 
     override fun needRedrawImageWithHashCode(
@@ -160,14 +164,32 @@ internal class AdaptiveCanvas(
         width: Int,
         height: Int
     ) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::asyncDrawIntoCanvas" }
+        TraceUtil.traceSync("AdaptiveCanvas:asyncDrawIntoCanvas") {
+            // 执行 globalTask 获取图像指针
+            val imagePtr = globalTask()
+            if (imagePtr != 0L) {
+                // 使用获取到的图像指针绘制
+                nativeCanvasProxy.drawTextPixelMapWithPtr(
+                    pixelMapPtr = imagePtr,
+                    width = width,
+                    height = height
+                )
+            }
+        }
     }
 
     override fun imageFromImageBitmap(paragraphHashCode: Int, imageBitmap: ImageBitmap): Long {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::imageFromImageBitMap" }
-        return 0L
+        TraceUtil.traceSync("AdaptiveCanvas:imageFromImageBitmap") {
+            // 将 ImageBitmap 转换为 NativePixelMap
+            val pixelMap = imageBitmap.asNativePixelMap() ?: return 0L
+
+            // 调用 nativeCanvasProxy 创建并缓存 PixelMap，返回图像指针
+            val imagePtr = nativeCanvasProxy.imageFromImageBitmap(
+                pixelMap = pixelMap,
+                paragraphHashCode = paragraphHashCode
+            )
+            return imagePtr
+        }
     }
 
     override fun applyRenderEffect(renderEffect: RenderEffect?) {
@@ -222,10 +244,6 @@ internal class AdaptiveCanvas(
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
         nativeCanvasProxy.clipRect(left, top, right, bottom, clipOp.asNativeEnum().value)
-        LogPrintUtil.verbose {
-            "AdaptiveCanvas::clipRect, " +
-                    "left: $left, top: $top, right: $right, bottom: $bottom, clipOp: $clipOp"
-        }
     }
 
     override fun clipPath(path: Path, clipOp: ClipOp) {
@@ -236,17 +254,12 @@ internal class AdaptiveCanvas(
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
         nativePaint.sync(paint)
         nativeCanvasProxy.drawLine(p1.x, p1.y, p2.x, p2.y, nativePaint)
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawLine, p1: $p1, p2: $p2, paint: $paint" }
     }
 
     override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
         TraceUtil.traceSync("AdaptiveCanvas:drawRect") {
             nativePaint.sync(paint)
             nativeCanvasProxy.drawRect(left, top, right, bottom, nativePaint)
-            LogPrintUtil.verbose {
-                "AdaptiveCanvas::drawRect, " +
-                        "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
-            }
         }
     }
 
@@ -262,11 +275,6 @@ internal class AdaptiveCanvas(
         TraceUtil.traceSync("AdaptiveCanvas:drawRoundRect") {
             nativePaint.sync(paint)
             nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
-            LogPrintUtil.verbose {
-                "AdaptiveCanvas::drawRoundRect, " +
-                        "left: $left, top: $top, right: $right, bottom: $bottom, " +
-                        "radiusX: $radiusX, radiusY: $radiusY, paint: $paint"
-            }
         }
     }
 
@@ -274,10 +282,6 @@ internal class AdaptiveCanvas(
         TraceUtil.traceSync("AdaptiveCanvas:drawOval") {
             nativePaint.sync(paint)
             nativeCanvasProxy.drawOval(left, top, right, bottom, nativePaint)
-            LogPrintUtil.verbose {
-                "AdaptiveCanvas::drawOval, " +
-                        "left: $left, top: $top, right: $right, bottom: $bottom, paint: $paint"
-            }
         }
     }
 
@@ -285,7 +289,6 @@ internal class AdaptiveCanvas(
         TraceUtil.traceSync("AdaptiveCanvas:drawCircle") {
             nativePaint.sync(paint)
             nativeCanvasProxy.drawCircle(center.x, center.y, radius, nativePaint)
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawCircle, center: $center, radius: $radius, paint: $paint" }
         }
     }
 
@@ -301,13 +304,16 @@ internal class AdaptiveCanvas(
     ) {
         TraceUtil.traceSync("AdaptiveCanvas:drawArc") {
             nativePaint.sync(paint)
-            nativeCanvasProxy.drawArc(left, top, right, bottom, startAngle, sweepAngle, useCenter, nativePaint)
-            LogPrintUtil.verbose {
-                "AdaptiveCanvas::drawArc, " +
-                        "left: $left, top: $top, right: $right, bottom: $bottom, " +
-                        "startAngle: $startAngle, sweepAngle: $sweepAngle, " +
-                        "useCenter: $useCenter, paint: $paint"
-            }
+            nativeCanvasProxy.drawArc(
+                left,
+                top,
+                right,
+                bottom,
+                startAngle,
+                sweepAngle,
+                useCenter,
+                nativePaint
+            )
         }
     }
 
@@ -322,7 +328,6 @@ internal class AdaptiveCanvas(
             } else {
                 return
             }
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawPath, path: $path, paint: $paint" }
         }
     }
 
@@ -332,11 +337,7 @@ internal class AdaptiveCanvas(
             // 参考iOS实现：drawImage简化为调用drawImageRect
             // srcRect = (0, 0, image.width, image.height)
             // dstRect = (topLeftOffset.x, topLeftOffset.y, image.width, image.height)
-            val pixelMap = image.asNativePixelMap()
-            if (pixelMap == null) {
-                LogPrintUtil.verbose { "AdaptiveCanvas::drawImage: failed to convert ImageBitmap to NativePixelMap, image: $image (${image.width}x${image.height})" }
-                return
-            }
+            val pixelMap = image.asNativePixelMap() ?: return
             nativeCanvasProxy.drawImageRect(
                 pixelMap = pixelMap,
                 srcX = 0,
@@ -349,7 +350,6 @@ internal class AdaptiveCanvas(
                 dstHeight = image.height,
                 nativePaint
             )
-            LogPrintUtil.verbose { "AdaptiveCanvas::drawImage, image: $image, topLeftOffset: $topLeftOffset, paint: $paint" }
         }
     }
 
@@ -363,16 +363,7 @@ internal class AdaptiveCanvas(
     ) {
         TraceUtil.traceSync("AdaptiveCanvas:drawImageRect") {
             nativePaint.sync(paint)
-            val pixelMap = image.asNativePixelMap()
-            if (pixelMap == null) {
-                LogPrintUtil.verbose {
-                    "AdaptiveCanvas::drawImageRect: failed to convert ImageBitmap to NativePixelMap, " +
-                            "image: $image (${image.width}x${image.height}), " +
-                            "srcOffset: $srcOffset, srcSize: $srcSize, " +
-                            "dstOffset: $dstOffset, dstSize: $dstSize"
-                }
-                return
-            }
+            val pixelMap = image.asNativePixelMap() ?: return
             nativeCanvasProxy.drawImageRect(
                 pixelMap = pixelMap,
                 srcX = srcOffset.x,
@@ -385,23 +376,36 @@ internal class AdaptiveCanvas(
                 dstHeight = dstSize.height,
                 nativePaint
             )
-            LogPrintUtil.verbose {
-                "AdaptiveCanvas::drawImageRect, " +
-                        "image: $image, srcOffset: $srcOffset, srcSize: $srcSize" +
-                        "dstOffset: $dstOffset, dstSize: $dstSize, paint: $paint"
-            }
         }
     }
 
     override fun drawPoints(pointMode: PointMode, points: List<Offset>, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawPoints, pointMode: $pointMode, points: $points, paint: $paint" }
-
+        TraceUtil.traceSync("AdaptiveCanvas:drawPoints") {
+            nativePaint.sync(paint)
+            // 转换为 FloatArray: [x1, y1, x2, y2, ...]
+            val floatArray = FloatArray(points.size * 2) { i ->
+                if (i % 2 == 0) points[i / 2].x else points[i / 2].y
+            }
+            nativeCanvasProxy.drawPoints(
+                pointMode = pointMode.asNativePointMode(),
+                points = floatArray,
+                nativePaint = nativePaint
+            )
+        }
     }
 
     override fun drawRawPoints(pointMode: PointMode, points: FloatArray, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::drawRawPoints, pointMode: $pointMode, points: $points, paint: $paint" }
+        TraceUtil.traceSync("AdaptiveCanvas:drawRawPoints") {
+            if (points.size % 2 != 0) {
+                throw IllegalArgumentException("points must have an even number of values")
+            }
+            nativePaint.sync(paint)
+            nativeCanvasProxy.drawPoints(
+                pointMode = pointMode.asNativePointMode(),
+                points = points,
+                nativePaint = nativePaint
+            )
+        }
     }
 
     override fun drawVertices(vertices: Vertices, blendMode: BlendMode, paint: Paint) {

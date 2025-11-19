@@ -9,6 +9,8 @@
 #include "../constants/oh_native_constants.h"
 #include "../xcomponent_log.h"
 
+#include <cfloat>
+
 namespace OH {
 
 // ========== Cut-Op 机制的内部数据结构 ==========
@@ -76,8 +78,8 @@ Paragraph::Paragraph(std::string text, std::unique_ptr<ITextStyleStrategy> textS
 
 Paragraph::~Paragraph() {
     LOGI("Dispose paragraph related resources.");
-    if (posProperty_) {
-        OH_ArkUI_RenderNodeUtils_DisposeVector2Property(posProperty_);
+    if (invalidateCountProperty_) {
+        OH_ArkUI_RenderNodeUtils_DisposeFloatProperty(invalidateCountProperty_);
     }
     if (modifier_) {
         OH_ArkUI_RenderNodeUtils_DisposeContentModifier(modifier_);
@@ -696,26 +698,24 @@ std::vector<TextRect> Paragraph::getPlaceholderRects() const {
 
 // ========== 绘制 ==========
 
-void Paragraph::paint(float x, float y) {
-    LOGI("[Paragraph::paint] Paint called: this=%{public}p, "
-         "position=(%{public}.2f, %{public}.2f)",
-         this, x, y);
-    this->createOrUpdatePositionProperty(x, y);
+void Paragraph::invalidate() {
+    if (!invalidateCountProperty_) {
+        return;
+    }
+
+    // 读取当前值
+    float currentCount = 0.0f;
+    OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
+
+    // 加1，处理溢出（回绕到0）
+    float newCount = (currentCount >= FLT_MAX - 1.0f) ? 0.0f : (currentCount + 1.0f);
+
+    // 设置新值，触发onDraw回调
+    OH_ArkUI_RenderNodeUtils_SetFloatPropertyValue(invalidateCountProperty_, newCount);
 }
 
-void Paragraph::createOrUpdatePositionProperty(float x, float y) {
-    if (!posProperty_) {
-        LOGI("[Paragraph::createOrUpdatePositionProperty] Creating new position "
-             "property: (%{public}.2f, %{public}.2f)",
-             x, y);
-        posProperty_ = OH_ArkUI_RenderNodeUtils_CreateVector2Property(x, y);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachVector2Property(modifier_, posProperty_));
-    } else {
-        LOGI("[Paragraph::createOrUpdatePositionProperty] Updating position "
-             "property: (%{public}.2f, %{public}.2f)",
-             x, y);
-        maybeThrow(OH_ArkUI_RenderNodeUtils_SetVector2PropertyValue(posProperty_, x, y));
-    }
+void Paragraph::paint() {
+    this->invalidate();
 }
 
 /**
@@ -740,25 +740,22 @@ void Paragraph::initModifier() {
     if (!modifier_) {
         modifier_ = OH_ArkUI_RenderNodeUtils_CreateContentModifier();
         maybeThrow(OH_ArkUI_RenderNodeUtils_AttachContentModifier(nodeHandle_, modifier_));
+
+        // 创建invalidateCount PropertyHandle
+        invalidateCountProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(0.0f);
+        maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, invalidateCountProperty_));
+
         maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(
             modifier_, this, [](ArkUI_DrawContext *context, void *userData) {
-                LOGI("Paragraph::onDraw called");
                 const auto *data = static_cast<Paragraph *>(userData);
                 auto *canvas1 = OH_ArkUI_DrawContext_GetCanvas(context);
                 auto *canvas = static_cast<OH_Drawing_Canvas *>(canvas1);
 
-                float x = 0;
-                float y = 0;
-                if (!data->posProperty_) {
-                    return;
-                }
-                OH_ArkUI_RenderNodeUtils_GetVector2PropertyValue(data->posProperty_, &x, &y);
                 if (!data->typography_.isValid() || !canvas) {
+                    LOGE("Paragraph::onDraw: invalid typography or canvas");
                     return;
                 }
-
-                OH_Drawing_TypographyPaint(data->typography_.get(), canvas, x, y);
-                LOGI("Paragraph::onDraw completed");
+                OH_Drawing_TypographyPaint(data->typography_.get(), canvas, 0, 0);
             }));
     }
 }

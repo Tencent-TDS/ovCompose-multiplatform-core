@@ -18,6 +18,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPoints
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine
@@ -31,7 +32,17 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap
 import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.COpaquePointerVar
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.toCPointer
+import kotlinx.cinterop.usePinned
+import platform.native.OH_Drawing_PointMode
 
 /**
  * 封装 OHNativeCanvasProxy_Handle 结构体指针的 Kotlin 代理类
@@ -339,6 +350,25 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
         }
     }
 
+    @OptIn(ExperimentalForeignApi::class)
+    fun drawPoints(
+        pointMode: OH_Drawing_PointMode,
+        points: FloatArray,
+        nativePaint: OHComposeNativePaint
+    ) {
+        handle?.let {
+            points.usePinned { pinned ->
+                androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPoints(
+                    proxy = it,
+                    pointMode = pointMode.value.toUInt(),
+                    points = pinned.addressOf(0),
+                    pointCount = (points.size / 2).toULong(),
+                    paint = nativePaint.handle
+                )
+            }
+        }
+    }
+
     fun setParent(parentProxy: OHNativeCanvasProxy) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(
@@ -393,7 +423,75 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
      * 检查是否需要重绘图像
      */
     fun needRedrawImageWithHashCode(hashCode: Int, width: Int, height: Int): Boolean {
-//        return handle?.let { OHNativeCanvasProxy_needRedrawImageWithHashCode(it, hashCode, width, height) } ?: false
-        return true
+        return handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode(
+                proxy = it,
+                hashCode = hashCode,
+                width = width,
+                height = height
+            )
+        } ?: true
+    }
+
+    /**
+     * 绘制文本图像
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun drawTextPixelMap(
+        pixelMap: COpaquePointer?,
+        cacheKey: Int,
+        width: Int,
+        height: Int
+    ) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap(
+                proxy = it,
+                pixelMapNative = pixelMap,
+                cacheKey = cacheKey,
+                width = width,
+                height = height
+            )
+        }
+    }
+
+    /**
+     * 使用缓存的指针绘制文本图像
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun drawTextPixelMapWithPtr(
+        pixelMapPtr: Long,
+        width: Int,
+        height: Int
+    ) {
+        handle?.let {
+            // 将 Long 转换为 COpaquePointer
+            // 在 Kotlin/Native 中，Long 可以直接转换为指针地址
+            val pixelMapPointer: COpaquePointer? = if (pixelMapPtr != 0L) {
+                pixelMapPtr.toCPointer<COpaquePointerVar>()
+            } else {
+                null
+            }
+            if (pixelMapPointer != null) {
+                androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr(
+                    proxy = it,
+                    pixelMapPtr = pixelMapPointer,
+                    width = width,
+                    height = height
+                )
+            }
+        }
+    }
+
+    /**
+     * 从 ImageBitmap 创建并缓存 PixelMap
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun imageFromImageBitmap(pixelMap: COpaquePointer?, paragraphHashCode: Int): Long {
+        return pixelMap?.let {
+            androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap(
+                pixelMapNative = it,
+                cacheKey = paragraphHashCode
+            )
+        } ?: 0L
     }
 }

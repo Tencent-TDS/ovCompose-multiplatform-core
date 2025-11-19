@@ -1,4 +1,5 @@
 package = androidx.compose.ui.arkui.utils
 headers = arkui_utils_export.h canvas/oh_native_canvas_export.h constants/oh_native_enums.h \
-        paragraph/oh_native_paragraph_bridge.h path/oh_native_path_export.h
+        paragraph/oh_native_paragraph_bridge.h path/oh_native_path_export.h \
+        paint/oh_native_paint_export.h
 

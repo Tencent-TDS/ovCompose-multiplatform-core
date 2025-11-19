@@ -112,8 +112,9 @@ public:
 
     // ========== 绘制 ==========
 
-    void paint(float x, float y);
-
+    void invalidate();
+    void paint();
+    
     // ========== 辅助查询 ==========
 
     uint32_t getLineForOffset(uint32_t offset) const;
@@ -234,9 +235,7 @@ private:
     mutable std::unique_ptr<LineMetricsCacheManager> lineMetricsCache_;
     mutable std::unique_ptr<MetricsCacheManager> metricsCache_;
     ArkUI_RenderContentModifierHandle modifier_ = nullptr;
-
-    // 位置
-    ArkUI_Vector2PropertyHandle posProperty_ = nullptr;
+    ArkUI_FloatPropertyHandle invalidateCountProperty_ = nullptr;
 };
 
 /**

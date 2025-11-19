@@ -17,20 +17,20 @@
 
 #include "oh_native_canvas_export.h"
 #include "../constants/oh_native_constants.h"
-#include "../shader/oh_native_basic_shader.h"
 #include "../shader/oh_native_image_shader.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
 #include "../shader/oh_native_radial_gradient_shader.h"
 #include "../shader/oh_native_sweep_gradient_shader.h"
 #include "../xcomponent_log.h"
 #include "../paragraph/oh_native_paragraph.h"
-#include "oh_compose_native_paint.h"
+#include "../paint/oh_compose_native_paint.h"
 #include "oh_native_canvas_proxy.h"
 #include "oh_native_canvas_proxy_factory.h"
+#include "oh_native_canvas_layer_drawer.h"
 
 #include <multimedia/image_framework/image/pixelmap_native.h>
+#include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_shader_effect.h>
-#include <cstring>
 
 EXTERN_C_START
 /// OHNativeCanvasProxy related methods
@@ -47,15 +47,6 @@ void androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy(OHNativeCanvasPr
     delete canvasProxy;
 };
 
-void androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(OHComposeNativePaint_Handle paintHandle) {
-    auto paint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paintHandle);
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_"
-         "DisposeOHComposeNativePaint %{public}p",
-         paint);
-    // delete paint here to avoid memory leak
-    delete paint;
-};
-
 /// OHNativeCanvasProxy drawing methods
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanvasProxy_Handle proxyHandle) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxyHandle);
@@ -66,7 +57,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw(OHNativeCanva
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,
                                                                   OHComposeNativePaint_Handle paint) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawRect(left, top, right, bottom, nativePaint);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect");
@@ -78,7 +69,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeC
                                                                        OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect: "
          "start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint);
 }
@@ -87,7 +78,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle(OHNativeCanv
                                                                     float centerY, float radius,
                                                                     OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle: start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawCircle(centerX, centerY, radius, nativePaint);
 }
@@ -96,7 +87,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval(OHNativeCanvas
                                                                   float top, float right, float bottom,
                                                                   OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval: start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawOval(left, top, right, bottom, nativePaint);
 }
@@ -106,7 +97,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc(OHNativeCanvasP
                                                                  float startAngle, float sweepAngle, bool useCenter,
                                                                  OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc: start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawArc(left, top, right, bottom, startAngle, sweepAngle, useCenter, nativePaint);
 }
@@ -115,7 +106,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath(OHNativeCanvas
                                                                   OH_Drawing_Path_Handle path,
                                                                   OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPath: start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawPath(path, nativePaint);
 }
@@ -126,15 +117,24 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect(OHNativeC
                                                                        int32_t dstWidth, int32_t dstHeight,
                                                                        OHComposeNativePaint_Handle paint) {
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect: start");
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawImageRect(pixelMap, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, nativePaint);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPoints(OHNativeCanvasProxy_Handle proxy,
+                                                                    uint32_t pointMode, const float *points,
+                                                                    size_t pointCount, OHComposeNativePaint_Handle paint) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPoints: pointMode=%{public}u, pointCount=%{public}zu", pointMode, pointCount);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawPoints(static_cast<OH_Drawing_PointMode>(pointMode), points, pointCount, nativePaint);
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvasProxy_Handle proxy, float x1, float y1,
                                                                   float x2, float y2,
                                                                   OHComposeNativePaint_Handle paint) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->drawLine(x1, y1, x2, y2, nativePaint);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine");
@@ -282,163 +282,9 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(OHNativeCanva
 }
 
 /// OHComposeNativePaint related methods
-OHComposeNativePaint_Handle
-androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy) {
+OHComposeNativePaint_Handle androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_Paint(OHNativeCanvasProxy_Handle proxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     return reinterpret_cast<OHComposeNativePaint_Handle>(canvasProxy->Paint());
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha(OHComposeNativePaint_Handle paint, float alpha) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->alpha = alpha;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setAlpha: "
-         "alpha=%{public}f",
-         alpha);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias(OHComposeNativePaint_Handle paint,
-                                                                         bool isAntiAlias) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->isAntiAlias = isAntiAlias;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setIsAntiAlias: "
-         "isAntiAlias=%{public}d",
-         isAntiAlias);
-}
-
-// 此处接受kotlin侧64为的colorValue，需要转成C的32位的color
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor(OHComposeNativePaint_Handle paint,
-                                                                   uint64_t colorValue) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->color = static_cast<uint32_t>(colorValue >> 32);
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColor: "
-         "color=0x%{public}X",
-         nativePaint->color);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth(OHComposeNativePaint_Handle paint,
-                                                                         float strokeWidth) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->strokeWidth = strokeWidth;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeWidth: "
-         "strokeWidth=%{public}f",
-         strokeWidth);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode(OHComposeNativePaint_Handle paint,
-                                                                       uint32_t blendMode) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->blendMode = static_cast<OH_Drawing_BlendMode>(blendMode);
-    LOGI("addroidx_compose_ui_arkui_utils_OHComposeNativePaint_setBlendMode: "
-         "blendMode=%{public}d",
-         blendMode);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle(OHComposeNativePaint_Handle paint, uint32_t style) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->style = static_cast<OH_Native_Draw_PaintingStyle>(style);
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStyle: "
-         "style=%{public}d",
-         style);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap(OHComposeNativePaint_Handle paint,
-                                                                       uint32_t strokeCap) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->strokeCap = static_cast<OH_Native_Draw_StrokeCap>(strokeCap);
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeCap: "
-         "strokeCap=%{public}d",
-         strokeCap);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin(OHComposeNativePaint_Handle paint,
-                                                                        uint32_t strokeJoin) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->strokeJoin = static_cast<OH_Native_Draw_StrokeJoin>(strokeJoin);
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeJoin: "
-         "strokeJoin=%{public}d",
-         strokeJoin);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setStrokeMiterLimit(OHComposeNativePaint_Handle paint,
-                                                                              float miterLimit) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->strokeMiterLimit = miterLimit;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_"
-         "setStrokeMiterLimit: miterLimit=%{public}f",
-         miterLimit);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality(OHComposeNativePaint_Handle paint,
-                                                                           uint32_t quality) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    nativePaint->filterQuality = static_cast<OH_Native_Draw_FilterQuality>(quality);
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setFilterQuality: "
-         "quality=%{public}d",
-         quality);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader(OHComposeNativePaint_Handle paint,
-                                                                    NativeBasicShader_Handle shader) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    auto nativeShader = reinterpret_cast<OH::NativeBasicShader *>(shader);
-    nativePaint->shader = nativeShader;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setShader: "
-         "shader=%{public}p",
-         shader);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect(OHComposeNativePaint_Handle paint,
-                                                                        OH_Drawing_PathEffect_Handle pathEffect) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    auto nativePathEffect = reinterpret_cast<OH_Drawing_PathEffect *>(paint);
-    nativePaint->pathEffect = nativePathEffect;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setPathEffect: "
-         "pathEffect=%{public}p",
-         pathEffect);
-}
-
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter(OHComposeNativePaint_Handle paint,
-                                                                         OH_Drawing_ColorFilter_Handle colorFilter) {
-    const auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-    const auto nativeColorFilter = reinterpret_cast<OH_Drawing_ColorFilter *>(colorFilter);
-    nativePaint->colorFilter = nativeColorFilter;
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_setColorFilter: "
-         "colorFilter=%{public}p",
-         colorFilter);
-}
-
-// Batch sync all paint properties in a single FFI call to optimize performance
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
-    OHComposeNativePaint_Handle paint,
-    const float alpha,
-    const bool isAntiAlias,
-    const uint64_t color,
-    const float strokeWidth,
-    uint32_t blendMode,
-    uint32_t style,
-    uint32_t strokeCap,
-    uint32_t strokeJoin,
-    uint32_t filterQuality,
-    const float strokeMiterLimit,
-    NativeBasicShader_Handle shader) {
-    auto nativePaint = reinterpret_cast<androidx::compose::ui::arkui::utils::OHComposeNativePaint *>(paint);
-
-    // Set all properties in one batch
-    nativePaint->alpha = alpha;
-    nativePaint->isAntiAlias = isAntiAlias;
-    nativePaint->color = static_cast<uint32_t>(color >> 32);
-    nativePaint->strokeWidth = strokeWidth;
-    nativePaint->blendMode = static_cast<OH_Drawing_BlendMode>(blendMode);
-    nativePaint->style = static_cast<OH_Native_Draw_PaintingStyle>(style);
-    nativePaint->strokeCap = static_cast<OH_Native_Draw_StrokeCap>(strokeCap);
-    nativePaint->strokeJoin = static_cast<OH_Native_Draw_StrokeJoin>(strokeJoin);
-    nativePaint->filterQuality = static_cast<OH_Native_Draw_FilterQuality>(filterQuality);
-    nativePaint->strokeMiterLimit = strokeMiterLimit;
-    nativePaint->shader = reinterpret_cast<OH::NativeBasicShader *>(shader);
-
-    LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll: "
-         "alpha=%{public}f, color=0x%{public}X, strokeWidth=%{public}f",
-         alpha, nativePaint->color, strokeWidth);
 }
 
 /// NativeShader related methods
@@ -535,6 +381,50 @@ void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
     }
 
     LOGI("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: success, pixelMap=%{public}p", pixelMap);
+    return reinterpret_cast<void *>(pixelMap);
+}
+
+// Text image drawing methods
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap(OHNativeCanvasProxy_Handle proxy,
+                                                                          void *pixelMapNative, int32_t cacheKey,
+                                                                          int32_t width, int32_t height) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d",
+         cacheKey, width, height);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawTextPixelMap(pixelMapNative, cacheKey, width, height);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr(OHNativeCanvasProxy_Handle proxy,
+                                                                                 void *pixelMapPtr, int32_t width,
+                                                                                 int32_t height) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr: width=%{public}d, height=%{public}d",
+         width, height);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->drawTextPixelMapWithPtr(pixelMapPtr, width, height);
+}
+
+bool androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode(OHNativeCanvasProxy_Handle proxy,
+                                                                                     int32_t hashCode, int32_t width,
+                                                                                     int32_t height) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode: hashCode=%{public}d, width=%{public}d, height=%{public}d",
+         hashCode, width, height);
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    return canvasProxy->needRedrawImageWithHashCode(hashCode, width, height);
+}
+
+int64_t androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap(void *pixelMapNative, int32_t cacheKey) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap: cacheKey=%{public}d", cacheKey);
+    OH_PixelmapNative *pixelMap = OH::OHNativeComposePixelMapFromImageBitmap(
+        reinterpret_cast<OH_PixelmapNative *>(pixelMapNative), cacheKey);
+    if (pixelMap != nullptr) {
+        return reinterpret_cast<int64_t>(pixelMap);
+    }
+    return 0;
+}
+
+void *androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache(int32_t cacheKey) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache: cacheKey=%{public}d", cacheKey);
+    OH_PixelmapNative *pixelMap = OH::OHNativeComposeHasTextImageCache(cacheKey);
     return reinterpret_cast<void *>(pixelMap);
 }
 

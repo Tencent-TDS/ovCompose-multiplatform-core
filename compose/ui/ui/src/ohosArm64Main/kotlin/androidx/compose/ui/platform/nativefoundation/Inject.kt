@@ -34,7 +34,7 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
         NativePathImpl()
     }
 
-    EnableOHOSParagraph = true
+    EnableOHOSParagraph = false
 
     // TODO 暂时先将Compose在鸿蒙平台的日志开关放在此处，后续可以通过配置编译选项来控制
     LogPrintUtil.isLogEnabled = true
@@ -47,18 +47,16 @@ internal fun injectForCompose(renderBackend: RenderingBackend) {
             maxLines: Int,
             ellipsis: Boolean,
             constraints: Constraints
-        ): Paragraph? {
-            if (RenderingBackendContext.current() != RenderingBackend.ArkUIRenderNode && EnableOHOSParagraph) {
-                return null
-            }
-            val ohosIntrinsics = intrinsics as? OHOSParagraphIntrinsics ?: return null
-            return OHOSParagraph(
-                ohosIntrinsics,
+        ): Paragraph? =
+            if (RenderingBackendContext.current() == RenderingBackend.ArkUIRenderNode
+                && EnableOHOSParagraph
+            ) OHOSParagraph(
+                intrinsics as OHOSParagraphIntrinsics,
                 maxLines,
                 ellipsis,
                 constraints
-            )
-        }
+            ) else null
+
 
         override fun createParagraphIntrinsics(
             text: String,

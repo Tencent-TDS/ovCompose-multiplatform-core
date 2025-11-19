@@ -92,6 +92,22 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawImageRect(OHNativeC
                                                                        int32_t dstX, int32_t dstY, int32_t dstWidth,
                                                                        int32_t dstHeight,
                                                                        OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawPoints(OHNativeCanvasProxy_Handle proxy,
+                                                                    uint32_t pointMode, const float *points,
+                                                                    size_t pointCount, OHComposeNativePaint_Handle paint);
+
+// Text image drawing methods
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap(OHNativeCanvasProxy_Handle proxy,
+                                                                          void *pixelMapNative, int32_t cacheKey,
+                                                                          int32_t width, int32_t height);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr(OHNativeCanvasProxy_Handle proxy,
+                                                                                 void *pixelMapPtr, int32_t width,
+                                                                                 int32_t height);
+bool androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode(OHNativeCanvasProxy_Handle proxy,
+                                                                                     int32_t hashCode, int32_t width,
+                                                                                     int32_t height);
+int64_t androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap(void *pixelMapNative, int32_t cacheKey);
+void *androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache(int32_t cacheKey);
 
 // ImageBitmap to NativePixelMap conversion
 void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(

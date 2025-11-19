@@ -97,7 +97,7 @@ void ImageDisplayRenderNode::drawImageRect(OH_PixelmapNative *pixelMap, int32_t 
     // ========== 根据裁剪需求选择渲染路径 ==========
     if (!clipInfo.needsClip) {
         // 路径A: 不需要裁剪，直接绘制
-        if (imageClipNode_) {
+        if (imageClipNode_ && imageClipNode_->getParent() != nullptr) {
             this->removeChild(imageClipNode_.get());
         }
 
