@@ -12,7 +12,7 @@ class OHNativeCanvasProxy {
 public:
     explicit OHNativeCanvasProxy(OH::BaseRenderNode *rootNode);
     ~OHNativeCanvasProxy();
-    OH::OHComposeNativePaint *Paint();
+    static OH::OHComposeNativePaint *Paint();
     OH::BaseRenderNode *getRenderNode() const;
     void beginDraw();
     void attachToRootView() const;
@@ -65,7 +65,6 @@ public:
     int64_t imageFromImageBitmap(void *pixelMapNative, int32_t paragraphHashCode);
 
 private:
-    OH::OHComposeNativePaint *paint_{};
     OH::BaseRenderNode *rootNode_;
     std::unique_ptr<OH::BaseRenderNode> canvasNode_;
     OH::PictureRecorder _pictureRecorder;

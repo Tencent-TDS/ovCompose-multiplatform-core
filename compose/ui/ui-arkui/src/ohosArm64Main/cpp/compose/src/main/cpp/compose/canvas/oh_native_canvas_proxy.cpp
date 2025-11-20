@@ -20,10 +20,8 @@ OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode *rootNode) : rootNod
 }
 
 OH::OHComposeNativePaint *OHNativeCanvasProxy::Paint() {
-    if (paint_ == nullptr) {
-        paint_ = new OH::OHComposeNativePaint();
-    }
-    return paint_;
+    // 直接创建并返回，不持有指针，所有权转移给 Kotlin 侧
+    return new OH::OHComposeNativePaint();
 }
 
 void OHNativeCanvasProxy::beginDraw() {
@@ -51,7 +49,6 @@ void OHNativeCanvasProxy::setParent(const OHNativeCanvasProxy *canvasParentProxy
 void OHNativeCanvasProxy::setPosition(const int32_t x, const int32_t y) const {
     OH::SystraceSection trace("OHNativeCanvasProxy:setPosition");
     if (canvasNode_ != nullptr) {
-        OH::BaseRenderNode *parent = canvasNode_->getParent();
         canvasNode_->setPosition(x, y);
     }
 }
@@ -604,13 +601,13 @@ void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTas
     }
 }
 
-int64_t OHNativeCanvasProxy::imageFromImageBitmap(void *pixelMapNative, int32_t paragraphHashCode) {
+int64_t OHNativeCanvasProxy::imageFromImageBitmap(void *pixelMapNative, const int32_t paragraphHashCode) {
     OH::SystraceSection trace("OHNativeCanvasProxy:imageFromImageBitmap");
     LOGI("OHNativeCanvasProxy::imageFromImageBitmap: paragraphHashCode=%{public}d", paragraphHashCode);
 
     // 缓存 PixelMap 并返回指针
     OH_PixelmapNative *pixelMap = OH::OHNativeComposePixelMapFromImageBitmap(
-        reinterpret_cast<OH_PixelmapNative *>(pixelMapNative), paragraphHashCode);
+        static_cast<OH_PixelmapNative *>(pixelMapNative), paragraphHashCode);
 
     if (pixelMap != nullptr) {
         // 返回指针值（转换为 int64_t，类似 iOS 的 CFTypeRef）
