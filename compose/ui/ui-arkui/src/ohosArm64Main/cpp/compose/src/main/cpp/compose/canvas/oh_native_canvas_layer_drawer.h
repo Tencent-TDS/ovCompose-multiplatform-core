@@ -56,7 +56,10 @@ void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp
                               const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
 
 void OHRenderNodeDrawClipRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
-                                   const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
+                                   const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing, OH_Native_Draw_ClipOp clipOp);
+
+void OHRenderNodeDrawSaveLayer(float left, float top, float right, float bottom, const OHComposeNativePaint *paint,
+                               const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
 
 void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode);
 

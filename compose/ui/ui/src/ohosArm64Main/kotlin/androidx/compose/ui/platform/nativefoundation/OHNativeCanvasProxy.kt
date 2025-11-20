@@ -14,6 +14,10 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearClip
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_saveLayer
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_enableZ
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_disableZ
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc
@@ -26,6 +30,7 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_removeCanvasNodeFromParent
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds
@@ -185,9 +190,41 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
         }
     }
 
+    fun clearClip() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearClip(it)
+        }
+    }
+
+    fun saveLayer(left: Float, top: Float, right: Float, bottom: Float, nativePaint: OHComposeNativePaint) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_saveLayer(
+                it, left, top, right, bottom, nativePaint.handle
+            )
+        }
+    }
+
+    fun enableZ() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_enableZ(it)
+        }
+    }
+
+    fun disableZ() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_disableZ(it)
+        }
+    }
+
     fun markSelfAsNodeGroup() {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(it)
+        }
+    }
+
+    fun removeCanvasNodeFromParent() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_removeCanvasNodeFromParent(it)
         }
     }
 

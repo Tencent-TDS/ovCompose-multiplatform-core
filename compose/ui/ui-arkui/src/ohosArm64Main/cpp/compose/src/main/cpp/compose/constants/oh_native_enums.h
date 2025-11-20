@@ -55,7 +55,8 @@ typedef enum {
     DrawingTypeSave,
     DrawingTypeRestore,
     DrawingTypeClip,
-    DrawingTypePop
+    DrawingTypePop,
+    DrawingTypeSaveLayer
 } OH_Native_Drawing_Type;
 
 typedef enum {
@@ -78,7 +79,8 @@ typedef enum {
 typedef enum {
     SafeGuard, // Safe guard
     Save,      // Pure save operation
-    Clip       // Clip operation
+    Clip,      // Clip operation
+    SaveLayer  // SaveLayer operation
 } OH_RenderNode_SaveState_MakeType;
 
 typedef enum {

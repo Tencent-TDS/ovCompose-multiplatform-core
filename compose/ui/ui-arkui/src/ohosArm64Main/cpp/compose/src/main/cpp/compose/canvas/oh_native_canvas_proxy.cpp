@@ -196,6 +196,45 @@ void OHNativeCanvasProxy::clipRoundRect(const float left, const float top, const
     }
 }
 
+void OHNativeCanvasProxy::clearClip() {
+    OH::SystraceSection trace("OHNativeCanvasProxy:clearClip");
+    LOGI("OHNativeCanvasProxy::clearClip: start");
+    _pictureRecorder.clearClip();
+}
+
+void OHNativeCanvasProxy::saveLayer(const float left, const float top, const float right, const float bottom,
+                                    OH::OHComposeNativePaint *paint) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:saveLayer");
+    LOGI("OHNativeCanvasProxy::saveLayer: bounds=(%{public}f, %{public}f, %{public}f, %{public}f)", left, top, right,
+         bottom);
+
+    // 计算 hash：bounds + paint hash
+    const uint64_t paintHash = OH::nativeDataHashFromPaint(paint);
+    const uint64_t drawingContentHash = OH::hashCombineSequential(left, top, right, bottom, paintHash);
+
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.saveLayer(drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawSaveLayer(left, top, right, bottom, paint, &(updateItem.saveState), renderNodeForDrawing);
+    }
+}
+
+void OHNativeCanvasProxy::enableZ() {
+    OH::SystraceSection trace("OHNativeCanvasProxy:enableZ");
+    LOGI("OHNativeCanvasProxy::enableZ: start");
+    // TODO: ArkUI RenderNode 目前没有直接的 Z 轴 API
+    // 可以使用 SetShadowElevation 来实现部分功能，但完整的 Z 轴支持需要确认 ArkUI API
+    // 目前先记录状态，后续可以根据需要实现
+}
+
+void OHNativeCanvasProxy::disableZ() {
+    OH::SystraceSection trace("OHNativeCanvasProxy:disableZ");
+    LOGI("OHNativeCanvasProxy::disableZ: start");
+    // TODO: ArkUI RenderNode 目前没有直接的 Z 轴 API
+    // 目前先记录状态，后续可以根据需要实现
+}
+
 void OHNativeCanvasProxy::save() {
     OH::SystraceSection trace("OHNativeCanvasProxy:save");
     _pictureRecorder.save();
@@ -579,6 +618,14 @@ int64_t OHNativeCanvasProxy::imageFromImageBitmap(void *pixelMapNative, int32_t 
     }
 
     return 0;
+}
+
+void OHNativeCanvasProxy::removeCanvasNodeFromParent() const {
+    OH::SystraceSection trace("OHNativeCanvasProxy:removeCanvasNodeFromParent");
+    LOGI("OHNativeCanvasProxy::removeCanvasNodeFromParent: start");
+    if (canvasNode_ != nullptr) {
+        canvasNode_->removeFromParent();
+    }
 }
 
 OHNativeCanvasProxy::~OHNativeCanvasProxy() = default;

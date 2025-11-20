@@ -116,6 +116,8 @@ public:
         }
     }
 
+    void clearClip();
+
     OH_ALWAYS_INLINE void translate(float dx, float dy) {
         RenderNodeSaveState &currentState = topState();
         currentState.translateX += dx;
@@ -190,6 +192,8 @@ public:
         LOGI("PictureRecorder::clip 的 itemHash: =%{public}ld", updateItem.itemHash);
         return updateItem;
     }
+
+    PictureRecorderUpdateInfo saveLayer(const uint64_t drawingContentHash);
 
     PictureRecorderUpdateInfo draw(OH_Native_Drawing_Type drawingType, uint64_t drawingContentHash);
 

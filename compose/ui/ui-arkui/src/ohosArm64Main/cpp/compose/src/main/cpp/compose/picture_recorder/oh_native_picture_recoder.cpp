@@ -129,7 +129,9 @@ PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(const OH_Na
     };
 }
 
-RenderNodeSaveState &PictureRecorder::topState() { return saveStack[saveStack.size() - 1]; }
+RenderNodeSaveState &PictureRecorder::topState() {
+    return saveStack[saveStack.size() - 1];
+}
 
 void PictureRecorder::pushSaveStack(OH_RenderNode_SaveState_MakeType type) {
     const RenderNodeSaveState &currentState = topState();
@@ -175,6 +177,49 @@ void PictureRecorder::popClip() {
             props->currentDrawingItems.emplace_back(DrawingItem::DrawingPopItem);
         }
     }
+}
+
+void PictureRecorder::clearClip() {
+    OH::SystraceSection trace("PictureRecorder:clearClip");
+
+    // 如果栈顶是 Clip 状态，移除它
+    if (saveStack.size() >= 2) {
+        RenderNodeSaveState &topState = saveStack[saveStack.size() - 1];
+        if (topState.makeType == OH_RenderNode_SaveState_MakeType::Clip) {
+            // 移除最顶层的 clip 状态
+            saveStack.pop_back();
+            clipCountDuringOnceOperation -= 1;
+
+            // 更新当前状态的 clipCount
+            if (!saveStack.empty()) {
+                RenderNodeSaveState &currentState = saveStack[saveStack.size() - 1];
+                currentState.clipCount = (currentState.clipCount > 0) ? (currentState.clipCount - 1) : 0;
+            }
+
+            LOGI("PictureRecorder::clearClip: removed top clip state, remaining clipCount=%{public}d",
+                 clipCountDuringOnceOperation);
+        } else {
+            // 如果栈顶不是 Clip，尝试从当前状态清除 clipCount
+            if (!saveStack.empty()) {
+                RenderNodeSaveState &currentState = saveStack[saveStack.size() - 1];
+                if (currentState.clipCount > 0) {
+                    currentState.clipCount = 0;
+                    LOGI("PictureRecorder::clearClip: cleared clipCount from current state");
+                }
+            }
+        }
+    }
+}
+
+PictureRecorderUpdateInfo PictureRecorder::saveLayer(const uint64_t drawingContentHash) {
+    OH::SystraceSection trace("PictureRecorder:saveLayer");
+    PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeSaveLayer, drawingContentHash);
+
+    // 将 SaveLayer 状态压入 saveStack
+    pushSaveStack(OH_RenderNode_SaveState_MakeType::SaveLayer);
+
+    LOGI("PictureRecorder::saveLayer: itemHash=%{public}lu", updateItem.itemHash);
+    return updateItem;
 }
 
 PictureRecorderUpdateInfo PictureRecorder::draw(OH_Native_Drawing_Type drawingType, uint64_t drawingContentHash) {
@@ -262,21 +307,21 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
 }
 
 void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, const OH_Native_Drawing_Type drawingType,
-                                       const uint64_t itemHash) {
+                                       const uint64_t itemHash) const {
     switch (drawingType) {
     case OH_Native_Drawing_Type::DrawingTypeClip: {
         auto it = props->clipPool.find(itemHash);
         if (it != props->clipPool.end()) {
             auto *willBeDeleteClipRenderNode = it->second;
             props->clipPool.erase(itemHash);
-            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode begin:%{public}p, itemHash%{public}llu",
+            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode begin:%{public}p, itemHash%{public}lu",
                  &rootRenderNode, willBeDeleteClipRenderNode, itemHash);
             willBeDeleteClipRenderNode->removeFromParent();
             props->eraseFromOwnedNodes(willBeDeleteClipRenderNode);
-            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode finish:%{public}p, itemHash%{public}llu",
+            LOGI("[PV] renderNode:%{public}p clipPool remove clipNode finish:%{public}p, itemHash%{public}lu",
                  &rootRenderNode, willBeDeleteClipRenderNode, itemHash);
         } else {
-            LOGI("[PV] renderNode:%{public}p clipPool remove failed, itemHash%{public}llu", &rootRenderNode, itemHash);
+            LOGI("[PV] renderNode:%{public}p clipPool remove failed, itemHash%{public}lu", &rootRenderNode, itemHash);
         }
         break;
     }
@@ -284,12 +329,12 @@ void PictureRecorder::detachRenderNode(BaseRenderNode &rootRenderNode, const OH_
         auto iterator = props->renderNodePool.find(itemHash);
         if (iterator != props->renderNodePool.end()) {
             auto *willBeDeleteRenderNode = iterator->second;
-            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode begin:%{public}p, itemHash%{public}llu",
+            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode begin:%{public}p, itemHash%{public}lu",
                  &rootRenderNode, willBeDeleteRenderNode, itemHash);
             props->renderNodePool.erase(iterator);
             willBeDeleteRenderNode->removeFromParent();
             props->eraseFromOwnedNodes(willBeDeleteRenderNode);
-            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode finish:%{public}p, itemHash%{public}llu",
+            LOGI("[PV] renderNode:%{public}p renderNodePool remove renderNode finish:%{public}p, itemHash%{public}lu",
                  &rootRenderNode, willBeDeleteRenderNode, itemHash);
         }
         break;

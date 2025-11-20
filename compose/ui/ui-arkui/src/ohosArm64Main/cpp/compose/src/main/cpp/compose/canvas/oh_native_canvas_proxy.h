@@ -50,8 +50,13 @@ public:
     void clipPath(OH_Drawing_Path *path, OH_Native_Draw_ClipOp clipOp);
     void clipRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
                        OH_Native_Draw_ClipOp clipOp);
+    void clearClip();
+    void saveLayer(float left, float top, float right, float bottom, OH::OHComposeNativePaint *paint);
+    void enableZ();
+    void disableZ();
     void drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy);
     void markSelfAsNodeGroup() const;
+    void removeCanvasNodeFromParent() const;
 
     void drawTextPixelMap(void *pixelMapNative, int32_t cacheKey, int32_t width, int32_t height);
     void drawTextPixelMapWithPtr(void *pixelMapPtr, int32_t width, int32_t height);

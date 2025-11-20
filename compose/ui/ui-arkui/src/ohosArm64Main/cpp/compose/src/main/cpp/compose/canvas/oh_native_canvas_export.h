@@ -71,6 +71,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLine(OHNativeCanvas
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayerWithSubproxy(OHNativeCanvasProxy_Handle proxy,
                                                                                OHNativeCanvasProxy_Handle subProxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(OHNativeCanvasProxy_Handle proxy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_removeCanvasNodeFromParent(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,
                                                                   uint32_t clipOp);
@@ -81,6 +82,12 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(OHNativeCanvas
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                        float top, float right, float bottom,
                                                                        float radiusX, float radiusY, uint32_t clipOp);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearClip(OHNativeCanvasProxy_Handle proxy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_saveLayer(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                   float top, float right, float bottom,
+                                                                   OHComposeNativePaint_Handle paint);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_enableZ(OHNativeCanvasProxy_Handle proxy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_disableZ(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                        float top, float right, float bottom,
                                                                        float radiusX, float radiusY,

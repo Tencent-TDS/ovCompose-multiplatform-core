@@ -27,8 +27,6 @@ import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.cinterop.COpaquePointer
-import kotlin.experimental.ExperimentalObjCRefinement
-
 
 private inline fun ClipOp.asNativeEnum(): OH_Native_Draw_ClipOp {
     return when (this) {
@@ -49,7 +47,6 @@ private inline fun CornerRadius.greaterThen(rhs: CornerRadius): Boolean {
  *
  * @param factory A native pointer to the canvas factory used to create the native canvas proxy
  */
-@OptIn(ExperimentalObjCRefinement::class)
 internal class AdaptiveCanvas(
     factory: COpaquePointer,
     private val sourceType: LayerSourceType = LayerSourceType.REGULAR
@@ -204,8 +201,9 @@ internal class AdaptiveCanvas(
     }
 
     override fun clearClip() {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::clearClip" }
+        TraceUtil.traceSync("AdaptiveCanvas:clearClip") {
+            nativeCanvasProxy.clearClip()
+        }
     }
 
     override fun save() {
@@ -219,28 +217,26 @@ internal class AdaptiveCanvas(
     }
 
     override fun saveLayer(bounds: Rect, paint: Paint) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::saveLayer" }
+        TraceUtil.traceSync("AdaptiveCanvas:saveLayer") {
+            nativePaint.sync(paint)
+            nativeCanvasProxy.saveLayer(bounds.left, bounds.top, bounds.right, bounds.bottom, nativePaint)
+        }
     }
 
     override fun translate(dx: Float, dy: Float) {
         nativeCanvasProxy.translate(dx, dy)
-        LogPrintUtil.verbose { "AdaptiveCanvas::translate, dx: $dx, dy: $dy" }
     }
 
     override fun scale(sx: Float, sy: Float) {
         nativeCanvasProxy.scale(sx, sy)
-        LogPrintUtil.verbose { "AdaptiveCanvas::scale, sx: $sx, sy: $sy" }
     }
 
     override fun rotate(degrees: Float) {
         nativeCanvasProxy.rotate(degrees)
-        LogPrintUtil.verbose { "AdaptiveCanvas::rotate, degrees: $degrees" }
     }
 
     override fun skew(sx: Float, sy: Float) {
         nativeCanvasProxy.skew(sx, sy)
-        LogPrintUtil.verbose { "AdaptiveCanvas::skew, sx: $sx, sy: $sy" }
     }
 
     override fun concat(matrix: Matrix) {
@@ -269,7 +265,6 @@ internal class AdaptiveCanvas(
             matrixArray[i] = matrix.values[i]
         }
         nativeCanvasProxy.concat(matrixArray)
-        LogPrintUtil.verbose { "AdaptiveCanvas::concat, matrix: $matrix" }
     }
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
@@ -450,17 +445,27 @@ internal class AdaptiveCanvas(
     }
 
     override fun enableZ() {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::enableZ" }
+        TraceUtil.traceSync("AdaptiveCanvas:enableZ") {
+            // TODO: ArkUI RenderNode 目前没有直接的 Z 轴 API
+            // 可以使用 SetShadowElevation 来实现部分功能，但完整的 Z 轴支持需要确认 ArkUI API
+            nativeCanvasProxy.enableZ()
+        }
     }
 
     override fun disableZ() {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::disableZ" }
+        TraceUtil.traceSync("AdaptiveCanvas:disableZ") {
+            // TODO: ArkUI RenderNode 目前没有直接的 Z 轴 API
+            nativeCanvasProxy.disableZ()
+        }
     }
 
     fun destroy() {
-        // TODO: destroy some resources
-        LogPrintUtil.verbose { "AdaptiveCanvas::destroy" }
+        TraceUtil.traceSync("AdaptiveCanvas:destroy") {
+            // 1. 先移除 canvasNode 从父节点，避免父节点持有已释放节点的引用
+            nativeCanvasProxy.removeCanvasNodeFromParent()
+            // 2. 释放所有资源（所有权都在 Kotlin 侧）
+            nativePaint.dispose()
+            nativeCanvasProxy.dispose()
+        }
     }
 }

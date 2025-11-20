@@ -18,7 +18,7 @@ ClipRenderNode::~ClipRenderNode() {
             }
         }
     }
-    
+
     if (invalidateCountProperty_) {
         OH_ArkUI_RenderNodeUtils_DisposeFloatProperty(invalidateCountProperty_);
     }
@@ -35,10 +35,10 @@ OH_DrawingNode_Type ClipRenderNode::getType() {
     return OH_DrawingNode_Type::ClipNode;
 }
 
-void ClipRenderNode::setClipRect(float left, float top, float right, float bottom, 
-                                  OH_Native_Draw_ClipOp clipOp) {
+void ClipRenderNode::setClipRect(float left, float top, float right, float bottom,
+                                 OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("ClipRenderNode:setClipRect");
-    
+
     // 如果之前是 Path 类型，需要先释放
     if (clipType_ == ClipType::Path) {
         if (auto *params = std::get_if<ClipPathParams>(&clipParams_)) {
@@ -47,19 +47,19 @@ void ClipRenderNode::setClipRect(float left, float top, float right, float botto
             }
         }
     }
-    
+
     clipType_ = ClipType::Rect;
     clipParams_ = ClipRectParams{left, top, right, bottom};
     clipOp_ = clipOp;
-    
+
     invalidate();
 }
 
 void ClipRenderNode::setClipRoundRect(float left, float top, float right, float bottom,
-                                       float radiusX, float radiusY, 
-                                       OH_Native_Draw_ClipOp clipOp) {
+                                      float radiusX, float radiusY,
+                                      OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("ClipRenderNode:setClipRoundRect");
-    
+
     // 如果之前是 Path 类型，需要先释放
     if (clipType_ == ClipType::Path) {
         if (auto *params = std::get_if<ClipPathParams>(&clipParams_)) {
@@ -68,17 +68,17 @@ void ClipRenderNode::setClipRoundRect(float left, float top, float right, float 
             }
         }
     }
-    
+
     clipType_ = ClipType::RoundRect;
     clipParams_ = ClipRoundRectParams{left, top, right, bottom, radiusX, radiusY};
     clipOp_ = clipOp;
-    
+
     invalidate();
 }
 
 void ClipRenderNode::setClipPath(OH_Drawing_Path *path, OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("ClipRenderNode:setClipPath");
-    
+
     // 如果之前是 Path 类型，需要先释放旧路径
     if (clipType_ == ClipType::Path) {
         if (auto *params = std::get_if<ClipPathParams>(&clipParams_)) {
@@ -87,64 +87,64 @@ void ClipRenderNode::setClipPath(OH_Drawing_Path *path, OH_Native_Draw_ClipOp cl
             }
         }
     }
-    
+
     // 复制新路径并转换为相对坐标
     OH_Drawing_Path *copiedPath = nullptr;
     if (path) {
         copiedPath = OH_Drawing_PathCopy(path);
-        
+
         // 计算Path的bounds，并将Path平移到相对坐标
         // ClipRenderNode的position会设置为(left, top)
         // 因此需要将Path平移到(-left, -top)，这样Path就会相对于RenderNode的(0,0)点
         float left = 0.0f, top = 0.0f, right = 0.0f, bottom = 0.0f;
         OHPath_getBounds(copiedPath, &left, &top, &right, &bottom);
-        
+
         // 将Path平移到相对坐标（相对于bounds的左上角）
         // 注意：这里平移的是-left和-top，使得Path的bounds从(0, 0)开始
         OHPath_translate(copiedPath, -left, -top);
     }
-    
+
     clipType_ = ClipType::Path;
     clipParams_ = ClipPathParams{copiedPath};
     clipOp_ = clipOp;
-    
+
     invalidate();
 }
 
 OH_Drawing_Path *ClipRenderNode::createClipPath() const {
     OH_Drawing_Path *path = OH_Drawing_PathCreate();
-    
+
     switch (clipType_) {
-        case ClipType::Rect: {
-            if (auto *params = std::get_if<ClipRectParams>(&clipParams_)) {
-                OH_Drawing_PathAddRect(path, params->left, params->top, params->right, params->bottom, PATH_DIRECTION_CW);
-            }
-            break;
+    case ClipType::Rect: {
+        if (auto *params = std::get_if<ClipRectParams>(&clipParams_)) {
+            OH_Drawing_PathAddRect(path, params->left, params->top, params->right, params->bottom, PATH_DIRECTION_CW);
         }
-        
-        case ClipType::RoundRect: {
-            if (auto *params = std::get_if<ClipRoundRectParams>(&clipParams_)) {
-                OH_Drawing_Rect *rect = OH_Drawing_RectCreate(
-                    params->left, params->top, params->right, params->bottom);
-                OH_Drawing_RoundRect *roundRect = OH_Drawing_RoundRectCreate(
-                    rect, params->radiusX, params->radiusY);
-                OH_Drawing_PathAddRoundRect(path, roundRect, PATH_DIRECTION_CW);
-                OH_Drawing_RoundRectDestroy(roundRect);
-                OH_Drawing_RectDestroy(rect);
-            }
-            break;
-        }
-        
-        case ClipType::Path: {
-            if (auto *params = std::get_if<ClipPathParams>(&clipParams_)) {
-                if (params->path) {
-                    OH_Drawing_PathSetPath(path, params->path);
-                }
-            }
-            break;
-        }
+        break;
     }
-    
+
+    case ClipType::RoundRect: {
+        if (auto *params = std::get_if<ClipRoundRectParams>(&clipParams_)) {
+            OH_Drawing_Rect *rect = OH_Drawing_RectCreate(
+                params->left, params->top, params->right, params->bottom);
+            OH_Drawing_RoundRect *roundRect = OH_Drawing_RoundRectCreate(
+                rect, params->radiusX, params->radiusY);
+            OH_Drawing_PathAddRoundRect(path, roundRect, PATH_DIRECTION_CW);
+            OH_Drawing_RoundRectDestroy(roundRect);
+            OH_Drawing_RectDestroy(rect);
+        }
+        break;
+    }
+
+    case ClipType::Path: {
+        if (auto *params = std::get_if<ClipPathParams>(&clipParams_)) {
+            if (params->path) {
+                OH_Drawing_PathSetPath(path, params->path);
+            }
+        }
+        break;
+    }
+    }
+
     return path;
 }
 
@@ -171,7 +171,7 @@ void ClipRenderNode::initModifier() {
         maybeThrow(OH_ArkUI_RenderNodeUtils_SetContentModifierOnDraw(
             modifier_, this, [](ArkUI_DrawContext *context, void *userData) {
                 OH::SystraceSection trace("ClipRenderNode:onDraw");
-                
+
                 const auto *node = static_cast<ClipRenderNode *>(userData);
                 auto *canvas = static_cast<OH_Drawing_Canvas *>(
                     OH_ArkUI_DrawContext_GetCanvas(context));
@@ -201,10 +201,8 @@ void ClipRenderNode::initModifier() {
                 }
 
                 // 转换 ClipOp 枚举
-                OH_Drawing_CanvasClipOp nativeClipOp = 
-                    (node->clipOp_ == OH_Native_Draw_ClipOp::Intersect) 
-                        ? OH_Drawing_CanvasClipOp::INTERSECT 
-                        : OH_Drawing_CanvasClipOp::DIFFERENCE;
+                OH_Drawing_CanvasClipOp nativeClipOp =
+                    (node->clipOp_ == OH_Native_Draw_ClipOp::Intersect) ? OH_Drawing_CanvasClipOp::INTERSECT : OH_Drawing_CanvasClipOp::DIFFERENCE;
 
                 // 执行裁剪
                 OH_Drawing_CanvasClipPath(canvas, clipPath, nativeClipOp, true);
@@ -212,11 +210,10 @@ void ClipRenderNode::initModifier() {
                 // 清理路径
                 OH_Drawing_PathDestroy(clipPath);
 
-                LOGI("ClipRenderNode::onDraw: Applied clip, type=%{public}d, clipOp=%{public}d, pathBounds=(%f,%f,%f,%f)", 
+                LOGI("ClipRenderNode::onDraw: Applied clip, type=%{public}d, clipOp=%{public}d, pathBounds=(%f,%f,%f,%f)",
                      static_cast<int>(node->clipType_), node->clipOp_, pathLeft, pathTop, pathRight, pathBottom);
             }));
     }
 }
 
 } // namespace OH
-

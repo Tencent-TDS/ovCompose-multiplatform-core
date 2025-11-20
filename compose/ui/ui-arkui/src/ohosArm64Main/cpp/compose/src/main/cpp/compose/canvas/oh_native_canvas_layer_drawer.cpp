@@ -153,6 +153,39 @@ void OHRenderNodeDrawClipRoundRect(const float left, const float top, const floa
          left, top, right, bottom, radiusX, radiusY);
 }
 
+void OHRenderNodeDrawSaveLayer(const float left, const float top, const float right, const float bottom,
+                               const OHComposeNativePaint *paint, const RenderNodeSaveState *saveState,
+                               BaseRenderNode *renderNodeForDrawing) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawSaveLayer");
+
+    // 计算图层 bounds
+    const int32_t x = static_cast<int32_t>(left);
+    const int32_t y = static_cast<int32_t>(top);
+    const int32_t width = static_cast<int32_t>(right - left);
+    const int32_t height = static_cast<int32_t>(bottom - top);
+
+    // 确保最小尺寸
+    const int32_t finalWidth = (width > 0) ? width : 1;
+    const int32_t finalHeight = (height > 0) ? height : 1;
+
+    // 应用变换状态并设置 bounds
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setPosition(x, y)
+        ->setSize(finalWidth, finalHeight);
+
+    // 应用 paint 的 opacity（如果存在）
+    if (paint) {
+        renderNodeForDrawing->setOpacity(paint->alpha);
+    }
+
+    // TODO: 应用 paint 的 colorFilter 和 blendMode（如果 ArkUI 支持）
+    // 目前 ArkUI RenderNode 可能不支持这些属性，需要通过 ContentModifier 实现
+
+    LOGI("OHRenderNodeDrawSaveLayer: bounds=(%f,%f,%f,%f), position=(%d,%d), size=(%d,%d), opacity=%f",
+         left, top, right, bottom, x, y, finalWidth, finalHeight, paint ? paint->alpha : 1.0f);
+}
+
 void OHRenderNodeDrawRoundRect(const float left, const float top, const float right, const float bottom,
                                const float radiusX, const float radiusY, const NativeBasicShader *shader,
                                const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
