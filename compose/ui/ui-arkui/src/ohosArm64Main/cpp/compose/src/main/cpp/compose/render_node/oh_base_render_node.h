@@ -299,9 +299,17 @@ public:
             using BorderWidthOption =
                 ScopedOption<ArkUI_NodeBorderWidthOption, OH_ArkUI_RenderNodeUtils_CreateNodeBorderWidthOption,
                              OH_ArkUI_RenderNodeUtils_DisposeNodeBorderWidthOption>;
+            using BorderStyleOption =
+                ScopedOption<ArkUI_NodeBorderStyleOption, OH_ArkUI_RenderNodeUtils_CreateNodeBorderStyleOption,
+                             OH_ArkUI_RenderNodeUtils_DisposeNodeBorderStyleOption>;
+            BorderStyleOption borderStyleOption;
+            OH_ArkUI_RenderNodeUtils_SetNodeBorderStyleOptionEdgeStyle(borderStyleOption.get(), ARKUI_BORDER_STYLE_SOLID,
+                                                                       ARKUI_EDGE_DIRECTION_ALL);
+            
             BorderWidthOption borderWidthOption;
             OH_ArkUI_RenderNodeUtils_SetNodeBorderWidthOptionEdgeWidth(borderWidthOption.get(), borderWidth,
                                                                        ARKUI_EDGE_DIRECTION_ALL);
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetBorderStyle(nodeHandle_, borderStyleOption.get()));
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetBorderWidth(nodeHandle_, borderWidthOption.get()));
             propertyCache_.borderWidthSet = true;
             propertyCache_.cachedBorderWidth = borderWidth;

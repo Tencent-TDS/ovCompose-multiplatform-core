@@ -168,7 +168,7 @@ internal class AdaptiveCanvas(
         height: Int
     ) {
         TraceUtil.traceSync("AdaptiveCanvas:asyncDrawIntoCanvas") {
-            // 执行 globalTask 获取图像指针
+            // TODO 此处需要改造成异步执行globalTask异步完成文本图片的生成后在塞给renderNode
             val imagePtr = globalTask()
             if (imagePtr != 0L) {
                 // 使用获取到的图像指针绘制

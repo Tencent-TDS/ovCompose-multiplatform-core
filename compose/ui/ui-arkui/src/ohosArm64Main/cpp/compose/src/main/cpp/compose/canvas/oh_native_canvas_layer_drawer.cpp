@@ -30,24 +30,23 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
                           const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRect");
     const float strokeWidth = paint->strokeWidth;
-    const int32_t x = left - strokeWidth / 2;
-    const int32_t y = top - strokeWidth / 2;
+    const int32_t x = saveState->translateX + left - strokeWidth / 2;
+    const int32_t y = saveState->translateY + top - strokeWidth / 2;
 
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
     renderNodeForDrawing->setTransform(saveState->transform.data())
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height)
+        ->setBounds(x, y, width, height)
         ->setBorderCornerRadius(0);
     if (!shader) {
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
             renderNodeForDrawing->setBorderWidth(strokeWidth)
-                ->setBorderColor(paint->color)
-                ->setBackgroundColor(CLEAR_COLOR);
+                ->setBackgroundColor(CLEAR_COLOR)
+                ->setBorderColor(paint->color);
         } else {
-            renderNodeForDrawing->setBorderWidth(0)->setBackgroundColor(paint->color);
+            renderNodeForDrawing->setBorderWidth(0)
+                ->setBackgroundColor(paint->color);
         }
     } else {
         // apply shader
@@ -122,9 +121,7 @@ void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp
 
     // 应用变换状态并设置 bounds
     clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height);
+        ->setBounds(saveState->translateY + x, saveState->translateY + y, width, height);
 
     // 设置裁剪路径
     clipNode->setClipPath(reinterpret_cast<OH_Drawing_Path *>(path), clipOp);
@@ -143,13 +140,19 @@ void OHRenderNodeDrawClipRoundRect(const float left, const float top, const floa
         LOGE("OHRenderNodeDrawClipRoundRect: renderNodeForDrawing is not ClipRenderNode");
         return;
     }
+    
+    const int32_t x = saveState->translateX + left;
+    const int32_t y = saveState->translateY + top;
+
+    const int32_t width = right - left;
+    const int32_t height = bottom - top;
 
     clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY);
+        ->setBounds(x, y, width, height);
 
     clipNode->setClipRoundRect(left, top, right, bottom, radiusX, radiusY, clipOp);
 
-    LOGI("OHRenderNodeDrawClipRoundRect: rect=(%f,%f,%f,%f), radius=(%f,%f)",
+    LOGI("OHRenderNodeDrawClipRoundRect: rect=(%{public}f,%{public}f,%{public}f,%{public}f), radius=(%{public}f,%{public}f)",
          left, top, right, bottom, radiusX, radiusY);
 }
 
@@ -159,20 +162,14 @@ void OHRenderNodeDrawSaveLayer(const float left, const float top, const float ri
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawSaveLayer");
 
     // 计算图层 bounds
-    const int32_t x = static_cast<int32_t>(left);
-    const int32_t y = static_cast<int32_t>(top);
+    const int32_t x = static_cast<int32_t>(left) + saveState->translateX;
+    const int32_t y = static_cast<int32_t>(top) + saveState->translateY;
     const int32_t width = static_cast<int32_t>(right - left);
     const int32_t height = static_cast<int32_t>(bottom - top);
 
-    // 确保最小尺寸
-    const int32_t finalWidth = (width > 0) ? width : 1;
-    const int32_t finalHeight = (height > 0) ? height : 1;
-
     // 应用变换状态并设置 bounds
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(finalWidth, finalHeight);
+        ->setBounds(x, y, width, height);
 
     // 应用 paint 的 opacity（如果存在）
     if (paint) {
@@ -183,7 +180,7 @@ void OHRenderNodeDrawSaveLayer(const float left, const float top, const float ri
     // 目前 ArkUI RenderNode 可能不支持这些属性，需要通过 ContentModifier 实现
 
     LOGI("OHRenderNodeDrawSaveLayer: bounds=(%f,%f,%f,%f), position=(%d,%d), size=(%d,%d), opacity=%f",
-         left, top, right, bottom, x, y, finalWidth, finalHeight, paint ? paint->alpha : 1.0f);
+         left, top, right, bottom, x, y, width, height, paint ? paint->alpha : 1.0f);
 }
 
 void OHRenderNodeDrawRoundRect(const float left, const float top, const float right, const float bottom,
@@ -192,24 +189,23 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
                                const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawRoundRect");
     const float strokeWidth = paint->strokeWidth;
-    const int32_t x = left - strokeWidth / 2;
-    const int32_t y = top - strokeWidth / 2;
+    const int32_t x = saveState->translateX + left - strokeWidth / 2;
+    const int32_t y = saveState->translateY + top - strokeWidth / 2;
 
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height)
+        ->setBounds(x, y, width, height)
         ->setBorderCornerRadius(radiusX);
     if (!shader) {
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
             renderNodeForDrawing->setBorderWidth(strokeWidth)
-                ->setBorderColor(paint->color)
-                ->setBackgroundColor(CLEAR_COLOR);
+                ->setBackgroundColor(CLEAR_COLOR)
+                ->setBorderColor(paint->color);
         } else {
-            renderNodeForDrawing->setBorderWidth(0)->setBackgroundColor(paint->color);
+            renderNodeForDrawing->setBorderWidth(0)
+                ->setBackgroundColor(paint->color);
         }
     } else {
     }
@@ -248,16 +244,14 @@ void OHRenderNodeDrawCircle(const float centerX, const float centerY, const floa
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawCircle");
 
     const float strokeWidth = paint->strokeWidth;
-    const int32_t x = centerX - radius - strokeWidth / 2;
-    const int32_t y = centerY - radius - strokeWidth / 2;
+    const int32_t x = saveState->translateX + centerX - radius - strokeWidth / 2;
+    const int32_t y = saveState->translateY + centerY - radius - strokeWidth / 2;
 
     const int32_t width = 2 * radius + strokeWidth;
     const int32_t height = 2 * radius + strokeWidth;
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height)
+        ->setBounds(x, y, width, height)
         ->setBorderCornerRadius(static_cast<uint32_t>(radius));
     if (!shader) {
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
@@ -277,15 +271,13 @@ void OHRenderNodeDrawOval(const float left, const float top, const float right, 
                           const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawOval");
     const float strokeWidth = paint->strokeWidth;
-    const int32_t x = left - strokeWidth / 2;
-    const int32_t y = top - strokeWidth / 2;
+    const int32_t x = saveState->translateX + left - strokeWidth / 2;
+    const int32_t y = saveState->translateY +top - strokeWidth / 2;
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height);
+        ->setBounds(x, y, width, height);
 
     if (!shader) {
         static_cast<OvalRenderNode *>(renderNodeForDrawing)
@@ -302,15 +294,13 @@ void OHRenderNodeDrawArc(const float left, const float top, const float right, c
                          const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawArc");
     const float strokeWidth = paint->strokeWidth;
-    const int32_t x = left - strokeWidth / 2;
-    const int32_t y = top - strokeWidth / 2;
+    const int32_t x = saveState->translateX + left - strokeWidth / 2;
+    const int32_t y = saveState->translateY + top - strokeWidth / 2;
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height);
+        ->setBounds(x, y, width, height);
 
     if (!shader) {
         static_cast<ArcRenderNode *>(renderNodeForDrawing)
@@ -346,8 +336,8 @@ void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *
 
             // Account for stroke width
             const float halfStroke = strokeWidth / 2.0f;
-            x = static_cast<int32_t>(left - halfStroke);
-            y = static_cast<int32_t>(top - halfStroke);
+            x = saveState->translateX + static_cast<int32_t>(left - halfStroke);
+            y = saveState->translateY + static_cast<int32_t>(top - halfStroke);
             width = static_cast<int32_t>((right - left) + strokeWidth);
             height = static_cast<int32_t>((bottom - top) + strokeWidth);
 
@@ -360,9 +350,7 @@ void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *
     }
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
-        ->setSize(width, height);
+        ->setBounds(x, y, width, height);
 
     if (!shader) {
         static_cast<PathRenderNode *>(renderNodeForDrawing)

@@ -363,9 +363,7 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
             const OH_Native_Drawing_Type drawingType = commandToBeDelete.drawingType;
             const uint64_t itemHash = commandToBeDelete.itemHash;
 
-            if (drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
-                drawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
-                drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
+            if (drawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer && drawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer && drawingType != OH_Native_Drawing_Type::DrawingTypePop) {
                 resetDrawingItemContentsHash(drawingType, itemHash);
             }
 
@@ -390,15 +388,12 @@ void PictureRecorder::diffDrawingItems(BaseRenderNode &rootRenderNode) {
         auto willBeDeleteDrawingType = commandToBeDelete.drawingType;
         const uint64_t itemHash = commandToBeDelete.itemHash;
 
-        if (willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer &&
-            willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer &&
-            willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypePop) {
+        if (willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawLayer && willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypeDrawTextLayer && willBeDeleteDrawingType != OH_Native_Drawing_Type::DrawingTypePop) {
             resetDrawingItemContentsHash(willBeDeleteDrawingType, itemHash);
         }
 
         detachRenderNode(rootRenderNode, willBeDeleteDrawingType, itemHash);
-        shouldRebuildRenderNodeHierarchy = shouldRebuildRenderNodeHierarchy ||
-                                           (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
+        shouldRebuildRenderNodeHierarchy = shouldRebuildRenderNodeHierarchy || (commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
         LOGI("[PV] diffDrawingItems insert: %{public}d, moveSize: %{public}d, clip: %{public}d ", insertSize,
              diffResult.movedItems.size(), commandToBeDelete.drawingType == OH_Native_Drawing_Type::DrawingTypeClip);
     }
