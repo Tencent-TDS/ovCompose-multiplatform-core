@@ -463,9 +463,6 @@ internal class AdaptiveCanvas(
         TraceUtil.traceSync("AdaptiveCanvas:destroy") {
             // 1. 先移除 canvasNode 从父节点，避免父节点持有已释放节点的引用
             nativeCanvasProxy.removeCanvasNodeFromParent()
-            // 2. 释放所有资源（所有权都在 Kotlin 侧）
-            nativePaint.dispose()
-            nativeCanvasProxy.dispose()
         }
     }
 }
