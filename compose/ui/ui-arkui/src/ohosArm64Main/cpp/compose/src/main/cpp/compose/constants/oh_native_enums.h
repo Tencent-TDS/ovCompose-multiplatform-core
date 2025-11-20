@@ -69,7 +69,8 @@ typedef enum {
     PathNode,
     ImageDisplayNode, // 图片显示节点（判断是否需要裁剪）
     ImageClipNode,    // 图片裁剪节点（使用 clip 和 transform）
-    PointsNode        // 点集绘制节点
+    PointsNode,       // 点集绘制节点
+    ClipNode          // 执行裁剪操作节点
     // TODO: 每实现一个BaseRenderNode的派生类，就需要在此处添加对应的枚举值
 } OH_DrawingNode_Type;
 

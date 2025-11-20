@@ -35,6 +35,11 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_save(OHNativeCanvasProx
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_restore(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(OHNativeCanvasProxy_Handle proxy, float dx,
                                                                    float dy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale(OHNativeCanvasProxy_Handle proxy, float sx, float sy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate(OHNativeCanvasProxy_Handle proxy, float degrees);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew(OHNativeCanvasProxy_Handle proxy, float sx, float sy);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat(OHNativeCanvasProxy_Handle proxy,
+                                                                const float *matrix16);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(OHNativeCanvasProxy_Handle proxy, int32_t originX,
                                                                    int32_t originY, int32_t boundsWidth,
                                                                    int32_t boundsHeight);
@@ -69,6 +74,13 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_markSelfAsNodeGroup(OHN
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,
                                                                   uint32_t clipOp);
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(OHNativeCanvasProxy_Handle proxy,
+                                                                  OH_Drawing_Path *path, uint32_t clipOp);
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(OHNativeCanvasProxy_Handle proxy, float left,
+                                                                       float top, float right, float bottom,
+                                                                       float radiusX, float radiusY, uint32_t clipOp);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRoundRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                        float top, float right, float bottom,
                                                                        float radiusX, float radiusY,

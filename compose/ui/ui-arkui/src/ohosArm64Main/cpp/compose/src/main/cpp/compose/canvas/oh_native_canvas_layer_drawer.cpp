@@ -10,6 +10,7 @@
 #include "../constants/oh_native_constants.h"
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_arc_render_node.h"
+#include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
 #include "../render_node/oh_line_render_node.h"
@@ -57,7 +58,7 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
 }
 
 void OHRenderNodeDrawClipRect(const float left, const float top, const float right, const float bottom,
-                              const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing) {
+                              const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing, const OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipRect");
     ArkUI_RectShapeOption *shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
     if (shape) {
@@ -73,6 +74,83 @@ void OHRenderNodeDrawClipRect(const float left, const float top, const float rig
             ->setTranslate(saveState->translateX, saveState->translateY)
             ->setClip(clipOption);
     }
+}
+
+void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp clipOp,
+                              const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipPath");
+
+    if (!path) {
+        LOGE("OHRenderNodeDrawClipPath: path is null");
+        return;
+    }
+
+    // 计算路径的 bounds 并设置 ClipRenderNode 的 position 和 size
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t width = 100;  // Default fallback
+    int32_t height = 100; // Default fallback
+
+    float pathLeft = 0.0f, pathTop = 0.0f, pathRight = 0.0f, pathBottom = 0.0f;
+    OH_Drawing_Rect *boundsRect = OH_Drawing_RectCreate(0.0f, 0.0f, 0.0f, 0.0f);
+    if (boundsRect != nullptr) {
+        OH_Drawing_PathGetBounds(reinterpret_cast<OH_Drawing_Path *>(path), boundsRect);
+        pathLeft = OH_Drawing_RectGetLeft(boundsRect);
+        pathTop = OH_Drawing_RectGetTop(boundsRect);
+        pathRight = OH_Drawing_RectGetRight(boundsRect);
+        pathBottom = OH_Drawing_RectGetBottom(boundsRect);
+
+        // 计算 position 和 size（不需要考虑 stroke width，因为这是裁剪操作）
+        x = static_cast<int32_t>(pathLeft);
+        y = static_cast<int32_t>(pathTop);
+        width = static_cast<int32_t>(pathRight - pathLeft);
+        height = static_cast<int32_t>(pathBottom - pathTop);
+
+        // Ensure minimum size
+        if (width <= 0) width = 1;
+        if (height <= 0) height = 1;
+
+        OH_Drawing_RectDestroy(boundsRect);
+    }
+
+    // 将 BaseRenderNode 转换为 ClipRenderNode
+    auto *clipNode = dynamic_cast<ClipRenderNode *>(renderNodeForDrawing);
+    if (!clipNode) {
+        LOGE("OHRenderNodeDrawClipPath: renderNodeForDrawing is not ClipRenderNode");
+        return;
+    }
+
+    // 应用变换状态并设置 bounds
+    clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setPosition(x, y)
+        ->setSize(width, height);
+
+    // 设置裁剪路径
+    clipNode->setClipPath(reinterpret_cast<OH_Drawing_Path *>(path), clipOp);
+
+    LOGI("OHRenderNodeDrawClipPath: path=%{public}p, clipOp=%{public}d, bounds=(%f,%f,%f,%f), position=(%d,%d), size=(%d,%d), translate=(%f,%f)",
+         path, clipOp, pathLeft, pathTop, pathRight, pathBottom, x, y, width, height, saveState->translateX, saveState->translateY);
+}
+
+void OHRenderNodeDrawClipRoundRect(const float left, const float top, const float right, const float bottom,
+                                   const float radiusX, const float radiusY, const RenderNodeSaveState *saveState,
+                                   BaseRenderNode *renderNodeForDrawing, const OH_Native_Draw_ClipOp clipOp) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipRoundRect");
+
+    auto *clipNode = dynamic_cast<ClipRenderNode *>(renderNodeForDrawing);
+    if (!clipNode) {
+        LOGE("OHRenderNodeDrawClipRoundRect: renderNodeForDrawing is not ClipRenderNode");
+        return;
+    }
+
+    clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setTranslate(saveState->translateX, saveState->translateY);
+
+    clipNode->setClipRoundRect(left, top, right, bottom, radiusX, radiusY, clipOp);
+
+    LOGI("OHRenderNodeDrawClipRoundRect: rect=(%f,%f,%f,%f), radius=(%f,%f)",
+         left, top, right, bottom, radiusX, radiusY);
 }
 
 void OHRenderNodeDrawRoundRect(const float left, const float top, const float right, const float bottom,
@@ -210,7 +288,7 @@ void OHRenderNodeDrawArc(const float left, const float top, const float right, c
     }
 }
 
-void OHRenderNodeDrawPath(OH_Drawing_Path *path, const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
+void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                           BaseRenderNode *renderNodeForDrawing,
                           const OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawPath");
@@ -300,7 +378,7 @@ void OHRenderNodeDrawPoints(OH_Drawing_PointMode pointMode, const float *points,
 void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode) {
     static int frameCount = 0;
     frameCount++;
-    
+
     const float originX = saveState->translateX;
     const float originY = saveState->translateY;
     const int32_t width = paragraphNode->getWidth();

@@ -9,6 +9,7 @@
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_base_render_node.h"
 #include "../render_node/oh_arc_render_node.h"
+#include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
 #include "../render_node/oh_line_render_node.h"
@@ -61,25 +62,11 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
     case OH_Native_Drawing_Type::DrawingTypePoints:
     case OH_Native_Drawing_Type::DrawingTypeShaderPoints:
         return std::make_unique<PointsRenderNode>();
-    case OH_Native_Drawing_Type::DrawingTypeRect:
-    case OH_Native_Drawing_Type::DrawingTypeCircle:
-    case OH_Native_Drawing_Type::DrawingTypeRowPoints:
-    case OH_Native_Drawing_Type::DrawingTypeRowVertices:
     case OH_Native_Drawing_Type::DrawingTypeClip:
-    case OH_Native_Drawing_Type::DrawingTypePop:
-    case OH_Native_Drawing_Type::DrawingTypeSave:
-    case OH_Native_Drawing_Type::DrawingTypeRestore:
-    case OH_Native_Drawing_Type::DrawingTypeShaderOval:
-    case OH_Native_Drawing_Type::DrawingTypeShaderCircle:
-    case OH_Native_Drawing_Type::DrawingTypeShaderArc:
-    case OH_Native_Drawing_Type::DrawingTypeShaderPath:
-    case OH_Native_Drawing_Type::DrawingTypeShaderImage:
-    case OH_Native_Drawing_Type::DrawingTypeShaderRowPoints:
-    case OH_Native_Drawing_Type::DrawingTypeShaderRowVertices:
+        return std::make_unique<ClipRenderNode>();
+    default:
         LOGI("OH_Native_Drawing_Type::%{public}d: create BaseRenderNode", type);
         return std::make_unique<BaseRenderNode>();
-    default:
-        throw std::invalid_argument("Unsupported OH_Native_Drawing_Type");
     }
 }
 
@@ -137,13 +124,22 @@ public:
 
     OH_ALWAYS_INLINE void scale(float sx, float sy) {
         RenderNodeSaveState &currentState = topState();
-        // currentState.transform = Transform3D::Scale(currentState.transform, sx,
-        // sy, 1);
+        currentState.transform.scale(sx, sy, 1.0f);
     }
     OH_ALWAYS_INLINE void rotate(float degrees) {
         RenderNodeSaveState &currentState = topState();
-        // currentState.transform = Transform3D::Rotate(currentState.transform,
-        // degrees * (M_PI / 180), 0, 0, 1);
+        currentState.transform.rotate(degrees);
+    }
+
+    OH_ALWAYS_INLINE void skew(float sx, float sy) {
+        RenderNodeSaveState &currentState = topState();
+        currentState.transform.skew(sx, sy);
+    }
+
+    OH_ALWAYS_INLINE void concat(const float *matrix16) {
+        RenderNodeSaveState &currentState = topState();
+        Transform3D otherMatrix(matrix16);
+        currentState.transform *= otherMatrix;
     }
 
     OH_ALWAYS_INLINE BaseRenderNode *getOrCreateRenderNodeForDrawing(const OH_Native_Drawing_Type type,
@@ -191,7 +187,7 @@ public:
         OH::SystraceSection trace("PictureRecorder:clip");
         PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeClip, drawingContentHash);
         pushClip();
-        LOGI("PictureRecorder::clip 的 itemHash: =%{public}d", updateItem.itemHash);
+        LOGI("PictureRecorder::clip 的 itemHash: =%{public}ld", updateItem.itemHash);
         return updateItem;
     }
 
@@ -248,7 +244,7 @@ private:
         }
 
         BaseRenderNode *createAndAddClipNode(uint64_t hash) {
-            auto node = std::make_unique<BaseRenderNode>();
+            auto node = std::make_unique<ClipRenderNode>();
             BaseRenderNode *ptr = node.get();
             clipPool[hash] = ptr;
             ownedNodes.push_back(std::move(node));

@@ -1,6 +1,5 @@
 package androidx.compose.ui.platform.nativefoundation
 
-import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.Boolean
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
@@ -13,6 +12,8 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawLayer
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawCircle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawOval
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawArc
@@ -32,6 +33,10 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPivot
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode
@@ -84,6 +89,31 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
         handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(it, dx, dy) }
     }
 
+    fun scale(sx: Float, sy: Float) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale(it, sx, sy) }
+    }
+
+    fun rotate(degrees: Float) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate(it, degrees) }
+    }
+
+    fun skew(sx: Float, sy: Float) {
+        handle?.let { androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew(it, sx, sy) }
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    fun concat(matrix: FloatArray) {
+        require(matrix.size == 16) { "Matrix must have 16 elements" }
+        handle?.let {
+            matrix.usePinned { pinned ->
+                androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat(
+                    it,
+                    pinned.addressOf(0)
+                )
+            }
+        }
+    }
+
     fun setPosition(positionX: Int, positionY: Int) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(
@@ -129,6 +159,28 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
                 right = right,
                 bottom = bottom,
                 clipOp = clipOp
+            )
+        }
+    }
+
+    fun clipPath(path: OH_Drawing_Path_Handle?, clipOp: UInt) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(it, path, clipOp)
+        }
+    }
+
+    fun clipRoundRect(
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        radiusX: Float,
+        radiusY: Float,
+        clipOp: UInt
+    ) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(
+                it, left, top, right, bottom, radiusX, radiusY, clipOp
             )
         }
     }

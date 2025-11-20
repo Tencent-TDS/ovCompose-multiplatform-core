@@ -36,7 +36,7 @@ void OHRenderNodeDrawArc(float left, float top, float right, float bottom, float
                          BaseRenderNode *renderNodeForDrawing,
                          const OH::OHComposeNativePaint *paint);
 
-void OHRenderNodeDrawPath(OH_Drawing_Path *path, const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
+void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *shader, const RenderNodeSaveState *saveState,
                           BaseRenderNode *renderNodeForDrawing,
                           const OH::OHComposeNativePaint *paint);
 
@@ -50,7 +50,13 @@ void OHRenderNodeDrawPoints(OH_Drawing_PointMode pointMode, const float *points,
                             OH::OHComposeNativePaint *paint);
 
 void OHRenderNodeDrawClipRect(float left, float top, float right, float bottom, const RenderNodeSaveState *saveState,
-                              BaseRenderNode *renderNodeForDrawing);
+                              BaseRenderNode *renderNodeForDrawing, OH_Native_Draw_ClipOp clipOp);
+
+void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp clipOp,
+                              const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
+
+void OHRenderNodeDrawClipRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
+                                   const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
 
 void OHRenderNodeDrawText(const RenderNodeSaveState *saveState, Paragraph *paragraphNode);
 

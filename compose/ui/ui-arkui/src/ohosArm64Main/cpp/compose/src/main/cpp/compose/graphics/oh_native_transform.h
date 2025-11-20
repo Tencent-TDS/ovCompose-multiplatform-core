@@ -85,6 +85,22 @@ public:
         m24 = m14 * -sinA + m24 * cosA;
     }
 
+    OH_ALWAYS_INLINE void skew(float sx, float sy) noexcept {
+        float a11 = m11, a12 = m12;
+        float a21 = m21, a22 = m22;
+        float a31 = m31, a32 = m32;
+        float a41 = m41, a42 = m42;
+
+        m11 = a11 + a21 * sy;
+        m12 = a12 + a22 * sy;
+        m13 = m13 + m23 * sy;
+        m14 = m14 + m24 * sy;
+
+        m21 = a11 * sx + a21;
+        m22 = a12 * sx + a22;
+        m23 = m13 * sx + m23;
+        m24 = m14 * sx + m24;
+    }
 #pragma mark - 静态构造方法
     static OH_ALWAYS_INLINE Transform3D Identity() noexcept { return Transform3D(); }
 
@@ -115,6 +131,13 @@ public:
             t.m21 = sinA;
             t.m22 = cosA;
         }
+        return t;
+    }
+
+    static OH_ALWAYS_INLINE Transform3D Skew(float sx, float sy) noexcept {
+        Transform3D t;
+        t.m21 = sx;
+        t.m12 = sy;
         return t;
     }
 

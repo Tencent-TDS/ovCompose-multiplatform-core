@@ -21,6 +21,10 @@ public:
     void save();
     void restore();
     void translate(float dx, float dy);
+    void scale(float sx, float sy);
+    void rotate(float degrees);
+    void skew(float sx, float sy);
+    void concat(const float *matrix16);
     void setPosition(int32_t x, int32_t y) const;
     void setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) const;
     void setPivot(float px, float py) const;
@@ -43,6 +47,9 @@ public:
     void drawLayer(OH::BaseRenderNode *renderNode);
     void drawParagraph(OH::Paragraph *paragraph);
     void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);
+    void clipPath(OH_Drawing_Path *path, OH_Native_Draw_ClipOp clipOp);
+    void clipRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
+                       OH_Native_Draw_ClipOp clipOp);
     void drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy);
     void markSelfAsNodeGroup() const;
 

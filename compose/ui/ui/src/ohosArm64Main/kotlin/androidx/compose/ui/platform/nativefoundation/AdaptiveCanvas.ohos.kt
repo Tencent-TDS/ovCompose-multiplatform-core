@@ -104,8 +104,14 @@ internal class AdaptiveCanvas(
     }
 
     override fun clipRoundRect(rect: RoundRect) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::clipRoundRect" }
+        TraceUtil.traceSync("AdaptiveCanvas:clipRoundRect") {
+            // 使用默认的 ClipOp.Intersect
+            nativeCanvasProxy.clipRoundRect(
+                rect.left, rect.top, rect.right, rect.bottom,
+                rect.topLeftCornerRadius.x, rect.topLeftCornerRadius.y,
+                OH_Native_Draw_ClipOp.Intersect.value
+            )
+        }
     }
 
     override fun applyTransformMatrix(
@@ -223,22 +229,46 @@ internal class AdaptiveCanvas(
     }
 
     override fun scale(sx: Float, sy: Float) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::scale" }
+        nativeCanvasProxy.scale(sx, sy)
+        LogPrintUtil.verbose { "AdaptiveCanvas::scale, sx: $sx, sy: $sy" }
     }
 
     override fun rotate(degrees: Float) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::rotate" }
+        nativeCanvasProxy.rotate(degrees)
+        LogPrintUtil.verbose { "AdaptiveCanvas::rotate, degrees: $degrees" }
     }
 
     override fun skew(sx: Float, sy: Float) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::skew" }
+        nativeCanvasProxy.skew(sx, sy)
+        LogPrintUtil.verbose { "AdaptiveCanvas::skew, sx: $sx, sy: $sy" }
     }
 
     override fun concat(matrix: Matrix) {
-        // TODO("Not yet implemented")
+        // Convert Compose Matrix to FloatArray (16 elements)
+        val matrixArray = FloatArray(16)
+        // Compose Matrix is column-major, same as Transform3D
+        // [ m0, m4, m8, m12 ]
+        // [ m1, m5, m9, m13 ]
+        // [ m2, m6, m10, m14 ]
+        // [ m3, m7, m11, m15 ]
+        // We can copy directly if the internal storage matches, but let's be safe and copy element by element
+        // Matrix[row, col]
+        for (i in 0..15) {
+            // Matrix stores values in a float array in column-major order
+            // values[0] is m11 (row 0, col 0)
+            // values[1] is m21 (row 1, col 0)
+            // ...
+            // values[4] is m12 (row 0, col 1)
+            // So we can just copy the values array if it's accessible, or use index
+            // Since we don't have direct access to values array in common code easily without knowing implementation details,
+            // we use the operator get(row, col) or just assume the order.
+            // Actually, Matrix.values is public in some versions, but let's use the values property if available or copy.
+            // Looking at Matrix.kt in common:
+            // val values: FloatArray
+            // It is column major.
+            matrixArray[i] = matrix.values[i]
+        }
+        nativeCanvasProxy.concat(matrixArray)
         LogPrintUtil.verbose { "AdaptiveCanvas::concat, matrix: $matrix" }
     }
 
@@ -247,8 +277,14 @@ internal class AdaptiveCanvas(
     }
 
     override fun clipPath(path: Path, clipOp: ClipOp) {
-        // TODO("Not yet implemented")
-        LogPrintUtil.verbose { "AdaptiveCanvas::clipPath, path: $path, clipOp: $clipOp" }
+        TraceUtil.traceSync("AdaptiveCanvas:clipPath") {
+            // Try to use NativePathImpl first (similar to iOS implementation)
+            path.pathType = PathType.Native
+            val currentPath = path.currentPath
+            if (currentPath is NativePathImpl && currentPath.handle != null) {
+                nativeCanvasProxy.clipPath(currentPath.handle, clipOp.asNativeEnum().value)
+            }
+        }
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {

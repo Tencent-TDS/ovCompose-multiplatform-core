@@ -208,6 +208,28 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvas
          left, top, right, bottom, clipOp);
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(OHNativeCanvasProxy_Handle proxy,
+                                                                  OH_Drawing_Path_Handle path, const uint32_t clipOp) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->clipPath(path, static_cast<OH_Native_Draw_ClipOp>(clipOp));
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath: "
+         "path:%{public}p, clipOp:%{public}d",
+         path, clipOp);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(OHNativeCanvasProxy_Handle proxy,
+                                                                       const float left, const float top,
+                                                                       const float right, const float bottom,
+                                                                       const float radiusX, const float radiusY,
+                                                                       const uint32_t clipOp) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->clipRoundRect(left, top, right, bottom, radiusX, radiusY, static_cast<OH_Native_Draw_ClipOp>(clipOp));
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect: "
+         "rect:(%{public}f, %{public}f, %{public}f, %{public}f), "
+         "radius:(%{public}f, %{public}f), clipOp:%{public}d",
+         left, top, right, bottom, radiusX, radiusY, clipOp);
+}
+
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(OHNativeCanvasProxy_Handle proxy, int32_t x,
                                                                      int32_t y) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
@@ -279,6 +301,37 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(OHNativeCanva
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate: "
          "dx:%{public}f, dy:%{public}f",
          dx, dy);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale(OHNativeCanvasProxy_Handle proxy, float sx, float sy) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->scale(sx, sy);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale: "
+         "sx:%{public}f, sy:%{public}f",
+         sx, sy);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate(OHNativeCanvasProxy_Handle proxy, float degrees) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->rotate(degrees);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate: "
+         "degrees:%{public}f",
+         degrees);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew(OHNativeCanvasProxy_Handle proxy, float sx, float sy) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->skew(sx, sy);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew: "
+         "sx:%{public}f, sy:%{public}f",
+         sx, sy);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat(OHNativeCanvasProxy_Handle proxy,
+                                                                const float *matrix16) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->concat(matrix16);
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat");
 }
 
 /// OHComposeNativePaint related methods

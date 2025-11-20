@@ -19,7 +19,8 @@ namespace OH {
  * Cut（切分点）：表示样式的添加或移除点
  */
 struct Paragraph::StyleCut {
-    enum class Type { Add, Remove };
+    enum class Type { Add,
+                      Remove };
 
     uint32_t position;
     Type type;
@@ -46,11 +47,10 @@ struct Paragraph::StyleOp {
 Paragraph::Paragraph(std::string text, std::unique_ptr<ITextStyleStrategy> textStyleStrategy,
                      std::unique_ptr<IParagraphStyleStrategy> paragraphStyleStrategy,
                      const std::vector<SpanStyleRange> &spanStyles, const std::vector<PlaceholderRange> &placeholders,
-                     std::string fontFamily)
-    : text_(std::move(text)), textStyleStrategy_(std::move(textStyleStrategy)),
-      paragraphStyleStrategy_(std::move(paragraphStyleStrategy)), isLayouted_(false),
-      fontCollection_(DrawingResourceFactory::createFontCollection()), typography_(nullptr, nullptr),
-      spanStyles_(spanStyles), placeholders_(placeholders), fontFamily_(std::move(fontFamily)) {
+                     std::string fontFamily) : text_(std::move(text)), textStyleStrategy_(std::move(textStyleStrategy)),
+                                               paragraphStyleStrategy_(std::move(paragraphStyleStrategy)), isLayouted_(false),
+                                               fontCollection_(DrawingResourceFactory::createFontCollection()), typography_(nullptr, nullptr),
+                                               spanStyles_(spanStyles), placeholders_(placeholders), fontFamily_(std::move(fontFamily)) {
     LOGI("[Paragraph] Constructor: text='%{public}s', textLength=%{public}zu, "
          "spanStylesCount=%{public}zu, "
          "fontFamily='%{public}s'",

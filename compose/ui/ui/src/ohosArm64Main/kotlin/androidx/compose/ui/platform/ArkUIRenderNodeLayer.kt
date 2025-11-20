@@ -1,19 +1,3 @@
-/*
- * Copyright 2025 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package androidx.compose.ui.platform
 
 import androidx.compose.common.interop.LogPrintUtil
@@ -60,12 +44,14 @@ internal class ArkUIRenderNodeLayer(
     private val onDestroy: () -> Unit = {},
     nativeCanvasFactory: COpaquePointer,
     private val sourceType: LayerSourceType = LayerSourceType.REGULAR
-): OwnedLayer {
+) : OwnedLayer {
     // ---- 基础属性 ----
     // 当前层的尺寸（宽度和高度），以像素为单位。通过 resize 方法更新
     private var size = IntSize.Zero
+
     // 当前层的位置（x 和 y 坐标），以像素为单位。初始值为 (-1, -1)，通过 move 方法更新
     private var position = IntOffset(-1, -1)
+
     // 用于缓存当前层的轮廓信息（如形状，布局方向，密度等），以优化绘制性能
     private var outlineCache =
         OutlineCache(density, size, RectangleShape, LayoutDirection.Ltr)
@@ -79,6 +65,7 @@ internal class ArkUIRenderNodeLayer(
         // Mark this as invalid.
         values[0] = Float.NaN
     }
+
     // 当前层的逆变换矩阵，用于将屏幕坐标转换回层的本地坐标。初始值标记为无效（NaN），在访问时懒加载计算。
     private val inverseMatrix: Matrix
         get() {
@@ -87,17 +74,22 @@ internal class ArkUIRenderNodeLayer(
             }
             return _inverseMatrix
         }
+
     // 当前层的变换原点，决定旋转、缩放等操作的参考点。默认值为中心点。
     private var transformOrigin: TransformOrigin = TransformOrigin.Center
+
     // 当前层在 x 和 y 方向的平移距离，以像素为单位。默认值为 0。
     private var translationX: Float = 0f
     private var translationY: Float = 0f
+
     // 当前层绕 x、y、z 轴的旋转角度，以度为单位。默认值为 0。
     private var rotationX: Float = 0f
     private var rotationY: Float = 0f
     private var rotationZ: Float = 0f
+
     // 当前层的摄像机距离，影响 3D 变换的透视效果。默认值为系统定义的 DefaultCameraDistance。
     private var cameraDistance: Float = DefaultCameraDistance
+
     // 当前层在 x 和 y 方向的缩放比例。默认值为 1（不缩放）。
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
@@ -106,15 +98,20 @@ internal class ArkUIRenderNodeLayer(
     // ---- 视觉属性 ----
     // 当前层的透明度，范围为 0（完全透明）到 1
     private var alpha: Float = 1f
+
     // 是否裁剪超出边界的内容。默认值为 false（不裁剪）。
     private var clip: Boolean = false
+
     // 当前层的渲染效果，如模糊、阴影等。默认值为 null（无效果）。
     private var renderEffect: RenderEffect? = null
+
     // 当前层的阴影属性，包括阴影高度、环境光颜色和聚光灯颜色。
     private var shadowElevation: Float = 0f
+
     // 环境阴影颜色和聚光阴影颜色
     private var ambientShadowColor: Color = DefaultShadowColor
     private var spotShadowColor: Color = DefaultShadowColor
+
     // 当前层的合成测量，决定如何将层内容与父层合成，如是否开启离屏渲染等。默认值为 Auto。
     private var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
     // ---- 视觉属性 ----
@@ -125,12 +122,16 @@ internal class ArkUIRenderNodeLayer(
 
     // 当前层的视图代理，用于与底层平台（iOS的UIView）交互
     val nativeCanvasProxy: OHNativeCanvasProxy = canvas.nativeCanvasProxy
+
     // 当前层的父层缓存，用于优化层级关系的更新
     private var cachedParentLayer: OwnedLayer? = null
+
     // 标记当前层是否需要重慧
     private var isInvalidated = true
+
     // 父层的渲染效果，用于继承父层的视觉效果
     private var superRenderEffect: RenderEffect? = null
+
     // 标记当前层的哪些属性发生了变化，用于优化更新逻辑
     private var mutatedFields: Int = 0
     // ---- 绘制相关 ----
@@ -138,8 +139,10 @@ internal class ArkUIRenderNodeLayer(
     // ---- 调试相关 ----
     // 当前 ArkUIRenderNodeLayer 的唯一标识符，由静态变量 lastId 自增生成。用于调试或区分不同的 ArkUIRenderNodeLayer 实例。
     private val id = lastId++
+
     // 仅用于调试，标记当前层是否已被销毁，防止重复销毁操作
     private var isDestroyed = false
+
     // 当前层应用的渲染效果，设置时会触发重绘
     private var applyRenderEffect: RenderEffect? = null
         set(value) {
@@ -200,7 +203,7 @@ internal class ArkUIRenderNodeLayer(
     private fun updateShadow() {
         if (shadowElevation > 0) {
             val outline = outlineCache.outline
-            val shadowRadius =  if (outline is Outline.Rounded) {
+            val shadowRadius = if (outline is Outline.Rounded) {
                 outline.roundRect.topLeftCornerRadius.x
             }  else 0.0f
 
@@ -324,60 +327,70 @@ internal class ArkUIRenderNodeLayer(
     }
 
     private fun updateMatrix() {
-        val pivotX = transformOrigin.pivotFractionX * size.width
-        val pivotY = transformOrigin.pivotFractionY * size.height
+        TraceUtil.traceSync("ArkUIRenderNodeLayer:updateMatrix") {
 
-        matrix.reset()
-        // Mark inverseMatrix as invalid. It will be lazy evaluated when accessed.
-        _inverseMatrix.values[0] = Float.NaN
+            val pivotX = transformOrigin.pivotFractionX * size.width
+            val pivotY = transformOrigin.pivotFractionY * size.height
 
-        matrix.translate(x = -pivotX, y = -pivotY)
-        matrix *= Matrix().apply {
-            rotateZ(rotationZ)
-            rotateY(rotationY)
-            rotateX(rotationX)
-            scale(scaleX, scaleY)
-        }
+            matrix.reset()
+            // Mark inverseMatrix as invalid. It will be lazy evaluated when accessed.
+            _inverseMatrix.values[0] = Float.NaN
 
-        // 记录Matrix变化需要用到的属性，对齐Compose原生
-        var m34Transform = 0.0
-        // Perspective transform should be applied only in case of rotations to avoid
-        // multiply application in hierarchies.
-        // See Android's frameworks/base/libs/hwui/RenderProperties.cpp for reference
-        if (!rotationX.isZero() || !rotationY.isZero()) {
-            // The camera location is passed in inches, set in pt
-            val depth = cameraDistance * 72f
-            val value = -1f / depth
+            matrix.translate(x = -pivotX, y = -pivotY)
             matrix *= Matrix().apply {
-                this[2, 3] = value
+                rotateZ(rotationZ)
+                rotateY(rotationY)
+                rotateX(rotationX)
+                scale(scaleX, scaleY)
             }
-            m34Transform = value.toDouble()
-        }
-        matrix *= Matrix().apply {
-            translate(x = pivotX + translationX, y = pivotY + translationY)
-        }
 
-        // Third column and row are irrelevant for 2D space.
-        // Zeroing required to get correct inverse transformation matrix.
-        matrix[2, 0] = 0f
-        matrix[2, 1] = 0f
-        matrix[2, 3] = 0f
-        matrix[0, 2] = 0f
-        matrix[1, 2] = 0f
-        matrix[3, 2] = 0f
-        this.nativeCanvasProxy.setPivot(transformOrigin.pivotFractionX, transformOrigin.pivotFractionY)
+            // 记录Matrix变化需要用到的属性，对齐Compose原生
+            var m34Transform = 0.0
+            // Perspective transform should be applied only in case of rotations to avoid
+            // multiply application in hierarchies.
+            // See Android's frameworks/base/libs/hwui/RenderProperties.cpp for reference
+            if (!rotationX.isZero() || !rotationY.isZero()) {
+                // The camera location is passed in inches, set in pt
+                val depth = cameraDistance * 72f
+                val value = -1f / depth
+                matrix *= Matrix().apply {
+                    this[2, 3] = value
+                }
+                m34Transform = value.toDouble()
+            }
+            matrix *= Matrix().apply {
+                translate(x = pivotX + translationX, y = pivotY + translationY)
+            }
 
-        // 将Matrix参数传递到C侧计算矩阵
-        canvas.applyTransformMatrix(
-            rotationX,
-            rotationY,
-            rotationZ,
-            scaleX,
-            scaleY,
-            translationX / density.density,
-            translationY / density.density,
-            m34Transform
-        )
+            // Third column and row are irrelevant for 2D space.
+            // Zeroing required to get correct inverse transformation matrix.
+            matrix[2, 0] = 0f
+            matrix[2, 1] = 0f
+            matrix[2, 3] = 0f
+            matrix[0, 2] = 0f
+            matrix[1, 2] = 0f
+            matrix[3, 2] = 0f
+
+            // 1. 先设置 pivot（变换原点）
+            // 类似 iOS CALayer 的 anchorPoint，所有变换（缩放、旋转）都围绕 pivot 点进行
+            this.nativeCanvasProxy.setPivot(
+                transformOrigin.pivotFractionX,
+                transformOrigin.pivotFractionY
+            )
+
+            // 2. 再应用变换矩阵（不包含 pivot 处理）
+            // 将Matrix参数传递到C侧计算矩阵
+            canvas.applyTransformMatrix(
+                rotationX,
+                rotationY,
+                rotationZ,
+                scaleX,
+                scaleY,
+                translationX ,
+                translationY,
+                m34Transform
+            )
+        }
     }
 
     override fun invalidate() {

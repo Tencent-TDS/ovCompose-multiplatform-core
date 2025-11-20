@@ -85,10 +85,8 @@ void OHNativeCanvasProxy::applyTransformMatrix(float rotationX, float rotationY,
                                                float scaleY, float translateX, float translateY,
                                                double transformM34) const {
     OH::SystraceSection trace("OHNativeCanvasProxy:applyTransformMatrix");
-    LOGI("OHNativeCanvasProxy::applyTransformMatrix: rotationX=%{public}f, rotationY=%{public}f, rotationZ=%{public}f",
-         rotationX, rotationY, rotationZ);
 
-    // 使用 Transform3D 类创建变换矩阵
+    // 使用 Transform3D 类创建变换矩阵（不包含 pivot 处理）
     OH::Transform3D transform = OH::Transform3D::Identity();
 
     // 1. 处理 translation (平移)
@@ -96,7 +94,7 @@ void OHNativeCanvasProxy::applyTransformMatrix(float rotationX, float rotationY,
 
     // 2. 处理 rotationZ (绕 Z 轴旋转)
     if (std::abs(rotationZ) > 0.0001f) {
-        transform *= OH::Transform3D::Rotation(rotationZ);
+        transform.rotate(rotationZ); // 直接使用 rotate 方法
     }
 
     // 3. 处理 rotationY (绕 Y 轴旋转)
@@ -135,8 +133,7 @@ void OHNativeCanvasProxy::applyTransformMatrix(float rotationX, float rotationY,
     // 6. 处理 scale (缩放)
     transform.scale(scaleX, scaleY, 1.0f);
 
-    // 7. 修改矩阵内部的值（与 iOS 版本保持一致）
-    // 设置 m31, m32, m34, m13, m23, m43 为 0
+    // 7. 清理不需要的矩阵值（与 iOS 版本保持一致）
     transform.m13 = 0.0f;
     transform.m23 = 0.0f;
     transform.m31 = 0.0f;
@@ -144,7 +141,8 @@ void OHNativeCanvasProxy::applyTransformMatrix(float rotationX, float rotationY,
     transform.m34 = 0.0f;
     transform.m43 = 0.0f;
 
-    // 应用变换矩阵到渲染节点
+    // 8. 应用变换矩阵到渲染节点
+    // 注意：pivot 已经通过 setPivot 单独设置，不需要在这里处理
     if (canvasNode_ != nullptr) {
         canvasNode_->setTransform(transform.data());
     }
@@ -159,7 +157,42 @@ void OHNativeCanvasProxy::clipRect(const float left, const float top, const floa
     if (updateItem.isDirty) {
         OH::BaseRenderNode *renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
-        OH::OHRenderNodeDrawClipRect(left, top, right, bottom, &(updateItem.saveState), renderNodeForDrawing);
+        OH::OHRenderNodeDrawClipRect(left, top, right, bottom, &(updateItem.saveState), renderNodeForDrawing, clipOp);
+    }
+}
+
+void OHNativeCanvasProxy::clipPath(OH_Drawing_Path *path, const OH_Native_Draw_ClipOp clipOp) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:clipPath");
+    LOGI("OHNativeCanvasProxy::clipPath: path=%{public}p, clipOp=%{public}d", path, clipOp);
+
+    const uint64_t drawingContentHash =
+        OH::hashCombineSequential(reinterpret_cast<uint64_t>(path), static_cast<float>(clipOp));
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
+
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawClipPath(path, clipOp, &(updateItem.saveState), renderNodeForDrawing);
+    }
+}
+
+void OHNativeCanvasProxy::clipRoundRect(const float left, const float top, const float right, const float bottom,
+                                        const float radiusX, const float radiusY,
+                                        const OH_Native_Draw_ClipOp clipOp) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:clipRoundRect");
+    LOGI("OHNativeCanvasProxy::clipRoundRect: rect=(%{public}f, %{public}f, %{public}f, %{public}f), "
+         "radius=(%{public}f, %{public}f)",
+         left, top, right, bottom, radiusX, radiusY);
+
+    const uint64_t drawingContentHash =
+        OH::hashCombineSequential(left, top, right, bottom, radiusX, radiusY, static_cast<float>(clipOp));
+
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
+    if (updateItem.isDirty) {
+        OH::BaseRenderNode *renderNodeForDrawing =
+            _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+        OH::OHRenderNodeDrawClipRoundRect(left, top, right, bottom, radiusX, radiusY, &(updateItem.saveState),
+                                          renderNodeForDrawing, clipOp);
     }
 }
 
@@ -176,6 +209,26 @@ void OHNativeCanvasProxy::restore() {
 void OHNativeCanvasProxy::translate(const float dx, const float dy) {
     OH::SystraceSection trace("OHNativeCanvasProxy:translate");
     _pictureRecorder.translate(dx, dy);
+}
+
+void OHNativeCanvasProxy::scale(const float sx, const float sy) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:scale");
+    _pictureRecorder.scale(sx, sy);
+}
+
+void OHNativeCanvasProxy::rotate(const float degrees) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:rotate");
+    _pictureRecorder.rotate(degrees);
+}
+
+void OHNativeCanvasProxy::skew(const float sx, const float sy) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:skew");
+    _pictureRecorder.skew(sx, sy);
+}
+
+void OHNativeCanvasProxy::concat(const float *matrix16) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:concat");
+    _pictureRecorder.concat(matrix16);
 }
 
 void OHNativeCanvasProxy::drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy) {
@@ -389,7 +442,8 @@ void OHNativeCanvasProxy::drawLayer(OH::BaseRenderNode *renderNode) {
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.drawRenderNode(renderNode, renderNode->getType());
 }
 
-void OHNativeCanvasProxy::drawPoints(OH_Drawing_PointMode pointMode, const float *points, size_t pointCount, OH::OHComposeNativePaint *paint) {
+void OHNativeCanvasProxy::drawPoints(OH_Drawing_PointMode pointMode, const float *points, size_t pointCount,
+                                     OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("OHNativeCanvasProxy:drawPoints");
     LOGI("OHNativeCanvasProxy::drawPoints: pointMode=%{public}d, pointCount=%{public}zu", pointMode, pointCount);
     OH::NativeBasicShader *shader = paint->shader;
@@ -427,15 +481,16 @@ void OHNativeCanvasProxy::drawParagraph(OH::Paragraph *paragraph) {
 
 void OHNativeCanvasProxy::drawTextPixelMap(void *pixelMapNative, int32_t cacheKey, int32_t width, int32_t height) {
     OH::SystraceSection trace("OHNativeCanvasProxy:drawTextPixelMap");
-    LOGI("OHNativeCanvasProxy::drawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d", cacheKey, width, height);
+    LOGI("OHNativeCanvasProxy::drawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d", cacheKey,
+         width, height);
 
     const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageData;
-    // 计算 hash：参考 iOS 的 hashFloats((float)skBitmap, (float)cacheKey, (float)width, (float)height, (float)drawingType)
+    // 计算 hash：参考 iOS 的 hashFloats((float)skBitmap, (float)cacheKey, (float)width, (float)height,
+    // (float)drawingType)
     const uint64_t pixelMapPtr = reinterpret_cast<uint64_t>(pixelMapNative);
     const uint64_t drawingContentHash = OH::hashCombineSequential(
-        static_cast<uint64_t>(pixelMapPtr), static_cast<uint64_t>(cacheKey),
-        static_cast<uint64_t>(width), static_cast<uint64_t>(height),
-        static_cast<uint64_t>(drawingType));
+        static_cast<uint64_t>(pixelMapPtr), static_cast<uint64_t>(cacheKey), static_cast<uint64_t>(width),
+        static_cast<uint64_t>(height), static_cast<uint64_t>(drawingType));
 
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     if (updateItem.isDirty) {
@@ -485,7 +540,8 @@ bool OHNativeCanvasProxy::needRedrawImageWithHashCode(int32_t hashCode, int32_t 
     return true; // 需要重绘
 }
 
-void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTask, int32_t paragraphHashCode, int32_t width, int32_t height) {
+void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTask, int32_t paragraphHashCode,
+                                              int32_t width, int32_t height) {
     OH::SystraceSection trace("OHNativeCanvasProxy:asyncDrawIntoCanvas");
     LOGI("OHNativeCanvasProxy::asyncDrawIntoCanvas: paragraphHashCode=%{public}d, width=%{public}d, height=%{public}d",
          paragraphHashCode, width, height);
@@ -494,8 +550,7 @@ void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTas
     // 计算 hash：参考 iOS 的 hashFloats((float)[globalTask hash], (float)cacheKey, (float)width, (float)drawingType)
     // 注意：std::function 没有直接的 hash 方法，我们使用 paragraphHashCode 作为替代
     const uint64_t drawingContentHash = OH::hashCombineSequential(
-        static_cast<uint64_t>(paragraphHashCode), static_cast<uint64_t>(width),
-        static_cast<uint64_t>(drawingType));
+        static_cast<uint64_t>(paragraphHashCode), static_cast<uint64_t>(width), static_cast<uint64_t>(drawingType));
 
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     if (updateItem.isDirty) {

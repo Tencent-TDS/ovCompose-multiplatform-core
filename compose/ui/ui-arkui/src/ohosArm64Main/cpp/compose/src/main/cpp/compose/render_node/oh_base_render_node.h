@@ -189,7 +189,7 @@ public:
     BaseRenderNode *setTransform(float *matrix) {
         OH::SystraceSection trace("BaseRenderNode::setTransform");
         // 检查缓存，避免重复设置相同的矩阵
-        if (!propertyCache_.transformSet || transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
+        if (!propertyCache_.transformSet || !transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(nodeHandle_, matrix));
             propertyCache_.transformSet = true;
             std::memcpy(propertyCache_.cachedTransform, matrix, sizeof(float) * 16);
@@ -200,7 +200,7 @@ public:
     BaseRenderNode *setTransform(const float *matrix) {
         OH::SystraceSection trace("BaseRenderNode::setTransform");
         // 检查缓存，避免重复设置相同的矩阵
-        if (!propertyCache_.transformSet || transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
+        if (!propertyCache_.transformSet || !transForm3DMatrixEquals(propertyCache_.cachedTransform, matrix)) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTransform(nodeHandle_, const_cast<float *>(matrix)));
             propertyCache_.transformSet = true;
             std::memcpy(propertyCache_.cachedTransform, matrix, sizeof(float) * 16);
@@ -256,7 +256,7 @@ public:
     BaseRenderNode *setBounds(const int32_t x, const int32_t y, const int32_t width, const int32_t height) {
         OH::SystraceSection trace("BaseRenderNode::setBounds");
         // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.sizeSet || !propertyCache_.positionSet || propertyCache_.cachedX != x|| propertyCache_.cachedY != y
+        if (!propertyCache_.sizeSet || !propertyCache_.positionSet || propertyCache_.cachedX != x || propertyCache_.cachedY != y
             || propertyCache_.cachedWidth != width || propertyCache_.cachedHeight != height) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
             propertyCache_.sizeSet = true;
