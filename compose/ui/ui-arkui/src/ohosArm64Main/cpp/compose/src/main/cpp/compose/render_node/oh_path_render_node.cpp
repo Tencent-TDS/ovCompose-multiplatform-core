@@ -2,10 +2,12 @@
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_path.h>
 #include <native_drawing/drawing_pen.h>
+#include <native_drawing/drawing_filter.h>
 #include <cfloat>
 #include "oh_path_render_node.h"
 #include "../xcomponent_log.h"
 #include "../path/oh_native_path_export.h"
+#include "oh_render_node_color_filter_utils.h"
 
 namespace OH {
 PathRenderNode::~PathRenderNode() {
@@ -30,7 +32,7 @@ OH_DrawingNode_Type PathRenderNode::getType() {
 }
 
 void PathRenderNode::drawPath(OH_Drawing_Path *path, const float strokeWidth, const uint32_t color,
-                              OH_Native_Draw_PaintingStyle style) {
+                              OH_Native_Draw_PaintingStyle style, OHComposeNativeColorFilter *colorFilter) {
     // 更新pathProperty_
     if (pathProperty_) {
         OH_Drawing_PathDestroy(pathProperty_);
@@ -60,6 +62,7 @@ void PathRenderNode::drawPath(OH_Drawing_Path *path, const float strokeWidth, co
     // 直接更新成员变量
     strokeWidth_ = strokeWidth;
     color_ = color;
+    colorFilter_ = colorFilter;
     paintingStyle = style;
 
     // 调用invalidate()触发onDraw
@@ -67,10 +70,6 @@ void PathRenderNode::drawPath(OH_Drawing_Path *path, const float strokeWidth, co
 }
 
 void PathRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     // 读取当前值
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
@@ -112,17 +111,33 @@ void PathRenderNode::initModifier() {
                     OH_Drawing_Pen *pen = OH_Drawing_PenCreate();
                     OH_Drawing_PenSetWidth(pen, strokeWidth);
                     OH_Drawing_PenSetColor(pen, color);
+                    
+                    // 应用ColorFilter到Pen
+                    OH_Drawing_Filter *filter = ApplyColorFilterToPen(pen, data->colorFilter_);
+                    
                     OH_Drawing_CanvasAttachPen(canvas, pen);
                     OH_Drawing_CanvasDrawPath(canvas, data->pathProperty_);
                     OH_Drawing_CanvasDetachPen(canvas);
                     OH_Drawing_PenDestroy(pen);
+                    
+                    if (filter != nullptr) {
+                        OH_Drawing_FilterDestroy(filter);
+                    }
                 } else { // Fill style
                     OH_Drawing_Brush *brush = OH_Drawing_BrushCreate();
                     OH_Drawing_BrushSetColor(brush, color);
+                    
+                    // 应用ColorFilter到Brush
+                    OH_Drawing_Filter *filter = ApplyColorFilterToBrush(brush, data->colorFilter_);
+                    
                     OH_Drawing_CanvasAttachBrush(canvas, brush);
                     OH_Drawing_CanvasDrawPath(canvas, data->pathProperty_);
                     OH_Drawing_CanvasDetachBrush(canvas);
                     OH_Drawing_BrushDestroy(brush);
+                    
+                    if (filter != nullptr) {
+                        OH_Drawing_FilterDestroy(filter);
+                    }
                 }
             }));
     }

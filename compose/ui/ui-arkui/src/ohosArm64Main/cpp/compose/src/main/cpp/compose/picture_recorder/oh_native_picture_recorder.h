@@ -9,6 +9,7 @@
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_base_render_node.h"
 #include "../render_node/oh_arc_render_node.h"
+#include "../render_node/oh_async_task_render_node.h"
 #include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
@@ -56,9 +57,10 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
     case OH_Native_Drawing_Type::DrawingTypePath:
         return std::make_unique<PathRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeImageRect:
-    case OH_Native_Drawing_Type::DrawingTypeImageData:
     case OH_Native_Drawing_Type::DrawingTypeImage:
         return std::make_unique<ImageDisplayRenderNode>();
+    case OH_Native_Drawing_Type::DrawingTypeImageData:
+        return std::make_unique<AsyncTaskRenderNode>(); // 异步文本渲染
     case OH_Native_Drawing_Type::DrawingTypePoints:
     case OH_Native_Drawing_Type::DrawingTypeShaderPoints:
         return std::make_unique<PointsRenderNode>();

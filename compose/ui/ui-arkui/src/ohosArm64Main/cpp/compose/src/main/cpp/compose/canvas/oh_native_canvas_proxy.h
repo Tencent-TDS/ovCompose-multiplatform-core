@@ -61,7 +61,8 @@ public:
     void drawTextPixelMap(void *pixelMapNative, int32_t cacheKey, int32_t width, int32_t height);
     void drawTextPixelMapWithPtr(void *pixelMapPtr, int32_t width, int32_t height);
     bool needRedrawImageWithHashCode(int32_t hashCode, int32_t width, int32_t height);
-    void asyncDrawIntoCanvas(std::function<int64_t()> globalTask, int32_t paragraphHashCode, int32_t width, int32_t height);
+    void asyncDrawIntoCanvas(std::function<int64_t()> globalTask, int32_t paragraphHashCode, int32_t width, int32_t height,
+                             std::function<void(void *, int64_t)> onMainThreadUpdate);
     int64_t imageFromImageBitmap(void *pixelMapNative, int32_t paragraphHashCode);
 
 private:

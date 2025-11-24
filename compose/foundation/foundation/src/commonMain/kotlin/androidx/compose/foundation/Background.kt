@@ -151,15 +151,13 @@ private class BackgroundNode(
     private var lastShape: Shape? = null
 
     override fun ContentDrawScope.draw() {
-        TraceUtil.traceSync("BackgroundNode:draw") {
-            if (shape === RectangleShape) {
-                // shortcut to avoid Outline calculation and allocation
-                drawRect()
-            } else {
-                drawOutline()
-            }
-            drawContent()
+        if (shape === RectangleShape) {
+            // shortcut to avoid Outline calculation and allocation
+            drawRect()
+        } else {
+            drawOutline()
         }
+        drawContent()
     }
 
     private fun ContentDrawScope.drawRect() {

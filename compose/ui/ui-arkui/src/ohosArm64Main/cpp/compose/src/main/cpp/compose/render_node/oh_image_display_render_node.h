@@ -2,9 +2,9 @@
 #define OH_IMAGE_DISPLAY_RENDER_NODE_H
 
 #include "oh_base_render_node.h"
-#include "oh_image_clip_render_node.h"
+#include "compose/filter/oh_compose_native_color_filter.h"
+
 #include <multimedia/image_framework/image/pixelmap_native.h>
-#include <memory>
 
 namespace OH {
 /**
@@ -12,9 +12,9 @@ namespace OH {
  * 参考 iOS TMMImageDisplayLayer 实现
  *
  * 职责：
- * 1. 判断是否需要裁剪（CALayerShouldClipImage 逻辑）
- * 2. 如果不需要裁剪：直接在 ContentModifier 中绘制
- * 3. 如果需要裁剪：使用 ImageClipRenderNode 作为子节点
+ * 1. 在 ContentModifier 中使用 OH_Drawing_CanvasDrawPixelMapRect 绘制图片
+ * 2. 通过 srcRect 和 dstRect 参数实现裁剪和缩放
+ * 3. 支持 ColorFilter 颜色滤镜效果
  */
 class ImageDisplayRenderNode : public BaseRenderNode {
 public:
@@ -36,13 +36,13 @@ public:
      * @param filterQuality 图像过滤质量
      */
     void drawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_t srcY, int32_t srcWidth, int32_t srcHeight,
-                       int32_t dstX, int32_t dstY, int32_t dstWidth, int32_t dstHeight,
+                       int32_t dstX, int32_t dstY, int32_t dstWidth, int32_t dstHeight, OHComposeNativeColorFilter* colorFilter,
                        OH_Native_Draw_FilterQuality filterQuality);
 
     OH_DrawingNode_Type getType() override;
 
 private:
-    void invalidate();
+    void invalidate() override;
     void initModifier() override;
 
     // 图像绘制参数（同时用于渲染和变化检测）
@@ -55,10 +55,8 @@ private:
     int32_t dstY_ = 0;
     int32_t dstWidth_ = 0;
     int32_t dstHeight_ = 0;
+    OHComposeNativeColorFilter*  colorFilter_ = nullptr;
     OH_Native_Draw_FilterQuality filterQuality_ = OH_Native_Draw_FilterQuality::None;
-
-    // ImageClipRenderNode 子节点（需要裁剪时使用）
-    std::unique_ptr<ImageClipRenderNode> imageClipNode_ = nullptr;
 
     // 触发重绘
     ArkUI_FloatPropertyHandle invalidateCountProperty_ = nullptr;

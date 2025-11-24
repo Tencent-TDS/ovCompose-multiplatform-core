@@ -150,7 +150,7 @@ public:
     }
 
     BaseRenderNode *removeFromParent() {
-        if (parent_ && parent_->getHandle()) {
+        if (parent_) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_RemoveChild(parent_->getHandle(), nodeHandle_));
             // 延迟清理策略：不立即从父节点的 children_ 列表中移除，在父节点 clearChildren() 时统一清理
         }
@@ -212,8 +212,10 @@ public:
         OH::SystraceSection trace("BaseRenderNode::setTranslate");
 
         const float EPSILON = 0.01f;
-        const bool xChanged = !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateX - translateX) >= EPSILON);
-        const bool yChanged = !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateY - translateY) >= EPSILON);
+        const bool xChanged =
+            !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateX - translateX) >= EPSILON);
+        const bool yChanged =
+            !propertyCache_.translateSet || (std::abs(propertyCache_.cachedTranslateY - translateY) >= EPSILON);
 
         if (xChanged || yChanged) {
             maybeThrow(OH_ArkUI_RenderNodeUtils_SetTranslation(nodeHandle_, translateX, translateY));
@@ -303,9 +305,9 @@ public:
                 ScopedOption<ArkUI_NodeBorderStyleOption, OH_ArkUI_RenderNodeUtils_CreateNodeBorderStyleOption,
                              OH_ArkUI_RenderNodeUtils_DisposeNodeBorderStyleOption>;
             BorderStyleOption borderStyleOption;
-            OH_ArkUI_RenderNodeUtils_SetNodeBorderStyleOptionEdgeStyle(borderStyleOption.get(), ARKUI_BORDER_STYLE_SOLID,
-                                                                       ARKUI_EDGE_DIRECTION_ALL);
-            
+            OH_ArkUI_RenderNodeUtils_SetNodeBorderStyleOptionEdgeStyle(
+                borderStyleOption.get(), ARKUI_BORDER_STYLE_SOLID, ARKUI_EDGE_DIRECTION_ALL);
+
             BorderWidthOption borderWidthOption;
             OH_ArkUI_RenderNodeUtils_SetNodeBorderWidthOptionEdgeWidth(borderWidthOption.get(), borderWidth,
                                                                        ARKUI_EDGE_DIRECTION_ALL);
@@ -389,6 +391,7 @@ public:
 
 protected:
     virtual void initModifier() {};
+    virtual void invalidate() {};
     static uint32_t generateHash() {
         static std::atomic<uint32_t> counter{0};
         return ++counter;

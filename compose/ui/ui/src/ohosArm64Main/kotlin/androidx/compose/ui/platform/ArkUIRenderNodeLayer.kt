@@ -258,7 +258,7 @@ internal class ArkUIRenderNodeLayer(
     }
 
     override fun drawLayer(canvas: Canvas) {
-        TraceUtil.traceSync("ArkUIRenderNodeLayer:drawLayer") {
+//        TraceUtil.traceSync("ArkUIRenderNodeLayer:drawLayer") {
             if (isInvalidated) {
                 isInvalidated = false
                 val bounds = size.toSize().toRect()
@@ -272,7 +272,7 @@ internal class ArkUIRenderNodeLayer(
             } else {
                 // TODO this.nativeCanvasProxy.bringSelfToFroun()
             }
-        }
+//        }
     }
 
     private fun performDrawLayer(canvas: OHOSNativeCanvas, bounds: Rect) {

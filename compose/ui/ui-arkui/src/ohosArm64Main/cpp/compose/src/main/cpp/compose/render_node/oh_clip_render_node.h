@@ -69,7 +69,7 @@ public:
     OH_DrawingNode_Type getType() override;
 
 private:
-    void invalidate();
+    void invalidate() override;
     void initModifier() override;
 
     // 根据裁剪类型和参数创建路径

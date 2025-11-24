@@ -149,10 +149,6 @@ OH_Drawing_Path *ClipRenderNode::createClipPath() const {
 }
 
 void ClipRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
 
@@ -165,6 +161,7 @@ void ClipRenderNode::initModifier() {
         modifier_ = OH_ArkUI_RenderNodeUtils_CreateContentModifier();
         maybeThrow(OH_ArkUI_RenderNodeUtils_AttachContentModifier(nodeHandle_, modifier_));
 
+        // 创建invalidateCount PropertyHandle
         invalidateCountProperty_ = OH_ArkUI_RenderNodeUtils_CreateFloatProperty(0.0f);
         maybeThrow(OH_ArkUI_RenderNodeUtils_AttachFloatProperty(modifier_, invalidateCountProperty_));
 

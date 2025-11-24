@@ -19,6 +19,7 @@
 #include "../constants/oh_native_constants.h"
 #include "../shader/oh_native_basic_shader.h"
 #include "../xcomponent_log.h"
+#include "compose/filter/oh_compose_native_color_filter.h"
 
 #include <multimedia/image_framework/image/pixelmap_native.h>
 
@@ -35,7 +36,7 @@ void androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(OHComposeNative
 /// OHComposeNativePaint related methods
 // Batch sync all paint properties in a single FFI call to optimize performance
 void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
-    OHComposeNativePaint_Handle paint,
+    OHComposeNativePaint_Handle paintPtr,
     const float alpha,
     const bool isAntiAlias,
     const uint64_t color,
@@ -46,8 +47,9 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
     uint32_t strokeJoin,
     uint32_t filterQuality,
     const float strokeMiterLimit,
-    NativeBasicShader_Handle shader) {
-    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paint);
+    NativeBasicShader_Handle shaderPtr,
+    OHComposeNativeColorFilter_Handle colorFilterPtr) {
+    auto nativePaint = reinterpret_cast<OH::OHComposeNativePaint *>(paintPtr);
 
     // Set all properties in one batch
     nativePaint->alpha = alpha;
@@ -60,7 +62,8 @@ void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(
     nativePaint->strokeJoin = static_cast<OH_Native_Draw_StrokeJoin>(strokeJoin);
     nativePaint->filterQuality = static_cast<OH_Native_Draw_FilterQuality>(filterQuality);
     nativePaint->strokeMiterLimit = strokeMiterLimit;
-    nativePaint->shader = reinterpret_cast<OH::NativeBasicShader *>(shader);
+    nativePaint->shader = reinterpret_cast<OH::NativeBasicShader *>(shaderPtr);
+    nativePaint->colorFilter = reinterpret_cast<OH::OHComposeNativeColorFilter *>(colorFilterPtr);
 
     LOGI("androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll: "
          "alpha=%{public}f, color=0x%{public}X, strokeWidth=%{public}f",

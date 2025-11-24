@@ -14,7 +14,8 @@ if(DEFINED PACKAGE_FIND_FILE)
     include(${PACKAGE_FIND_FILE})
 endif()
 
-#add_definitions(-DDEBUG) # Add DEBUG definition
+add_definitions(-DDEBUG) # Add DEBUG definition
+add_definitions(-DENABLE_TRACE) # Add ENABLE_TRACE definition
 add_definitions(-std=c++17)
 
 include_directories(${NATIVERENDER_ROOT_PATH}

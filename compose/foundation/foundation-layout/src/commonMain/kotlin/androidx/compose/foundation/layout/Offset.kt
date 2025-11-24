@@ -189,14 +189,12 @@ private class OffsetNode(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        return TraceUtil.traceSync("OffsetNode:measure") {
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                if (rtlAware) {
-                    placeable.placeRelative(x.roundToPx(), y.roundToPx())
-                } else {
-                    placeable.place(x.roundToPx(), y.roundToPx())
-                }
+        val placeable = measurable.measure(constraints)
+        return layout(placeable.width, placeable.height) {
+            if (rtlAware) {
+                placeable.placeRelative(x.roundToPx(), y.roundToPx())
+            } else {
+                placeable.place(x.roundToPx(), y.roundToPx())
             }
         }
     }

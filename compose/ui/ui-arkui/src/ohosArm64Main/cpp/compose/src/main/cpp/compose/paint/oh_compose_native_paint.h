@@ -6,6 +6,7 @@
 
 #include "../constants/oh_native_enums.h"
 #include "../shader/oh_native_basic_shader.h"
+#include "../filter/oh_compose_native_color_filter.h"
 
 namespace OH {
 class OHComposeNativePaint {
@@ -49,7 +50,7 @@ public:
     OH_Drawing_PathEffect *pathEffect{};
 
     // kt侧设置的 颜色 filter，通常是 OHGaussianBlurFilter
-    OH_Drawing_ColorFilter *colorFilter{};
+    OHComposeNativeColorFilter *colorFilter{};
 };
 } // namespace androidx::compose::ui::arkui::utils
 

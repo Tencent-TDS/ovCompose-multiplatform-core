@@ -19,6 +19,7 @@ typedef struct OH_Drawing_PathEffect *OH_Drawing_PathEffect_Handle;
 typedef struct BaseRenderNode *BaseRenderNode_Handle;
 typedef struct ParagraphHandle *ParagraphHandle_Handle;
 typedef struct NativeBasicShader *NativeBasicShader_Handle;
+typedef struct OHComposeNativeColorFilter *OHComposeNativeColorFilter_Handle;
 typedef struct SpanStyleRange *SpanStyleRange_Handle;
 typedef struct OH_Drawing_Path *OH_Drawing_Path_Handle;
 

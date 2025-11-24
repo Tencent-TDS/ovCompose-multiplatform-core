@@ -16,6 +16,8 @@
  */
 
 #include "oh_native_canvas_export.h"
+
+#include "libkn_api.h"
 #include "../constants/oh_native_constants.h"
 #include "../shader/oh_native_image_shader.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
@@ -26,11 +28,14 @@
 #include "../paint/oh_compose_native_paint.h"
 #include "oh_native_canvas_proxy.h"
 #include "oh_native_canvas_proxy_factory.h"
+#include "../render_node/oh_async_task_render_node.h"
 #include "oh_native_canvas_layer_drawer.h"
 
 #include <multimedia/image_framework/image/pixelmap_native.h>
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_shader_effect.h>
+
+// Kotlin/Native生成的回调函数声明
 
 EXTERN_C_START
 /// OHNativeCanvasProxy related methods
@@ -415,16 +420,16 @@ NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeSweepGradie
     return reinterpret_cast<NativeBasicShader_Handle>(shader);
 }
 
-NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(OH_Drawing_Image *image,
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(void *pixelMapHandle,
                                                                                  uint32_t tileModeX,
                                                                                  uint32_t tileModeY) {
     const auto shader = new OH::NativeImageShader();
     shader->setTileMode(static_cast<OH_Drawing_TileMode>(tileModeX), static_cast<OH_Drawing_TileMode>(tileModeY));
-    shader->image = image;
+    shader->image = static_cast<OH_Drawing_PixelMap *>(pixelMapHandle);
     LOGI("androidx_compose_ui_arkui_utils_createNativeImageShader: "
          "image=%{public}p, tileModeX=%{public}u, "
          "tileModeY=%{public}u",
-         image, tileModeX, tileModeY);
+         pixelMapHandle, tileModeX, tileModeY);
     return reinterpret_cast<NativeBasicShader_Handle>(shader);
 }
 
@@ -490,6 +495,31 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr
     canvasProxy->drawTextPixelMapWithPtr(pixelMapPtr, width, height);
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_asyncDrawIntoCanvas(OHNativeCanvasProxy_Handle proxy,
+                                                                             int64_t globalTaskPtr, int32_t paragraphHashCode,
+                                                                             int32_t width, int32_t height,
+                                                                             int64_t onMainThreadUpdatePtr) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_asyncDrawIntoCanvas: paragraphHashCode=%{public}d, width=%{public}d, height=%{public}d",
+         paragraphHashCode, width, height);
+
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+
+    // 包装Kotlin的globalTask lambda
+    auto globalTask = [globalTaskPtr]() -> int64_t {
+        return invokeKotlinAsyncTask(globalTaskPtr);
+    };
+
+    // 包装Kotlin的onMainThreadUpdate lambda
+    // 参数：(renderNodePtr, pixelMapPtr)
+    auto onMainThreadUpdate = [onMainThreadUpdatePtr](void *renderNodePtr, int64_t pixelMapPtr) {
+        // 调用Kotlin侧的回调函数
+        // Kotlin lambda签名：(Long, Long) -> Unit
+        invokeKotlinMainThreadCallback(onMainThreadUpdatePtr, reinterpret_cast<int64_t>(renderNodePtr), pixelMapPtr);
+    };
+
+    canvasProxy->asyncDrawIntoCanvas(globalTask, paragraphHashCode, width, height, onMainThreadUpdate);
+}
+
 bool androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode(OHNativeCanvasProxy_Handle proxy,
                                                                                      int32_t hashCode, int32_t width,
                                                                                      int32_t height) {
@@ -513,6 +543,16 @@ void *androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache(int32_t c
     LOGI("androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache: cacheKey=%{public}d", cacheKey);
     OH_PixelmapNative *pixelMap = OH::OHNativeComposeHasTextImageCache(cacheKey);
     return reinterpret_cast<void *>(pixelMap);
+}
+
+void androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread(
+    void *renderNodePtr,
+    int64_t pixelMapPtr) {
+    LOGI("androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread: renderNodePtr=%{public}p, pixelMapPtr=%{public}lld",
+         renderNodePtr, pixelMapPtr);
+
+    auto *asyncTaskNode = reinterpret_cast<OH::AsyncTaskRenderNode *>(renderNodePtr);
+    asyncTaskNode->updatePixelMapAndInvalidate(pixelMapPtr);
 }
 
 EXTERN_C_END

@@ -122,6 +122,10 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap(OHNati
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr(OHNativeCanvasProxy_Handle proxy,
                                                                                  void *pixelMapPtr, int32_t width,
                                                                                  int32_t height);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_asyncDrawIntoCanvas(OHNativeCanvasProxy_Handle proxy,
+                                                                             int64_t globalTaskPtr, int32_t paragraphHashCode,
+                                                                             int32_t width, int32_t height,
+                                                                             int64_t onMainThreadUpdatePtr);
 bool androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode(OHNativeCanvasProxy_Handle proxy,
                                                                                      int32_t hashCode, int32_t width,
                                                                                      int32_t height);
@@ -131,14 +135,6 @@ void *androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache(int32_t c
 // ImageBitmap to NativePixelMap conversion
 void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
     uint8_t *pixelData, size_t dataLength, int32_t width, int32_t height, bool hasAlpha);
-
-// OHComposeNativePaint set paint properties
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(OHComposeNativePaint_Handle paint, float alpha,
-                                                                  bool isAntiAlias, uint64_t color, float strokeWidth,
-                                                                  uint32_t blendMode, uint32_t style,
-                                                                  uint32_t strokeCap, uint32_t strokeJoin,
-                                                                  uint32_t filterQuality, float strokeMiterLimit,
-                                                                  NativeBasicShader_Handle shader);
 
 // NativeShader related methods
 NativeBasicShader_Handle
@@ -153,9 +149,23 @@ NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeSweepGradie
                                                                                          uint32_t *colors,
                                                                                          float *colorPositions,
                                                                                          uint32_t colorCount);
-NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(OH_Drawing_Image *image,
+NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader(void *pixelMapHandle,
                                                                                  uint32_t tileModeX,
                                                                                  uint32_t tileModeY);
+
+/**
+ * 在主线程更新AsyncTaskRenderNode的PixelMap并触发重绘
+ *
+ * 必须在主线程（UI线程）调用！由Kotlin侧的Dispatchers.Main确保。
+ *
+ * @param proxy OHNativeCanvasProxy句柄
+ * @param renderNodePtr AsyncTaskRenderNode指针（来自PictureRecorder）
+ * @param pixelMapPtr PixelMap指针（后台任务的执行结果）
+ */
+void androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread(
+    void *renderNodePtr,
+    int64_t pixelMapPtr);
+
 EXTERN_C_END
 
 #endif

@@ -3,9 +3,11 @@
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
+#include <native_drawing/drawing_filter.h>
 #include <cfloat>
 #include "../shader/oh_native_shader_utils.h"
 #include "../xcomponent_log.h"
+#include "oh_render_node_color_filter_utils.h"
 
 namespace OH {
 RectGradientRenderNode::~RectGradientRenderNode() {
@@ -17,13 +19,9 @@ RectGradientRenderNode::~RectGradientRenderNode() {
     }
 }
 
-RectGradientRenderNode::RectGradientRenderNode() {
-    this->RectGradientRenderNode::initModifier();
-}
+RectGradientRenderNode::RectGradientRenderNode() { this->RectGradientRenderNode::initModifier(); }
 
-OH_DrawingNode_Type RectGradientRenderNode::getType() {
-    return OH_DrawingNode_Type::RectGradientNode;
-};
+OH_DrawingNode_Type RectGradientRenderNode::getType() { return OH_DrawingNode_Type::RectGradientNode; };
 
 /**
  * @brief Draws a rectangle with the specified coordinates, stroke width,
@@ -45,7 +43,7 @@ OH_DrawingNode_Type RectGradientRenderNode::getType() {
  */
 void RectGradientRenderNode::drawRect(const float left, const float top, const float right, const float bottom,
                                       const float strokeWidth, NativeBasicShader *shader,
-                                      OH_Native_Draw_PaintingStyle style) {
+                                      OH_Native_Draw_PaintingStyle style, OHComposeNativeColorFilter *colorFilter) {
     // 直接更新成员变量
     left_ = left;
     top_ = top;
@@ -53,6 +51,7 @@ void RectGradientRenderNode::drawRect(const float left, const float top, const f
     bottom_ = bottom;
     strokeWidth_ = strokeWidth;
     this->shader = shader;
+    this->colorFilter_ = colorFilter;
     this->paintingStyle = style;
 
     // 调用invalidate()触发onDraw
@@ -60,10 +59,6 @@ void RectGradientRenderNode::drawRect(const float left, const float top, const f
 }
 
 void RectGradientRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     // 读取当前值
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
@@ -98,14 +93,18 @@ void RectGradientRenderNode::initModifier() {
                 const float relRight = data->right_ - data->left_;
                 const float relBottom = data->bottom_ - data->top_;
                 const float strokeWidth = data->strokeWidth_;
-                
+
                 // 使用CreateShaderEffectWithScaledSize将渐变坐标从绝对坐标缩放为相对坐标
                 // 参考iOS归一化方案：使用除法进行缩放
                 // drawWidth和drawHeight是绘制区域的宽度和高度（相对坐标）
                 const float drawWidth = relRight - relLeft;
                 const float drawHeight = relBottom - relTop;
-                OH_Drawing_ShaderEffect *shaderEffect = CreateShaderEffectWithScaledSize(
-                    data->shader, drawWidth, drawHeight);
+                if (data->shader == nullptr) {
+                    LOGE("RectGradientRenderNode:modifierOnDraw, shader is null");
+                    return;
+                }
+                OH_Drawing_ShaderEffect *shaderEffect =
+                    CreateShaderEffectWithScaledSize(data->shader, drawWidth, drawHeight);
 
                 if (data->paintingStyle == OH_Native_Draw_PaintingStyle::Stroke) {
                     LOGI("OHRenderNodeDrawRect: draw stroke with shader: %{public}p", shaderEffect);
@@ -114,6 +113,9 @@ void RectGradientRenderNode::initModifier() {
                     OH_Drawing_PenSetShaderEffect(pen, shaderEffect);
                     LOGI("OHRenderNodeDrawRect: strokeWidth: %{public}f", strokeWidth);
                     OH_Drawing_PenSetWidth(pen, strokeWidth);
+
+                    // 应用ColorFilter到Pen
+                    OH_Drawing_Filter *filter = ApplyColorFilterToPen(pen, data->colorFilter_);
 
                     OH_Drawing_CanvasAttachPen(canvas, pen);
 
@@ -126,11 +128,18 @@ void RectGradientRenderNode::initModifier() {
                     OH_Drawing_RectDestroy(rect);
                     OH_Drawing_PenDestroy(pen);
                     OH_Drawing_ShaderEffectDestroy(shaderEffect);
+                    if (filter != nullptr) {
+                        OH_Drawing_FilterDestroy(filter);
+                    }
                 } else {
                     LOGI("OHRenderNodeDrawRect: draw fill with shader: %{public}p", shaderEffect);
                     // 创建画笔刷并绑定渐变
                     OH_Drawing_Brush *brush = OH_Drawing_BrushCreate();
                     OH_Drawing_BrushSetShaderEffect(brush, shaderEffect);
+
+                    // 应用ColorFilter到Brush
+                    OH_Drawing_Filter *filter = ApplyColorFilterToBrush(brush, data->colorFilter_);
+
                     OH_Drawing_CanvasAttachBrush(canvas, brush);
 
                     // 绘制矩形
@@ -142,6 +151,9 @@ void RectGradientRenderNode::initModifier() {
                     OH_Drawing_RectDestroy(rect);
                     OH_Drawing_BrushDestroy(brush);
                     OH_Drawing_ShaderEffectDestroy(shaderEffect);
+                    if (filter != nullptr) {
+                        OH_Drawing_FilterDestroy(filter);
+                    }
                 }
                 LOGI("OHRenderNodeDrawRect: draw with shader finish: %{public}p", shaderEffect);
             }));

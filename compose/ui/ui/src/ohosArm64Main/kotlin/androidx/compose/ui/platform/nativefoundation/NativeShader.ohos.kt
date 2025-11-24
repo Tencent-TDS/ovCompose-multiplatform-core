@@ -14,7 +14,6 @@ import kotlinx.cinterop.CValues
 import kotlinx.cinterop.UIntVar
 import kotlinx.cinterop.toCValues
 import platform.arkui.OH_Drawing_TileMode
-import platform.native.OH_Drawing_ImageCreate
 
 private inline fun TileMode.asNativeEnum(): OH_Drawing_TileMode {
     return when (this) {
@@ -87,10 +86,11 @@ internal object NativeShaderFactoryImpl : NativeShaderFactory {
         tileModeX: TileMode,
         tileModeY: TileMode
     ): Any {
+        // 将 ImageBitmap 转换为 PixelMap，然后转换为 OH_Drawing_Image
+        val pixelMap = image.asNativePixelMap()
+        
         return androidx_compose_ui_arkui_utils_createNativeImageShader(
-            // TODO 此处涉及到 Compose的ImageBitmap到原生Bitmap的转换
-            // TODO 当前先创建一个空的image，编译通过，后续再修改
-            image = OH_Drawing_ImageCreate(),
+            pixelMapHandle = pixelMap,
             tileModeX = tileModeX.asNativeEnum().value,
             tileModeY = tileModeY.asNativeEnum().value,
         ) as Any

@@ -17,6 +17,7 @@
 
 #ifndef KONAN_LIB_COMPOSE_ARK_UI_UTILS_H
 #define KONAN_LIB_COMPOSE_ARK_UI_UTILS_H
+#include "stdint.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,6 +62,10 @@ extern void androidx_compose_ui_arkui_ArkUIViewController_setUIContext(void* con
 extern void androidx_compose_ui_arkui_ArkUIViewController_setXComponentRender(void* controllerRef, void* render);
 extern void androidx_compose_ui_arkui_ArkUIViewController_setNativeCanvasFactory(void* controllerRef, void* factory);
 extern void androidx_compose_ui_arkui_init(void* env, void* exports);
+// 外部声明的Kotlin回调函数（由Kotlin/Native生成）
+// 用于从C++侧调用Kotlin lambda
+extern int64_t invokeKotlinAsyncTask(int64_t stableRefPtr);
+extern void invokeKotlinMainThreadCallback(int64_t stableRefPtr, int64_t renderNodePtr, int64_t pixelMapPtr);
 
 #ifdef __cplusplus
 }  /* extern "C" */

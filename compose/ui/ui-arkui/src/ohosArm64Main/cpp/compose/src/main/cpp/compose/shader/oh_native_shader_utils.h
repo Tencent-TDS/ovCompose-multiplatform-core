@@ -65,9 +65,11 @@ OH_ALWAYS_INLINE OH_Drawing_ShaderEffect *CreateShaderEffect(NativeBasicShader *
     }
     case OH_Native_Shader_Type::ImageShader: {
         const auto imageShader = dynamic_cast<NativeImageShader *>(shader);
+        const auto imageSamplingOp  = OH_Drawing_SamplingOptionsCreate(FILTER_MODE_NEAREST, MIPMAP_MODE_NONE);
         // 创建图片着色器
-        OH_Drawing_ShaderEffect *shaderEffect = OH_Drawing_ShaderEffectCreateImageShader(
-            imageShader->image, imageShader->tileModeX, imageShader->tileModeY, nullptr, nullptr);
+        OH_Drawing_ShaderEffect *shaderEffect = OH_Drawing_ShaderEffectCreatePixelMapShader(
+            imageShader->image, imageShader->tileModeX, imageShader->tileModeY, imageSamplingOp, nullptr);
+        OH_Drawing_SamplingOptionsDestroy(imageSamplingOp);
         return shaderEffect;
     }
     case OH_Native_Shader_Type::NoneTypeShader:

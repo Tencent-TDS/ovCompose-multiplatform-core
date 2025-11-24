@@ -130,12 +130,12 @@ object ComposeTabService {
 
     // 异步绘制可能导致文本偏移,暂时屏蔽
     val textAsyncPaint: Boolean by lazy {
-        false
-//        if (CurrentPlatform == PlatformType.IOS) {
-//            true
-//        } else {
-//            false
-//        }
+//        false
+        if (CurrentPlatform == PlatformType.HARMONY) {
+            true
+        } else {
+            false
+        }
     }
 
     val iOSFlingConfig: IOSFlingConfig by lazy {

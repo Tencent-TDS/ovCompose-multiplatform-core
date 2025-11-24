@@ -16,7 +16,7 @@ public:
 
     OH_Drawing_TileMode tileModeX;
     OH_Drawing_TileMode tileModeY;
-    OH_Drawing_Image *image;
+    OH_Drawing_PixelMap *image;
 };
 } // namespace OH
 #endif

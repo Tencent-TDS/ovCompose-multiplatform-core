@@ -42,9 +42,6 @@ void OvalRenderNode::drawOval(const float left, const float top, const float rig
 
 void OvalRenderNode::invalidate() {
     OH::SystraceSection trace("OvalRenderNode:invalidate");
-    if (!invalidateCountProperty_) {
-        return;
-    }
 
     // 读取当前值
     float currentCount = 0.0f;

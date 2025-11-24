@@ -10,6 +10,7 @@
 #include "../constants/oh_native_constants.h"
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_arc_render_node.h"
+#include "../render_node/oh_async_task_render_node.h"
 #include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
@@ -52,7 +53,7 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
         // apply shader
         LOGI("OHRenderNodeDrawRect: apply shader start: %{public}p", shader);
         static_cast<RectGradientRenderNode *>(renderNodeForDrawing)
-            ->drawRect(left, top, right, bottom, strokeWidth, shader, paint->style);
+            ->drawRect(left, top, right, bottom, strokeWidth, shader, paint->style, paint->colorFilter);
     }
 }
 
@@ -140,7 +141,7 @@ void OHRenderNodeDrawClipRoundRect(const float left, const float top, const floa
         LOGE("OHRenderNodeDrawClipRoundRect: renderNodeForDrawing is not ClipRenderNode");
         return;
     }
-    
+
     const int32_t x = saveState->translateX + left;
     const int32_t y = saveState->translateY + top;
 
@@ -272,7 +273,7 @@ void OHRenderNodeDrawOval(const float left, const float top, const float right, 
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawOval");
     const float strokeWidth = paint->strokeWidth;
     const int32_t x = saveState->translateX + left - strokeWidth / 2;
-    const int32_t y = saveState->translateY +top - strokeWidth / 2;
+    const int32_t y = saveState->translateY + top - strokeWidth / 2;
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
@@ -354,7 +355,7 @@ void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *
 
     if (!shader) {
         static_cast<PathRenderNode *>(renderNodeForDrawing)
-            ->drawPath(path, strokeWidth, paint->color, paint->style);
+            ->drawPath(path, strokeWidth, paint->color, paint->style, paint->colorFilter);
     } else {
         // TODO: 实现带shader的路径绘制（需要创建PathGradientRenderNode）
     }
@@ -369,14 +370,13 @@ void OHRenderNodeDrawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_
          "dst=(%{public}d, %{public}d, %{public}d, %{public}d)",
          srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight);
 
-    // 设置RenderNode的transform和translate（ImageDisplayRenderNode会自己设置position和size）
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY);
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setSize(dstWidth, dstHeight);
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
     // 调用ImageDisplayRenderNode的drawImageRect方法
-    // ImageDisplayRenderNode会判断是否需要裁剪，并自行设置position和size
-    imageNode->drawImageRect(pixelMap, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight,
+    imageNode->drawImageRect(pixelMap, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, paint->colorFilter,
                              paint->filterQuality);
 }
 
@@ -424,13 +424,13 @@ void OHRenderNodeDrawTextPixelMap(OH_PixelmapNative *pixelMap, int32_t cacheKey,
 
     // 设置RenderNode的transform和translate
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY);
+        ->setBounds(saveState->translateX, saveState->translateY, width, height);
 
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
     // 绘制完整图像（文本图像通常不需要裁剪）
     // 使用 (0, 0, width, height) 作为源矩形，目标矩形也是 (0, 0, width, height)
-    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height,
+    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height, nullptr,
                              OH_Native_Draw_FilterQuality::None);
 }
 
@@ -446,13 +446,38 @@ void OHRenderNodeDrawTextPixelMapWithPtr(OH_PixelmapNative *pixelMap, int32_t wi
 
     // 设置RenderNode的transform和translate
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY);
+        ->setBounds(saveState->translateX, saveState->translateY, width, height);
 
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
     // 绘制完整图像（使用缓存的 PixelMap）
-    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height,
+    imageNode->drawImageRect(pixelMap, 0, 0, width, height, 0, 0, width, height, nullptr,
                              OH_Native_Draw_FilterQuality::None);
+}
+
+void OHRenderNodeDrawTextAsyncTask(std::function<int64_t()> globalTask, int32_t width, int32_t height,
+                                   const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                                   std::function<void(void *, int64_t)> onMainThreadUpdate) {
+    OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawTextAsyncTask");
+    LOGI("OHRenderNodeDrawTextAsyncTask: width=%{public}d, height=%{public}d", width, height);
+
+    // 设置RenderNode的transform和bounds（参考 iOS TMMCALayerDrawTextAsyncTask）
+    // 注意：transform 需要在 bounds 之前设置
+    const int32_t boundsWidth = static_cast<int32_t>(std::ceil(static_cast<float>(width)));
+    const int32_t boundsHeight = static_cast<int32_t>(std::ceil(static_cast<float>(height)));
+
+    renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+        ->setBounds(saveState->translateX, saveState->translateY, boundsWidth, boundsHeight);
+
+    // 转换为 AsyncTaskRenderNode 并提交异步任务
+    auto *asyncTaskNode = static_cast<AsyncTaskRenderNode *>(renderNodeForDrawing);
+
+    // 包装回调，传递renderNode指针和pixelMapPtr
+    auto wrappedCallback = [onMainThreadUpdate, asyncTaskNode](int64_t pixelMapPtr) {
+        onMainThreadUpdate(asyncTaskNode, pixelMapPtr);
+    };
+
+    asyncTaskNode->commitAsyncTask(globalTask, width, height, wrappedCallback);
 }
 
 OH_PixelmapNative *OHNativeComposeHasTextImageCache(int32_t cacheKey) {

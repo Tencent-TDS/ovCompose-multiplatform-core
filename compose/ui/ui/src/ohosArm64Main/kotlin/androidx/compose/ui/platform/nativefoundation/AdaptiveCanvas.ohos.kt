@@ -168,16 +168,17 @@ internal class AdaptiveCanvas(
         height: Int
     ) {
         TraceUtil.traceSync("AdaptiveCanvas:asyncDrawIntoCanvas") {
-            // TODO 此处需要改造成异步执行globalTask异步完成文本图片的生成后在塞给renderNode
-            val imagePtr = globalTask()
-            if (imagePtr != 0L) {
-                // 使用获取到的图像指针绘制
-                nativeCanvasProxy.drawTextPixelMapWithPtr(
-                    pixelMapPtr = imagePtr,
-                    width = width,
-                    height = height
-                )
-            }
+            // Native 层已实现真正的异步执行：
+            // 1. globalTask 在后台线程（AsyncPaintQueue）串行执行
+            // 2. 执行完成后在主线程更新 AsyncTaskRenderNode 的 PixelMap
+            // 3. 触发 ContentModifier 重绘
+            // 参考 iOS TMMAsyncTaskLayer 的实现
+            nativeCanvasProxy.asyncDrawIntoCanvas(
+                globalTask = globalTask,
+                paragraphHashCode = paragraphHashCode,
+                width = width,
+                height = height
+            )
         }
     }
 
@@ -224,47 +225,57 @@ internal class AdaptiveCanvas(
     }
 
     override fun translate(dx: Float, dy: Float) {
-        nativeCanvasProxy.translate(dx, dy)
+        TraceUtil.traceSync("AdaptiveCanvas:translate") {
+            nativeCanvasProxy.translate(dx, dy)
+        }
     }
 
     override fun scale(sx: Float, sy: Float) {
-        nativeCanvasProxy.scale(sx, sy)
+        TraceUtil.traceSync("AdaptiveCanvas:scale") {
+            nativeCanvasProxy.scale(sx, sy)
+        }
     }
 
     override fun rotate(degrees: Float) {
-        nativeCanvasProxy.rotate(degrees)
+        TraceUtil.traceSync("AdaptiveCanvas:rotate") {
+            nativeCanvasProxy.rotate(degrees)
+        }
     }
 
     override fun skew(sx: Float, sy: Float) {
-        nativeCanvasProxy.skew(sx, sy)
+        TraceUtil.traceSync("AdaptiveCanvas:skew") {
+            nativeCanvasProxy.skew(sx, sy)
+        }
     }
 
     override fun concat(matrix: Matrix) {
-        // Convert Compose Matrix to FloatArray (16 elements)
-        val matrixArray = FloatArray(16)
-        // Compose Matrix is column-major, same as Transform3D
-        // [ m0, m4, m8, m12 ]
-        // [ m1, m5, m9, m13 ]
-        // [ m2, m6, m10, m14 ]
-        // [ m3, m7, m11, m15 ]
-        // We can copy directly if the internal storage matches, but let's be safe and copy element by element
-        // Matrix[row, col]
-        for (i in 0..15) {
-            // Matrix stores values in a float array in column-major order
-            // values[0] is m11 (row 0, col 0)
-            // values[1] is m21 (row 1, col 0)
-            // ...
-            // values[4] is m12 (row 0, col 1)
-            // So we can just copy the values array if it's accessible, or use index
-            // Since we don't have direct access to values array in common code easily without knowing implementation details,
-            // we use the operator get(row, col) or just assume the order.
-            // Actually, Matrix.values is public in some versions, but let's use the values property if available or copy.
-            // Looking at Matrix.kt in common:
-            // val values: FloatArray
-            // It is column major.
-            matrixArray[i] = matrix.values[i]
+        TraceUtil.traceSync("AdaptiveCanvas:concat") {
+            // Convert Compose Matrix to FloatArray (16 elements)
+            val matrixArray = FloatArray(16)
+            // Compose Matrix is column-major, same as Transform3D
+            // [ m0, m4, m8, m12 ]
+            // [ m1, m5, m9, m13 ]
+            // [ m2, m6, m10, m14 ]
+            // [ m3, m7, m11, m15 ]
+            // We can copy directly if the internal storage matches, but let's be safe and copy element by element
+            // Matrix[row, col]
+            for (i in 0..15) {
+                // Matrix stores values in a float array in column-major order
+                // values[0] is m11 (row 0, col 0)
+                // values[1] is m21 (row 1, col 0)
+                // ...
+                // values[4] is m12 (row 0, col 1)
+                // So we can just copy the values array if it's accessible, or use index
+                // Since we don't have direct access to values array in common code easily without knowing implementation details,
+                // we use the operator get(row, col) or just assume the order.
+                // Actually, Matrix.values is public in some versions, but let's use the values property if available or copy.
+                // Looking at Matrix.kt in common:
+                // val values: FloatArray
+                // It is column major.
+                matrixArray[i] = matrix.values[i]
+            }
+            nativeCanvasProxy.concat(matrixArray)
         }
-        nativeCanvasProxy.concat(matrixArray)
     }
 
     override fun clipRect(left: Float, top: Float, right: Float, bottom: Float, clipOp: ClipOp) {
@@ -303,10 +314,8 @@ internal class AdaptiveCanvas(
         radiusY: Float,
         paint: Paint
     ) {
-        TraceUtil.traceSync("AdaptiveCanvas:drawRoundRect") {
-            nativePaint.sync(paint)
-            nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
-        }
+        nativePaint.sync(paint)
+        nativeCanvasProxy.drawRoundRect(left, top, right, bottom, radiusX, radiusY, nativePaint)
     }
 
     override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {

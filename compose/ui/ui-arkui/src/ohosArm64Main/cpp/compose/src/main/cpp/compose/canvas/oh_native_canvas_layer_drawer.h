@@ -1,6 +1,7 @@
 #ifndef OH_NATIVE_CANVAS_LAYER_DRAWER_H
 #define OH_NATIVE_CANVAS_LAYER_DRAWER_H
 
+#include <functional>
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_path.h>
 #include "../paragraph/oh_native_paragraph.h"
@@ -68,6 +69,10 @@ void OHRenderNodeDrawTextPixelMap(OH_PixelmapNative *pixelMap, int32_t cacheKey,
 
 void OHRenderNodeDrawTextPixelMapWithPtr(OH_PixelmapNative *pixelMap, int32_t width, int32_t height,
                                          const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing);
+
+void OHRenderNodeDrawTextAsyncTask(std::function<int64_t()> globalTask, int32_t width, int32_t height,
+                                   const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing,
+                                   std::function<void(void *, int64_t)> onMainThreadUpdate);
 
 OH_PixelmapNative *OHNativeComposeHasTextImageCache(int32_t cacheKey);
 

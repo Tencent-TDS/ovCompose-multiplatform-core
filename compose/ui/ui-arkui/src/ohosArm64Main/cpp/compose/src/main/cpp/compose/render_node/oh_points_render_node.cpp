@@ -74,10 +74,6 @@ void PointsRenderNode::drawPoints(OH_Drawing_PointMode pointMode, const float *p
 }
 
 void PointsRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     // 读取当前值
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);

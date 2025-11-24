@@ -66,7 +66,7 @@ void PictureRecorder::finishRecording(BaseRenderNode &rootRenderNode) {
     }
 }
 
-void PictureRecorder::initPropsIfNeeded() {
+OH_ALWAYS_INLINE void PictureRecorder::initPropsIfNeeded() {
     if (!props) {
         props = std::make_unique<PictureRecorderProps>();
     }
@@ -129,7 +129,7 @@ PictureRecorder::SequenceIdInfo PictureRecorder::allocSequenceIdInfo(const OH_Na
     };
 }
 
-RenderNodeSaveState &PictureRecorder::topState() {
+OH_ALWAYS_INLINE RenderNodeSaveState &PictureRecorder::topState() {
     return saveStack[saveStack.size() - 1];
 }
 
@@ -223,7 +223,7 @@ PictureRecorderUpdateInfo PictureRecorder::saveLayer(const uint64_t drawingConte
 }
 
 PictureRecorderUpdateInfo PictureRecorder::draw(OH_Native_Drawing_Type drawingType, uint64_t drawingContentHash) {
-    OH::SystraceSection trace("PictureRecorder:draw");
+//    OH::SystraceSection trace("PictureRecorder:draw");
     initPropsIfNeeded();
 
     const RenderNodeSaveState &saveState = topState();

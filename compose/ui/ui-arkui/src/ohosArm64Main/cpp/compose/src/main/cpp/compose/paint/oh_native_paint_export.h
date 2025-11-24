@@ -26,12 +26,13 @@ EXTERN_C_START
 void androidx_compose_ui_arkui_utils_DisposeOHComposeNativePaint(OHComposeNativePaint_Handle paintHandle);
 
 // OHComposeNativePaint set paint properties
-void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(OHComposeNativePaint_Handle paint, float alpha,
+void androidx_compose_ui_arkui_utils_OHComposeNativePaint_syncAll(OHComposeNativePaint_Handle paintPtr, float alpha,
                                                                   bool isAntiAlias, uint64_t color, float strokeWidth,
                                                                   uint32_t blendMode, uint32_t style,
                                                                   uint32_t strokeCap, uint32_t strokeJoin,
                                                                   uint32_t filterQuality, float strokeMiterLimit,
-                                                                  NativeBasicShader_Handle shader);
+                                                                  NativeBasicShader_Handle shaderPtr,
+                                                                  OHComposeNativeColorFilter_Handle colorFilterPtr);
 EXTERN_C_END
 
 #endif

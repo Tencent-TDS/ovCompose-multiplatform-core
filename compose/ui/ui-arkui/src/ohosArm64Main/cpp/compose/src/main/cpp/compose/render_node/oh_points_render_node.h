@@ -18,7 +18,7 @@ public:
     OH_DrawingNode_Type getType() override;
 
 private:
-    void invalidate();
+    void invalidate() override;
     void initModifier() override;
 
     // 普通成员变量存储属性值

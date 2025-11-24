@@ -2,57 +2,17 @@
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_sampling_options.h>
 #include <native_drawing/drawing_pixel_map.h>
+#include <native_drawing/drawing_brush.h>
+#include <native_drawing/drawing_filter.h>
 #include <multimedia/image_framework/image/pixelmap_native.h>
 #include <multimedia/image_framework/image_mdk_common.h>
 #include "oh_image_display_render_node.h"
 #include "../xcomponent_log.h"
+#include "../filter/oh_compose_native_color_filter.h"
 
 #include <cfloat>
 
 namespace OH {
-
-//// 裁剪信息结构体
-struct ImageClipInfo {
-    bool needsClip;
-    int32_t finalSrcX;
-    int32_t finalSrcY;
-    int32_t finalSrcWidth;
-    int32_t finalSrcHeight;
-};
-
-// 合并的裁剪信息计算函数（高效版本）
-static ImageClipInfo calculateClipInfo(OH_PixelmapNative *pixelMap, int32_t srcX, int32_t srcY, int32_t srcWidth,
-                                       int32_t srcHeight) {
-    ImageClipInfo info = {false, srcX, srcY, srcWidth, srcHeight};
-
-    // 快速路径：检查 srcOffset
-    if (srcX != 0 || srcY != 0) {
-        info.needsClip = true;
-        return info;
-    }
-
-    // 获取原始图像尺寸（一次性）
-    OH_Pixelmap_ImageInfo *imageInfo = nullptr;
-    if (OH_PixelmapImageInfo_Create(&imageInfo) != IMAGE_RESULT_SUCCESS || !imageInfo) {
-        return info;
-    }
-
-    uint32_t imageWidth = 0;
-    uint32_t imageHeight = 0;
-    if (OH_PixelmapNative_GetImageInfo(pixelMap, imageInfo) == IMAGE_RESULT_SUCCESS) {
-        OH_PixelmapImageInfo_GetWidth(imageInfo, &imageWidth);
-        OH_PixelmapImageInfo_GetHeight(imageInfo, &imageHeight);
-    }
-    OH_PixelmapImageInfo_Release(imageInfo);
-
-    // 检查是否裁剪了原图
-    if (srcWidth < static_cast<int32_t>(imageWidth) || srcHeight < static_cast<int32_t>(imageHeight)) {
-        info.needsClip = true;
-        return info;
-    }
-
-    return info;
-}
 
 ImageDisplayRenderNode::~ImageDisplayRenderNode() {
     if (invalidateCountProperty_) {
@@ -61,7 +21,6 @@ ImageDisplayRenderNode::~ImageDisplayRenderNode() {
     if (modifier_) {
         OH_ArkUI_RenderNodeUtils_DisposeContentModifier(modifier_);
     }
-    // imageClipNode_ 会自动释放（unique_ptr）
     // Note: pixelMap_ is not owned by ImageDisplayRenderNode, so we don't release it here
 }
 
@@ -75,14 +34,11 @@ OH_DrawingNode_Type ImageDisplayRenderNode::getType() {
 
 void ImageDisplayRenderNode::drawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_t srcY, int32_t srcWidth,
                                            int32_t srcHeight, int32_t dstX, int32_t dstY, int32_t dstWidth,
-                                           int32_t dstHeight, OH_Native_Draw_FilterQuality filterQuality) {
+                                           int32_t dstHeight, OHComposeNativeColorFilter *colorFilter, OH_Native_Draw_FilterQuality filterQuality) {
     // 注意：参数变化检测已由上层 OHNativeCanvasProxy + PictureRecorder 通过 hash 机制完成
     // 只有参数变化时才会调用此函数，因此无需在此层重复检测
 
-    // ========== 计算裁剪信息（合并 shouldClipImage + 宽高比调整）==========
-    auto clipInfo = calculateClipInfo(pixelMap, srcX, srcY, srcWidth, srcHeight);
-
-    // ========== 更新成员变量（存储原始输入参数）==========
+    // 更新成员变量
     pixelMap_ = pixelMap;
     srcX_ = srcX;
     srcY_ = srcY;
@@ -92,40 +48,15 @@ void ImageDisplayRenderNode::drawImageRect(OH_PixelmapNative *pixelMap, int32_t 
     dstY_ = dstY;
     dstWidth_ = dstWidth;
     dstHeight_ = dstHeight;
+    colorFilter_ = colorFilter;
     filterQuality_ = filterQuality;
+    // this->setSize(dstWidth, dstHeight);
 
-    // ========== 根据裁剪需求选择渲染路径 ==========
-    if (!clipInfo.needsClip) {
-        // 路径A: 不需要裁剪，直接绘制
-        if (imageClipNode_ && imageClipNode_->getParent() != nullptr) {
-            this->removeChild(imageClipNode_.get());
-        }
-
-        this->setSize(dstWidth, dstHeight);
-        this->invalidate();
-
-    } else {
-        // 路径B: 需要裁剪，使用 ImageClipRenderNode
-        this->setSize(dstWidth, dstHeight);
-
-        if (!imageClipNode_) {
-            imageClipNode_ = std::make_unique<ImageClipRenderNode>();
-        }
-
-        if (imageClipNode_->getParent() != this) {
-            this->addChild(imageClipNode_.get());
-        }
-
-        imageClipNode_->drawImageRect(pixelMap, clipInfo.finalSrcX, clipInfo.finalSrcY, clipInfo.finalSrcWidth,
-                                      clipInfo.finalSrcHeight, 0, 0, dstWidth, dstHeight, filterQuality);
-    }
+    // 触发重绘
+    this->invalidate();
 }
 
 void ImageDisplayRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     // 读取当前值
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
@@ -192,8 +123,41 @@ void ImageDisplayRenderNode::initModifier() {
                     return;
                 }
 
+                // 应用ColorFilter
+                OH_Drawing_Brush *brush = nullptr;
+                OH_Drawing_Filter *filter = nullptr;
+
+                if (data->colorFilter_ != nullptr) {
+                    // 创建Filter对象
+                    filter = OH_Drawing_FilterCreate();
+                    if (filter != nullptr) {
+                        // 将ColorFilter设置到Filter
+                        OH_Drawing_FilterSetColorFilter(filter, data->colorFilter_->getNativeFilter());
+
+                        // 创建画刷并设置Filter
+                        brush = OH_Drawing_BrushCreate();
+                        OH_Drawing_BrushSetFilter(brush, filter);
+
+                        // 将画刷应用到Canvas
+                        OH_Drawing_CanvasAttachBrush(canvas, brush);
+
+                        LOGI("ImageDisplayRenderNode::onDraw: ColorFilter applied successfully");
+                    } else {
+                        LOGE("ImageDisplayRenderNode::onDraw: failed to create OH_Drawing_Filter");
+                    }
+                }
+
                 // 绘制图像
                 OH_Drawing_CanvasDrawPixelMapRect(canvas, drawingPixelMap, srcRect, dstRect, samplingOptions);
+
+                // 清理ColorFilter相关资源
+                if (brush != nullptr) {
+                    OH_Drawing_CanvasDetachBrush(canvas);
+                    OH_Drawing_BrushDestroy(brush);
+                }
+                if (filter != nullptr) {
+                    OH_Drawing_FilterDestroy(filter);
+                }
 
                 // 释放资源
                 OH_Drawing_RectDestroy(srcRect);

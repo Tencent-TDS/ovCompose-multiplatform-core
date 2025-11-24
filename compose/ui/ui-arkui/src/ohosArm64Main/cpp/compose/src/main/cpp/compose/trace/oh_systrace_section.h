@@ -1,7 +1,7 @@
 #ifndef OH_SYSTRACE_SECTION_H
 #define OH_SYSTRACE_SECTION_H
 
-#ifdef DEBUG
+#ifdef ENABLE_TRACE
 
 #include <hitrace/trace.h>
 #include <sstream>
@@ -40,6 +40,6 @@ public:
 };
 } // namespace OH
 
-#endif // DEBUG
+#endif // ENABLE_TRACE 
 
 #endif // OH_SYSTRACE_SECTION_H

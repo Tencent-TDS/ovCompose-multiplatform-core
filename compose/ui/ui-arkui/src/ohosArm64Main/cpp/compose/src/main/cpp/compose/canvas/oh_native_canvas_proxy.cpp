@@ -174,8 +174,7 @@ void OHNativeCanvasProxy::clipPath(OH_Drawing_Path *path, const OH_Native_Draw_C
 }
 
 void OHNativeCanvasProxy::clipRoundRect(const float left, const float top, const float right, const float bottom,
-                                        const float radiusX, const float radiusY,
-                                        const OH_Native_Draw_ClipOp clipOp) {
+                                        const float radiusX, const float radiusY, const OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("OHNativeCanvasProxy:clipRoundRect");
     LOGI("OHNativeCanvasProxy::clipRoundRect: rect=(%{public}f, %{public}f, %{public}f, %{public}f), "
          "radius=(%{public}f, %{public}f)",
@@ -319,19 +318,18 @@ void OHNativeCanvasProxy::drawRoundRect(const float left, const float top, const
                                         const float radiusX, const float radiusY, OH::OHComposeNativePaint *paint) {
     OH::SystraceSection trace("OHNativeCanvasProxy:drawRoundRect");
     LOGI("OHNativeCanvasProxy::drawRoundRect: start");
-    OH::NativeBasicShader *shader = paint->shader;
-    const OH_Native_Drawing_Type drawingType =
-        shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
-    const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
-    const uint64_t drawingContentHash =
-        OH::hashCombineSequential(left, top, right, bottom, static_cast<float>(preHash));
-    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
+
+    const auto drawingType =
+        paint->shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
+    const auto drawingContentHash = OH::hashCombineSequential(
+        left, top, right, bottom, static_cast<float>(OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType)));
+
+    auto updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     if (updateItem.isDirty) {
-        OH::BaseRenderNode *renderNodeForDrawing = nullptr;
-        renderNodeForDrawing =
+        auto *renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
-        OH::OHRenderNodeDrawRoundRect(left, top, right, bottom, radiusX, radiusY, shader, &(updateItem.saveState),
-                                      renderNodeForDrawing, paint);
+        OH::OHRenderNodeDrawRoundRect(left, top, right, bottom, radiusX, radiusY, paint->shader,
+                                      &(updateItem.saveState), renderNodeForDrawing, paint);
     }
 }
 
@@ -520,7 +518,7 @@ void OHNativeCanvasProxy::drawTextPixelMap(void *pixelMapNative, int32_t cacheKe
     LOGI("OHNativeCanvasProxy::drawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d", cacheKey,
          width, height);
 
-    const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageData;
+    const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageRect;
     // 计算 hash：参考 iOS 的 hashFloats((float)skBitmap, (float)cacheKey, (float)width, (float)height,
     // (float)drawingType)
     const uint64_t pixelMapPtr = reinterpret_cast<uint64_t>(pixelMapNative);
@@ -542,7 +540,7 @@ void OHNativeCanvasProxy::drawTextPixelMapWithPtr(void *pixelMapPtr, int32_t wid
     OH::SystraceSection trace("OHNativeCanvasProxy:drawTextPixelMapWithPtr");
     LOGI("OHNativeCanvasProxy::drawTextPixelMapWithPtr: width=%{public}d, height=%{public}d", width, height);
 
-    const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageData;
+    const OH_Native_Drawing_Type drawingType = OH_Native_Drawing_Type::DrawingTypeImageRect;
     // 计算 hash：参考 iOS 的 hashFloats((float)imagePtr, (float)width, (float)height)
     const uint64_t pixelMapPtrValue = reinterpret_cast<uint64_t>(pixelMapPtr);
     const uint64_t drawingContentHash = OH::hashCombineSequential(
@@ -577,7 +575,8 @@ bool OHNativeCanvasProxy::needRedrawImageWithHashCode(int32_t hashCode, int32_t 
 }
 
 void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTask, int32_t paragraphHashCode,
-                                              int32_t width, int32_t height) {
+                                              int32_t width, int32_t height,
+                                              std::function<void(void *, int64_t)> onMainThreadUpdate) {
     OH::SystraceSection trace("OHNativeCanvasProxy:asyncDrawIntoCanvas");
     LOGI("OHNativeCanvasProxy::asyncDrawIntoCanvas: paragraphHashCode=%{public}d, width=%{public}d, height=%{public}d",
          paragraphHashCode, width, height);
@@ -590,14 +589,12 @@ void OHNativeCanvasProxy::asyncDrawIntoCanvas(std::function<int64_t()> globalTas
 
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     if (updateItem.isDirty) {
-        // 执行 globalTask 获取图像指针
-        int64_t imagePtr = globalTask();
-        if (imagePtr != 0) {
-            // 使用获取到的图像指针绘制
-            drawTextPixelMapWithPtr(reinterpret_cast<void *>(imagePtr), width, height);
-        } else {
-            LOGE("OHNativeCanvasProxy::asyncDrawIntoCanvas: globalTask returned 0");
-        }
+        // 获取 RenderNode（参考 iOS 的 getOrCreateLayerForDrawing）
+        OH::BaseRenderNode *renderNode = _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
+
+        // 调用 layer drawer 函数处理 transform 和 bounds，然后提交异步任务
+        // 参考 iOS 的 TMMCALayerDrawTextAsyncTask
+        OH::OHRenderNodeDrawTextAsyncTask(globalTask, width, height, &(updateItem.saveState), renderNode, onMainThreadUpdate);
     }
 }
 
@@ -606,8 +603,8 @@ int64_t OHNativeCanvasProxy::imageFromImageBitmap(void *pixelMapNative, const in
     LOGI("OHNativeCanvasProxy::imageFromImageBitmap: paragraphHashCode=%{public}d", paragraphHashCode);
 
     // 缓存 PixelMap 并返回指针
-    OH_PixelmapNative *pixelMap = OH::OHNativeComposePixelMapFromImageBitmap(
-        static_cast<OH_PixelmapNative *>(pixelMapNative), paragraphHashCode);
+    OH_PixelmapNative *pixelMap =
+        OH::OHNativeComposePixelMapFromImageBitmap(static_cast<OH_PixelmapNative *>(pixelMapNative), paragraphHashCode);
 
     if (pixelMap != nullptr) {
         // 返回指针值（转换为 int64_t，类似 iOS 的 CFTypeRef）

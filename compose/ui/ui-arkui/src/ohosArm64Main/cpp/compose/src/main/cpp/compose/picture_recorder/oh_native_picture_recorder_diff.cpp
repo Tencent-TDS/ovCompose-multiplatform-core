@@ -1,6 +1,6 @@
 #include "oh_native_picture_recorder_diff.h"
 
-#include "compose/trace/oh_systrace_section.h"
+#include "../trace/oh_systrace_section.h"
 
 #include <unordered_map>
 #include <deque>

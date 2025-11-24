@@ -1,11 +1,15 @@
+@file:Suppress("FunctionName")
+
 package androidx.compose.ui.platform.nativefoundation
 
+import androidx.compose.ui.annotation.InternalComposeApi
 import androidx.compose.ui.arkui.utils.BaseRenderNode_Handle
 import androidx.compose.ui.arkui.utils.Boolean
 import androidx.compose.ui.arkui.utils.OHNativeCanvasProxy_Handle
 import androidx.compose.ui.arkui.utils.OH_Drawing_Path_Handle
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_DisposeOHNativeCanvasProxy
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_applyTransformMatrix
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_asyncDrawIntoCanvas
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_beginDraw
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawRect
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_finishDraw
@@ -46,12 +50,20 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.COpaquePointerVar
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.asStableRef
+import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toCPointer
 import kotlinx.cinterop.usePinned
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import platform.native.OH_Drawing_PointMode
 
 /**
@@ -572,6 +584,58 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
     }
 
     /**
+     * 异步绘制文本到Canvas
+     * 
+     * 线程模型：
+     * 1. globalTask 在后台线程（C++ AsyncPaintQueue）执行
+     * 2. 执行完成后，onMainThreadUpdate 回调会post到Kotlin主线程
+     * 3. 主线程调用JNI更新RenderNode
+     * 
+     * 注意：由于Kotlin/Native的lambda不能直接传递到C++，我们采用以下策略：
+     * 1. 使用StableRef将Kotlin lambda包装成指针
+     * 2. C++侧通过回调机制异步执行任务
+     * 3. 完成后通过Dispatchers.Main切换到主线程
+     * 4. 在主线程更新RenderNode并释放StableRef
+     */
+    @OptIn(ExperimentalForeignApi::class, DelicateCoroutinesApi::class)
+    fun asyncDrawIntoCanvas(
+        globalTask: () -> Long,
+        paragraphHashCode: Int,
+        width: Int,
+        height: Int
+    ) {
+        handle?.let {
+            // 使用StableRef包装globalTask lambda
+            val taskRef = StableRef.create(globalTask)
+            
+            // 创建主线程回调：(renderNodePtr: Long, pixelMapPtr: Long) -> Unit
+            val onMainThreadUpdate: (COpaquePointer, Long) -> Unit = { renderNodePtr, pixelMapPtr ->
+                // 此lambda会在C++后台线程调用，但内部会post到主线程
+                // 参考iOS的 dispatch_async(dispatch_get_main_queue())
+                GlobalScope.launch(Dispatchers.Main) {
+                    // 在主线程调用JNI更新RenderNode
+                    androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread(
+                        renderNodePtr = renderNodePtr,
+                        pixelMapPtr = pixelMapPtr
+                    )
+                }
+            }
+            
+            val updateCallbackRef = StableRef.create(onMainThreadUpdate)
+            
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_asyncDrawIntoCanvas(
+                proxy = it,
+                globalTaskPtr = taskRef.asCPointer().rawValue.toLong(),
+                paragraphHashCode = paragraphHashCode,
+                width = width,
+                height = height,
+                onMainThreadUpdatePtr = updateCallbackRef.asCPointer().rawValue.toLong()
+            )
+            // 注意：taskRef 和 updateCallbackRef 都会在C++侧执行完后释放
+        }
+    }
+
+    /**
      * 从 ImageBitmap 创建并缓存 PixelMap
      */
     @OptIn(ExperimentalForeignApi::class)
@@ -582,5 +646,65 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
                 cacheKey = paragraphHashCode
             )
         } ?: 0L
+    }
+}
+
+/**
+ * C++回调函数，用于异步执行Kotlin lambda
+ * 这个函数会被C++侧调用（在后台线程）
+ *
+ * @param stableRefPtr StableRef指针，指向Kotlin lambda
+ * @return 执行结果（PixelMap指针）
+ */
+
+@InternalComposeApi
+fun _invokeKotlinAsyncTask(stableRefPtr: Long): Long {
+    return try {
+        // 将指针转换回StableRef
+        val stableRef = stableRefPtr.toCPointer<COpaquePointerVar>()!!.asStableRef<() -> Long>()
+
+        // 执行lambda
+        val result = stableRef.get().invoke()
+
+        // 释放StableRef
+        stableRef.dispose()
+
+        result
+    } catch (e: Exception) {
+        // 处理异常，记录日志
+        println("invokeKotlinAsyncTask error: ${e.message}")
+        0L
+    }
+}
+
+/**
+ * C++回调函数，用于在主线程更新AsyncTaskRenderNode
+ * 这个函数会被C++侧调用（在后台线程），但lambda内部会post到主线程
+ * 
+ * 线程模型：
+ * 1. C++后台线程调用此函数
+ * 2. 此函数解包StableRef并执行lambda
+ * 3. lambda内部使用Dispatchers.Main切换到主线程
+ * 4. 主线程调用JNI更新RenderNode
+ * 5. 释放StableRef
+ * 
+ * @param stableRefPtr StableRef指针，指向Kotlin lambda (Long, Long) -> Unit
+ * @param renderNodePtr AsyncTaskRenderNode指针
+ * @param pixelMapPtr PixelMap指针（后台任务的执行结果）
+ */
+@InternalComposeApi
+fun _invokeKotlinMainThreadCallback(stableRefPtr: Long, renderNodePtr: Long, pixelMapPtr: Long) {
+    try {
+        // 将指针转换回StableRef
+        val stableRef = stableRefPtr.toCPointer<COpaquePointerVar>()!!.asStableRef<(Long, Long) -> Unit>()
+        
+        // 执行lambda（lambda内部会使用Dispatchers.Main切换到主线程）
+        stableRef.get().invoke(renderNodePtr, pixelMapPtr)
+        
+        // 释放StableRef
+        stableRef.dispose()
+    } catch (e: Exception) {
+        // 处理异常，记录日志
+        println("invokeKotlinMainThreadCallback error: ${e.message}")
     }
 }

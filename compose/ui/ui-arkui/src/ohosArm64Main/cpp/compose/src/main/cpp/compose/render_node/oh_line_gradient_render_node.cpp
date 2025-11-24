@@ -40,10 +40,6 @@ void LineGradientRenderNode::drawLine(const float x1, const float y1, const floa
 }
 
 void LineGradientRenderNode::invalidate() {
-    if (!invalidateCountProperty_) {
-        return;
-    }
-
     // 读取当前值
     float currentCount = 0.0f;
     OH_ArkUI_RenderNodeUtils_GetFloatPropertyValue(invalidateCountProperty_, &currentCount);
