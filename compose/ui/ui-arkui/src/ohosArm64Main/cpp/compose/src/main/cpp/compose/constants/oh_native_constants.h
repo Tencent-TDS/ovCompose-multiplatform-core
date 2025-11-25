@@ -26,7 +26,7 @@ typedef struct OH_Drawing_Path *OH_Drawing_Path_Handle;
 const uint32_t CLEAR_COLOR = 0x00000000;
 
 // The count for drawing types
-const int OH_Native_Drawing_Type_Count = 30;
+const int OH_Native_Drawing_Type_Count = 31;
 
 #ifdef __cplusplus
 }

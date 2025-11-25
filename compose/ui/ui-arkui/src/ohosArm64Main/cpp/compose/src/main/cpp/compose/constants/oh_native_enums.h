@@ -30,6 +30,7 @@ typedef enum {
     DrawingTypeNone,
     DrawingTypeRect,
     DrawingTypeShaderRect,
+    DrawingTypeShaderRoundRect,
     DrawingTypeLine,
     DrawingTypeShaderLine,
     DrawingTypeOval,
@@ -65,6 +66,8 @@ typedef enum {
     ParagraphNode,
     LineGradientNode,
     RectGradientNode,
+    RoundRectGradientNode,
+    CircleGradientNode, // 圆形渐变节点（带shader的圆形绘制）
     OvalNode,
     ArcNode,
     PathNode,

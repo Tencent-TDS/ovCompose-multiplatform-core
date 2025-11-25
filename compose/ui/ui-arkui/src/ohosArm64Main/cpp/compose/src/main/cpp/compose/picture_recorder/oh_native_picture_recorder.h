@@ -10,6 +10,7 @@
 #include "../render_node/oh_base_render_node.h"
 #include "../render_node/oh_arc_render_node.h"
 #include "../render_node/oh_async_task_render_node.h"
+#include "../render_node/oh_circle_gradient_render_node.h"
 #include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
@@ -18,6 +19,8 @@
 #include "../render_node/oh_path_render_node.h"
 #include "../render_node/oh_points_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
+#include "../render_node/oh_roundrect_gradient_render_node.h"
+#include "../render_node/oh_path_gradient_render_node.h"
 #include "../trace/oh_systrace_section.h"
 #include "../utils/oh_hash_funcs.h"
 #include "../xcomponent_log.h"
@@ -50,12 +53,18 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
         return std::make_unique<LineGradientRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeShaderRect:
         return std::make_unique<RectGradientRenderNode>();
+    case OH_Native_Drawing_Type::DrawingTypeShaderCircle:
+        return std::make_unique<CircleGradientRenderNode>();
+    case OH_Native_Drawing_Type::DrawingTypeShaderRoundRect:
+        return std::make_unique<RoundRectGradientRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeOval:
         return std::make_unique<OvalRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeArc:
         return std::make_unique<ArcRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypePath:
         return std::make_unique<PathRenderNode>();
+    case OH_Native_Drawing_Type::DrawingTypeShaderPath:
+        return std::make_unique<PathGradientRenderNode>();
     case OH_Native_Drawing_Type::DrawingTypeImageRect:
     case OH_Native_Drawing_Type::DrawingTypeImage:
         return std::make_unique<ImageDisplayRenderNode>();

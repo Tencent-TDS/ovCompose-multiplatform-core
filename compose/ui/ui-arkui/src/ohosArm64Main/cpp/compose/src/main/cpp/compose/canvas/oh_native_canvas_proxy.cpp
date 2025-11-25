@@ -320,9 +320,9 @@ void OHNativeCanvasProxy::drawRoundRect(const float left, const float top, const
     LOGI("OHNativeCanvasProxy::drawRoundRect: start");
 
     const auto drawingType =
-        paint->shader ? OH_Native_Drawing_Type::DrawingTypeShaderRect : OH_Native_Drawing_Type::DrawingTypeRect;
+        paint->shader ? OH_Native_Drawing_Type::DrawingTypeShaderRoundRect : OH_Native_Drawing_Type::DrawingTypeRect;
     const auto drawingContentHash = OH::hashCombineSequential(
-        left, top, right, bottom, static_cast<float>(OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType)));
+        left, top, right, bottom, radiusX, radiusY, static_cast<float>(OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType)));
 
     auto updateItem = _pictureRecorder.draw(drawingType, drawingContentHash);
     if (updateItem.isDirty) {
@@ -485,12 +485,10 @@ void OHNativeCanvasProxy::drawPoints(OH_Drawing_PointMode pointMode, const float
         shader ? OH_Native_Drawing_Type::DrawingTypeShaderPoints : OH_Native_Drawing_Type::DrawingTypePoints;
     const uint64_t preHash = OH::hashMerge(OH::nativeDataHashFromPaint(paint), drawingType);
 
-    // 计算点集的hash值（使用前几个点的坐标和点数量）
-    // 为了性能，只使用前8个点（16个float值）来计算hash
-    const size_t hashPointCount = std::min(pointCount, static_cast<size_t>(8));
+    // 计算点集的hash值
     uint64_t pointsHash = 0;
-    if (points != nullptr && hashPointCount > 0) {
-        pointsHash = OH::FNVHash(points, hashPointCount * 2 * sizeof(float));
+    if (points != nullptr && pointCount > 0) {
+        pointsHash = OH::FNVHash(points, pointCount * 2 * sizeof(float));
     }
     const uint64_t drawingContentHash = OH::hashCombineSequential(
         static_cast<uint64_t>(pointMode), static_cast<uint64_t>(pointCount), pointsHash, preHash);

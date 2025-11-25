@@ -435,6 +435,7 @@ NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader
 
 void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
     uint8_t *pixelData, size_t dataLength, int32_t width, int32_t height, bool hasAlpha) {
+    OH::SystraceSection trace("createNativePixelMapFromPixels");
     LOGI("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: "
          "width=%{public}d, height=%{public}d, hasAlpha=%{public}d, dataLength=%{public}zu",
          width, height, hasAlpha, dataLength);

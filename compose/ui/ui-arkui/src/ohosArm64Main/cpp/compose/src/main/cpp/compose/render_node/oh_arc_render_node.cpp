@@ -78,10 +78,10 @@ void ArcRenderNode::initModifier() {
                 // 使用相对坐标（相对于RenderNode的(0,0)点）
                 // RenderNode的position已经设置为(left - strokeWidth/2, top - strokeWidth/2)
                 // 因此onDraw中应该使用(0, 0)作为左上角
-                const float relLeft = 0.0f;
-                const float relTop = 0.0f;
-                const float relRight = data->right_ - data->left_;
-                const float relBottom = data->bottom_ - data->top_;
+                const float relLeft = std::max(0.0f, data->strokeWidth_ / 2);
+                const float relTop = std::max(0.0f, data->strokeWidth_ / 2);
+                const float relRight = data->right_ - data->left_ + std::max(0.0f, data->strokeWidth_ / 2);
+                const float relBottom = data->bottom_ - data->top_ + std::max(0.0f, data->strokeWidth_ / 2);
                 const float startAngle = data->startAngle_;
                 const float sweepAngle = data->sweepAngle_;
                 const bool useCenter = data->useCenter_;
@@ -93,6 +93,7 @@ void ArcRenderNode::initModifier() {
                 if (data->paintingStyle == OH_Native_Draw_PaintingStyle::Stroke) {
                     // Stroke模式，使用OH_Drawing_CanvasDrawArcWithCenter（API 18+）
                     OH_Drawing_Pen *pen = OH_Drawing_PenCreate();
+                    OH_Drawing_PenSetAntiAlias(pen, true);
                     OH_Drawing_PenSetWidth(pen, strokeWidth);
                     OH_Drawing_PenSetColor(pen, color);
                     OH_Drawing_CanvasAttachPen(canvas, pen);
@@ -106,6 +107,7 @@ void ArcRenderNode::initModifier() {
                 } else {
                     // Fill模式，使用OH_Drawing_CanvasDrawArcWithCenter
                     OH_Drawing_Brush *brush = OH_Drawing_BrushCreate();
+                    OH_Drawing_BrushSetAntiAlias(brush, true);
                     OH_Drawing_BrushSetColor(brush, color);
                     OH_Drawing_CanvasAttachBrush(canvas, brush);
                     OH_Drawing_ErrorCode result =

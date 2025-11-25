@@ -11,6 +11,7 @@
 #include "../constants/oh_native_enums.h"
 #include "../render_node/oh_arc_render_node.h"
 #include "../render_node/oh_async_task_render_node.h"
+#include "../render_node/oh_circle_gradient_render_node.h"
 #include "../render_node/oh_clip_render_node.h"
 #include "../render_node/oh_image_display_render_node.h"
 #include "../render_node/oh_line_gradient_render_node.h"
@@ -19,6 +20,8 @@
 #include "../render_node/oh_path_render_node.h"
 #include "../render_node/oh_points_render_node.h"
 #include "../render_node/oh_rect_gradient_render_node.h"
+#include "../render_node/oh_roundrect_gradient_render_node.h"
+#include "../render_node/oh_path_gradient_render_node.h"
 #include "../shader/oh_native_image_shader.h"
 #include "../shader/oh_native_linear_gradient_shader.h"
 #include "../xcomponent_log.h"
@@ -196,10 +199,14 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
     const int32_t width = right - left + strokeWidth;
     const int32_t height = bottom - top + strokeWidth;
 
+    const float maxRadius = std::min(width / 2, height / 2);
+    const float radius = std::min(radiusX + strokeWidth / 2, maxRadius);
+
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height)
-        ->setBorderCornerRadius(radiusX);
+        ->setBounds(x, y, width, height);
+
     if (!shader) {
+        renderNodeForDrawing->setBorderCornerRadius(radius);
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
             renderNodeForDrawing->setBorderWidth(strokeWidth)
                 ->setBackgroundColor(CLEAR_COLOR)
@@ -209,6 +216,10 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
                 ->setBackgroundColor(paint->color);
         }
     } else {
+        // 使用 RoundRectGradientRenderNode 绘制带渐变的圆角矩形
+        static_cast<RoundRectGradientRenderNode *>(renderNodeForDrawing)
+            ->drawRoundRect(left, top, right, bottom, radius, radius, strokeWidth,
+                            const_cast<NativeBasicShader *>(shader), paint->style, paint->colorFilter);
     }
 }
 
@@ -252,9 +263,11 @@ void OHRenderNodeDrawCircle(const float centerX, const float centerY, const floa
     const int32_t height = 2 * radius + strokeWidth;
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height)
-        ->setBorderCornerRadius(static_cast<uint32_t>(radius));
+        ->setBounds(x, y, width, height);
+
     if (!shader) {
+        // 无 shader：使用 BaseRenderNode 的边框属性绘制圆形
+        renderNodeForDrawing->setBorderCornerRadius(static_cast<uint32_t>(radius));
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
             renderNodeForDrawing->setBorderWidth(strokeWidth)
                 ->setBorderColor(paint->color)
@@ -263,6 +276,18 @@ void OHRenderNodeDrawCircle(const float centerX, const float centerY, const floa
             renderNodeForDrawing->setBorderWidth(0)->setBackgroundColor(paint->color);
         }
     } else {
+        // 有 shader：使用 CircleGradientRenderNode 绘制带渐变的圆形
+        // 圆心坐标需要转换为相对于 RenderNode 左上角的坐标
+        const float relCenterX = radius + strokeWidth / 2;
+        const float relCenterY = radius + strokeWidth / 2;
+
+        LOGI("OHRenderNodeDrawCircle: draw circle with shader, center=(%{public}f,%{public}f), radius=%{public}f",
+             relCenterX, relCenterY, radius);
+
+        static_cast<CircleGradientRenderNode *>(renderNodeForDrawing)
+            ->drawCircle(relCenterX, relCenterY, radius, strokeWidth,
+                         const_cast<NativeBasicShader *>(shader),
+                         paint->style, paint->colorFilter);
     }
 }
 
@@ -357,7 +382,9 @@ void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *
         static_cast<PathRenderNode *>(renderNodeForDrawing)
             ->drawPath(path, strokeWidth, paint->color, paint->style, paint->colorFilter);
     } else {
-        // TODO: 实现带shader的路径绘制（需要创建PathGradientRenderNode）
+        // 使用 PathGradientRenderNode 绘制带渐变的路径
+        static_cast<PathGradientRenderNode *>(renderNodeForDrawing)
+            ->drawPath(path, strokeWidth, const_cast<NativeBasicShader *>(shader), paint->style, paint->colorFilter);
     }
 }
 

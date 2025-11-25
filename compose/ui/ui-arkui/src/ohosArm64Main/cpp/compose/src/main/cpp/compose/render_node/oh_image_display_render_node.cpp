@@ -50,7 +50,6 @@ void ImageDisplayRenderNode::drawImageRect(OH_PixelmapNative *pixelMap, int32_t 
     dstHeight_ = dstHeight;
     colorFilter_ = colorFilter;
     filterQuality_ = filterQuality;
-    // this->setSize(dstWidth, dstHeight);
 
     // 触发重绘
     this->invalidate();
