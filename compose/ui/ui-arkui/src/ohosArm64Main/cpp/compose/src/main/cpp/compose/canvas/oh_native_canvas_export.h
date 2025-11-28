@@ -40,6 +40,7 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_rotate(OHNativeCanvasPr
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_skew(OHNativeCanvasProxy_Handle proxy, float sx, float sy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat(OHNativeCanvasProxy_Handle proxy,
                                                                 const float *matrix16);
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setClipToBounds(OHNativeCanvasProxy_Handle proxy, bool clipToBounds);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(OHNativeCanvasProxy_Handle proxy, int32_t originX,
                                                                    int32_t originY, int32_t boundsWidth,
                                                                    int32_t boundsHeight);
@@ -81,7 +82,11 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(OHNativeCanvas
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                        float top, float right, float bottom,
-                                                                       float radiusX, float radiusY, uint32_t clipOp);
+                                                                       float topLeftRadiusX, float topLeftRadiusY,
+                                                                       float topRightRadiusX, float topRightRadiusY,
+                                                                       float bottomRightRadiusX, float bottomRightRadiusY,
+                                                                       float bottomLeftRadiusX, float bottomLeftRadiusY,
+                                                                       uint32_t clipOp);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearClip(OHNativeCanvasProxy_Handle proxy);
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_saveLayer(OHNativeCanvasProxy_Handle proxy, float left,
                                                                    float top, float right, float bottom,
@@ -136,6 +141,9 @@ void *androidx_compose_ui_arkui_utils_OHNativeComposeHasTextImageCache(int32_t c
 void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
     uint8_t *pixelData, size_t dataLength, int32_t width, int32_t height, bool hasAlpha);
 
+// PixelMap lifecycle management
+void androidx_compose_ui_arkui_utils_releaseNativePixelMap(void *pixelMapHandle);
+
 // NativeShader related methods
 NativeBasicShader_Handle
 androidx_compose_ui_arkui_utils_createNativeLinearGradientShader(float startX, float startY, float endX, float endY,
@@ -165,6 +173,34 @@ NativeBasicShader_Handle androidx_compose_ui_arkui_utils_createNativeImageShader
 void androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread(
     void *renderNodePtr,
     int64_t pixelMapPtr);
+
+/**
+ * 设置阴影效果
+ *
+ * @param proxy OHNativeCanvasProxy句柄
+ * @param shadowElevation 阴影高度（Material Design elevation值）
+ * @param shadowRadius 阴影圆角半径
+ * @param shadowColorRed 阴影颜色红色分量（0-1）
+ * @param shadowColorGreen 阴影颜色绿色分量（0-1）
+ * @param shadowColorBlue 阴影颜色蓝色分量（0-1）
+ * @param shadowColorAlpha 阴影颜色透明度（0-1）
+ */
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setShadowWithElevation(
+    OHNativeCanvasProxy_Handle proxy,
+    float shadowElevation,
+    float shadowRadius,
+    float shadowColorRed,
+    float shadowColorGreen,
+    float shadowColorBlue,
+    float shadowColorAlpha);
+
+/**
+ * 清除阴影效果
+ *
+ * @param proxy OHNativeCanvasProxy句柄
+ */
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearShadow(
+    OHNativeCanvasProxy_Handle proxy);
 
 EXTERN_C_END
 

@@ -17,6 +17,7 @@ namespace androidx::compose::ui::arkui::utils {
 OHNativeCanvasProxy::OHNativeCanvasProxy(OH::BaseRenderNode *rootNode) : rootNode_(rootNode) {
     ArkUI_RenderNodeHandle renderNodeHandle = OH_ArkUI_RenderNodeUtils_CreateNode();
     canvasNode_ = std::make_unique<OH::BaseRenderNode>(renderNodeHandle);
+    canvasNode_->setBackgroundColor(CLEAR_COLOR);
 }
 
 OH::OHComposeNativePaint *OHNativeCanvasProxy::Paint() {
@@ -30,15 +31,14 @@ void OHNativeCanvasProxy::beginDraw() {
     _pictureRecorder.startRecording(*canvasNode_);
 }
 
-void OHNativeCanvasProxy::attachToRootView() const {
+void OHNativeCanvasProxy::attachToRootView() {
     OH::SystraceSection trace("OHNativeCanvasProxy:attachToRootView");
-    LOGI("OHNativeCanvasProxy::attachToRootView: start");
     if (canvasNode_->getParent() != rootNode_) {
         rootNode_->addChild(canvasNode_.get());
     }
 }
 
-void OHNativeCanvasProxy::setParent(const OHNativeCanvasProxy *canvasParentProxy) const {
+void OHNativeCanvasProxy::setParent(const OHNativeCanvasProxy *canvasParentProxy) {
     OH::SystraceSection trace("OHNativeCanvasProxy:setParent");
     LOGI("OHNativeCanvasProxy::setParent: start");
     if (OH::BaseRenderNode *parentNode = canvasParentProxy->getRenderNode(); canvasNode_->getParent() != parentNode) {
@@ -46,15 +46,22 @@ void OHNativeCanvasProxy::setParent(const OHNativeCanvasProxy *canvasParentProxy
     }
 }
 
-void OHNativeCanvasProxy::setPosition(const int32_t x, const int32_t y) const {
+void OHNativeCanvasProxy::setPosition(const int32_t x, const int32_t y) {
     OH::SystraceSection trace("OHNativeCanvasProxy:setPosition");
     if (canvasNode_ != nullptr) {
         canvasNode_->setPosition(x, y);
     }
 }
 
+void OHNativeCanvasProxy::setSize(const int32_t width, const int32_t height) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:setSize");
+    if (canvasNode_ != nullptr) {
+        canvasNode_->setSize(width, height);
+    }
+}
+
 void OHNativeCanvasProxy::setBounds(const int32_t originX, const int32_t originY, const int32_t boundsWidth,
-                                    const int32_t boundsHeight) const {
+                                    const int32_t boundsHeight) {
     OH::SystraceSection trace("OHNativeCanvasProxy:setBounds");
     LOGI("OHNativeCanvasProxy::setBounds: start");
     if (canvasNode_ != nullptr) {
@@ -62,7 +69,7 @@ void OHNativeCanvasProxy::setBounds(const int32_t originX, const int32_t originY
     }
 }
 
-void OHNativeCanvasProxy::setPivot(const float px, const float py) const {
+void OHNativeCanvasProxy::setPivot(const float px, const float py) {
     OH::SystraceSection trace("OHNativeCanvasProxy:setPivot");
     LOGI("OHNativeCanvasProxy::setPivot: start");
     if (canvasNode_ != nullptr) {
@@ -70,7 +77,7 @@ void OHNativeCanvasProxy::setPivot(const float px, const float py) const {
     }
 }
 
-void OHNativeCanvasProxy::setOpacity(const float opacity) const {
+void OHNativeCanvasProxy::setOpacity(const float opacity) {
     OH::SystraceSection trace("OHNativeCanvasProxy:setOpacity");
     LOGI("OHNativeCanvasProxy::setOpacity: start");
     if (canvasNode_ != nullptr) {
@@ -80,7 +87,7 @@ void OHNativeCanvasProxy::setOpacity(const float opacity) const {
 
 void OHNativeCanvasProxy::applyTransformMatrix(float rotationX, float rotationY, float rotationZ, float scaleX,
                                                float scaleY, float translateX, float translateY,
-                                               double transformM34) const {
+                                               double transformM34) {
     OH::SystraceSection trace("OHNativeCanvasProxy:applyTransformMatrix");
 
     // 使用 Transform3D 类创建变换矩阵（不包含 pivot 处理）
@@ -164,9 +171,11 @@ void OHNativeCanvasProxy::clipPath(OH_Drawing_Path *path, const OH_Native_Draw_C
 
     const uint64_t drawingContentHash =
         OH::hashCombineSequential(reinterpret_cast<uint64_t>(path), static_cast<float>(clipOp));
-    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
+    OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clipPath(drawingContentHash);
 
     if (updateItem.isDirty) {
+        // clipPath 需要 ClipRenderNode（使用 ContentModifier + onDraw）
+        // 直接调用 getOrCreateClipRenderNode，而不是 getOrCreateRenderNodeForDrawing
         OH::BaseRenderNode *renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
         OH::OHRenderNodeDrawClipPath(path, clipOp, &(updateItem.saveState), renderNodeForDrawing);
@@ -174,20 +183,38 @@ void OHNativeCanvasProxy::clipPath(OH_Drawing_Path *path, const OH_Native_Draw_C
 }
 
 void OHNativeCanvasProxy::clipRoundRect(const float left, const float top, const float right, const float bottom,
-                                        const float radiusX, const float radiusY, const OH_Native_Draw_ClipOp clipOp) {
+                                        const float topLeftRadiusX, const float topLeftRadiusY,
+                                        const float topRightRadiusX, const float topRightRadiusY,
+                                        const float bottomRightRadiusX, const float bottomRightRadiusY,
+                                        const float bottomLeftRadiusX, const float bottomLeftRadiusY,
+                                        const OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("OHNativeCanvasProxy:clipRoundRect");
     LOGI("OHNativeCanvasProxy::clipRoundRect: rect=(%{public}f, %{public}f, %{public}f, %{public}f), "
-         "radius=(%{public}f, %{public}f)",
-         left, top, right, bottom, radiusX, radiusY);
+         "radii TL(%{public}f,%{public}f), TR(%{public}f,%{public}f), BR(%{public}f,%{public}f), BL(%{public}f,%{public}f)",
+         left, top, right, bottom,
+         topLeftRadiusX, topLeftRadiusY,
+         topRightRadiusX, topRightRadiusY,
+         bottomRightRadiusX, bottomRightRadiusY,
+         bottomLeftRadiusX, bottomLeftRadiusY);
 
     const uint64_t drawingContentHash =
-        OH::hashCombineSequential(left, top, right, bottom, radiusX, radiusY, static_cast<float>(clipOp));
+        OH::hashCombineSequential(left, top, right, bottom,
+                                  topLeftRadiusX, topLeftRadiusY,
+                                  topRightRadiusX, topRightRadiusY,
+                                  bottomRightRadiusX, bottomRightRadiusY,
+                                  bottomLeftRadiusX, bottomLeftRadiusY,
+                                  static_cast<float>(clipOp));
 
     OH::PictureRecorderUpdateInfo updateItem = _pictureRecorder.clip(drawingContentHash);
     if (updateItem.isDirty) {
         OH::BaseRenderNode *renderNodeForDrawing =
             _pictureRecorder.getOrCreateRenderNodeForDrawing(updateItem.drawingType, updateItem.itemHash);
-        OH::OHRenderNodeDrawClipRoundRect(left, top, right, bottom, radiusX, radiusY, &(updateItem.saveState),
+        OH::OHRenderNodeDrawClipRoundRect(left, top, right, bottom,
+                                          topLeftRadiusX, topLeftRadiusY,
+                                          topRightRadiusX, topRightRadiusY,
+                                          bottomRightRadiusX, bottomRightRadiusY,
+                                          bottomLeftRadiusX, bottomLeftRadiusY,
+                                          &(updateItem.saveState),
                                           renderNodeForDrawing, clipOp);
     }
 }
@@ -195,7 +222,7 @@ void OHNativeCanvasProxy::clipRoundRect(const float left, const float top, const
 void OHNativeCanvasProxy::clearClip() {
     OH::SystraceSection trace("OHNativeCanvasProxy:clearClip");
     LOGI("OHNativeCanvasProxy::clearClip: start");
-    _pictureRecorder.clearClip();
+    // _pictureRecorder.clearClip();
 }
 
 void OHNativeCanvasProxy::saveLayer(const float left, const float top, const float right, const float bottom,
@@ -264,6 +291,13 @@ void OHNativeCanvasProxy::skew(const float sx, const float sy) {
 void OHNativeCanvasProxy::concat(const float *matrix16) {
     OH::SystraceSection trace("OHNativeCanvasProxy:concat");
     _pictureRecorder.concat(matrix16);
+}
+
+void OHNativeCanvasProxy::setClipToBounds(const bool clipToBounds) {
+    LOGI("OHNativeCanvasProxy::setClipToBounds: start");
+    if (canvasNode_ != nullptr) {
+        canvasNode_->setClipToBounds(clipToBounds);
+    }
 }
 
 void OHNativeCanvasProxy::drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy) {
@@ -618,6 +652,48 @@ void OHNativeCanvasProxy::removeCanvasNodeFromParent() const {
     if (canvasNode_ != nullptr) {
         canvasNode_->removeFromParent();
     }
+}
+
+void OHNativeCanvasProxy::setShadowWithElevation(float shadowElevation, float shadowRadius,
+                                                 float shadowColorRed, float shadowColorGreen,
+                                                 float shadowColorBlue, float shadowColorAlpha) {
+    OH::SystraceSection trace("OHNativeCanvasProxy:setShadowWithElevation");
+
+    if (!canvasNode_ || shadowElevation <= 0) {
+        return;
+    }
+
+    // Reference iOS Material Design formula: shadowRadius = ceil(elevation / 2)
+    // But OHOS should prioritize the passed shadowRadius (from outline shape) if > 0
+    const float calculatedRadius = std::ceil(shadowElevation / 2.0f);
+
+    // Convert RGBA (0-1) to ARGB uint32_t
+    const uint32_t a = static_cast<uint32_t>(shadowColorAlpha * 255) & 0xFF;
+    const uint32_t r = static_cast<uint32_t>(shadowColorRed * 255) & 0xFF;
+    const uint32_t g = static_cast<uint32_t>(shadowColorGreen * 255) & 0xFF;
+    const uint32_t b = static_cast<uint32_t>(shadowColorBlue * 255) & 0xFF;
+    const uint32_t color = (a << 24) | (r << 16) | (g << 8) | b;
+
+    // Apply shadow to canvasNode_ (rootNode does not need shadow)
+    canvasNode_->setShadowColor(color)
+        ->setShadowOffset(0, 0) // iOS style: centered shadow
+        ->setShadowAlpha(0.19f) // Material Design standard value
+        ->setShadowElevation(shadowElevation)
+        ->setShadowRadius(calculatedRadius > 0 ? calculatedRadius : shadowRadius);
+
+    LOGI("OHNativeCanvasProxy::setShadowWithElevation: elevation=%.2f, shadowRadius=%.2f, color=0x%08X",
+         shadowElevation, shadowRadius, color);
+}
+
+void OHNativeCanvasProxy::clearShadow() {
+    OH::SystraceSection trace("OHNativeCanvasProxy:clearShadow");
+
+    if (!canvasNode_) {
+        return;
+    }
+
+    canvasNode_->clearShadow();
+    LOGI("OHNativeCanvasProxy::clearShadow");
 }
 
 OHNativeCanvasProxy::~OHNativeCanvasProxy() = default;

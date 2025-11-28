@@ -43,4 +43,39 @@ BaseRenderNode &BaseRenderNode::operator=(BaseRenderNode &&other) noexcept {
 OH_DrawingNode_Type BaseRenderNode::getType() {
     return OH_DrawingNode_Type::BaseNode;
 };
+
+// Shadow methods implementation
+BaseRenderNode *BaseRenderNode::setShadowColor(uint32_t color) {
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowColor(nodeHandle_, color));
+    return this;
+}
+
+BaseRenderNode *BaseRenderNode::setShadowOffset(int32_t x, int32_t y) {
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowOffset(nodeHandle_, x, y));
+    return this;
+}
+
+BaseRenderNode *BaseRenderNode::setShadowAlpha(float alpha) {
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowAlpha(nodeHandle_, alpha));
+    return this;
+}
+
+BaseRenderNode *BaseRenderNode::setShadowElevation(float elevation) {
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowElevation(nodeHandle_, elevation));
+    return this;
+}
+
+BaseRenderNode *BaseRenderNode::setShadowRadius(float radius) {
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowRadius(nodeHandle_, radius));
+    return this;
+}
+
+BaseRenderNode *BaseRenderNode::clearShadow() {
+    // Clear shadow by setting elevation, radius, and alpha to 0
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowElevation(nodeHandle_, 0.0f));
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowRadius(nodeHandle_, 0.0f));
+    maybeThrow(OH_ArkUI_RenderNodeUtils_SetShadowAlpha(nodeHandle_, 0.0f));
+    return this;
+}
+
 } // namespace OH

@@ -111,30 +111,30 @@ void PathRenderNode::initModifier() {
                     OH_Drawing_Pen *pen = OH_Drawing_PenCreate();
                     OH_Drawing_PenSetWidth(pen, strokeWidth);
                     OH_Drawing_PenSetColor(pen, color);
-                    
+
                     // 应用ColorFilter到Pen
                     OH_Drawing_Filter *filter = ApplyColorFilterToPen(pen, data->colorFilter_);
-                    
+
                     OH_Drawing_CanvasAttachPen(canvas, pen);
                     OH_Drawing_CanvasDrawPath(canvas, data->pathProperty_);
                     OH_Drawing_CanvasDetachPen(canvas);
                     OH_Drawing_PenDestroy(pen);
-                    
+
                     if (filter != nullptr) {
                         OH_Drawing_FilterDestroy(filter);
                     }
                 } else { // Fill style
                     OH_Drawing_Brush *brush = OH_Drawing_BrushCreate();
                     OH_Drawing_BrushSetColor(brush, color);
-                    
+
                     // 应用ColorFilter到Brush
                     OH_Drawing_Filter *filter = ApplyColorFilterToBrush(brush, data->colorFilter_);
-                    
+
                     OH_Drawing_CanvasAttachBrush(canvas, brush);
                     OH_Drawing_CanvasDrawPath(canvas, data->pathProperty_);
                     OH_Drawing_CanvasDetachBrush(canvas);
                     OH_Drawing_BrushDestroy(brush);
-                    
+
                     if (filter != nullptr) {
                         OH_Drawing_FilterDestroy(filter);
                     }

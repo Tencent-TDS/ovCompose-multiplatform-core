@@ -270,8 +270,9 @@ void PictureRecorder::rebuildRenderNodeHierarchy(BaseRenderNode &rootRenderNode)
         switch (drawingType) {
         case OH_Native_Drawing_Type::DrawingTypeSave:
             break;
+        case OH_Native_Drawing_Type::DrawingTypeClipPath:
         case OH_Native_Drawing_Type::DrawingTypeClip: {
-            auto *clipRenderNode = getOrCreateClipRenderNode(drawingItem.itemHash);
+            auto *clipRenderNode = getOrCreateClipRenderNode(drawingType, drawingItem.itemHash);
             clipRenderNode->setHostingHash(static_cast<uint32_t>(rootRenderNodeHash));
             if (drawingItem.clipIndex == 1) {
                 rootRenderNode.addChild(clipRenderNode);

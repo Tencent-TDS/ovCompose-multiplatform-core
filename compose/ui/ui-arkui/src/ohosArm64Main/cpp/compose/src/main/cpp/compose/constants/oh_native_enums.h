@@ -56,6 +56,7 @@ typedef enum {
     DrawingTypeSave,
     DrawingTypeRestore,
     DrawingTypeClip,
+    DrawingTypeClipPath,
     DrawingTypePop,
     DrawingTypeSaveLayer
 } OH_Native_Drawing_Type;

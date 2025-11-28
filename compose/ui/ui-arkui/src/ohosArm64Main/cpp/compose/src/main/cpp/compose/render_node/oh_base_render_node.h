@@ -14,17 +14,9 @@
 namespace OH {
 
 // 属性缓存结构，用于避免重复设置相同的值
+// 注意：position 和 size 不再缓存，每次都直接调用系统 API
+// 这是为了确保 ContentModifier 能够正确获取 RenderNode 的尺寸
 struct PropertyCache {
-    // Position
-    bool positionSet = false;
-    int32_t cachedX = 0;
-    int32_t cachedY = 0;
-
-    // Size
-    bool sizeSet = false;
-    int32_t cachedWidth = 0;
-    int32_t cachedHeight = 0;
-
     // Translate
     bool translateSet = false;
     float cachedTranslateX = 0.0f;
@@ -60,10 +52,9 @@ struct PropertyCache {
     float cachedTransform[16] = {0};
 
     bool markAsNodeGroupSet = false;
+    bool clipToBounds = false;
 
     void reset() {
-        positionSet = false;
-        sizeSet = false;
         translateSet = false;
         opacitySet = false;
         pivotSet = false;
@@ -72,6 +63,7 @@ struct PropertyCache {
         borderColorSet = false;
         borderCornerRadiusSet = false;
         transformSet = false;
+        clipToBounds = false;
     }
 };
 
@@ -164,25 +156,21 @@ public:
 
     BaseRenderNode *setPosition(const int32_t x, const int32_t y) {
         OH::SystraceSection trace("BaseRenderNode::setPosition");
-        // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.positionSet || propertyCache_.cachedX != x || propertyCache_.cachedY != y) {
-            maybeThrow(OH_ArkUI_RenderNodeUtils_SetPosition(nodeHandle_, x, y));
-            propertyCache_.positionSet = true;
-            propertyCache_.cachedX = x;
-            propertyCache_.cachedY = y;
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetPosition(nodeHandle_, x, y));
+        return this;
+    }
+
+    BaseRenderNode *setClipToBounds(const bool clipToBounds) {
+        if (propertyCache_.clipToBounds != clipToBounds) {
+            maybeThrow(OH_ArkUI_RenderNodeUtils_SetClipToBounds(nodeHandle_, clipToBounds));
+            propertyCache_.clipToBounds = clipToBounds;
         }
         return this;
     }
 
     BaseRenderNode *setSize(const int32_t width, const int32_t height) {
         OH::SystraceSection trace("BaseRenderNode::setSize");
-        // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.sizeSet || propertyCache_.cachedWidth != width || propertyCache_.cachedHeight != height) {
-            maybeThrow(OH_ArkUI_RenderNodeUtils_SetSize(nodeHandle_, width, height));
-            propertyCache_.sizeSet = true;
-            propertyCache_.cachedWidth = width;
-            propertyCache_.cachedHeight = height;
-        }
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetSize(nodeHandle_, width, height));
         return this;
     }
 
@@ -234,9 +222,19 @@ public:
     }
 
     BaseRenderNode *clearClip() {
-        // TODO: implement clear clip in native render node utils
+        OH::SystraceSection trace("BaseRenderNode::clearClip");
+        // 传递 nullptr 来清除 RenderNode 级别的 clip
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetClip(nodeHandle_, nullptr));
         return this;
     }
+
+    // Shadow methods
+    BaseRenderNode *setShadowColor(uint32_t color);
+    BaseRenderNode *setShadowOffset(int32_t x, int32_t y);
+    BaseRenderNode *setShadowAlpha(float alpha);
+    BaseRenderNode *setShadowElevation(float elevation);
+    BaseRenderNode *setShadowRadius(float radius);
+    BaseRenderNode *clearShadow();
 
     BaseRenderNode *setMask(const float left, const float top, const float right, const float bottom) {
         OH::SystraceSection trace("BaseRenderNode::setMask");
@@ -257,17 +255,7 @@ public:
 
     BaseRenderNode *setBounds(const int32_t x, const int32_t y, const int32_t width, const int32_t height) {
         OH::SystraceSection trace("BaseRenderNode::setBounds");
-        // 检查缓存，避免重复设置相同的值
-        if (!propertyCache_.sizeSet || !propertyCache_.positionSet || propertyCache_.cachedX != x || propertyCache_.cachedY != y
-            || propertyCache_.cachedWidth != width || propertyCache_.cachedHeight != height) {
-            maybeThrow(OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
-            propertyCache_.sizeSet = true;
-            propertyCache_.positionSet = true;
-            propertyCache_.cachedX = x;
-            propertyCache_.cachedY = y;
-            propertyCache_.cachedWidth = width;
-            propertyCache_.cachedHeight = height;
-        }
+        maybeThrow(OH_ArkUI_RenderNodeUtils_SetBounds(nodeHandle_, x, y, width, height));
         return this;
     }
 

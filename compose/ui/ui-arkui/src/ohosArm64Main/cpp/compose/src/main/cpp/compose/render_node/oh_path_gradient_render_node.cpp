@@ -180,3 +180,6 @@ void PathGradientRenderNode::initModifier() {
 
 } // namespace OH
 
+
+
+

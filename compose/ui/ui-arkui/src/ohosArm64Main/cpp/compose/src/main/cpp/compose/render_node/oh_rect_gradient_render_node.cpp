@@ -19,9 +19,13 @@ RectGradientRenderNode::~RectGradientRenderNode() {
     }
 }
 
-RectGradientRenderNode::RectGradientRenderNode() { this->RectGradientRenderNode::initModifier(); }
+RectGradientRenderNode::RectGradientRenderNode() {
+    this->RectGradientRenderNode::initModifier();
+}
 
-OH_DrawingNode_Type RectGradientRenderNode::getType() { return OH_DrawingNode_Type::RectGradientNode; };
+OH_DrawingNode_Type RectGradientRenderNode::getType() {
+    return OH_DrawingNode_Type::RectGradientNode;
+};
 
 /**
  * @brief Draws a rectangle with the specified coordinates, stroke width,

@@ -73,7 +73,7 @@ OH_ALWAYS_INLINE std::unique_ptr<BaseRenderNode> createDrawingRenderNodeFromType
     case OH_Native_Drawing_Type::DrawingTypePoints:
     case OH_Native_Drawing_Type::DrawingTypeShaderPoints:
         return std::make_unique<PointsRenderNode>();
-    case OH_Native_Drawing_Type::DrawingTypeClip:
+    case OH_Native_Drawing_Type::DrawingTypeClipPath:
         return std::make_unique<ClipRenderNode>();
     default:
         LOGI("OH_Native_Drawing_Type::%{public}d: create BaseRenderNode", type);
@@ -160,8 +160,8 @@ public:
         OH::SystraceSection trace("PictureRecorder:getOrCreateRenderNodeForDrawing");
         initPropsIfNeeded();
 
-        if (type == OH_Native_Drawing_Type::DrawingTypeClip) {
-            return getOrCreateClipRenderNode(itemHash);
+        if (type == OH_Native_Drawing_Type::DrawingTypeClip || type == OH_Native_Drawing_Type::DrawingTypeClipPath) {
+            return getOrCreateClipRenderNode(type, itemHash);
         }
 
         if (auto *cachedNode = props->findRenderNode(itemHash)) {
@@ -199,6 +199,14 @@ public:
     OH_ALWAYS_INLINE PictureRecorderUpdateInfo clip(const uint64_t drawingContentHash) {
         OH::SystraceSection trace("PictureRecorder:clip");
         PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeClip, drawingContentHash);
+        pushClip();
+        LOGI("PictureRecorder::clip 的 itemHash: =%{public}ld", updateItem.itemHash);
+        return updateItem;
+    }
+
+    OH_ALWAYS_INLINE PictureRecorderUpdateInfo clipPath(const uint64_t drawingContentHash) {
+        OH::SystraceSection trace("PictureRecorder:clipPath");
+        PictureRecorderUpdateInfo updateItem = draw(OH_Native_Drawing_Type::DrawingTypeClipPath, drawingContentHash);
         pushClip();
         LOGI("PictureRecorder::clip 的 itemHash: =%{public}ld", updateItem.itemHash);
         return updateItem;
@@ -258,8 +266,8 @@ private:
             return ptr;
         }
 
-        BaseRenderNode *createAndAddClipNode(uint64_t hash) {
-            auto node = std::make_unique<ClipRenderNode>();
+        BaseRenderNode *createAndAddClipNode(uint64_t hash, OH_Native_Drawing_Type clipType) {
+            auto node = clipType == OH_Native_Drawing_Type::DrawingTypeClipPath ? std::make_unique<ClipRenderNode>() : std::make_unique<BaseRenderNode>();
             BaseRenderNode *ptr = node.get();
             clipPool[hash] = ptr;
             ownedNodes.push_back(std::move(node));
@@ -305,7 +313,7 @@ private:
     constexpr void resetSequenceTableIndex();
     constexpr void resetSequenceTable();
 
-    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateClipRenderNode(const uint64_t itemHash) {
+    OH_ALWAYS_INLINE BaseRenderNode *getOrCreateClipRenderNode(OH_Native_Drawing_Type clipType, const uint64_t itemHash) {
         initPropsIfNeeded();
 
         if (auto *cachedNode = props->findClipNode(itemHash)) {
@@ -313,7 +321,7 @@ private:
             return cachedNode;
         }
 
-        auto *clipRenderNode = props->createAndAddClipNode(itemHash);
+        auto *clipRenderNode = props->createAndAddClipNode(itemHash, clipType);
         LOGI("[PV] getOrCreateClipRenderNode create clipRenderNode:%{public}p itemHash:%{public}llu", clipRenderNode, itemHash);
         return clipRenderNode;
     }

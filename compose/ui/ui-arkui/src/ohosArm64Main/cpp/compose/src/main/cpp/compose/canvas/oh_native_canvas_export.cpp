@@ -30,6 +30,7 @@
 #include "oh_native_canvas_proxy_factory.h"
 #include "../render_node/oh_async_task_render_node.h"
 #include "oh_native_canvas_layer_drawer.h"
+#include "../cache/oh_drawing_pixelmap_cache.h"
 
 #include <multimedia/image_framework/image/pixelmap_native.h>
 #include <native_drawing/drawing_canvas.h>
@@ -175,7 +176,6 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawParagraph(OHNativeC
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView(OHNativeCanvasProxy_Handle proxy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->attachToRootView();
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_attachToRootView");
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setParent(OHNativeCanvasProxy_Handle proxy,
@@ -207,6 +207,28 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_removeCanvasNodeFromPar
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_removeCanvasNodeFromParent");
 }
 
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setShadowWithElevation(
+    OHNativeCanvasProxy_Handle proxy,
+    float shadowElevation,
+    float shadowRadius,
+    float shadowColorRed,
+    float shadowColorGreen,
+    float shadowColorBlue,
+    float shadowColorAlpha) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setShadowWithElevation");
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setShadowWithElevation(
+        shadowElevation, shadowRadius,
+        shadowColorRed, shadowColorGreen, shadowColorBlue, shadowColorAlpha);
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearShadow(
+    OHNativeCanvasProxy_Handle proxy) {
+    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearShadow");
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->clearShadow();
+}
+
 /// OHNativeCanvasProxy state operations
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRect(OHNativeCanvasProxy_Handle proxy, float left,
                                                                   float top, float right, float bottom,
@@ -231,14 +253,26 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipPath(OHNativeCanvas
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(OHNativeCanvasProxy_Handle proxy,
                                                                        const float left, const float top,
                                                                        const float right, const float bottom,
-                                                                       const float radiusX, const float radiusY,
+                                                                       const float topLeftRadiusX, const float topLeftRadiusY,
+                                                                       const float topRightRadiusX, const float topRightRadiusY,
+                                                                       const float bottomRightRadiusX, const float bottomRightRadiusY,
+                                                                       const float bottomLeftRadiusX, const float bottomLeftRadiusY,
                                                                        const uint32_t clipOp) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
-    canvasProxy->clipRoundRect(left, top, right, bottom, radiusX, radiusY, static_cast<OH_Native_Draw_ClipOp>(clipOp));
+    canvasProxy->clipRoundRect(left, top, right, bottom,
+                               topLeftRadiusX, topLeftRadiusY,
+                               topRightRadiusX, topRightRadiusY,
+                               bottomRightRadiusX, bottomRightRadiusY,
+                               bottomLeftRadiusX, bottomLeftRadiusY,
+                               static_cast<OH_Native_Draw_ClipOp>(clipOp));
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect: "
          "rect:(%{public}f, %{public}f, %{public}f, %{public}f), "
-         "radius:(%{public}f, %{public}f), clipOp:%{public}d",
-         left, top, right, bottom, radiusX, radiusY, clipOp);
+         "radii TL(%{public}f,%{public}f), TR(%{public}f,%{public}f), BR(%{public}f,%{public}f), BL(%{public}f,%{public}f), clipOp:%{public}d",
+         left, top, right, bottom,
+         topLeftRadiusX, topLeftRadiusY,
+         topRightRadiusX, topRightRadiusY,
+         bottomRightRadiusX, bottomRightRadiusY,
+         bottomLeftRadiusX, bottomLeftRadiusY, clipOp);
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearClip(OHNativeCanvasProxy_Handle proxy) {
@@ -282,7 +316,8 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds(OHNativeCanva
                                                                    int32_t originY, int32_t boundsWidth,
                                                                    int32_t boundsHeight) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
-    canvasProxy->setBounds(originX, originY, boundsWidth, boundsHeight);
+    canvasProxy->setPosition(originX, originY);
+    canvasProxy->setSize(boundsWidth, boundsHeight);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setBounds: "
          "originX:%{public}d, originY:%{public}d, "
          "boundsWidth:%{public}d, boundsHeight:%{public}d",
@@ -337,9 +372,6 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate(OHNativeCanva
                                                                    float dy) {
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->translate(dx, dy);
-    LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_translate: "
-         "dx:%{public}f, dy:%{public}f",
-         dx, dy);
 }
 
 void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_scale(OHNativeCanvasProxy_Handle proxy, float sx, float sy) {
@@ -371,6 +403,11 @@ void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat(OHNativeCanvasPr
     auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
     canvasProxy->concat(matrix16);
     LOGI("androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_concat");
+}
+
+void androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setClipToBounds(OHNativeCanvasProxy_Handle proxy, const bool clipToBounds) {
+    auto canvasProxy = reinterpret_cast<androidx::compose::ui::arkui::utils::OHNativeCanvasProxy *>(proxy);
+    canvasProxy->setClipToBounds(clipToBounds);
 }
 
 /// OHComposeNativePaint related methods
@@ -475,6 +512,34 @@ void *androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels(
 
     LOGI("androidx_compose_ui_arkui_utils_createNativePixelMapFromPixels: success, pixelMap=%{public}p", pixelMap);
     return reinterpret_cast<void *>(pixelMap);
+}
+
+void androidx_compose_ui_arkui_utils_releaseNativePixelMap(void *pixelMapHandle) {
+    OH::SystraceSection trace("releaseNativePixelMap");
+
+    if (pixelMapHandle == nullptr) {
+        LOGE("androidx_compose_ui_arkui_utils_releaseNativePixelMap: pixelMapHandle is null");
+        return;
+    }
+
+    auto *pixelMap = reinterpret_cast<OH_PixelmapNative *>(pixelMapHandle);
+
+    LOGI("androidx_compose_ui_arkui_utils_releaseNativePixelMap: releasing pixelMap=%{public}p", pixelMap);
+
+    // 1. 从OH_Drawing_PixelMap缓存中移除
+    // 这样可以确保Drawing缓存不会持有已释放PixelMap的引用
+    OH::OHDrawingPixelMapCache::sharedInstance().remove(pixelMap);
+
+    // 2. 释放OH_PixelmapNative对象
+    // 根据OpenHarmony官方文档，必须调用此API释放PixelMap
+    Image_ErrorCode result = OH_PixelmapNative_Release(pixelMap);
+
+    if (result == IMAGE_SUCCESS) {
+        LOGI("androidx_compose_ui_arkui_utils_releaseNativePixelMap: successfully released pixelMap=%{public}p", pixelMap);
+    } else {
+        LOGE("androidx_compose_ui_arkui_utils_releaseNativePixelMap: failed to release pixelMap=%{public}p, error=%{public}d",
+             pixelMap, result);
+    }
 }
 
 // Text image drawing methods

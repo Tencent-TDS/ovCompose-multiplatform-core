@@ -76,3 +76,6 @@ private:
 
 #endif // OH_CIRCLE_GRADIENT_RENDER_NODE_H
 
+
+
+

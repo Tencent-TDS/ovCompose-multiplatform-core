@@ -36,39 +36,6 @@ void PointsRenderNode::drawPoints(OH_Drawing_PointMode pointMode, const float *p
     points_.assign(points, points + pointCount * 2); // 复制点数据 [x1, y1, x2, y2, ...]
     paint_ = paint;
 
-    // 计算边界框
-    if (pointCount == 0) {
-        this->setSize(0, 0);
-        return;
-    }
-
-    float minX = points[0];
-    float minY = points[1];
-    float maxX = points[0];
-    float maxY = points[1];
-
-    for (size_t i = 0; i < pointCount; ++i) {
-        const float x = points[i * 2];
-        const float y = points[i * 2 + 1];
-        minX = std::min(minX, x);
-        minY = std::min(minY, y);
-        maxX = std::max(maxX, x);
-        maxY = std::max(maxY, y);
-    }
-
-    // 考虑 strokeWidth（如果是 Stroke 模式）
-    const float strokeWidth = paint ? paint->strokeWidth : 0.0f;
-    const float halfStroke = strokeWidth / 2.0f;
-
-    // 设置 RenderNode 的位置和尺寸
-    const int32_t x = static_cast<int32_t>(minX - halfStroke);
-    const int32_t y = static_cast<int32_t>(minY - halfStroke);
-    const int32_t width = static_cast<int32_t>(maxX - minX + strokeWidth);
-    const int32_t height = static_cast<int32_t>(maxY - minY + strokeWidth);
-
-    this->setPosition(x, y);
-    this->setSize(width, height);
-
     // 触发重绘
     invalidate();
 }

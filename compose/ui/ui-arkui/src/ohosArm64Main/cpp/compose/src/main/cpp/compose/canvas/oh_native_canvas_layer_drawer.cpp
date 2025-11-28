@@ -27,6 +27,8 @@
 #include "../xcomponent_log.h"
 #include "../trace/oh_systrace_section.h"
 
+#include <cfloat>
+
 namespace OH {
 void OHRenderNodeDrawRect(const float left, const float top, const float right, const float bottom,
                           NativeBasicShader *shader, const RenderNodeSaveState *saveState,
@@ -41,7 +43,8 @@ void OHRenderNodeDrawRect(const float left, const float top, const float right, 
     const int32_t height = bottom - top + strokeWidth;
 
     renderNodeForDrawing->setTransform(saveState->transform.data())
-        ->setBounds(x, y, width, height)
+        ->setPosition(x, y)
+        ->setSize(width, height)
         ->setBorderCornerRadius(0);
     if (!shader) {
         if (paint->style == OH_Native_Draw_PaintingStyle::Stroke) {
@@ -64,17 +67,31 @@ void OHRenderNodeDrawClipRect(const float left, const float top, const float rig
                               const RenderNodeSaveState *saveState, BaseRenderNode *renderNodeForDrawing, const OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipRect");
     ArkUI_RectShapeOption *shape = OH_ArkUI_RenderNodeUtils_CreateRectShapeOption();
+    // 计算 bounds：clip 是相对于 RenderNode 的 bounds 的
+    const int32_t width = static_cast<int32_t>(right - left);
+    const int32_t height = static_cast<int32_t>(bottom - top);
+    const int32_t x = static_cast<int32_t>(left + saveState->translateX);
+    const int32_t y = static_cast<int32_t>(top + saveState->translateY);
     if (shape) {
-        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, left, ARKUI_EDGE_DIRECTION_LEFT);
-        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, top, ARKUI_EDGE_DIRECTION_TOP);
-        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, right, ARKUI_EDGE_DIRECTION_RIGHT);
-        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, bottom, ARKUI_EDGE_DIRECTION_BOTTOM);
+        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, 0, ARKUI_EDGE_DIRECTION_LEFT);
+        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, 0, ARKUI_EDGE_DIRECTION_TOP);
+        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, width, ARKUI_EDGE_DIRECTION_RIGHT);
+        OH_ArkUI_RenderNodeUtils_SetRectShapeOptionEdgeValue(shape, height, ARKUI_EDGE_DIRECTION_BOTTOM);
     }
     ArkUI_RenderNodeClipOption *clipOption = OH_ArkUI_RenderNodeUtils_CreateRenderNodeClipOptionFromRectShape(shape);
     OH_ArkUI_RenderNodeUtils_DisposeRectShapeOption(shape);
     if (clipOption) {
+        // Clip 场景（有子节点）：使用 setPosition + setSize + setTranslate 组合
+        // 1. setPosition(x, y): 设置 RenderNode 在父坐标系中的绝对位置
+        // 2. setSize(width, height): 设置 RenderNode 的尺寸
+        //    - 对于 ClipRenderNode（使用 ContentModifier）：决定 Canvas 绘制区域
+        //    - 对于子节点：提供布局尺寸参考
+        // 3. setTranslate(-x, -y): 负向平移让子节点可以使用原始坐标系 (0,0)
+        //    这样子节点仍然可以使用绘制时的原始坐标，不需要调整
         renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-            ->setTranslate(saveState->translateX, saveState->translateY)
+            ->setPosition(x, y)
+            ->setSize(width, height)
+            ->setTranslate(-static_cast<float>(x), -static_cast<float>(y))
             ->setClip(clipOption);
     }
 }
@@ -89,10 +106,8 @@ void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp
     }
 
     // 计算路径的 bounds 并设置 ClipRenderNode 的 position 和 size
-    int32_t x = 0;
-    int32_t y = 0;
-    int32_t width = 100;  // Default fallback
-    int32_t height = 100; // Default fallback
+    int32_t pathWidth = 0;  // Default fallback
+    int32_t pathHeight = 0; // Default fallback
 
     float pathLeft = 0.0f, pathTop = 0.0f, pathRight = 0.0f, pathBottom = 0.0f;
     OH_Drawing_Rect *boundsRect = OH_Drawing_RectCreate(0.0f, 0.0f, 0.0f, 0.0f);
@@ -103,61 +118,99 @@ void OHRenderNodeDrawClipPath(OH_Drawing_Path_Handle path, OH_Native_Draw_ClipOp
         pathRight = OH_Drawing_RectGetRight(boundsRect);
         pathBottom = OH_Drawing_RectGetBottom(boundsRect);
 
-        // 计算 position 和 size（不需要考虑 stroke width，因为这是裁剪操作）
-        x = static_cast<int32_t>(pathLeft);
-        y = static_cast<int32_t>(pathTop);
-        width = static_cast<int32_t>(pathRight - pathLeft);
-        height = static_cast<int32_t>(pathBottom - pathTop);
+        // 计算 position 和 size
+        pathWidth = static_cast<int32_t>(pathRight - pathLeft);
+        pathHeight = static_cast<int32_t>(pathBottom - pathTop);
 
         // Ensure minimum size
-        if (width <= 0) width = 1;
-        if (height <= 0) height = 1;
+        if (pathWidth <= 0) pathWidth = 1;
+        if (pathHeight <= 0) pathHeight = 1;
 
         OH_Drawing_RectDestroy(boundsRect);
     }
 
     // 将 BaseRenderNode 转换为 ClipRenderNode
-    auto *clipNode = dynamic_cast<ClipRenderNode *>(renderNodeForDrawing);
+    auto *clipNode = static_cast<ClipRenderNode *>(renderNodeForDrawing);
     if (!clipNode) {
         LOGE("OHRenderNodeDrawClipPath: renderNodeForDrawing is not ClipRenderNode");
         return;
     }
 
     // 应用变换状态并设置 bounds
+    const int32_t x = saveState->translateX + pathLeft;
+    const int32_t y = saveState->translateY + pathTop;
     clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(saveState->translateY + x, saveState->translateY + y, width, height);
+        ->setPosition(x, y)
+        ->setSize(pathWidth, pathHeight)
+        ->setTranslate(-static_cast<float>(x), -static_cast<float>(y));
 
     // 设置裁剪路径
     clipNode->setClipPath(reinterpret_cast<OH_Drawing_Path *>(path), clipOp);
 
     LOGI("OHRenderNodeDrawClipPath: path=%{public}p, clipOp=%{public}d, bounds=(%f,%f,%f,%f), position=(%d,%d), size=(%d,%d), translate=(%f,%f)",
-         path, clipOp, pathLeft, pathTop, pathRight, pathBottom, x, y, width, height, saveState->translateX, saveState->translateY);
+         path, clipOp, pathLeft, pathTop, pathRight, pathBottom, x, y, pathWidth, pathHeight, saveState->translateX, saveState->translateY);
 }
 
 void OHRenderNodeDrawClipRoundRect(const float left, const float top, const float right, const float bottom,
-                                   const float radiusX, const float radiusY, const RenderNodeSaveState *saveState,
+                                   const float topLeftRadiusX, const float topLeftRadiusY,
+                                   const float topRightRadiusX, const float topRightRadiusY,
+                                   const float bottomRightRadiusX, const float bottomRightRadiusY,
+                                   const float bottomLeftRadiusX, const float bottomLeftRadiusY,
+                                   const RenderNodeSaveState *saveState,
                                    BaseRenderNode *renderNodeForDrawing, const OH_Native_Draw_ClipOp clipOp) {
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawClipRoundRect");
+    LOGI("OHRenderNodeDrawClipRoundRect: rect=(%{public}f,%{public}f,%{public}f,%{public}f), "
+         "radii TL(%{public}f,%{public}f), TR(%{public}f,%{public}f), BR(%{public}f,%{public}f), BL(%{public}f,%{public}f), RenderNode: %{public}p",
+         left, top, right, bottom,
+         topLeftRadiusX, topLeftRadiusY,
+         topRightRadiusX, topRightRadiusY,
+         bottomRightRadiusX, bottomRightRadiusY,
+         bottomLeftRadiusX, bottomLeftRadiusY, renderNodeForDrawing);
 
-    auto *clipNode = dynamic_cast<ClipRenderNode *>(renderNodeForDrawing);
-    if (!clipNode) {
-        LOGE("OHRenderNodeDrawClipRoundRect: renderNodeForDrawing is not ClipRenderNode");
-        return;
+    // 使用 BaseRenderNode + SetClip API，类似 OHRenderNodeDrawClipRect 的实现
+    ArkUI_RoundRectShapeOption *shapeOption = OH_ArkUI_RenderNodeUtils_CreateRoundRectShapeOption();
+    if (shapeOption) {
+        const float width = right - left;
+        const float height = bottom - top;
+
+        // 计算 bounds：clip 是相对于 RenderNode 的 bounds 的
+        const int32_t boundsWidth = static_cast<int32_t>(width);
+        const int32_t boundsHeight = static_cast<int32_t>(height);
+        const int32_t boundsX = static_cast<int32_t>(left + saveState->translateX);
+        const int32_t boundsY = static_cast<int32_t>(top + saveState->translateY);
+
+        // 设置边缘值（相对于 RenderNode 的 bounds）
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionEdgeValue(shapeOption, 0, ARKUI_EDGE_DIRECTION_LEFT);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionEdgeValue(shapeOption, 0, ARKUI_EDGE_DIRECTION_TOP);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionEdgeValue(shapeOption, width, ARKUI_EDGE_DIRECTION_RIGHT);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionEdgeValue(shapeOption, height, ARKUI_EDGE_DIRECTION_BOTTOM);
+
+        // 设置4个角的圆角坐标
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionCornerXY(shapeOption, topLeftRadiusX, topLeftRadiusY, ARKUI_CORNER_DIRECTION_TOP_LEFT);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionCornerXY(shapeOption, topRightRadiusX, topRightRadiusY, ARKUI_CORNER_DIRECTION_TOP_RIGHT);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionCornerXY(shapeOption, bottomRightRadiusX, bottomRightRadiusY, ARKUI_CORNER_DIRECTION_BOTTOM_RIGHT);
+        OH_ArkUI_RenderNodeUtils_SetRoundRectShapeOptionCornerXY(shapeOption, bottomLeftRadiusX, bottomLeftRadiusY, ARKUI_CORNER_DIRECTION_BOTTOM_LEFT);
+
+        // 从 RoundRectShape 创建裁剪选项
+        ArkUI_RenderNodeClipOption *clipOption = OH_ArkUI_RenderNodeUtils_CreateRenderNodeClipOptionFromRoundRectShape(shapeOption);
+        OH_ArkUI_RenderNodeUtils_DisposeRoundRectShapeOption(shapeOption);
+
+        if (clipOption) {
+            // 在设置 clip 之前，先设置 bounds，确保 clip 基于正确的 bounds
+            renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
+                ->setPosition(boundsX, boundsY)
+                ->setSize(width, height)
+                // 负向 translate 让 Clip RenderNode 的局部坐标重置为 (0,0)
+                ->setTranslate(-static_cast<float>(boundsX), -static_cast<float>(boundsY))
+                ->setClip(clipOption);
+
+            LOGI("OHRenderNodeDrawClipRoundRect: Successfully applied clip using SetClip API, bounds=(%d,%d,%d,%d)", boundsX, boundsY, boundsWidth, boundsHeight);
+        } else {
+            LOGE("OHRenderNodeDrawClipRoundRect: Failed to create clip option from RoundRectShape");
+        }
+    } else {
+        LOGE("OHRenderNodeDrawClipRoundRect: Failed to create RoundRectShapeOption");
     }
-
-    const int32_t x = saveState->translateX + left;
-    const int32_t y = saveState->translateY + top;
-
-    const int32_t width = right - left;
-    const int32_t height = bottom - top;
-
-    clipNode->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height);
-
-    clipNode->setClipRoundRect(left, top, right, bottom, radiusX, radiusY, clipOp);
-
-    LOGI("OHRenderNodeDrawClipRoundRect: rect=(%{public}f,%{public}f,%{public}f,%{public}f), radius=(%{public}f,%{public}f)",
-         left, top, right, bottom, radiusX, radiusY);
 }
 
 void OHRenderNodeDrawSaveLayer(const float left, const float top, const float right, const float bottom,
@@ -173,7 +226,8 @@ void OHRenderNodeDrawSaveLayer(const float left, const float top, const float ri
 
     // 应用变换状态并设置 bounds
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height);
+        ->setBounds(x, y, width, height)
+        ->setBackgroundColor(CLEAR_COLOR); // 设置背景色为透明
 
     // 应用 paint 的 opacity（如果存在）
     if (paint) {
@@ -203,7 +257,8 @@ void OHRenderNodeDrawRoundRect(const float left, const float top, const float ri
     const float radius = std::min(radiusX + strokeWidth / 2, maxRadius);
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height);
+        ->setPosition(x, y)
+        ->setSize(width, height);
 
     if (!shader) {
         renderNodeForDrawing->setBorderCornerRadius(radius);
@@ -234,9 +289,9 @@ void OHRenderNodeDrawLine(const float x1, const float y1, const float x2, const 
     const int32_t width = static_cast<int32_t>(abs(x2 - x1) + strokeWidth);
     const int32_t height = static_cast<int32_t>(abs(y2 - y1) + strokeWidth);
 
+    // LineRenderNode 使用 ContentModifier，必须设置 position 和 size
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
-        ->setPosition(x, y)
+        ->setPosition(saveState->translateX + x, saveState->translateY + y)
         ->setSize(width, height);
 
     if (!shader) {
@@ -376,7 +431,8 @@ void OHRenderNodeDrawPath(OH_Drawing_Path_Handle path, const NativeBasicShader *
     }
 
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(x, y, width, height);
+        ->setPosition(x, y)
+        ->setSize(width, height);
 
     if (!shader) {
         static_cast<PathRenderNode *>(renderNodeForDrawing)
@@ -397,8 +453,13 @@ void OHRenderNodeDrawImageRect(OH_PixelmapNative *pixelMap, int32_t srcX, int32_
          "dst=(%{public}d, %{public}d, %{public}d, %{public}d)",
          srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight);
 
+    // ImageDisplayRenderNode 使用 ContentModifier，必须设置 position 和 size
+    // ContentModifier 的 Canvas 绘制区域由 size 决定
+    const int32_t posX = saveState->translateX + dstX;
+    const int32_t posY = saveState->translateY + dstY;
+
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setPosition(posX, posY)
         ->setSize(dstWidth, dstHeight);
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
@@ -413,12 +474,38 @@ void OHRenderNodeDrawPoints(OH_Drawing_PointMode pointMode, const float *points,
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawPoints");
     LOGI("OHRenderNodeDrawPoints: pointMode=%{public}d, pointCount=%{public}zu", pointMode, pointCount);
 
-    // 设置RenderNode的transform和translate
+    // 计算边界框（PointsRenderNode 内部也会计算，但我们需要先应用 translate）
+    if (pointCount == 0) {
+        return;
+    }
+
+    float minX = FLT_MAX, minY = FLT_MAX;
+    float maxX = -FLT_MAX, maxY = -FLT_MAX;
+    for (size_t i = 0; i < pointCount; ++i) {
+        const float x = points[i * 2];
+        const float y = points[i * 2 + 1];
+        minX = std::min(minX, x);
+        maxX = std::max(maxX, x);
+        minY = std::min(minY, y);
+        maxY = std::max(maxY, y);
+    }
+
+    const float strokeWidth = paint->strokeWidth;
+    const float halfStroke = strokeWidth / 2.0f;
+    const int32_t boundsX = static_cast<int32_t>(minX - halfStroke);
+    const int32_t boundsY = static_cast<int32_t>(minY - halfStroke);
+    const int32_t boundsWidth = static_cast<int32_t>(maxX - minX + strokeWidth);
+    const int32_t boundsHeight = static_cast<int32_t>(maxY - minY + strokeWidth);
+
+    // PointsRenderNode 使用 ContentModifier，必须设置 position 和 size
+    const int32_t posX = saveState->translateX + boundsX;
+    const int32_t posY = saveState->translateY + boundsY;
+
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setTranslate(saveState->translateX, saveState->translateY);
+        ->setPosition(posX, posY)
+        ->setSize(boundsWidth, boundsHeight);
 
     // 调用PointsRenderNode的drawPoints方法
-    // PointsRenderNode会自己计算边界框并设置position和size
     static_cast<PointsRenderNode *>(renderNodeForDrawing)
         ->drawPoints(pointMode, points, pointCount, paint);
 }
@@ -444,14 +531,13 @@ void OHRenderNodeDrawTextPixelMap(OH_PixelmapNative *pixelMap, int32_t cacheKey,
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawTextPixelMap");
     LOGI("OHRenderNodeDrawTextPixelMap: cacheKey=%{public}d, width=%{public}d, height=%{public}d", cacheKey, width, height);
 
-    // 缓存 PixelMap
-    if (pixelMap != nullptr) {
-        OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMap);
-    }
+    // 注意：不再在C++侧缓存PixelMap，因为现在由Kotlin侧的PixelMapCacheManager统一管理
+    // OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMap);
 
     // 设置RenderNode的transform和translate
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(saveState->translateX, saveState->translateY, width, height);
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setSize(width, height);
 
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
@@ -473,7 +559,8 @@ void OHRenderNodeDrawTextPixelMapWithPtr(OH_PixelmapNative *pixelMap, int32_t wi
 
     // 设置RenderNode的transform和translate
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(saveState->translateX, saveState->translateY, width, height);
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setSize(width, height);
 
     auto *imageNode = static_cast<ImageDisplayRenderNode *>(renderNodeForDrawing);
 
@@ -488,13 +575,9 @@ void OHRenderNodeDrawTextAsyncTask(std::function<int64_t()> globalTask, int32_t 
     OH::SystraceSection trace("LayerDrawer:OHRenderNodeDrawTextAsyncTask");
     LOGI("OHRenderNodeDrawTextAsyncTask: width=%{public}d, height=%{public}d", width, height);
 
-    // 设置RenderNode的transform和bounds（参考 iOS TMMCALayerDrawTextAsyncTask）
-    // 注意：transform 需要在 bounds 之前设置
-    const int32_t boundsWidth = static_cast<int32_t>(std::ceil(static_cast<float>(width)));
-    const int32_t boundsHeight = static_cast<int32_t>(std::ceil(static_cast<float>(height)));
-
     renderNodeForDrawing->setTransform(const_cast<float *>(saveState->transform.data()))
-        ->setBounds(saveState->translateX, saveState->translateY, boundsWidth, boundsHeight);
+        ->setTranslate(saveState->translateX, saveState->translateY)
+        ->setSize(width, height);
 
     // 转换为 AsyncTaskRenderNode 并提交异步任务
     auto *asyncTaskNode = static_cast<AsyncTaskRenderNode *>(renderNodeForDrawing);
@@ -531,9 +614,8 @@ OH_PixelmapNative *OHNativeComposePixelMapFromImageBitmap(OH_PixelmapNative *pix
         return nullptr;
     }
 
-    // 缓存 PixelMap
-    OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMapNative);
-    LOGI("OHNativeComposePixelMapFromImageBitmap: cached pixelMap for key=%{public}d", cacheKey);
+    // 注意：不再在C++侧缓存PixelMap，因为现在由Kotlin侧的PixelMapCacheManager统一管理
+    // OHNativeTextImageCache::sharedInstance().setPixelMap(cacheKey, pixelMapNative);
 
     return pixelMapNative;
 }

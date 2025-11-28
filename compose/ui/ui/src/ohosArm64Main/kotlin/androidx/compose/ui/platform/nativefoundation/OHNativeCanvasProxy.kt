@@ -49,8 +49,10 @@ import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeC
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMap
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_needRedrawImageWithHashCode
-import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap
 import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHAsyncTaskRenderNode_updatePixelMapOnMainThread
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setShadowWithElevation
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearShadow
+import androidx.compose.ui.arkui.utils.androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setClipToBounds
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.COpaquePointerVar
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -131,6 +133,15 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
         }
     }
 
+    fun setClipToBounds(clipToBounds: Boolean) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setClipToBounds(
+                proxy = it,
+                clipToBounds = clipToBounds
+            )
+        }
+    }
+
     fun setPosition(positionX: Int, positionY: Int) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setPosition(
@@ -191,13 +202,24 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
         top: Float,
         right: Float,
         bottom: Float,
-        radiusX: Float,
-        radiusY: Float,
+        topLeftRadiusX: Float,
+        topLeftRadiusY: Float,
+        topRightRadiusX: Float,
+        topRightRadiusY: Float,
+        bottomRightRadiusX: Float,
+        bottomRightRadiusY: Float,
+        bottomLeftRadiusX: Float,
+        bottomLeftRadiusY: Float,
         clipOp: UInt
     ) {
         handle?.let {
             androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clipRoundRect(
-                it, left, top, right, bottom, radiusX, radiusY, clipOp
+                it, left, top, right, bottom,
+                topLeftRadiusX, topLeftRadiusY,
+                topRightRadiusX, topRightRadiusY,
+                bottomRightRadiusX, bottomRightRadiusY,
+                bottomLeftRadiusX, bottomLeftRadiusY,
+                clipOp
             )
         }
     }
@@ -560,22 +582,15 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
      */
     @OptIn(ExperimentalForeignApi::class)
     fun drawTextPixelMapWithPtr(
-        pixelMapPtr: Long,
+        pixelMapPtr: COpaquePointer?,
         width: Int,
         height: Int
     ) {
         handle?.let {
-            // 将 Long 转换为 COpaquePointer
-            // 在 Kotlin/Native 中，Long 可以直接转换为指针地址
-            val pixelMapPointer: COpaquePointer? = if (pixelMapPtr != 0L) {
-                pixelMapPtr.toCPointer<COpaquePointerVar>()
-            } else {
-                null
-            }
-            if (pixelMapPointer != null) {
+            if (pixelMapPtr != null) {
                 androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_drawTextPixelMapWithPtr(
                     proxy = it,
-                    pixelMapPtr = pixelMapPointer,
+                    pixelMapPtr = pixelMapPtr,
                     width = width,
                     height = height
                 )
@@ -637,15 +652,53 @@ class OHNativeCanvasProxy(handle: OHNativeCanvasProxy_Handle?) :
 
     /**
      * 从 ImageBitmap 创建并缓存 PixelMap
+     * 
+     * @deprecated 在双模式缓存方案中，此方法已不再需要。
+     * PixelMap缓存完全由Kotlin侧PixelMapCacheManager管理。
      */
     @OptIn(ExperimentalForeignApi::class)
     fun imageFromImageBitmap(pixelMap: COpaquePointer?, paragraphHashCode: Int): Long {
-        return pixelMap?.let {
-            androidx_compose_ui_arkui_utils_OHNativeComposePixelMapFromImageBitmap(
-                pixelMapNative = it,
-                cacheKey = paragraphHashCode
+        return pixelMap?.rawValue?.toLong() ?: 0L
+    }
+
+    /**
+     * 设置阴影效果
+     *
+     * @param shadowElevation 阴影高度（Material Design elevation值）
+     * @param shadowRadius 阴影圆角半径
+     * @param shadowColorRed 阴影颜色红色分量（0-1）
+     * @param shadowColorGreen 阴影颜色绿色分量（0-1）
+     * @param shadowColorBlue 阴影颜色蓝色分量（0-1）
+     * @param shadowColorAlpha 阴影颜色透明度（0-1）
+     */
+    fun setShadowWithElevation(
+        shadowElevation: Float,
+        shadowRadius: Float,
+        shadowColorRed: Float,
+        shadowColorGreen: Float,
+        shadowColorBlue: Float,
+        shadowColorAlpha: Float
+    ) {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_setShadowWithElevation(
+                proxy = it,
+                shadowElevation = shadowElevation,
+                shadowRadius = shadowRadius,
+                shadowColorRed = shadowColorRed,
+                shadowColorGreen = shadowColorGreen,
+                shadowColorBlue = shadowColorBlue,
+                shadowColorAlpha = shadowColorAlpha
             )
-        } ?: 0L
+        }
+    }
+
+    /**
+     * 清除阴影效果
+     */
+    fun clearShadow() {
+        handle?.let {
+            androidx_compose_ui_arkui_utils_OHNativeCanvasProxy_clearShadow(it)
+        }
     }
 }
 

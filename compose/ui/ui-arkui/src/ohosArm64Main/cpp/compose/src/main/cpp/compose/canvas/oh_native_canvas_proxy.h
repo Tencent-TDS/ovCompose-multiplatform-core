@@ -15,8 +15,8 @@ public:
     static OH::OHComposeNativePaint *Paint();
     OH::BaseRenderNode *getRenderNode() const;
     void beginDraw();
-    void attachToRootView() const;
-    void setParent(const OHNativeCanvasProxy *canvasParentProxy) const;
+    void attachToRootView();
+    void setParent(const OHNativeCanvasProxy *canvasParentProxy);
     void finishDraw();
     void save();
     void restore();
@@ -25,12 +25,14 @@ public:
     void rotate(float degrees);
     void skew(float sx, float sy);
     void concat(const float *matrix16);
-    void setPosition(int32_t x, int32_t y) const;
-    void setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight) const;
-    void setPivot(float px, float py) const;
-    void setOpacity(float opacity) const;
+    void setClipToBounds(bool clipToBounds);
+    void setPosition(int32_t x, int32_t y);
+    void setSize(int32_t width, int32_t height);
+    void setBounds(int32_t originX, int32_t originY, int32_t boundsWidth, int32_t boundsHeight);
+    void setPivot(float px, float py);
+    void setOpacity(float opacity);
     void applyTransformMatrix(float rotationX, float rotationY, float rotationZ, float scaleX, float scaleY,
-                              float translateX, float translateY, double transformM34) const;
+                              float translateX, float translateY, double transformM34);
 
     void drawRect(float left, float top, float right, float bottom, OH::OHComposeNativePaint *paint);
     void drawRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
@@ -48,7 +50,11 @@ public:
     void drawParagraph(OH::Paragraph *paragraph);
     void clipRect(float left, float top, float right, float bottom, OH_Native_Draw_ClipOp clipOp);
     void clipPath(OH_Drawing_Path *path, OH_Native_Draw_ClipOp clipOp);
-    void clipRoundRect(float left, float top, float right, float bottom, float radiusX, float radiusY,
+    void clipRoundRect(float left, float top, float right, float bottom,
+                       float topLeftRadiusX, float topLeftRadiusY,
+                       float topRightRadiusX, float topRightRadiusY,
+                       float bottomRightRadiusX, float bottomRightRadiusY,
+                       float bottomLeftRadiusX, float bottomLeftRadiusY,
                        OH_Native_Draw_ClipOp clipOp);
     void clearClip();
     void saveLayer(float left, float top, float right, float bottom, OH::OHComposeNativePaint *paint);
@@ -57,6 +63,10 @@ public:
     void drawLayerWithSubproxy(const OHNativeCanvasProxy *subProxy);
     void markSelfAsNodeGroup() const;
     void removeCanvasNodeFromParent() const;
+
+    void setShadowWithElevation(float shadowElevation, float shadowRadius, float shadowColorRed,
+                                float shadowColorGreen, float shadowColorBlue, float shadowColorAlpha);
+    void clearShadow();
 
     void drawTextPixelMap(void *pixelMapNative, int32_t cacheKey, int32_t width, int32_t height);
     void drawTextPixelMapWithPtr(void *pixelMapPtr, int32_t width, int32_t height);

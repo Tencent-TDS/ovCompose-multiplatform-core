@@ -153,11 +153,9 @@ internal class ArkUIRenderNodeLayer(
             }
         }
 
-//    init {
-//        if (clipChildren) {
-//            nativeCanvasProxy.setMasksToBounds(true)
-//        }
-//    }
+    init {
+//        nativeCanvasProxy.setClipToBounds(true);
+    }
 
     override fun updateLayerProperties(
         scope: ReusableGraphicsLayerScope,
@@ -207,17 +205,17 @@ internal class ArkUIRenderNodeLayer(
                 outline.roundRect.topLeftCornerRadius.x
             }  else 0.0f
 
-            // Process density consistently in Objective-C
-//            TODO this.nativeCanvasProxy.setShadowWithElevation(
-//                shadowElevation = shadowElevation,
-//                shadowRadius = shadowRadius,
-//                shadowColorRed = spotShadowColor.red,
-//                shadowColorBlue = spotShadowColor.blue,
-//                shadowColorGreen = spotShadowColor.green,
-//                shadowColorAlpha = spotShadowColor.alpha
-//            )
+            // Apply shadow with Material Design style (reference iOS implementation)
+            nativeCanvasProxy.setShadowWithElevation(
+                shadowElevation = shadowElevation,
+                shadowRadius = shadowRadius,
+                shadowColorRed = spotShadowColor.red,
+                shadowColorGreen = spotShadowColor.green,
+                shadowColorBlue = spotShadowColor.blue,
+                shadowColorAlpha = spotShadowColor.alpha
+            )
         } else {
-            // TODO: this.nativeCanvasProxy.clearShadow()
+            nativeCanvasProxy.clearShadow()
         }
     }
 

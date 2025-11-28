@@ -50,11 +50,11 @@ public:
     /**
      * 获取单例实例
      */
-    static AsyncPaintQueue& getInstance();
+    static AsyncPaintQueue &getInstance();
 
     /**
      * 提交任务到后台队列
-     * 
+     *
      * @param task 异步任务（将在后台线程执行）
      */
     void submitTask(std::function<void()> task);
@@ -65,8 +65,8 @@ public:
     size_t getTaskCount();
 
     // 禁止拷贝和赋值
-    AsyncPaintQueue(const AsyncPaintQueue&) = delete;
-    AsyncPaintQueue& operator=(const AsyncPaintQueue&) = delete;
+    AsyncPaintQueue(const AsyncPaintQueue &) = delete;
+    AsyncPaintQueue &operator=(const AsyncPaintQueue &) = delete;
 
 private:
     AsyncPaintQueue();
@@ -92,5 +92,6 @@ private:
 } // namespace OH
 
 #endif // OH_ASYNC_PAINT_QUEUE_H
+
 
 
