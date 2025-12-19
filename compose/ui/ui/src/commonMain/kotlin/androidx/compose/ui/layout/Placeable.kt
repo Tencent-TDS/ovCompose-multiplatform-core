@@ -17,6 +17,7 @@
 package androidx.compose.ui.layout
 
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.node.LookaheadCapablePlaceable
 import androidx.compose.ui.node.Owner
 import androidx.compose.ui.unit.Constraints
@@ -97,11 +98,16 @@ abstract class Placeable : Measured {
      * graphic layer. You can configure any layer property available on [GraphicsLayerScope] via
      * this block. Also if the [Placeable] will be placed with a new [position] next time only the
      * graphic layer will be moved without requiring to redrawn the [Placeable] content.
+     * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+     *                   Defaults to REGULAR for backward compatibility.
      */
     protected abstract fun placeAt(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        // region Huawei Code
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
+        // end region
     )
 
     /**
@@ -247,12 +253,17 @@ abstract class Placeable : Measured {
          * @param layerBlock You can configure any layer property available on [GraphicsLayerScope] via
          * this block. If the [Placeable] will be placed with a new [position] next time only the
          * graphic layer will be moved without requiring to redrawn the [Placeable] content.
+         * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+         *                   Defaults to REGULAR for backward compatibility.
          */
         fun Placeable.placeRelativeWithLayer(
             position: IntOffset,
             zIndex: Float = 0f,
-            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock
-        ) = placeAutoMirrored(position, zIndex, layerBlock)
+            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
+        ) = placeAutoMirrored(position, zIndex, layerBlock, sourceType)
 
         /**
          * Place a [Placeable] at [x], [y] in its parent's coordinate system with an introduced
@@ -272,13 +283,18 @@ abstract class Placeable : Measured {
          * @param layerBlock You can configure any layer property available on [GraphicsLayerScope] via
          * this block. If the [Placeable] will be placed with a new [x] or [y] next time only the
          * graphic layer will be moved without requiring to redrawn the [Placeable] content.
+         * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+         *                   Defaults to REGULAR for backward compatibility.
          */
         fun Placeable.placeRelativeWithLayer(
             x: Int,
             y: Int,
             zIndex: Float = 0f,
-            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock
-        ) = placeAutoMirrored(IntOffset(x, y), zIndex, layerBlock)
+            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
+        ) = placeAutoMirrored(IntOffset(x, y), zIndex, layerBlock, sourceType)
 
         /**
          * Place a [Placeable] at [x], [y] in its parent's coordinate system with an introduced
@@ -294,13 +310,18 @@ abstract class Placeable : Measured {
          * @param layerBlock You can configure any layer property available on [GraphicsLayerScope] via
          * this block. If the [Placeable] will be placed with a new [x] or [y] next time only the
          * graphic layer will be moved without requiring to redrawn the [Placeable] content.
+         * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+         *                   Defaults to REGULAR for backward compatibility.
          */
         fun Placeable.placeWithLayer(
             x: Int,
             y: Int,
             zIndex: Float = 0f,
-            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock
-        ) = placeApparentToRealOffset(IntOffset(x, y), zIndex, layerBlock)
+            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
+        ) = placeApparentToRealOffset(IntOffset(x, y), zIndex, layerBlock, sourceType)
 
         /**
          * Place a [Placeable] at [position] in its parent's coordinate system with an introduced
@@ -315,26 +336,35 @@ abstract class Placeable : Measured {
          * @param layerBlock You can configure any layer property available on [GraphicsLayerScope] via
          * this block. If the [Placeable] will be placed with a new [position] next time only the
          * graphic layer will be moved without requiring to redrawn the [Placeable] content.
+         * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+         *                   Defaults to REGULAR for backward compatibility.
          */
         fun Placeable.placeWithLayer(
             position: IntOffset,
             zIndex: Float = 0f,
-            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock
-        ) = placeApparentToRealOffset(position, zIndex, layerBlock)
+            layerBlock: GraphicsLayerScope.() -> Unit = DefaultLayerBlock,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
+        ) = placeApparentToRealOffset(position, zIndex, layerBlock, sourceType)
 
         @Suppress("NOTHING_TO_INLINE")
         internal inline fun Placeable.placeAutoMirrored(
             position: IntOffset,
             zIndex: Float,
-            noinline layerBlock: (GraphicsLayerScope.() -> Unit)?
+            noinline layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
         ) {
             if (parentLayoutDirection == LayoutDirection.Ltr || parentWidth == 0) {
-                placeApparentToRealOffset(position, zIndex, layerBlock)
+                placeApparentToRealOffset(position, zIndex, layerBlock, sourceType)
             } else {
                 placeApparentToRealOffset(
                     IntOffset((parentWidth - width - position.x), position.y),
                     zIndex,
-                    layerBlock
+                    layerBlock,
+                    sourceType
                 )
             }
         }
@@ -343,9 +373,12 @@ abstract class Placeable : Measured {
         internal inline fun Placeable.placeApparentToRealOffset(
             position: IntOffset,
             zIndex: Float,
-            noinline layerBlock: (GraphicsLayerScope.() -> Unit)?
+            noinline layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            // region Huawei Code
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
+            // end region
         ) {
-            placeAt(position + apparentToRealOffset, zIndex, layerBlock)
+            placeAt(position + apparentToRealOffset, zIndex, layerBlock, sourceType)
         }
     }
 }

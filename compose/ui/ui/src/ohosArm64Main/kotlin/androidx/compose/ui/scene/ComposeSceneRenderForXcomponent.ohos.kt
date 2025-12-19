@@ -41,7 +41,6 @@ class ComposeSceneRenderForXComponent(
     private var surface: Surface? = null
     private var surfaceCanvas: Canvas? = null
     private var pictureRecorder: PictureRecorder? = null
-    private var renderRect = Rect(0f, 0f, 0f, 0f)
 
     override fun setSize(width: Int, height: Int) {
         if (this.width != width || this.height != height) {

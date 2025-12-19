@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.layout.AlignmentLine
@@ -316,6 +317,7 @@ internal class LayoutNodeLayoutDelegate(
 
         private var lastPosition: IntOffset = IntOffset.Zero
         private var lastLayerBlock: (GraphicsLayerScope.() -> Unit)? = null
+        private var lastLayerSourceType: LayerSourceType = LayerSourceType.REGULAR
         private var lastZIndex: Float = 0f
 
         private var parentDataDirty: Boolean = true
@@ -372,46 +374,48 @@ internal class LayoutNodeLayoutDelegate(
         }
 
         override fun layoutChildren() {
-            layingOutChildren = true
-            alignmentLines.recalculateQueryOwner()
+            TraceUtil.traceSync("LayoutNodeLayoutDelegate:layoutChildren") {
+                layingOutChildren = true
+                alignmentLines.recalculateQueryOwner()
 
-            if (layoutPending) {
-                onBeforeLayoutChildren()
-            }
-            // as a result of the previous operation we can figure out a child has been resized
-            // and we need to be remeasured, not relaid out
-            if (layoutPendingForAlignment ||
-                (!duringAlignmentLinesQuery && !innerCoordinator.isPlacingForAlignment &&
-                    layoutPending)
-            ) {
-                layoutPending = false
-                val oldLayoutState = layoutState
-                layoutState = LayoutState.LayingOut
-                coordinatesAccessedDuringPlacement = false
-                with(layoutNode) {
-                    val owner = requireOwner()
-                    owner.snapshotObserver.observeLayoutSnapshotReads(
-                        this,
-                        affectsLookahead = false,
-                        block = layoutChildrenBlock
-                    )
+                if (layoutPending) {
+                    onBeforeLayoutChildren()
                 }
-                layoutState = oldLayoutState
-
-                if (innerCoordinator.isPlacingForAlignment &&
-                    coordinatesAccessedDuringPlacement
+                // as a result of the previous operation we can figure out a child has been resized
+                // and we need to be remeasured, not relaid out
+                if (layoutPendingForAlignment ||
+                    (!duringAlignmentLinesQuery && !innerCoordinator.isPlacingForAlignment &&
+                        layoutPending)
                 ) {
-                    requestLayout()
+                    layoutPending = false
+                    val oldLayoutState = layoutState
+                    layoutState = LayoutState.LayingOut
+                    coordinatesAccessedDuringPlacement = false
+                    with(layoutNode) {
+                        val owner = requireOwner()
+                        owner.snapshotObserver.observeLayoutSnapshotReads(
+                            this,
+                            affectsLookahead = false,
+                            block = layoutChildrenBlock
+                        )
+                    }
+                    layoutState = oldLayoutState
+
+                    if (innerCoordinator.isPlacingForAlignment &&
+                        coordinatesAccessedDuringPlacement
+                    ) {
+                        requestLayout()
+                    }
+                    layoutPendingForAlignment = false
                 }
-                layoutPendingForAlignment = false
-            }
 
-            if (alignmentLines.usedDuringParentLayout) {
-                alignmentLines.previousUsedDuringParentLayout = true
-            }
-            if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
+                if (alignmentLines.usedDuringParentLayout) {
+                    alignmentLines.previousUsedDuringParentLayout = true
+                }
+                if (alignmentLines.dirty && alignmentLines.required) alignmentLines.recalculate()
 
-            layingOutChildren = false
+                layingOutChildren = false
+            }
         }
 
         private fun checkChildrenPlaceOrderForUpdates() {
@@ -489,12 +493,14 @@ internal class LayoutNodeLayoutDelegate(
         private var placeOuterCoordinatorLayerBlock: (GraphicsLayerScope.() -> Unit)? = null
         private var placeOuterCoordinatorPosition = IntOffset.Zero
         private var placeOuterCoordinatorZIndex = 0f
+        private var placeOuterCoordinatorLayerSourceType = LayerSourceType.REGULAR
 
         private val placeOuterCoordinatorBlock: () -> Unit = {
             val scope = outerCoordinator.wrappedBy?.placementScope
                 ?: layoutNode.requireOwner().placementScope
             with(scope) {
                 val layerBlock = placeOuterCoordinatorLayerBlock
+                val layerSourceType = placeOuterCoordinatorLayerSourceType
                 if (layerBlock == null) {
                     outerCoordinator.place(
                         placeOuterCoordinatorPosition,
@@ -504,7 +510,8 @@ internal class LayoutNodeLayoutDelegate(
                     outerCoordinator.placeWithLayer(
                         placeOuterCoordinatorPosition,
                         placeOuterCoordinatorZIndex,
-                        layerBlock
+                        layerBlock,
+                        layerSourceType
                     )
                 }
             }
@@ -694,7 +701,8 @@ internal class LayoutNodeLayoutDelegate(
         override fun placeAt(
             position: IntOffset,
             zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
+            layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            sourceType: LayerSourceType
         ) {
             isPlacedByParent = true
             if (position != lastPosition) {
@@ -731,13 +739,14 @@ internal class LayoutNodeLayoutDelegate(
             }
 
             // Post-lookahead (if any) placement
-            placeOuterCoordinator(position, zIndex, layerBlock)
+            placeOuterCoordinator(position, zIndex, layerBlock, sourceType)
         }
 
         private fun placeOuterCoordinator(
             position: IntOffset,
             zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
+            layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            sourceType: LayerSourceType = LayerSourceType.REGULAR
         ) {
             require(!layoutNode.isDeactivated) {
                 "place is called on a deactivated node"
@@ -747,12 +756,13 @@ internal class LayoutNodeLayoutDelegate(
             lastPosition = position
             lastZIndex = zIndex
             lastLayerBlock = layerBlock
+            lastLayerSourceType = sourceType
             placedOnce = true
             onNodePlacedCalled = false
 
             val owner = layoutNode.requireOwner()
             if (!layoutPending && isPlaced) {
-                outerCoordinator.placeSelfApparentToRealOffset(position, zIndex, layerBlock)
+                outerCoordinator.placeSelfApparentToRealOffset(position, zIndex, layerBlock, sourceType)
                 onNodePlaced()
             } else {
                 alignmentLines.usedByModifierLayout = false
@@ -760,6 +770,7 @@ internal class LayoutNodeLayoutDelegate(
                 placeOuterCoordinatorLayerBlock = layerBlock
                 placeOuterCoordinatorPosition = position
                 placeOuterCoordinatorZIndex = zIndex
+                placeOuterCoordinatorLayerSourceType = sourceType
                 owner.snapshotObserver.observeLayoutModifierSnapshotReads(
                     layoutNode, affectsLookahead = false, block = placeOuterCoordinatorBlock
                 )
@@ -779,7 +790,7 @@ internal class LayoutNodeLayoutDelegate(
                 relayoutWithoutParentInProgress = true
                 check(placedOnce) { "replace called on unplaced item" }
                 val wasPlacedBefore = isPlaced
-                placeOuterCoordinator(lastPosition, lastZIndex, lastLayerBlock)
+                placeOuterCoordinator(lastPosition, lastZIndex, lastLayerBlock, lastLayerSourceType)
                 if (wasPlacedBefore && !onNodePlacedCalled) {
                     // parent should be notified that this node is not placed anymore so the
                     // children `placeOrder`s are updated.
@@ -1329,7 +1340,8 @@ internal class LayoutNodeLayoutDelegate(
         override fun placeAt(
             position: IntOffset,
             zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
+            layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            sourceType: LayerSourceType
         ) {
             require(!layoutNode.isDeactivated) {
                 "place is called on a deactivated node"
@@ -1618,23 +1630,25 @@ internal class LayoutNodeLayoutDelegate(
      * and after the measurement.
      */
     private fun performMeasure(constraints: Constraints) {
-        check(layoutState == LayoutState.Idle) {
-            "layout state is not idle before measure starts"
-        }
-        layoutState = LayoutState.Measuring
-        measurePending = false
-        performMeasureConstraints = constraints
-        layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(
-            layoutNode,
-            affectsLookahead = false,
-            performMeasureBlock
-        )
-        // The resulting layout state might be Ready. This can happen when the layout node's
-        // own modifier is querying an alignment line during measurement, therefore we
-        // need to also layout the layout node.
-        if (layoutState == LayoutState.Measuring) {
-            markLayoutPending()
-            layoutState = LayoutState.Idle
+        TraceUtil.traceSync("LayoutNodeLayoutDelegate:performMeasure") {
+            check(layoutState == LayoutState.Idle) {
+                "layout state is not idle before measure starts"
+            }
+            layoutState = LayoutState.Measuring
+            measurePending = false
+            performMeasureConstraints = constraints
+            layoutNode.requireOwner().snapshotObserver.observeMeasureSnapshotReads(
+                layoutNode,
+                affectsLookahead = false,
+                performMeasureBlock
+            )
+            // The resulting layout state might be Ready. This can happen when the layout node's
+            // own modifier is querying an alignment line during measurement, therefore we
+            // need to also layout the layout node.
+            if (layoutState == LayoutState.Measuring) {
+                markLayoutPending()
+                layoutState = LayoutState.Idle
+            }
         }
     }
 

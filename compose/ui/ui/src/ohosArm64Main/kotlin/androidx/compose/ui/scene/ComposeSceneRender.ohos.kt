@@ -18,10 +18,12 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.Canvas
+import org.jetbrains.skia.Rect
 
 abstract class ComposeSceneRender {
     var width: Int = 0
     var height: Int = 0
+    var renderRect = Rect(0f, 0f, 0f, 0f)
 
     interface Delegate {
         fun render(canvas: Canvas, timestamp: Long)

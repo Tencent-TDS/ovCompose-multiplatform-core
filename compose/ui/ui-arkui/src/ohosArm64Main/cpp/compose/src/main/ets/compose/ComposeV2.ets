@@ -132,7 +132,7 @@ export struct ComposeV2 {
   registerComposeSizeChange() {
     let size = this.composeSizeProxy!!.getComposeSize();
     this.composeSizeProxy!!.registerSizeChange((width: number, height: number) => {
-      this.requireController().onSurfaceChanged(vp2px(width), vp2px(height))
+      this.requireController().onSurfaceChanged(width, height)
     })
   }
 
@@ -192,9 +192,12 @@ export struct ComposeV2 {
       .onAreaChange((oldValue: Area, newValue: Area) => {
         console.info(`Ace: on area change, oldValue is ${JSON.stringify(oldValue)} value is ${JSON.stringify(newValue)}`)
         if (!this.hasCreated) {
-          this.requireController().onSurfaceCreated(vp2px(newValue.width as number), vp2px(newValue.height as number))
+          this.requireController().onSurfaceCreated(this.getUIContext().vp2px(newValue.width as number),
+            this.getUIContext().vp2px(newValue.height as number))
            this.hasCreated = true
         }
+        this.requireController().onResize(this.getUIContext().vp2px(newValue.width as number),
+          this.getUIContext().vp2px(newValue.height as number));
       })
 
       TextToolbarOverlay({ params: this.textToolbarParams })

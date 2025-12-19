@@ -19,7 +19,7 @@ package androidx.compose.ui.platform
 
 actual class PlatformTextNodeFactory {
 
-    actual fun createPlatformDelegateTextNode(): PlatformTextNode? = null
+    actual fun createPlatformDelegateTextNode(): PlatformTextNode? = OHOSTextNode()
 
     actual companion object {
         actual val instance: PlatformTextNodeFactory = PlatformTextNodeFactory()

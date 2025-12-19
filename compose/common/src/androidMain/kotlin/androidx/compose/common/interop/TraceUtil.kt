@@ -30,4 +30,8 @@ actual object TraceUtil {
     actual inline fun <T> traceSync(sectionName: String, block: () -> T): T {
         return block()
     }
+
+    actual var isTraceEnabled: Boolean
+        get() = TODO("Not yet implemented")
+        set(value) {}
 }

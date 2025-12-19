@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.common.interop.LogPrintUtil
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.unit.Density
@@ -31,15 +32,17 @@ class ArkUIRenderNodeLayerFactory(
         density: Density,
         drawBlock: (Canvas) -> Unit,
         invalidateParentLayer: () -> Unit,
-        onDestroy: () -> Unit
+        onDestroy: () -> Unit,
+        sourceType: LayerSourceType
     ): OwnedLayer {
-        LogPrintUtil.verbose("ArkUIRenderNodeLayerFactory::createLayer")
+        LogPrintUtil.verbose { "ArkUIRenderNodeLayerFactory::createLayer - sourceType=$sourceType" }
         return ArkUIRenderNodeLayer(
             density,
             invalidateParentLayer,
             drawBlock,
             onDestroy,
-            nativeCanvasFactory
+            nativeCanvasFactory,
+            sourceType
         )
     }
 }

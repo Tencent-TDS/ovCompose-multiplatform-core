@@ -55,6 +55,8 @@ export declare interface InternalArkUIViewController extends ArkUIViewController
 
   onSurfaceChanged(width: number, height: number): void
 
+  onResize(width: number, height: number): void
+
   notifyRedraw(targetTimestamp: number): void
 
   createNativeRoot(nodeContent: any): void

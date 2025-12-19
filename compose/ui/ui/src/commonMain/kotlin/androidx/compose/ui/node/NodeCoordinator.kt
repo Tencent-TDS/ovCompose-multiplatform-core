@@ -312,17 +312,19 @@ internal abstract class NodeCoordinator(
     override fun placeAt(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType
     ) {
-        placeSelf(position, zIndex, layerBlock)
+        placeSelf(position, zIndex, layerBlock, sourceType)
     }
 
     private fun placeSelf(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
     ) {
-        updateLayerBlock(layerBlock)
+        updateLayerBlock(layerBlock, sourceType = sourceType)
         if (this.position != position) {
             this.position = position
             layoutNode.layoutDelegate.measurePassDelegate
@@ -348,9 +350,10 @@ internal abstract class NodeCoordinator(
     fun placeSelfApparentToRealOffset(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
     ) {
-        placeSelf(position + apparentToRealOffset, zIndex, layerBlock)
+        placeSelf(position + apparentToRealOffset, zIndex, layerBlock, sourceType)
     }
 
     /**
@@ -418,7 +421,8 @@ internal abstract class NodeCoordinator(
 
     fun updateLayerBlock(
         layerBlock: (GraphicsLayerScope.() -> Unit)?,
-        forceUpdateLayerParameters: Boolean = false
+        forceUpdateLayerParameters: Boolean = false,
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
     ) {
         val layoutNode = layoutNode
         val updateParameters = forceUpdateLayerParameters || this.layerBlock !== layerBlock ||
@@ -431,7 +435,8 @@ internal abstract class NodeCoordinator(
             if (layer == null) {
                 layer = layoutNode.requireOwner().createLayer(
                     drawBlock,
-                    invalidateParentLayer
+                    invalidateParentLayer,
+                    sourceType
                 ).apply {
                     resize(measuredSize)
                     // region Tencent Code

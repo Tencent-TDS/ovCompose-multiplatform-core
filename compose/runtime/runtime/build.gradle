@@ -116,6 +116,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.atomicFu)
                 implementation(project(":collection:collection"))
+                api(project(":compose:common"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)

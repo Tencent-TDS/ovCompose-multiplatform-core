@@ -389,13 +389,15 @@ internal class RootNodeOwner(
 
         override fun createLayer(
             drawBlock: (Canvas) -> Unit,
-            invalidateParentLayer: () -> Unit
+            invalidateParentLayer: () -> Unit,
+            sourceType: LayerSourceType
         // region Tencent Code
         ) = layerFactory?.createLayer(
             Snapshot.withoutReadObservation { density },
             drawBlock,
             invalidateParentLayer,
-            { needClearObservations = true }
+            { needClearObservations = true },
+            sourceType
         ) ?: RenderNodeLayer(
         // endregion
             Snapshot.withoutReadObservation {

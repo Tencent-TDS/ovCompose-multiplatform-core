@@ -22,8 +22,6 @@
 #include "xcomponent_holder.h"
 #include "xcomponent_log.h"
 #include "xcomponent_render.h"
-#include "canvas/oh_native_canvas_proxy.h"
-#include "canvas/oh_native_canvas_proxy_factory.h"
 
 EXTERN_C_START
 void androidx_compose_ui_arkui_utils_init(napi_env env, napi_value exports) {

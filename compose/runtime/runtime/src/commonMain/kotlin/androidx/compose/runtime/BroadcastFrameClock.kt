@@ -16,6 +16,7 @@
 
 package androidx.compose.runtime
 
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.snapshots.fastForEach
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resumeWithException
@@ -59,18 +60,20 @@ class BroadcastFrameClock(
      * [sendFrame].
      */
     fun sendFrame(timeNanos: Long) {
-        synchronized(lock) {
-            // Rotate the lists so that if a resumed continuation on an immediate dispatcher
-            // bound to the thread calling sendFrame immediately awaits again we don't disrupt
-            // iteration of resuming the rest.
-            val toResume = awaiters
-            awaiters = spareList
-            spareList = toResume
+        TraceUtil.traceSync("BroadcastFrameClock.sendFrame") {
+            synchronized(lock) {
+                // Rotate the lists so that if a resumed continuation on an immediate dispatcher
+                // bound to the thread calling sendFrame immediately awaits again we don't disrupt
+                // iteration of resuming the rest.
+                val toResume = awaiters
+                awaiters = spareList
+                spareList = toResume
 
-            for (i in 0 until toResume.size) {
-                toResume[i].resume(timeNanos)
+                for (i in 0 until toResume.size) {
+                    toResume[i].resume(timeNanos)
+                }
+                toResume.clear()
             }
-            toResume.clear()
         }
     }
 

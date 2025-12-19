@@ -24,6 +24,7 @@ actual object TraceUtil {
     private val DefaultTrace = DefaultSignPostSyncTrace
     actual var traceImpl: SyncTraceInterface? = DefaultTrace
     private var _vsyncId = 0L
+    private var _isTraceEnabled = true
     actual val globalVsyncId: Long get() = _vsyncId
 
     actual fun increaseVsyncId(): Long {
@@ -32,9 +33,19 @@ actual object TraceUtil {
     }
 
     actual inline fun <T> traceSync(sectionName: String, block: () -> T): T {
-        this.traceImpl?.startTrace("$sectionName[VsyncId:${this.globalVsyncId}]")
-        return try { block() } finally { TraceUtil.traceImpl?.endTrace(sectionName) }
+        if (isTraceEnabled) this.traceImpl?.startTrace("$sectionName[VsyncId:${this.globalVsyncId}]")
+        return try {
+            block()
+        } finally {
+            if (isTraceEnabled) this.traceImpl?.endTrace(sectionName)
+        }
     }
+
+    actual var isTraceEnabled: Boolean
+        get() = _isTraceEnabled
+        set(value) {
+            _isTraceEnabled = value
+        }
 }
 
 object DefaultSignPostSyncTrace : SyncTraceInterface {

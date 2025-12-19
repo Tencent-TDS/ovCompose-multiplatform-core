@@ -190,7 +190,8 @@ internal abstract class LookaheadDelegate(
     final override fun placeAt(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType
     ) {
         placeSelf(position)
         if (isShallowPlacing) return

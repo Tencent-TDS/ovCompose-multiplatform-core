@@ -17,6 +17,7 @@
 package androidx.compose.foundation
 
 import androidx.annotation.FloatRange
+import androidx.compose.common.interop.TraceUtil
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size

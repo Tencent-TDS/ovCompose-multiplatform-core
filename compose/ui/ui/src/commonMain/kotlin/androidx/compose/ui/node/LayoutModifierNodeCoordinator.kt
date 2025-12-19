@@ -154,9 +154,10 @@ internal class LayoutModifierNodeCoordinator(
     override fun placeAt(
         position: IntOffset,
         zIndex: Float,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        sourceType: LayerSourceType
     ) {
-        super.placeAt(position, zIndex, layerBlock)
+        super.placeAt(position, zIndex, layerBlock, sourceType)
         // The coordinator only runs their placement block to obtain our position, which allows them
         // to calculate the offset of an alignment line we have already provided a position for.
         // No need to place our wrapped as well (we might have actually done this already in

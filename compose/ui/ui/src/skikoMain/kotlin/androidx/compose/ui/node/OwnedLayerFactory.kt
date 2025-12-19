@@ -9,7 +9,8 @@ abstract class OwnedLayerFactory {
         density: Density,
         drawBlock: (Canvas) -> Unit,
         invalidateParentLayer: () -> Unit,
-        onDestroy: () -> Unit
+        onDestroy: () -> Unit,
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
     ): OwnedLayer
 
 }

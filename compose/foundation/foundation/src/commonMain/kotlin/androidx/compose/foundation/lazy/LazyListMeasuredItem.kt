@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutAnimation.Companion.Not
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
@@ -207,9 +208,21 @@ internal class LazyListMeasuredItem @ExperimentalFoundationApi constructor(
             }
             offset += visualOffset
             if (isVertical) {
-                placeable.placeWithLayer(offset, layerBlock = layerBlock)
+                placeable.placeWithLayer(
+                    offset, 
+                    layerBlock = layerBlock,
+                    // region Huawei Code
+                    sourceType = LayerSourceType.LAZY_LIST_ITEM
+                    // end region
+                )
             } else {
-                placeable.placeRelativeWithLayer(offset, layerBlock = layerBlock)
+                placeable.placeRelativeWithLayer(
+                    offset, 
+                    layerBlock = layerBlock,
+                    // region Huawei Code
+                    sourceType = LayerSourceType.LAZY_LIST_ITEM
+                    // end region
+                )
             }
         }
     }

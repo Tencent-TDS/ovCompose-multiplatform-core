@@ -19,6 +19,7 @@ package androidx.compose.ui.layout
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.node.LayerSourceType
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.NodeMeasuringIntrinsics
 import androidx.compose.ui.node.Nodes
@@ -236,7 +237,8 @@ internal class IntermediateLayoutModifierNode(
         override fun placeAt(
             position: IntOffset,
             zIndex: Float,
-            layerBlock: (GraphicsLayerScope.() -> Unit)?
+            layerBlock: (GraphicsLayerScope.() -> Unit)?,
+            sourceType: LayerSourceType
         ) {
             val offset =
                 if (isIntermediateChangeActive) position else IntOffset.Zero
@@ -245,7 +247,8 @@ internal class IntermediateLayoutModifierNode(
                     wrappedPlaceable?.placeWithLayer(
                         offset,
                         zIndex,
-                        it
+                        it,
+                        sourceType
                     )
                 } ?: wrappedPlaceable?.place(offset, zIndex)
             }

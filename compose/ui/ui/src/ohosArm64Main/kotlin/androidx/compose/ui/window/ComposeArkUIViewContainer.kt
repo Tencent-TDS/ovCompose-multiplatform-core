@@ -50,6 +50,8 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsetsHolder
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.accessibility.OHNativeXComponent
+import androidx.compose.ui.platform.nativefoundation.RenderingBackendContext
+import androidx.compose.ui.platform.nativefoundation.injectForCompose
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -71,6 +73,10 @@ internal class ComposeArkUIViewContainer(
     private val content: @Composable () -> Unit,
 ) : BasicArkUIViewController(coroutineDispatcher) {
 
+    init {
+        injectForCompose(configuration.renderingBackend)
+    }
+
     private var nativeSurfaceHasBeenDestroyed = false
 
     private val windowContext = PlatformWindowContext().apply {
@@ -90,54 +96,66 @@ internal class ComposeArkUIViewContainer(
         PlatformInsetsHolder(this)
     }
 
-    override fun onSurfaceCreated(component: OHNativeXComponent, width: Int, height: Int) {
-        if (!nativeSurfaceHasBeenDestroyed) {
-            createMediatorIfNeeded(component)
-            mediator?.setSize(width, height)
-            windowContext.setContainerSize(IntSize(width, height))
-        }
-    }
-
-    override fun onSurfaceChanged(width: Int, height: Int) {
-        androidx.compose.ui.graphics.kLog("onSurfaceChanged width:$width height:$height")
-        OhosTrace.traceSync("KmmOnSurfaceChanged $width*$height") {
+    override fun onSurfaceCreated(component: OHNativeXComponent, width: Int, height: Int) =
+        withRenderingBackend {
             if (!nativeSurfaceHasBeenDestroyed) {
+                createMediatorIfNeeded(component)
                 mediator?.setSize(width, height)
                 windowContext.setContainerSize(IntSize(width, height))
-                invalidate()
             }
         }
-    }
 
-    override fun onSurfaceDestroyed() {
-        super.onSurfaceDestroyed()
-        nativeSurfaceHasBeenDestroyed = true
-        mediator?.dispose()
-        mediator = null
-    }
-
-    override fun onDraw(timestamp: Long, targetTimestamp: Long) {
-        if (!nativeSurfaceHasBeenDestroyed) {
-            mediator?.onDraw(id, timestamp, targetTimestamp)
+    override fun onSurfaceChanged(width: Int, height: Int) =
+        withRenderingBackend {
+            androidx.compose.ui.graphics.kLog("onSurfaceChanged width:$width height:$height")
+            OhosTrace.traceSync("KmmOnSurfaceChanged $width*$height") {
+                if (!nativeSurfaceHasBeenDestroyed) {
+                    mediator?.setSize(width, height)
+                    windowContext.setContainerSize(IntSize(width, height))
+                    invalidate()
+                }
+            }
         }
-    }
+
+    override fun onSurfaceDestroyed() =
+        withRenderingBackend {
+            super.onSurfaceDestroyed()
+            nativeSurfaceHasBeenDestroyed = true
+            mediator?.dispose()
+            mediator = null
+        }
+
+    override fun onDraw(timestamp: Long, targetTimestamp: Long) =
+        withRenderingBackend {
+            if (!nativeSurfaceHasBeenDestroyed) {
+                mediator?.onDraw(id, timestamp, targetTimestamp)
+            }
+        }
 
     override fun dispatchTouchEvent(
         nativeTouchEvent: napi_value,
         ignoreInteropView: Boolean
-    ): Boolean {
-        if (!nativeSurfaceHasBeenDestroyed) {
-            return mediator?.sendPointerEvent(requiredEnv, nativeTouchEvent) ?: false
+    ): Boolean =
+        withRenderingBackend {
+            if (!nativeSurfaceHasBeenDestroyed) {
+                mediator?.sendPointerEvent(requiredEnv, nativeTouchEvent) ?: false
+            } else {
+                true
+            }
         }
-        return true
-    }
 
-    override fun keyboardWillShow(keyboardHeight: Float) {
-        mediator?.keyboardWillShow(keyboardHeight)
-    }
+    override fun keyboardWillShow(keyboardHeight: Float): Unit =
+        withRenderingBackend {
+            mediator?.keyboardWillShow(keyboardHeight)
+        }
 
-    override fun keyboardWillHide() {
-        mediator?.keyboardWillHide()
+    override fun keyboardWillHide(): Unit =
+        withRenderingBackend {
+            mediator?.keyboardWillHide()
+        }
+
+    private inline fun <T> withRenderingBackend(block: () -> T): T {
+        return RenderingBackendContext.withBackend(configuration.renderingBackend, block)
     }
 
     private fun createMediatorIfNeeded(component: OHNativeXComponent) {

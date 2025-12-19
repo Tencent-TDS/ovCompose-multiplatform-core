@@ -20,7 +20,16 @@ import platform.ohos.LOG_APP
 import platform.ohos.LOG_DEBUG
 import platform.ohos.OH_LOG_Print
 
+
+/**
+ * Compile-time constant to control verbose logging.
+ * When set to false, the compiler will completely remove all verbose log code (zero overhead).
+ * When set to true, verbose logging is controlled at runtime via [LogPrintUtil.isLogEnabled].
+ */
+const val ENABLE_VERBOSE_LOG_COMPILE_TIME = false
+
 actual object LogPrintUtil {
+    private var _isLogEnabled: Boolean = true
 
     private val DefaultLogger = object : LogPrintInterface {
         override fun verbose(message: String) {
@@ -28,14 +37,22 @@ actual object LogPrintUtil {
                 type = LOG_APP,
                 level = LOG_DEBUG,
                 domain = 0x0000u,
-                tag = "ovCompose",
+                tag = "ovComposeKt",
                 fmt = message
             )
         }
     }
     actual var logPrintImpl: LogPrintInterface? = DefaultLogger
 
-    actual fun verbose(message: String) {
-        this.logPrintImpl?.verbose(message)
+    actual inline fun verbose(message: () -> String) {
+        if (ENABLE_VERBOSE_LOG_COMPILE_TIME && isLogEnabled) {
+            this.logPrintImpl?.verbose(message())
+        }
     }
+
+    actual var isLogEnabled: Boolean
+        get() = _isLogEnabled
+        set(value) {
+            _isLogEnabled = value
+        }
 }

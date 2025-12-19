@@ -18,21 +18,21 @@
 #ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVASPROXYFACTORY_H
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_OHNATIVECANVASPROXYFACTORY_H
 
+#include "../render_node/oh_base_render_node.h"
 #include "oh_native_canvas_proxy.h"
-#include "arkui/native_render.h"
 
 namespace androidx::compose::ui::arkui::utils {
 typedef struct OHNativeCanvasProxy* OHNativeCanvasProxy_Handle;
 class OHNativeCanvasProxyFactory {
-
 public:
-    explicit OHNativeCanvasProxyFactory(ArkUI_RenderNode *rootNode);
+    explicit OHNativeCanvasProxyFactory(OH::BaseRenderNode* rootNode);
     ~OHNativeCanvasProxyFactory();
-    OHNativeCanvasProxy_Handle CreateOHNativeCanvasProxy();
-    ArkUI_RenderNode *getRootRenderNode();
-private:
-    ArkUI_RenderNode *rootNode_;
+    OHNativeCanvasProxy_Handle CreateOHNativeCanvasProxy() const;
+    OH::BaseRenderNode* getRootRenderNode();
+
+   private:
+    OH::BaseRenderNode* rootNode_;
 };
-} // namespace androidx::compose::ui::arkui::utils
+}  // namespace androidx::compose::ui::arkui::utils
 
 #endif

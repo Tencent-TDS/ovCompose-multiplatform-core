@@ -18,7 +18,7 @@
 #ifndef ANDROIDX_COMPOSE_UI_ARKUI_UTILS_XCOMPONENT_LOG_H
 #define ANDROIDX_COMPOSE_UI_ARKUI_UTILS_XCOMPONENT_LOG_H
 
-//#ifdef DEBUG
+#ifdef DEBUG
 
 #include <hilog/log.h>
 
@@ -26,12 +26,12 @@
 #define LOGI(fmt, ...) OH_LOG_Print(LOG_APP, LOG_INFO, 1000, "compose-arkui", fmt, ##__VA_ARGS__)
 #define LOGE(fmt, ...) OH_LOG_Print(LOG_APP, LOG_ERROR, 1000, "compose-arkui", fmt, ##__VA_ARGS__)
 
-//#else
+#else
 
-//#define LOGD(fmt, ...)
-//#define LOGI(fmt, ...)
-//#define LOGE(fmt, ...)
-//
-//#endif
+#define LOGD(fmt, ...)
+#define LOGI(fmt, ...)
+#define LOGE(fmt, ...)
+
+#endif
 
 #endif // ANDROIDX_COMPOSE_UI_ARKUI_UTILS_XCOMPONENT_LOG_H

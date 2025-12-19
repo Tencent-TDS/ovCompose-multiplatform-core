@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.modifiers
 import androidx.compose.foundation.text.DefaultMinLines
 import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -584,7 +585,7 @@ internal class TextAnnotatedStringNode(
             val textLayoutResult = layoutCache.textLayoutResult
             val localParagraph = textLayoutResult.multiParagraph
             // region Tencent Code
-            if (drawInSkia || EnableIOSParagraph) {
+            if (drawInSkia || EnableIOSParagraph || EnableOHOSParagraph) {
                 localCanvas = canvas
             } else {
                 val width = textLayoutResult.size.width

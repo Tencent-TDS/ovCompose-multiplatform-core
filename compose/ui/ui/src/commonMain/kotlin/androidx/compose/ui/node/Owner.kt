@@ -252,8 +252,17 @@ internal interface Owner : PlatformTextInputSessionHandler {
 
     /**
      * Creates an [OwnedLayer] which will be drawing the passed [drawBlock].
+     *
+     * @param drawBlock The drawing commands to execute on this layer
+     * @param invalidateParentLayer Callback to invalidate the parent layer
+     * @param sourceType The source type of the layer (LAZY_LIST_ITEM or REGULAR).
+     *                   Defaults to REGULAR for backward compatibility.
      */
-    fun createLayer(drawBlock: (Canvas) -> Unit, invalidateParentLayer: () -> Unit): OwnedLayer
+    fun createLayer(
+        drawBlock: (Canvas) -> Unit,
+        invalidateParentLayer: () -> Unit,
+        sourceType: LayerSourceType = LayerSourceType.REGULAR
+    ): OwnedLayer
 
     /**
      * The semantics have changed. This function will be called when a SemanticsNode is added to

@@ -32,6 +32,7 @@ kotlin {
             cinterops.create("compose_arkui_utils") {
                 defFile("src/nativeInterop/cinterop/compose_arkui_utils.def")
                 includeDirs("src/ohosArm64Main/cpp/compose/src/main/cpp/compose")
+                includeDirs("src/ohosArm64Main/cinterop/include")
             }
 
             cinterops.create("arkui") {
@@ -54,6 +55,12 @@ val KotlinNativeCompilation.cmakes: CMakeSettingsHolder
 
 class CMakeSettings(val name: String) {
     var sourceDir: String = ""
+}
+
+fun resolveDevEcoConfiguration() : Boolean {
+    val string = project.findProperty("DEVECO_CONFIGURATION") ?:
+    gradle.parent?.rootProject?.findProperty("DEVECO_CONFIGURATION") ?: "Release"
+    return string == "Debug" || string == "DEBUG"
 }
 
 class CMakeSettingsHolder(private val compilation: KotlinNativeCompilation) {
@@ -106,12 +113,13 @@ class CMakeSettingsHolder(private val compilation: KotlinNativeCompilation) {
                 .withPropertyName("$name-${target.name}-static-lib")
         }
 
+        val debug = resolveDevEcoConfiguration()
         target.binaries.all {
-            freeCompilerArgs += listOf("-include-binary", binaryFile.absolutePath)
+            freeCompilerArgs +=  if (debug) listOf() else listOf("-include-binary", binaryFile.absolutePath)
         }
         target.compilations.all {
             kotlinOptions {
-                freeCompilerArgs += listOf("-include-binary", binaryFile.absolutePath)
+                freeCompilerArgs += if (debug) listOf() else listOf("-include-binary", binaryFile.absolutePath)
             }
         }
     }

@@ -21,7 +21,13 @@ actual object LogPrintUtil {
         get() = TODO("Not yet implemented")
         set(value) {}
 
-    actual fun verbose(message: String) {
-        println(message)
+    actual inline fun verbose(message: () -> String) {
+        if (isLogEnabled) {
+            println(message())
+        }
     }
+
+    actual var isLogEnabled: Boolean
+        get() = TODO("Not yet implemented")
+        set(value) {}
 }

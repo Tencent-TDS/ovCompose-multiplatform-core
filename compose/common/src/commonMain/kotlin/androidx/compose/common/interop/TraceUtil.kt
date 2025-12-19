@@ -24,6 +24,7 @@ interface SyncTraceInterface {
 expect object TraceUtil {
     var traceImpl: SyncTraceInterface?
     val globalVsyncId: Long
+    var isTraceEnabled: Boolean
     fun increaseVsyncId(): Long
     inline fun <T> traceSync(sectionName: String, block: () -> T): T
 }

@@ -32,6 +32,7 @@ internal class PlatformContextImpl(
     override val textInputService: PlatformTextInputService,
     override val textToolbar: TextToolbar,
     override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?,
+    override val drawInSkia: Boolean = false,
     densityProvider: () -> Density,
 ) : PlatformContext by PlatformContext.Empty {
 

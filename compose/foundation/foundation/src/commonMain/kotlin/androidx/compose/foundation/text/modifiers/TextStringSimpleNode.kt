@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.modifiers
 import androidx.compose.foundation.text.DefaultMinLines
 import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.EnableOHOSParagraph
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -95,6 +96,7 @@ internal class TextStringSimpleNode(
         PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
     private var localBitmap: ImageBitmap? = null
     private var localCanvas: Canvas? = null
+
     // endregion
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
     private var _layoutCache: ParagraphLayoutCache? = null
@@ -487,7 +489,7 @@ internal class TextStringSimpleNode(
 
         val localParagraph = requireNotNull(layoutCache.paragraph) { "no paragraph" }
         // region Tencent Code
-        if (ComposeTabService.textAsyncPaint && !drawInSkia) {
+        if (ComposeTabService.textAsyncPaint && !drawInSkia && platformTextDelegate != null) {
             asyncDrawIntoCanvas(localParagraph)
             return
         }
@@ -495,7 +497,7 @@ internal class TextStringSimpleNode(
         drawIntoCanvas { canvas ->
             var currentParagraphHashCode = 0
             // region Tencent Code
-            if (drawInSkia || EnableIOSParagraph) {
+            if (drawInSkia || EnableIOSParagraph || EnableOHOSParagraph) {
                 localCanvas = canvas
             } else {
                 currentParagraphHashCode = paragraphHashCode()
@@ -571,6 +573,7 @@ internal class TextStringSimpleNode(
             }
         }
     }
+
     private fun paragraphHashCode(): Int {
         var result = text.hashCode()
         result = 31 * result + style.hashCode()
