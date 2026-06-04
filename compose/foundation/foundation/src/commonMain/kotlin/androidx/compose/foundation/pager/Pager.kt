@@ -22,6 +22,7 @@ import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.calculateTargetValue
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
@@ -38,6 +39,7 @@ import androidx.compose.foundation.gestures.snapping.calculateFinalSnappingItem
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.ThrowableCache
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -138,6 +140,47 @@ fun HorizontalPager(
         reverseLayout = reverseLayout,
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = false,
+        pageContent = pageContent
+    )
+}
+
+@Composable
+@ExperimentalFoundationApi
+fun HorizontalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondBoundsPageCount: Int = PagerDefaults.BeyondBoundsPageCount,
+    pageSpacing: Dp = 0.dp,
+    verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    flingBehavior: SnapFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection = remember(state) {
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal)
+    },
+    disableScrollLoading: Boolean = false,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    Pager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondBoundsPageCount = beyondBoundsPageCount,
+        pageSpacing = pageSpacing,
+        orientation = Orientation.Horizontal,
+        verticalAlignment = verticalAlignment,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = disableScrollLoading,
         pageContent = pageContent
     )
 }
@@ -218,6 +261,47 @@ fun VerticalPager(
         reverseLayout = reverseLayout,
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = false,
+        pageContent = pageContent
+    )
+}
+
+@Composable
+@ExperimentalFoundationApi
+fun VerticalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondBoundsPageCount: Int = PagerDefaults.BeyondBoundsPageCount,
+    pageSpacing: Dp = 0.dp,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    flingBehavior: SnapFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection = remember(state) {
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Vertical)
+    },
+    disableScrollLoading: Boolean = false,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    Pager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondBoundsPageCount = beyondBoundsPageCount,
+        pageSpacing = pageSpacing,
+        orientation = Orientation.Vertical,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = horizontalAlignment,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        disableScrollLoading = disableScrollLoading,
         pageContent = pageContent
     )
 }
@@ -344,7 +428,10 @@ object PagerDefaults {
         pagerSnapDistance: PagerSnapDistance = PagerSnapDistance.atMost(1),
         lowVelocityAnimationSpec: AnimationSpec<Float> = LowVelocityAnimationSpec,
         highVelocityAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay(),
-        snapAnimationSpec: AnimationSpec<Float> = spring(stiffness = Spring.StiffnessMediumLow),
+        snapAnimationSpec: AnimationSpec<Float> = spring(
+            stiffness = Spring.StiffnessMediumLow,
+            visibilityThreshold = Int.VisibilityThreshold.toFloat()
+        ),
         @FloatRange(from = 0.0, to = 1.0) snapPositionalThreshold: Float = 0.5f
     ): SnapFlingBehavior {
         require(snapPositionalThreshold in 0f..1f) {
@@ -896,7 +983,12 @@ private class DefaultPagerNestedScrollConnection(
         source: NestedScrollSource
     ): Offset {
         if (source == NestedScrollSource.Fling && available != Offset.Zero) {
-            throw CancellationException("End of scrollable area reached")
+            // region Tencent Code
+            // throw CancellationException("End of scrollable area reached")
+            throw ThrowableCache.jobCancellationException
+                ?: CancellationException("End of scrollable area reached")
+            // endregion
+
         }
         return Offset.Zero
     }

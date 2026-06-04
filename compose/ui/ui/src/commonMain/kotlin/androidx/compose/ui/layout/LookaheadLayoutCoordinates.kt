@@ -66,6 +66,11 @@ internal class LookaheadLayoutCoordinates(val lookaheadDelegate: LookaheadDelega
     override fun localToWindow(relativeToLocal: Offset): Offset =
         coordinator.localToWindow(relativeToLocal + lookaheadOffset)
 
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: Rect): Rect =
+        coordinator.boundsBoxInContainerWindow(bounds)
+    // endregion
+
     override fun localToRoot(relativeToLocal: Offset): Offset =
         coordinator.localToRoot(relativeToLocal + lookaheadOffset)
 
@@ -116,6 +121,12 @@ internal class LookaheadLayoutCoordinates(val lookaheadDelegate: LookaheadDelega
     }
 
     override fun get(alignmentLine: AlignmentLine): Int = lookaheadDelegate.get(alignmentLine)
+
+    // region Tencent Code
+    override fun inspectionLayerId(): Long = coordinator.inspectionLayerId()
+    
+    override fun inspectionLayerPositionInWindow(): Offset = coordinator.inspectionLayerPositionInWindow()
+    // endregion
 }
 
 internal val LookaheadDelegate.rootLookaheadDelegate: LookaheadDelegate

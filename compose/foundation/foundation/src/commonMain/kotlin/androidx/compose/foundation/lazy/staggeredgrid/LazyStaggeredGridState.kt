@@ -20,6 +20,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.monitor.ApplyScrollableMonitor
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.layout.AwaitFirstLayoutModifier
@@ -34,6 +35,7 @@ import androidx.compose.foundation.lazy.layout.animateScrollToItem
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridLaneInfo.Companion.FullSpan
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridLaneInfo.Companion.Unset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
@@ -71,7 +73,11 @@ fun rememberLazyStaggeredGridState(
             initialFirstVisibleItemIndex,
             initialFirstVisibleItemScrollOffset
         )
+    // region Tencent Code
+    }.also {
+        ApplyScrollableMonitor(it)
     }
+    // endregion
 
 /**
  * Hoisted state object controlling [LazyVerticalStaggeredGrid] or [LazyHorizontalStaggeredGrid].
@@ -228,6 +234,12 @@ class LazyStaggeredGridState private constructor(
         scrollableState.scroll(scrollPriority, block)
     }
 
+    // region Tencent Code
+    @InternalComposeApi
+    override val currentScrollPriority: MutatePriority?
+        get() = scrollableState.currentScrollPriority
+    // endregion
+
     /**
      * Whether this [scrollableState] is currently scrolling by gesture, fling or programmatically or
      * not.
@@ -300,6 +312,17 @@ class LazyStaggeredGridState private constructor(
             snapToItemInternal(index, scrollOffset)
         }
     }
+
+    // region Tencent Code
+    @ExperimentalFoundationApi
+    suspend fun scrollToItemCompat(
+        index: Int,
+        scrollOffset: Int = 0,
+    ) {
+        scrollToItem(index, -1)
+        scrollToItem(index, scrollOffset)
+    }
+    // endregion
 
     private val numOfItemsToTeleport: Int get() = 100 * laneCount
     /**

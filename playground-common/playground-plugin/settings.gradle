@@ -21,6 +21,15 @@ pluginManagement {
         gradlePluginPortal().content {
             it.includeModule("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.jvm.gradle.plugin")
         }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+        }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+        }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+        }
     }
 }
 
@@ -31,6 +40,12 @@ dependencyResolutionManagement {
         gradlePluginPortal().content {
             it.includeModule("com.gradle", "gradle-enterprise-gradle-plugin")
             it.includeModule("com.gradle", "common-custom-user-data-gradle-plugin")
+        }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+        }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
         }
     }
 }

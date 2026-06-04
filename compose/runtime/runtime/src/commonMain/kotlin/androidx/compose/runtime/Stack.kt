@@ -17,21 +17,31 @@
 package androidx.compose.runtime
 
 // TODO(b/139762913): Consider changing to inline class of ArrayList<T> to avoid wrapper class
+// region Tencent Code
+@Suppress("UNCHECKED_CAST")
 internal class Stack<T> {
-    private val backing = ArrayList<T>()
+    private var slots = arrayOfNulls<Any>(10)
+    private var tos = 0
 
-    val size: Int get() = backing.size
+    val size: Int get() = tos
 
-    fun push(value: T) = backing.add(value)
-    fun pop(): T = backing.removeAt(size - 1)
-    fun peek(): T = backing.get(size - 1)
-    fun peek(index: Int): T = backing.get(index)
-    fun isEmpty() = backing.isEmpty()
-    fun isNotEmpty() = !isEmpty()
-    fun clear() = backing.clear()
-    @Suppress("UNCHECKED_CAST")
-    fun toArray(): Array<T> = Array<Any?>(backing.size) { backing[it] } as Array<T>
+    fun push(value: T): Boolean {
+        if (tos >= slots.size) {
+            slots = slots.copyOf(slots.size * 2)
+        }
+        slots[tos++] = value
+        return true
+    }
+
+    fun pop(): T = slots[--tos] as T
+    fun peek(): T = slots[tos - 1] as T
+    fun peek(index: Int): T = slots[index] as T
+    fun isEmpty() = tos == 0
+    fun isNotEmpty() = tos != 0
+    fun clear() { tos = 0 }
+    fun toArray(): Array<T> = Array(tos) { slots[it] } as Array<T>
 }
+// endregion
 
 internal class IntStack {
     private var slots = IntArray(10)

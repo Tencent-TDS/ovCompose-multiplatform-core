@@ -184,6 +184,89 @@ val currentComposer: Composer
     @Composable get() { throw NotImplementedError("Implemented as an intrinsic") }
 
 /**
+ * Execute a [block] of @Composable code with the given [composer], forwarding
+ * the pre-computed [changed] parameter to the single Composable call inside [block].
+ *
+ * This is a compiler intrinsic. The compiler will:
+ * 1. Extract the single Composable call from [block].
+ * 2. Replace the entire `withComposer(...)` expression with that call,
+ *    injecting [composer] and [changed] into the appropriate synthetic parameter slots.
+ * 3. Mark the call so that [ComposableFunctionBodyTransformer] skips its normal
+ *    `$changed` / `$default` computation for this call.
+ *
+ * **Restriction**: [block] must contain exactly one Composable function call.
+ *
+ * Variant: 1 changed, 0 default (for target functions with ≤10 params and no defaults).
+ */
+inline fun <T> withComposer(
+    composer: Composer,
+    changed0: Int,
+    block: @Composable () -> T
+): T { throw NotImplementedError("Implemented as an intrinsic") }
+
+/**
+ * Same as [withComposer] but also forwards a [default0] mask.
+ *
+ * Variant: 1 changed, 1 default (for target functions with ≤10 params and ≤31 defaultable params).
+ */
+inline fun <T> withComposer(
+    composer: Composer,
+    changed0: Int,
+    default0: Int,
+    block: @Composable () -> T
+): T { throw NotImplementedError("Implemented as an intrinsic") }
+
+/**
+ * Same as [withComposer] but forwards two changed masks.
+ *
+ * Variant: 2 changed, 1 default (for target functions with 11–20 params and ≤31 defaultable params).
+ */
+inline fun <T> withComposer(
+    composer: Composer,
+    changed0: Int,
+    changed1: Int,
+    default0: Int,
+    block: @Composable () -> T
+): T { throw NotImplementedError("Implemented as an intrinsic") }
+
+/**
+ * Same as [withComposer] but forwards two changed masks and two default masks.
+ *
+ * Variant: 2 changed, 2 default (for target functions with 11–20 params and >31 defaultable params).
+ */
+inline fun <T> withComposer(
+    composer: Composer,
+    changed0: Int,
+    changed1: Int,
+    default0: Int,
+    default1: Int,
+    block: @Composable () -> T
+): T { throw NotImplementedError("Implemented as an intrinsic") }
+
+/**
+ * Execute a [block] of @Composable code with the given [composer].
+ *
+ * Unlike [withComposer], this does NOT forward pre-computed `$changed` / `$default`
+ * parameters. The Compose compiler will apply its normal composable call transformation
+ * to all calls inside [block], computing `$changed` and `$default` as usual.
+ *
+ * This is a compiler intrinsic. The compiler will:
+ * 1. Inline the [block] lambda body at the call site.
+ * 2. Replace the `$composer` synthetic parameter inside [block] with [composer].
+ * 3. Allow normal `$changed` / `$default` computation for all Composable calls inside.
+ *
+ * Use this when you have a Composer reference and need to execute arbitrary
+ * @Composable code (e.g. `remember`, `LaunchedEffect`) without controlling
+ * the change-tracking bits.
+ *
+ * Unlike [withComposer], [block] may contain any number of Composable calls.
+ */
+inline fun <T> composableScope(
+    composer: Composer,
+    block: @Composable () -> T
+): T { throw NotImplementedError("Implemented as an intrinsic") }
+
+/**
  * Returns an object which can be used to invalidate the current scope at this point in composition.
  * This object can be used to manually cause recompositions.
  */
@@ -286,7 +369,7 @@ val currentCompositeKeyHash: Int
     if (currentComposer.applier !is E) invalidApplier()
     currentComposer.startReusableNode()
     if (currentComposer.inserting) {
-        currentComposer.createNode { factory() }
+        currentComposer.createNode(factory)
     } else {
         currentComposer.useNode()
     }

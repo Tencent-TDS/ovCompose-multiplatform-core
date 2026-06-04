@@ -37,6 +37,7 @@ sealed class Brush {
      * [Float.NaN] in the desired dimension.
      */
     open val intrinsicSize: Size = Size.Unspecified
+    open var useSkia: Boolean = false
 
     abstract fun applyTo(size: Size, p: Paint, alpha: Float)
 
@@ -469,7 +470,8 @@ class LinearGradient internal constructor(
             colorStops = stops,
             from = Offset(startX, startY),
             to = Offset(endX, endY),
-            tileMode = tileMode
+            tileMode = tileMode,
+            forceUseSkia = useSkia
         )
     }
 

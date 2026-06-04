@@ -65,7 +65,10 @@ import kotlin.math.roundToInt
 internal actual fun rememberOverscrollEffect(): OverscrollEffect {
     val context = LocalContext.current
     val config = LocalOverscrollConfiguration.current
-    return if (config != null) {
+    // region Tencent Code Modify
+    /*return if (config != null) {*/
+    return if (LocalOverscrollEnabled.current && config != null) {
+    // endregion
         remember(context, config) { AndroidEdgeEffectOverscrollEffect(context, config) }
     } else {
         NoOpOverscrollEffect

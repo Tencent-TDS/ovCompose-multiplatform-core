@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -61,6 +62,10 @@ interface PlatformContext {
     val inputModeManager: InputModeManager
     val textInputService: PlatformTextInputService get() = EmptyPlatformTextInputService
     val textToolbar: TextToolbar get() = EmptyTextToolbar
+
+    // region Tencent Code
+    val drawInSkia: Boolean get() = true
+    // endregion
     fun setPointerIcon(pointerIcon: PointerIcon) = Unit
 
     val parentFocusManager: FocusManager get() = EmptyFocusManager
@@ -79,6 +84,14 @@ interface PlatformContext {
      * @see SemanticsOwnerListener
      */
     val semanticsOwnerListener: SemanticsOwnerListener? get() = null
+
+    // region Tencent Code
+    /**
+     * block of calculating compose bounds in outer scrollable container window
+     */
+    val boundsPositionCalculator: ((offset: Rect) -> Rect)? get() = null
+
+    // endregion
 
     interface RootForTestListener {
         fun onRootForTestCreated(root: PlatformRootForTest)
@@ -139,8 +152,15 @@ internal class DefaultInputModeManager(
 
 internal object EmptyViewConfiguration : ViewConfiguration {
     override val longPressTimeoutMillis: Long = 500
-    override val doubleTapTimeoutMillis: Long = 300
-    override val doubleTapMinTimeMillis: Long = 40
+    // region Tencent Code Modify
+    /*
+    // override val doubleTapTimeoutMillis: Long = 300
+    // override val doubleTapMinTimeMillis: Long = 40
+    */
+    override val doubleTapTimeoutMillis: Long = ComposeTabService.doubleTapConfig.doubleTapTimeoutMillis
+    override val doubleTapMinTimeMillis: Long = ComposeTabService.doubleTapConfig.doubleTapMinTimeMillis
+    override val touchDirectionFactor: Float = ComposeTabService.touchDirectionFactor
+    // end region
     override val touchSlop: Float = 18f
 }
 

@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.text.platform
 
+import androidx.compose.runtime.ComposeTabService
 import kotlin.native.Platform as NativePlatform
 import org.jetbrains.skia.Typeface as SkTypeface
 import org.jetbrains.skia.FontStyle as SkFontStyle
@@ -30,7 +31,16 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
     }
     @Suppress("REDUNDANT_ELSE_IN_WHEN")
     return when (font) {
-        is LoadedFont -> SkTypeface.makeFromData(Data.makeFromBytes(font.getData()))
+        is LoadedFont -> {
+            // region Tencent Code Modify
+            // SkTypeface.makeFromData(Data.makeFromBytes(font.getData()))
+            if (ComposeTabService.skiaSwitchStateANRFixEnable) {
+                SkTypeface.makeFromData2(Data.makeFromBytes(font.getData()))
+            } else {
+                SkTypeface.makeFromData(Data.makeFromBytes(font.getData()))
+            }
+            // end region
+        }
         is SystemFont -> SkTypeface.makeFromName(font.identity, font.skFontStyle)
         // TODO: compilation fails without `else` see https://youtrack.jetbrains.com/issue/KT-43875
         else -> throw IllegalArgumentException("Unsupported font type: $font")

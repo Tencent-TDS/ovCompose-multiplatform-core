@@ -18,6 +18,7 @@ package androidx.compose.ui.graphics
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.ExperimentalTencentComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
@@ -554,9 +555,17 @@ private data class BlockGraphicsLayerElement(
     }
 }
 
+// region Tencent Code
+@ExperimentalTencentComposeUiApi
+interface BlockGraphicsLayerModifierNode {
+    val layerBlock: GraphicsLayerScope.() -> Unit
+}
+
+@OptIn(ExperimentalTencentComposeUiApi::class)
 private class BlockGraphicsLayerModifier(
-    var layerBlock: GraphicsLayerScope.() -> Unit,
-) : LayoutModifierNode, Modifier.Node() {
+    override var layerBlock: GraphicsLayerScope.() -> Unit,
+) : LayoutModifierNode, Modifier.Node(), BlockGraphicsLayerModifierNode {
+// endregion
 
     /**
      * We can skip remeasuring as we only need to rerun the placement block. we request it
@@ -585,26 +594,49 @@ private class BlockGraphicsLayerModifier(
         "BlockGraphicsLayerModifier(" +
             "block=$layerBlock)"
 }
+// region Tencent Code
+@ExperimentalTencentComposeUiApi
+interface SimpleGraphicsLayerModifierNode {
+    val scaleX: Float
+    val scaleY: Float
+    val alpha: Float
+    val translationX: Float
+    val translationY: Float
+    val shadowElevation: Float
+    val rotationX: Float
+    val rotationY: Float
+    val rotationZ: Float
+    val cameraDistance: Float
+    val transformOrigin: TransformOrigin
+    val shape: Shape
+    val clip: Boolean
+    val renderEffect: RenderEffect?
+    val ambientShadowColor: Color
+    val spotShadowColor: Color
+    val compositingStrategy: CompositingStrategy
+}
 
+@OptIn(ExperimentalTencentComposeUiApi::class)
 private class SimpleGraphicsLayerModifier(
-    var scaleX: Float,
-    var scaleY: Float,
-    var alpha: Float,
-    var translationX: Float,
-    var translationY: Float,
-    var shadowElevation: Float,
-    var rotationX: Float,
-    var rotationY: Float,
-    var rotationZ: Float,
-    var cameraDistance: Float,
-    var transformOrigin: TransformOrigin,
-    var shape: Shape,
-    var clip: Boolean,
-    var renderEffect: RenderEffect?,
-    var ambientShadowColor: Color,
-    var spotShadowColor: Color,
-    var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
-) : LayoutModifierNode, Modifier.Node() {
+    override var scaleX: Float,
+    override var scaleY: Float,
+    override var alpha: Float,
+    override var translationX: Float,
+    override var translationY: Float,
+    override var shadowElevation: Float,
+    override var rotationX: Float,
+    override var rotationY: Float,
+    override var rotationZ: Float,
+    override var cameraDistance: Float,
+    override var transformOrigin: TransformOrigin,
+    override var shape: Shape,
+    override var clip: Boolean,
+    override var renderEffect: RenderEffect?,
+    override var ambientShadowColor: Color,
+    override var spotShadowColor: Color,
+    override var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
+) : LayoutModifierNode, Modifier.Node(), SimpleGraphicsLayerModifierNode {
+// endregion
 
     /**
      * We can skip remeasuring as we only need to rerun the placement block. we request it

@@ -16,7 +16,15 @@
 
 package androidx.compose.foundation.text.modifiers
 
+import androidx.compose.foundation.FastTraceTag
+import androidx.compose.foundation.OVMPFastLogPhase
+import androidx.compose.foundation.fastLog
+import androidx.compose.foundation.fastLogSetCurrentTraceId
+import androidx.compose.foundation.nativePtr
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.foundation.utf16Head4AsLong
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.EnableIOSParagraph
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,13 +32,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -39,6 +50,7 @@ import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.SemanticsModifierNode
@@ -46,6 +58,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidateLayer
 import androidx.compose.ui.node.invalidateMeasurement
 import androidx.compose.ui.node.invalidateSemantics
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearTextSubstitution
 import androidx.compose.ui.semantics.getTextLayoutResult
@@ -55,6 +68,7 @@ import androidx.compose.ui.semantics.showTextSubstitution
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.semantics.textSubstitution
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -72,19 +86,29 @@ import kotlin.math.roundToInt
  * Note that this Node never calculates [TextLayoutResult] unless needed by semantics.
  */
 internal class TextStringSimpleNode(
-    private var text: String,
-    private var style: TextStyle,
+    internal var text: String,
+    var traceId: Long = 0L,  // region Tencent Code: traceId for fastlog
+    internal var style: TextStyle,
     private var fontFamilyResolver: FontFamily.Resolver,
     private var overflow: TextOverflow = TextOverflow.Clip,
     private var softWrap: Boolean = true,
     private var maxLines: Int = Int.MAX_VALUE,
     private var minLines: Int = DefaultMinLines,
-    private var overrideColor: ColorProducer? = null
-) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
-    private var baselineCache: MutableMap<AlignmentLine, Int>? = null
+    internal var overrideColor: ColorProducer? = null
+) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    // region Tencent Code
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    internal val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
+    internal var localBitmap: ImageBitmap? = null
+    internal var localCanvas: Canvas? = null
 
+    // endregion
+    private var baselineCache: MutableMap<AlignmentLine, Int>? = null
     private var _layoutCache: ParagraphLayoutCache? = null
-    private val layoutCache: ParagraphLayoutCache
+    internal val layoutCache: ParagraphLayoutCache
         get() {
             if (_layoutCache == null) {
                 _layoutCache = ParagraphLayoutCache(
@@ -322,7 +346,6 @@ internal class TextStringSimpleNode(
         constraints: Constraints
     ): MeasureResult {
         val layoutCache = getLayoutCache(this)
-
         val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
         // ensure measure restarts when hasStaleResolvedFonts by reading in measure
         layoutCache.observeFontChanges
@@ -367,35 +390,398 @@ internal class TextStringSimpleNode(
     override fun IntrinsicMeasureScope.minIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int =
+        getLayoutCache(this).intrinsicHeight(width, layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicWidth(
         measurable: IntrinsicMeasurable,
         height: Int
-    ): Int = getLayoutCache(this).maxIntrinsicWidth(layoutDirection)
+    ): Int =
+        getLayoutCache(this).maxIntrinsicWidth(layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int =
+        getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+
+    // region Tencent Code
+    private fun ensureTextBitmap() {
+        val newBitmap = ImageBitmap(layoutCache.layoutSize.width, layoutCache.layoutSize.height)
+        localCanvas = Canvas(newBitmap)
+        localBitmap = newBitmap
+    }
+
+    // 原始函数，不做任何修改
+    private inline fun ContentDrawScope.asyncDrawIntoCanvas(localParagraph: Paragraph) {
+        drawIntoCanvas { canvas ->
+            val currentParagraphHashCode = paragraphHashCode()
+            val textHash = text.hashCode().toLong()
+            val textLen = text.length.toLong()
+            val nativePtr = canvas.nativePtr()
+            val stringLongValue = text.utf16Head4AsLong()
+            val traceId = traceId
+            fastLogSetCurrentTraceId(traceId)  // region Tencent Code: set traceId for native
+            fastLog(
+                FastTraceTag.Text,
+                traceId,  // region Tencent Code: add traceId to log
+                stringLongValue,
+                OVMPFastLogPhase.TextOnKtAsync1Begin.value,
+                nativePtr,
+                textHash,
+                textLen,
+                currentParagraphHashCode.toLong(),
+            )
+
+            if (ComposeTabService.composeIOSNullTextOptEnable && text.isEmpty() && platformTextDelegate != null) {
+                platformTextDelegate.drawNullText( nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutCache.layoutSize.width,
+                    height = layoutCache.layoutSize.height)
+                fastLog(
+                    FastTraceTag.Text,
+                    traceId,
+                    stringLongValue,
+                    OVMPFastLogPhase.TextOnKtAsync1DrawNullTextEnd.value,
+                    nativePtr,
+                    textHash,
+                    textLen,
+                    currentParagraphHashCode.toLong(),
+                )
+                return
+            }
+
+            if (platformTextDelegate?.needRedrawText(
+                    nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutCache.layoutSize.width,
+                    height = layoutCache.layoutSize.height
+                ) == false
+            ) {
+                fastLog(
+                    FastTraceTag.Text,
+                    traceId,
+                    stringLongValue,
+                    OVMPFastLogPhase.TextOnKtAsync1HitCacheEnd.value,
+                    nativePtr,
+                    textHash,
+                    textLen,
+                    currentParagraphHashCode.toLong()
+                )
+                return
+            }
+
+            val willClip = layoutCache.didOverflow
+            val layoutSizeWidth = layoutCache.layoutSize.width
+            val layoutSizeHeight = layoutCache.layoutSize.height
+
+            val globalTask: () -> Long = {
+                val newBitmap = ImageBitmap(layoutSizeWidth, layoutSizeHeight)
+                val renderCanvas = Canvas(newBitmap)
+                if (willClip) {
+                    val bounds = Rect(Offset.Zero, Size(layoutSizeWidth.toFloat(), layoutSizeHeight.toFloat()))
+                    renderCanvas.save()
+                    renderCanvas.clipRect(bounds)
+                }
+                try {
+                    val textDecoration = style.textDecoration ?: TextDecoration.None
+                    val shadow = style.shadow ?: Shadow.None
+                    val drawStyle = style.drawStyle ?: Fill
+                    val brush = style.brush
+                    if (brush != null) {
+                        val alpha = style.alpha
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            brush = brush,
+                            alpha = alpha,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    } else {
+                        val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+                        val color = if (overrideColorVal.isSpecified) {
+                            overrideColorVal
+                        } else if (style.color.isSpecified) {
+                            style.color
+                        } else {
+                            Color.Black
+                        }
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            color = color,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    }
+                    platformTextDelegate?.imageFromImageBitmap(canvas, currentParagraphHashCode, newBitmap) ?: 0
+                } finally {
+                    if (willClip) {
+                        renderCanvas.restore()
+                    }
+                }
+            }
+
+            platformTextDelegate?.asyncDrawIntoCanvas(
+                canvas,
+                globalTask,
+                currentParagraphHashCode,
+                layoutSizeWidth,
+                layoutSizeHeight
+            ) {}
+        }
+    }
+
+    // 新增函数：asyncDrawIntoCanvas3 (基于 asyncDrawIntoCanvas 的修复版)
+    // 使用 PictureRecorder 录制 UI 线程的指令，确保字体引用安全
+    private inline fun ContentDrawScope.asyncDrawIntoCanvas3(localParagraph: Paragraph) {
+        drawIntoCanvas { canvas ->
+            val currentParagraphHashCode = paragraphHashCode()
+            val layoutSizeWidth = layoutCache.layoutSize.width
+            val layoutSizeHeight = layoutCache.layoutSize.height
+            val textHash = text.hashCode().toLong()
+            val textLen = text.length.toLong()
+            val nativePtr = canvas.nativePtr()
+            val stringLongValue = text.utf16Head4AsLong()
+            fastLogSetCurrentTraceId(traceId)
+            fastLog(
+                FastTraceTag.Text,
+                traceId,
+                stringLongValue,
+                OVMPFastLogPhase.TextOnKtAsync3Begin.value,
+                nativePtr,
+                textHash,
+                textLen,
+                currentParagraphHashCode.toLong(),
+            )
+
+            if (ComposeTabService.composeIOSNullTextOptEnable && text.isEmpty() && platformTextDelegate != null) {
+                platformTextDelegate.drawNullText( nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutCache.layoutSize.width,
+                    height = layoutCache.layoutSize.height)
+                fastLog(
+                    FastTraceTag.Text,
+                    traceId,
+                    stringLongValue,
+                    OVMPFastLogPhase.TextOnKtAsync3DrawNullTextEnd.value,
+                    nativePtr,
+                    textHash,
+                    textLen,
+                    currentParagraphHashCode.toLong()
+                )
+                return
+            }
+
+            if (platformTextDelegate?.needRedrawText(
+                    nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutSizeWidth,
+                    height = layoutSizeHeight
+                ) == false
+            ) {
+                fastLog(
+                    FastTraceTag.Text,
+                    traceId,
+                    stringLongValue,
+                    OVMPFastLogPhase.TextOnKtAsync3HitCacheEnd.value,
+                    nativePtr,
+                    textHash,
+                    textLen,
+                    currentParagraphHashCode.toLong(),
+                )
+                return
+            }
+
+            val willClip = layoutCache.didOverflow
+
+            // 1. 在 UI 线程进行录制，不耗时
+            val recorder = platformTextDelegate?.createTextPictureRecorder() ?: return
+            val recordingCanvas = recorder.beginRecording(layoutSizeWidth.toFloat(), layoutSizeHeight.toFloat())
+
+            val textDecoration = style.textDecoration ?: TextDecoration.None
+            val shadow = style.shadow ?: Shadow.None
+            val drawStyle = style.drawStyle ?: Fill
+            val brush = style.brush
+            if (brush != null) {
+                val alpha = style.alpha
+                localParagraph.paint(
+                    canvas = recordingCanvas,
+                    brush = brush,
+                    alpha = alpha,
+                    shadow = shadow,
+                    drawStyle = drawStyle,
+                    textDecoration = textDecoration
+                )
+            } else {
+                val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+                val color = if (overrideColorVal.isSpecified) {
+                    overrideColorVal
+                } else if (style.color.isSpecified) {
+                    style.color
+                } else {
+                    Color.Black
+                }
+                localParagraph.paint(
+                    canvas = recordingCanvas,
+                    color = color,
+                    shadow = shadow,
+                    drawStyle = drawStyle,
+                    textDecoration = textDecoration
+                )
+            }
+
+            // 完成录制，picture 持有正确的字体引用
+            val picture = recorder.finishRecordingAsPicture()
+            recorder.close()
+
+            // 2. 将 picture 传递给后台任务
+            val globalTask: () -> Long = {
+                val newBitmap = ImageBitmap(layoutSizeWidth, layoutSizeHeight)
+                val renderCanvas = Canvas(newBitmap)
+                if (willClip) {
+                    val bounds = Rect(Offset.Zero, Size(layoutSizeWidth.toFloat(), layoutSizeHeight.toFloat()))
+                    renderCanvas.save()
+                    renderCanvas.clipRect(bounds)
+                }
+                try {
+                    // 后台线程只负责回放 (Rasterization)
+                    picture.drawNativeCanvas(renderCanvas.nativeCanvas)
+                    platformTextDelegate.imageFromImageBitmap(canvas, currentParagraphHashCode, newBitmap)
+                } finally {
+                    if (willClip) {
+                        renderCanvas.restore()
+                    }
+                    // 必须释放 picture
+                    picture.close()
+                }
+            }
+
+            platformTextDelegate.asyncDrawIntoCanvas(
+                canvas,
+                globalTask,
+                currentParagraphHashCode,
+                layoutSizeWidth,
+                layoutSizeHeight
+            ) {}
+        }
+    }
+
+    // endregion
 
     /**
      * Optimized Text draw.
      */
     override fun ContentDrawScope.draw() {
+
         if (!isAttached) {
             // no-up for !isAttached. The node will invalidate when attaching again.
             return
         }
+
+        // region Tencent Code
+        if (layoutCache.paragraph == null) {
+            // no-up for paragraph is null. The node did not measure.
+            return
+        }
+        // endregion
+
+        // region Tencent Code: shadow padding fix — delegate to separate file when enabled
+        if (isTextShadowPaddingEnabled()) {
+            drawWithShadowPadding(this@TextStringSimpleNode)
+            return
+        }
+        // endregion
+
         val localParagraph = requireNotNull(layoutCache.paragraph) { "no paragraph" }
+
         drawIntoCanvas { canvas ->
+
+            if (platformTextDelegate != null && platformTextDelegate.enableTextAsyncPaint(canvas) && !drawInSkia) {
+                // 使用开关判断是否启用 PictureRecorder 修复逻辑
+                if (ComposeTabService.composeTextRecorderPaintEnable) {
+                    asyncDrawIntoCanvas3(localParagraph)
+                } else {
+                    asyncDrawIntoCanvas(localParagraph)
+                }
+                return
+            }
+
+            var currentParagraphHashCode = 0
+            // region Tencent Code
+            val textHash = text.hashCode().toLong()
+            val textLen = text.length.toLong()
+            val nativePtr = canvas.nativePtr()
+            val stringLongValue = text.utf16Head4AsLong()
+            val traceId = traceId
+            fastLogSetCurrentTraceId(traceId)  // set traceId for native
+
+            if (drawInSkia || EnableIOSParagraph) {
+                localCanvas = canvas
+            } else {
+                currentParagraphHashCode = paragraphHashCode()
+                fastLog(
+                    FastTraceTag.Text,
+                    traceId,
+                    stringLongValue,
+                    OVMPFastLogPhase.TextOnKtSyncBegin.value,
+                    nativePtr,
+                    textHash,
+                    textLen,
+                    currentParagraphHashCode.toLong(),
+                )
+
+                if (ComposeTabService.composeIOSNullTextOptEnable && text.isEmpty() && platformTextDelegate != null) {
+                    platformTextDelegate.drawNullText( nativeCanvas = canvas,
+                        paragraphHashKey = currentParagraphHashCode,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height)
+
+                    fastLog(
+                        FastTraceTag.Text,
+                        traceId,
+                        stringLongValue,
+                        OVMPFastLogPhase.TextOnKtSyncDrawNullTextEnd.value,
+                        nativePtr,
+                        textHash,
+                        textLen,
+                        currentParagraphHashCode.toLong()
+                    )
+                    return
+                }
+
+                if (platformTextDelegate?.needRedrawText(
+                        nativeCanvas = canvas,
+                        paragraphHashKey = currentParagraphHashCode,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height
+                    ) == false
+                ) {
+                    fastLog(
+                        FastTraceTag.Text,
+                        traceId,
+                        stringLongValue,
+                        OVMPFastLogPhase.TextOnKtSyncHitCacheEnd.value,
+                        nativePtr,
+                        textHash,
+                        textLen,
+                        currentParagraphHashCode.toLong(),
+                    )
+                    return
+                }
+                ensureTextBitmap()
+            }
+            // endregion
+
+            val renderCanvas = localCanvas!!
             val willClip = layoutCache.didOverflow
             if (willClip) {
                 val width = layoutCache.layoutSize.width.toFloat()
                 val height = layoutCache.layoutSize.height.toFloat()
                 val bounds = Rect(Offset.Zero, Size(width, height))
-                canvas.save()
-                canvas.clipRect(bounds)
+                renderCanvas.save()
+                renderCanvas.clipRect(bounds)
             }
             try {
                 val textDecoration = style.textDecoration ?: TextDecoration.None
@@ -405,7 +791,7 @@ internal class TextStringSimpleNode(
                 if (brush != null) {
                     val alpha = style.alpha
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         brush = brush,
                         alpha = alpha,
                         shadow = shadow,
@@ -422,18 +808,54 @@ internal class TextStringSimpleNode(
                         Color.Black
                     }
                     localParagraph.paint(
-                        canvas = canvas,
+                        canvas = renderCanvas,
                         color = color,
                         shadow = shadow,
                         drawStyle = drawStyle,
                         textDecoration = textDecoration
                     )
                 }
+                // region Tencent Code
+                if (!drawInSkia && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        imageBitmap = localBitmap,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height,
+                        paragraphHashCode = currentParagraphHashCode,
+                        nativeCanvas = canvas
+                    )
+                    localBitmap = null
+                    localCanvas = null
+                }
+                // endregion
             } finally {
                 if (willClip) {
-                    canvas.restore()
+                    renderCanvas.restore()
                 }
             }
         }
     }
+
+    internal fun paragraphHashCode(): Int {
+        var result = text.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + softWrap.hashCode()
+        result = 31 * result + maxLines
+        result = 31 * result + minLines
+        result = 31 * result + (layoutCache.layoutSize.hashCode() ?: 0)
+        if (style.brush == null) {
+            val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+            val color = if (overrideColorVal.isSpecified) {
+                overrideColorVal
+            } else if (style.color.isSpecified) {
+                style.color
+            } else {
+                Color.Black
+            }
+            result = 31 * result + color.hashCode()
+        }
+        return result
+    }
+    // endregion
 }

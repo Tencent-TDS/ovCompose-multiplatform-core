@@ -18,6 +18,7 @@ package androidx.compose.animation
 
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.generateDecayAnimationSpec
+import androidx.compose.runtime.monitor.ComposeDiagnosticMonitor
 import androidx.compose.ui.unit.Density
 import kotlin.math.abs
 import kotlin.math.ln
@@ -90,7 +91,16 @@ internal object AndroidFlingSpline {
         val index = (NbSamples * time).toInt()
         var distanceCoef = 1f
         var velocityCoef = 0f
+        // region Tencent Code Modify
+        /*
         if (index < NbSamples) {
+         */
+        // fix kotlin.ArrayIndexOutOfBoundsException
+        if (index < 0) {
+            ComposeDiagnosticMonitor.reportAnimationIndexOutOfBounds(IndexOutOfBoundsException("index = $index"))
+        }
+        if (index in 0..<NbSamples) {
+        // endregion
             val tInf = index.toFloat() / NbSamples
             val tSup = (index + 1).toFloat() / NbSamples
             val dInf = SplinePositions[index]

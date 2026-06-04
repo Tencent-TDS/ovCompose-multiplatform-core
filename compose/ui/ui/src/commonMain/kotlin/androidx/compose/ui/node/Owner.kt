@@ -25,6 +25,7 @@ import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -132,6 +134,9 @@ internal interface Owner : PlatformTextInputSessionHandler {
      */
     val windowInfo: WindowInfo
 
+    /** Provides a queryable and observable index of nodes' bounding rectangles */
+    val rectManager: RectManager
+
     @Deprecated(
         "fontLoader is deprecated, use fontFamilyResolver",
         replaceWith = ReplaceWith("fontFamilyResolver")
@@ -151,6 +156,10 @@ internal interface Owner : PlatformTextInputSessionHandler {
         @InternalCoreApi
         set
 
+    // region Tencent Code
+    val drawInSkia: Boolean
+        get() = false
+    // endregion
     /**
      * Called by [LayoutNode] to request the Owner a new measurement+layout. [forceRequest] defines
      * whether the node should bypass the logic that would reject measure requests, and therefore
@@ -212,6 +221,13 @@ internal interface Owner : PlatformTextInputSessionHandler {
      * transformed relative to the window, this will not be a simple translation.
      */
     fun calculateLocalPosition(positionInWindow: Offset): Offset
+
+    // region Tencent Code
+    /**
+     * clip [bounds] in native container window, when compose scroll in a scrollable component
+     */
+    fun boundsBoxInContainerWindow(bounds: Rect): Rect
+    // endregion
 
     /**
      * Ask the system to provide focus to this owner.

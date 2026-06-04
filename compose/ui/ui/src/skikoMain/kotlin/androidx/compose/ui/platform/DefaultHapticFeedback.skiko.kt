@@ -19,8 +19,15 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
+// region Tencent Code
+/*
 // TODO(demin): implement HapticFeedback
 internal class DefaultHapticFeedback : HapticFeedback {
     override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
     }
 }
+*/
+
+internal expect class DefaultHapticFeedback() : HapticFeedback {
+}
+// endregion

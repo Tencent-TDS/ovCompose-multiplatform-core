@@ -45,7 +45,10 @@ internal fun rememberStaggeredGridMeasurePolicy(
     mainAxisSpacing: Dp,
     crossAxisSpacing: Dp,
     coroutineScope: CoroutineScope,
-    slots: LazyGridStaggeredGridSlotsProvider
+    slots: LazyGridStaggeredGridSlotsProvider,
+    // region Tencent Code
+    beyondBoundsItemCount: Int,
+    // endregion
 ): LazyLayoutMeasureScope.(Constraints) -> LazyStaggeredGridMeasureResult = remember(
     state,
     itemProviderLambda,
@@ -117,7 +120,10 @@ internal fun rememberStaggeredGridMeasurePolicy(
             reverseLayout = reverseLayout,
             beforeContentPadding = beforeContentPadding,
             afterContentPadding = afterContentPadding,
-            coroutineScope = coroutineScope
+            coroutineScope = coroutineScope,
+            // region Tencent Code
+            beyondBoundsItemCount = beyondBoundsItemCount,
+            // endregion
         ).also {
             state.applyMeasureResult(it)
         }

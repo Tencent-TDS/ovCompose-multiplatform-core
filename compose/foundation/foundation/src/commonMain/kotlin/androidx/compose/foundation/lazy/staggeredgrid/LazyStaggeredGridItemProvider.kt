@@ -31,6 +31,9 @@ import androidx.compose.runtime.rememberUpdatedState
 internal interface LazyStaggeredGridItemProvider : LazyLayoutItemProvider {
     val spanProvider: LazyStaggeredGridSpanProvider
     val keyIndexMap: LazyLayoutKeyIndexMap
+    // region Tencent Code
+    fun getExtra(index: Int): Any?
+    // endregion
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -72,6 +75,13 @@ private class LazyStaggeredGridItemProviderImpl(
     override fun getIndex(key: Any): Int = keyIndexMap.getIndex(key)
 
     override fun getContentType(index: Int): Any? = intervalContent.getContentType(index)
+
+    // region Tencent Code
+    override fun getExtra(index: Int): Any? =
+        intervalContent.withInterval(index) { localIndex, content ->
+            content.extra?.invoke(localIndex)
+        }
+    // endregion
 
     @Composable
     override fun Item(index: Int, key: Any) {

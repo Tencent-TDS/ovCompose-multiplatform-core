@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmapConfig
+import androidx.compose.ui.graphics.LocalPath
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
@@ -295,7 +296,10 @@ internal class PathComponent : VNode() {
 
     private var strokeStyle: Stroke? = null
 
-    private val path = Path()
+    // region Tencent Code
+    private val path = LocalPath()
+    // endregion
+
     private var renderPath = path
 
     private val pathMeasure: PathMeasure by lazy(LazyThreadSafetyMode.NONE) { PathMeasure() }

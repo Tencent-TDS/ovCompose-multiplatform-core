@@ -146,7 +146,24 @@ val LocalIndication = staticCompositionLocalOf<Indication> {
     DefaultDebugIndication
 }
 
-private object NoIndication : Indication {
+// region Tencent Code: This API is also published in JS API.
+/**
+ * An [Indication] that draws nothing — only calls `drawContent()`.
+ *
+ * This is the JS-side equivalent of Foundation's private `NoIndication`.
+ * The NativeRef points to `BridgeNoIndication` on the Native side.
+ *
+ * Usage:
+ * ```
+ * CompositionLocalProvider(LocalIndication provides NoIndication) { ... }
+ * ```
+ */
+val NoIndication: Indication
+    get() = InnerNoIndication
+// endregion
+
+// @Tencent: Rename this from 'NoIndication'. Since we make 'NoIndication' a public property.
+private object InnerNoIndication : Indication {
     private object NoIndicationInstance : IndicationInstance {
         override fun ContentDrawScope.drawIndication() {
             drawContent()

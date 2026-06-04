@@ -16,6 +16,16 @@
 
 package androidx.compose.ui.semantics
 
+internal fun <T> NonFocusableAccessibilityKey(
+    name: String,
+    mergePolicy: (T?, T) -> T?
+) =
+    SemanticsPropertyKey<T>(
+        name = name,
+        isImportantForAccessibility = false,
+        mergePolicy = mergePolicy
+    )
+
 internal fun <T> AccessibilityKey(
     name: String
 ) =

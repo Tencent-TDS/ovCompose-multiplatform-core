@@ -17,12 +17,14 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.text.selection.visibleBounds
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Paragraph
@@ -157,6 +159,13 @@ internal class TextFieldDelegate {
             if (!hasFocus) {
                 return
             }
+
+            // region Tencent Code
+            if (ComposeTabService.composeIOSKeyboardDictationLayoutEnable) {
+                textInputSession.notifyTextFieldRectInRoot(layoutCoordinates.boundsInRoot())
+            }
+            // endregion
+
             val focusOffsetInTransformed = offsetMapping.originalToTransformed(value.selection.max)
             val bbox = when {
                 focusOffsetInTransformed < textLayoutResult.layoutInput.text.length -> {

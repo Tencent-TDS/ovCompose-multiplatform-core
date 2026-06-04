@@ -35,6 +35,10 @@ interface RecomposeScope {
      * This method is thread safe.
      */
     fun invalidate()
+
+    // region Tencent Code
+    fun getAnchor(): Any?
+    // endregion
 }
 
 private const val changedLowBitMask = 0b001_001_001_001_001_001_001_001_001_001_0
@@ -245,6 +249,12 @@ internal class RecomposeScopeImpl(
     override fun invalidate() {
         owner?.invalidate(this, null)
     }
+
+    // region Tencent Code
+    override fun getAnchor(): Any? {
+        return anchor
+    }
+    // endregion
 
     /**
      * Update [block]. The scope is returned by [Composer.endRestartGroup] when [used] is true

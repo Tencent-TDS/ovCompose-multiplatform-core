@@ -17,6 +17,7 @@
 package androidx.compose.material
 
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 
 private const val DefaultIncludeFontPadding = false
 
@@ -24,4 +25,7 @@ private const val DefaultIncludeFontPadding = false
 private val DefaultPlatformTextStyle = PlatformTextStyle(
     includeFontPadding = DefaultIncludeFontPadding
 )
+
+internal actual fun defaultLineHeightStyleTrim(): LineHeightStyle.Trim = LineHeightStyle.Trim.None
+
 internal actual fun defaultPlatformTextStyle(): PlatformTextStyle? = DefaultPlatformTextStyle

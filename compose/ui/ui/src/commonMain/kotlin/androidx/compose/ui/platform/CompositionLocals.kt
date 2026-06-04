@@ -29,6 +29,7 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.pointer.PointerIconService
+import androidx.compose.ui.input.pointer.util.PlatformVelocityProvider
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.node.Owner
 import androidx.compose.ui.text.font.Font
@@ -81,6 +82,10 @@ val LocalClipboardManager = staticCompositionLocalOf<ClipboardManager> {
  */
 val LocalDensity = staticCompositionLocalOf<Density> {
     noLocalProvidedFor("LocalDensity")
+}
+
+val LocalPlatformVelocityProvider = staticCompositionLocalOf<PlatformVelocityProvider?> {
+    null
 }
 
 /**

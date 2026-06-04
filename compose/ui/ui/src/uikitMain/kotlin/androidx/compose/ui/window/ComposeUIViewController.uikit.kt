@@ -17,16 +17,21 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import androidx.compose.ui.uikit.ExperimentalConfig
 import platform.UIKit.UIViewController
 
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
+@OptIn(ExperimentalComposeApi::class)
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = ComposeContainer(
+// region Tencent Code
+): UIViewController = ComposeUIViewController(
+// endregion
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
 )

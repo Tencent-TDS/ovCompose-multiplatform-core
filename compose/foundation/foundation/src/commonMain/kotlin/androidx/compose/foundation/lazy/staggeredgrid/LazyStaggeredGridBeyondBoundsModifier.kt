@@ -22,15 +22,28 @@ import androidx.compose.runtime.remember
 
 @Composable
 internal fun rememberLazyStaggeredGridBeyondBoundsState(
-    state: LazyStaggeredGridState
+    state: LazyStaggeredGridState,
+    // region Tencent Code
+    beyondBoundsItemCount: Int
+    // endregion
 ): LazyLayoutBeyondBoundsState {
+    // region Tencent Code Modify
+    /*
     return remember(state) {
         LazyStaggeredGridBeyondBoundsState(state)
     }
+     */
+    return remember(state, beyondBoundsItemCount) {
+        LazyStaggeredGridBeyondBoundsState(state, beyondBoundsItemCount)
+    }
+    // endregion
 }
 
 internal class LazyStaggeredGridBeyondBoundsState(
     val state: LazyStaggeredGridState,
+    // region Tencent Code
+    val beyondBoundsItemCount: Int
+    // endregion
 ) : LazyLayoutBeyondBoundsState {
 
     override fun remeasure() {
@@ -42,7 +55,17 @@ internal class LazyStaggeredGridBeyondBoundsState(
     override val hasVisibleItems: Boolean
         get() = state.layoutInfo.visibleItemsInfo.isNotEmpty()
     override val firstPlacedIndex: Int
+        // region Tencent Code Modify
+        /*
         get() = state.firstVisibleItemIndex
+         */
+        get() = maxOf(0, state.firstVisibleItemIndex - beyondBoundsItemCount)
+        // endregion
     override val lastPlacedIndex: Int
+        // region Tencent Code Modify
+        /*
         get() = state.layoutInfo.visibleItemsInfo.last().index
+         */
+        get() = minOf(itemCount - 1, state.layoutInfo.visibleItemsInfo.last().index + beyondBoundsItemCount)
+        // endregion
 }

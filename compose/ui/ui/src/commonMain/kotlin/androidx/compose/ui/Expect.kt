@@ -38,6 +38,12 @@ internal expect fun InspectorInfo.tryPopulateReflectively(
     element: ModifierNodeElement<*>
 )
 
+internal expect fun currentTimeMillis(): Long
+
+internal expect fun postDelayed(delayMillis: Long, block: () -> Unit): Any
+
+internal expect fun removePost(token: Any?)
+
 /**
  * Represents a platform-optimized cancellation exception.
  * This allows us to configure exceptions separately on JVM and other platforms.

@@ -20,12 +20,24 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.foundation.gestures.DefaultScrollMotionDurationScale
+import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaultFlingBehavior
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
+
+// region Tencent Code
+fun createCupertinoFlingBehavior(
+    flingDecay: DecayAnimationSpec<Float>,
+    motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale,
+    velocityThreshold: Float = 500f
+) : FlingBehavior {
+    return CupertinoFlingBehavior(flingDecay, motionDurationScale, velocityThreshold)
+}
+// end region
 
 internal class CupertinoFlingBehavior(
     private val flingDecay: DecayAnimationSpec<Float>,
@@ -61,7 +73,14 @@ internal class CupertinoFlingBehavior(
                     lastValue = value
                     velocityLeft = this.velocity
                     // avoid rounding errors and stop if anything is unconsumed
-                    if (abs(delta - consumed) > 0.5f) this.cancelAnimation()
+                    if (abs(delta - consumed) > 0.5f) {
+                        this.cancelAnimation()
+                    }
+                    // region Tencent Code
+                    else if (ComposeTabService.composeIOSScrollAnimationFixUpEnable && abs(value) > 0 && abs(delta) < 1) {
+                        this.forceStopAnimation()
+                    }
+                    // endregion
                 }
                 velocityLeft
             } else {

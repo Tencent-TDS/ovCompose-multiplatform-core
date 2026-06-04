@@ -28,6 +28,7 @@ import androidx.compose.ui.text.platform.cursorHorizontalPosition
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TinyBoxInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.isUnspecified
 import kotlin.math.floor
@@ -119,7 +120,7 @@ internal class SkiaParagraph(
             RectHeightMode.MAX,
             RectWidthMode.TIGHT
         )
-        val path = Path()
+        val path = LocalPath()
         for (b in boxes) {
             path.asSkiaPath().addRect(b.rect)
         }
@@ -363,7 +364,9 @@ internal class SkiaParagraph(
 
     override fun getOffsetForPosition(position: Offset): Int {
         val glyphPosition = paragraph.getGlyphPositionAtCoordinate(position.x, position.y).position
-
+        // region Tencent Code
+        if (SkiaParagraphGetOffsetForPositionFixed) return glyphPosition
+        // end region
         // Below we apply a workaround for skiko/skia issue:
         //
         // It's expected that this method should return the glyph position that lays on the line at `position.y`.
@@ -432,6 +435,24 @@ internal class SkiaParagraph(
         val box = getBoxForwardByOffset(offset) ?: getBoxBackwardByOffset(offset, text.length)!!
         return box.rect.toComposeRect()
     }
+
+    // region Tencent Code
+    override fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo {
+        val arrayInfo = paragraph.getLineTinyBoxInfo(lineIndex)
+        if (arrayInfo.size != 5) {
+            return TinyBoxInfo()
+        }
+        return TinyBoxInfo(
+            bounds = Rect(
+                left = arrayInfo[0],
+                top = arrayInfo[1],
+                right = arrayInfo[2],
+                bottom = arrayInfo[3]
+            ),
+            baseline = arrayInfo[4]
+        )
+    }
+    // end region
 
     override fun fillBoundingBoxes(
         range: TextRange,
@@ -628,3 +649,8 @@ private inline fun <T> Array<out T>.binarySearchFirstMatchingOrLast(
     // The search will always return a negative value because the comparison never returns 0
     return this[(-index - 1).coerceAtMost(this.lastIndex)]
 }
+
+
+// region Tencent Code
+internal expect val SkiaParagraphGetOffsetForPositionFixed: Boolean
+// end region

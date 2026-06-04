@@ -32,13 +32,22 @@ internal class NativeLocale(val locale: NSLocale) : PlatformLocale {
     override fun toLanguageTag(): String = locale.localeIdentifier
 }
 
+// region Tencent Code
+private val cachedLocaleList by lazy {
+    LocaleList(NSLocale.preferredLanguages.map {
+        Locale(NativeLocale(NSLocale(it as String)))
+    })
+}
+// endregion
+
 internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
     object : PlatformLocaleDelegate {
-        override val current: LocaleList
-            get() = LocaleList(NSLocale.preferredLanguages.map {
-                Locale(NativeLocale(NSLocale(it as String)))
-            })
 
+        // region Tencent Code Modify
+        /* 缓存 NSLocale */
+        override val current: LocaleList
+            get() = cachedLocaleList
+        // endregion
 
         override fun parseLanguageTag(languageTag: String): PlatformLocale {
             return NativeLocale(NSLocale(languageTag))

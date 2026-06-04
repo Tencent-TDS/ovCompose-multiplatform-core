@@ -31,6 +31,8 @@ internal actual fun rememberOverscrollEffect(): OverscrollEffect =
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
+    // region Tencent Code Modify
+    /*
     if (UiKitScrollConfig.isRubberBandingOverscrollEnabled) {
         val density = LocalDensity.current.density
         val layoutDirection = LocalLayoutDirection.current
@@ -41,3 +43,15 @@ internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
     } else {
         NoOpOverscrollEffect
     }
+     */
+    if (LocalOverscrollEnabled.current && UiKitScrollConfig.isRubberBandingOverscrollEnabled) {
+        val density = LocalDensity.current.density
+        val layoutDirection = LocalLayoutDirection.current
+
+        remember(density, layoutDirection) {
+            CupertinoOverscrollEffect(density, layoutDirection, applyClip)
+        }
+    } else {
+        NoOpOverscrollEffect
+    }
+    // endregion

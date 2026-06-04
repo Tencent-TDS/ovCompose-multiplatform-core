@@ -37,6 +37,10 @@ interface DelegatableNode {
      * point to itself.
      */
     val node: Modifier.Node
+
+    fun interface RegistrationHandle {
+        fun unregister()
+    }
 }
 
 internal val DelegatableNode.isDelegationRoot: Boolean get() = node === this

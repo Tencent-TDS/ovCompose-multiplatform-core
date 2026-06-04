@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text.input
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 
 /**
@@ -45,3 +46,9 @@ actual class PlatformImeOptions(
         return "PlatformImeOptions(privateImeOptions=$privateImeOptions)"
     }
 }
+
+// region Tencent Code
+actual fun createPlatformImeOptions(isLight: Boolean): PlatformImeOptions? {
+    return null
+}
+// endregion

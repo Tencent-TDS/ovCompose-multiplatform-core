@@ -66,6 +66,28 @@ internal class LazyStaggeredGridIntervalContent(
             )
         )
     }
+
+    // region Tencent Code
+    override fun items(
+        count: Int,
+        key: ((index: Int) -> Any)?,
+        contentType: (index: Int) -> Any?,
+        span: ((index: Int) -> StaggeredGridItemSpan)?,
+        extra: ((index: Int) -> Any?)?,
+        itemContent: @Composable LazyStaggeredGridItemScope.(index: Int) -> Unit
+    ) {
+        intervals.addInterval(
+            count,
+            LazyStaggeredGridInterval(
+                key = key,
+                type = contentType,
+                span = span,
+                extra = extra,
+                item = itemContent,
+            )
+        )
+    }
+    // endregion
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -73,5 +95,8 @@ internal class LazyStaggeredGridInterval(
     override val key: ((index: Int) -> Any)?,
     override val type: ((index: Int) -> Any?),
     val span: ((index: Int) -> StaggeredGridItemSpan)?,
-    val item: @Composable LazyStaggeredGridItemScope.(Int) -> Unit
+    val item: @Composable LazyStaggeredGridItemScope.(Int) -> Unit,
+    // region Tencent Code
+    internal val extra: ((index: Int) -> Any?)? = null,
+    // endregion
 ) : LazyLayoutIntervalContent.Interval

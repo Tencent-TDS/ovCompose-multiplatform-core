@@ -16,22 +16,26 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.interop.UIKitInteropTransaction
-import kotlinx.cinterop.*
-import org.jetbrains.skia.Canvas
-import platform.CoreGraphics.*
-import platform.Foundation.*
+import androidx.compose.ui.graphics.traceAction
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.useContents
+import kotlinx.cinterop.usePinned
+import platform.CoreGraphics.CGColorCreate
+import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
+import platform.CoreGraphics.CGRectIsEmpty
+import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.Metal.MTLCreateSystemDefaultDevice
 import platform.Metal.MTLDeviceProtocol
 import platform.Metal.MTLPixelFormatBGRA8Unorm
 import platform.QuartzCore.CAMetalLayer
-import platform.UIKit.*
+import platform.UIKit.UIView
+import platform.UIKit.UIViewMeta
+import kotlin.math.abs
 
+// region Tencent Code
 internal class RenderingUIView(
-    private val renderDelegate: Delegate,
+    private val component: RenderingComponentForSkia
 ) : UIView(
     frame = CGRectMake(
         x = 0.0,
@@ -41,44 +45,25 @@ internal class RenderingUIView(
     )
 ) {
 
-    interface Delegate {
-        fun retrieveInteropTransaction(): UIKitInteropTransaction
-        fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
-    }
-
     companion object : UIViewMeta() {
         override fun layerClass() = CAMetalLayer
     }
-
-    var onAttachedToWindow: (() -> Unit)? = null
-    private val _isReadyToShowContent: MutableState<Boolean> = mutableStateOf(false)
-    val isReadyToShowContent: State<Boolean> = _isReadyToShowContent
-
+    // region Tencent Code
+    private var needRedraw: Boolean = false
+    // endregion
     private val device: MTLDeviceProtocol =
         MTLCreateSystemDefaultDevice()
             ?: throw IllegalStateException("Metal is not supported on this system")
     private val metalLayer: CAMetalLayer get() = layer as CAMetalLayer
-    internal val redrawer: MetalRedrawer = MetalRedrawer(
-        metalLayer,
-        callbacks = object : MetalRedrawerCallbacks {
-            override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                renderDelegate.render(canvas, targetTimestamp)
-            }
-
-            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-                renderDelegate.retrieveInteropTransaction()
-        }
-    )
 
     override fun setOpaque(opaque: Boolean) {
         super.setOpaque(opaque)
 
-        redrawer.opaque = opaque
+        component.redrawer.opaque = opaque
     }
 
     init {
         userInteractionEnabled = false
-
         metalLayer.also {
             // Workaround for KN compiler bug
             // Type mismatch: inferred type is platform.Metal.MTLDeviceProtocol but objcnames.protocols.MTLDeviceProtocol? was expected
@@ -94,33 +79,31 @@ internal class RenderingUIView(
         }
     }
 
-    fun needRedraw() = redrawer.needRedraw()
-
-    var isForcedToPresentWithTransactionEveryFrame by redrawer::isForcedToPresentWithTransactionEveryFrame
-
     fun dispose() {
-        redrawer.dispose()
+        component.dispose()
     }
 
     override fun didMoveToWindow() {
         super.didMoveToWindow()
-        val window = window ?: return
 
-        val screen = window.screen
-        contentScaleFactor = screen.scale
-        redrawer.maximumFramesPerSecond = screen.maximumFramesPerSecond
-        onAttachedToWindow?.invoke()
-        _isReadyToShowContent.value = true
+        component.didMoveToWindow()
         updateMetalLayerSize()
     }
 
     override fun layoutSubviews() {
-        super.layoutSubviews()
-        updateMetalLayerSize()
+        // region Tencent Code
+        traceAction("RenderingUIView layoutSubviews") {
+        // endregion
+            super.layoutSubviews()
+            updateMetalLayerSize()
+        }
     }
 
     private fun updateMetalLayerSize() {
         if (window == null || CGRectIsEmpty(bounds)) {
+            // region Tencent Code
+            needRedraw = true
+            // endregion
             return
         }
         val scaledSize = bounds.useContents {
@@ -134,13 +117,47 @@ internal class RenderingUIView(
             width == 0.0 || height == 0.0
         }
 
+        //region Tencent Code
+        val oldSize = metalLayer.drawableSize
+        var sizeChanged = false
+        oldSize.useContents {
+            val outerWidth = width
+            val outerHeight = height
+            scaledSize.useContents {
+                sizeChanged = !(outerWidth approxEquals width)
+                sizeChanged = sizeChanged || !(outerHeight approxEquals height)
+            }
+        }
+        //endregion
         metalLayer.drawableSize = scaledSize
 
-        if (needsSynchronousDraw) {
-            redrawer.drawSynchronously()
+        //region Tencent Code Modify
+        /*if (needsSynchronousDraw) {*/
+        if (needsSynchronousDraw || sizeChanged) {
+        // endregion
+            component.redrawer.drawSynchronously()
+        //region Tencent Code
+        } else if (needRedraw) {
+            component.needRedraw()
         }
+        needRedraw = false
+        // endregion
     }
 
     override fun canBecomeFirstResponder() = false
 
 }
+// endregion
+
+// region Tencent Code
+/**
+ * 比较两个 Double 值是否近似相等。
+ *
+ * @param other 要比较的另一个 Double 值。
+ * @return 如果两个值的差的绝对值小于或等于 1e-7，则返回 true。
+ */
+@Suppress("NOTHING_TO_INLINE")
+inline infix fun Double.approxEquals(other: Double): Boolean {
+    return abs(this - other) <= 1e-7
+}
+// endregion

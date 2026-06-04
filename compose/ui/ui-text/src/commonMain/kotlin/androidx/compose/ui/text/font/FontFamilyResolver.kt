@@ -144,7 +144,22 @@ internal data class TypefaceRequest(
     val fontStyle: FontStyle,
     val fontSynthesis: FontSynthesis,
     val resourceLoaderCacheKey: Any?
-)
+) {
+    // region Tencent Code: cache the hash code to avoid rehash issue in HashMap.
+    private val cachedHashCode by lazy {
+        var result = this.fontFamily?.hashCode() ?: 0
+        result = result * 31 + this.fontWeight.hashCode()
+        result = result * 31 + this.fontStyle.hashCode()
+        result = result * 31 + this.fontSynthesis.hashCode()
+        result = result * 31 + (this.resourceLoaderCacheKey?.hashCode() ?: 0)
+        result
+    }
+
+    override fun hashCode(): Int {
+        return cachedHashCode
+    }
+    // endregion
+}
 
 internal sealed interface TypefaceResult : State<Any> {
     val cacheable: Boolean

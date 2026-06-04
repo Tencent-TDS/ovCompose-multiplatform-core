@@ -98,24 +98,24 @@ androidXMultiplatform {
             }
         }
 
-        androidAndroidTest {
-            dependsOn(jvmTest)
-            dependencies {
-                implementation(project(":compose:ui:ui-test-junit4"))
-
-                implementation(libs.junit)
-                implementation(libs.testRunner)
-                implementation(libs.testRules)
-                implementation(project(":compose:foundation:foundation-layout"))
-                implementation(project(":compose:foundation:foundation"))
-                implementation(project(":compose:test-utils"))
-                implementation(libs.truth)
-                implementation(libs.kotlinReflect)
-                implementation(project(":compose:animation:animation-tooling-internal"))
-                implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
-                implementation(project(":compose:runtime:runtime-livedata"))
-            }
-        }
+//        androidAndroidTest {
+//            dependsOn(jvmTest)
+//            dependencies {
+//                implementation(project(":compose:ui:ui-test-junit4"))
+//
+//                implementation(libs.junit)
+//                implementation(libs.testRunner)
+//                implementation(libs.testRules)
+//                implementation(project(":compose:foundation:foundation-layout"))
+//                implementation(project(":compose:foundation:foundation"))
+//                implementation(project(":compose:test-utils"))
+//                implementation(libs.truth)
+//                implementation(libs.kotlinReflect)
+//                implementation(project(":compose:animation:animation-tooling-internal"))
+//                implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+//                implementation(project(":compose:runtime:runtime-livedata"))
+//            }
+//        }
 
         androidTest {
             dependsOn(jvmTest)

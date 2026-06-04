@@ -16,6 +16,7 @@
 
 package androidx.compose.runtime
 
+import androidx.compose.runtime.monitor.diagnosticDrawFrameId
 import androidx.compose.runtime.snapshots.fastAny
 import androidx.compose.runtime.snapshots.fastFilterIndexed
 import androidx.compose.runtime.snapshots.fastForEach
@@ -1139,7 +1140,10 @@ internal class SlotReader(
      * Skip to the end of the current group.
      */
     fun skipToGroupEnd() {
-        runtimeCheck(emptyCount == 0) { "Cannot skip the enclosing group while in an empty region" }
+        // region Tencent Code Modify
+        /* runtimeCheck(emptyCount == 0) { "Cannot skip the enclosing group while in an empty region" } */
+        runtimeCheck(emptyCount == 0) { "Cannot skip the enclosing group while in an empty region frameId:${diagnosticDrawFrameId()}" }
+        // end region
         currentGroup = currentEnd
     }
 
@@ -1147,7 +1151,10 @@ internal class SlotReader(
      * Reposition the read to the group at [index].
      */
     fun reposition(index: Int) {
-        runtimeCheck(emptyCount == 0) { "Cannot reposition while in an empty region" }
+        // region Tencent Code Modify
+        /* runtimeCheck(emptyCount == 0) { "Cannot reposition while in an empty region" } */
+        runtimeCheck(emptyCount == 0) { "Cannot reposition while in an empty region frameId:${diagnosticDrawFrameId()}" }
+        // end region
         currentGroup = index
         val parent = if (index < groupsSize) groups.parentAnchor(index) else -1
         this.parent = parent
@@ -3637,7 +3644,13 @@ private fun ArrayList<Anchor>.search(location: Int, effectiveSize: Int): Int {
 
     while (low <= high) {
         val mid = (low + high).ushr(1) // safe from overflows
-        val midVal = get(mid).location.let { if (it < 0) effectiveSize + it else it }
+        // region Tencent Code Modify
+        /*
+        * val midVal = get(mid).location.let { if (it < 0) effectiveSize + it else it }
+        */
+        val tempMidVal = get(mid).location
+        val midVal = if (tempMidVal < 0) effectiveSize + tempMidVal else tempMidVal
+        // region
         val cmp = midVal.compareTo(location)
 
         when {

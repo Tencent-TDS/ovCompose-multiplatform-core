@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TinyBoxInfo
 
 @JvmDefaultWithCompatibility
 actual sealed interface Paragraph {
@@ -82,4 +83,12 @@ actual sealed interface Paragraph {
         drawStyle: DrawStyle?,
         blendMode: BlendMode
     )
+
+    // region Tencent Code
+    /**
+     * Used for centering text.
+     * Returns the rectangle coordinates tightly enclosing the text and the baseline coordinate.
+     */
+    actual fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo
+    // end region
 }

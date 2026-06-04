@@ -37,7 +37,7 @@ internal fun Offset.toDpOffset(density: Density): DpOffset = with(density) {
  * Convert a [DpOffset] to a [Offset].
  */
 @Stable
-internal fun DpOffset.toOffset(density: Density): Offset = with(density) {
+fun DpOffset.toOffset(density: Density): Offset = with(density) {
     if (isSpecified) {
         Offset(x.toPx(), y.toPx())
     } else {

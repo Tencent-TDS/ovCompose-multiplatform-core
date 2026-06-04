@@ -110,9 +110,26 @@ internal interface OwnedLayer {
      */
     fun transform(matrix: Matrix)
 
+    /** The matrix associated with the affine transform of this layer */
+    val underlyingMatrix: Matrix
+
     /**
      * Calculates the transform from the layer to the parent and multiplies [matrix] by
      * the transform.
      */
     fun inverseTransform(matrix: Matrix)
+
+    //region iOS Binding
+    fun setPlaced(isPlaced: Boolean) = Unit
+
+    fun updateParentLayer(parentLayer: OwnedLayer?) = Unit
+
+    fun layerProxyId(): Long = 0L
+    
+    /**
+     * 设置此 Layer 对应的组件 semanticsId
+     * 用于在 Layer 自己的 canvas 上标记绘制内容
+     */
+    fun setOwnerSemanticsId(semanticsId: Int) = Unit
+    //endregion
 }

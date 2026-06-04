@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TinyBoxInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -526,6 +527,14 @@ class TextLayoutResult constructor(
      * @return a bounding box for the character in pixels.
      */
     fun getBoundingBox(offset: Int): Rect = multiParagraph.getBoundingBox(offset)
+
+    // region Tencent Code
+    /**
+     * Used for centering text.
+     * Returns the rectangle coordinates tightly enclosing the text and the baseline coordinate.
+     */
+    fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo = multiParagraph.getLineTinyBoxInfo(lineIndex)
+    // end region
 
     /**
      * Returns the text range of the word at the given character offset.

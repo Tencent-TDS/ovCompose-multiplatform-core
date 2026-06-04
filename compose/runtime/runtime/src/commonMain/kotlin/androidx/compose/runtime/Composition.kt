@@ -24,6 +24,7 @@ import androidx.compose.runtime.collection.IdentityArrayMap
 import androidx.compose.runtime.collection.IdentityArraySet
 import androidx.compose.runtime.collection.ScopeMap
 import androidx.compose.runtime.collection.fastForEach
+import androidx.compose.runtime.monitor.diagnosticDrawFrameId
 import androidx.compose.runtime.snapshots.ReaderKind
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.fastAll
@@ -455,7 +456,7 @@ internal class CompositionImpl(
     private val pendingModifications = AtomicReference<Any?>(null)
 
     // Held when making changes to self or composer
-    private val lock = createSynchronizedObject()
+    private val lock = platformReentrantLockObject()
 
     /**
      * A set of remember observers that were potentially abandoned between [composeContent] or
@@ -613,7 +614,7 @@ internal class CompositionImpl(
     override val isDisposed: Boolean get() = disposed
 
     override val hasPendingChanges: Boolean
-        get() = synchronized(lock) { composer.hasPendingChanges }
+        get() = unsafeSynchronized(lock) { composer.hasPendingChanges }
 
     override fun setContent(content: @Composable () -> Unit) {
         composeInitial(content)
@@ -635,13 +636,13 @@ internal class CompositionImpl(
 
     @OptIn(ExperimentalComposeRuntimeApi::class)
     internal fun observe(observer: CompositionObserver): CompositionObserverHandle {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             observerHolder.observer = observer
             observerHolder.root = true
         }
         return object : CompositionObserverHandle {
             override fun dispose() {
-                synchronized(lock) {
+                unsafeSynchronized(lock) {
                     if (observerHolder.observer == observer) {
                         observerHolder.observer = null
                         observerHolder.root = false
@@ -652,7 +653,7 @@ internal class CompositionImpl(
     }
 
     fun invalidateGroupsWithKey(key: Int) {
-        val scopesToInvalidate = synchronized(lock) {
+        val scopesToInvalidate = unsafeSynchronized(lock) {
             slotTable.invalidateGroupsWithKey(key)
         }
         // Calls to invalidate must be performed without the lock as the they may cause the
@@ -676,7 +677,10 @@ internal class CompositionImpl(
                 // Do nothing, just start composing.
             }
             PendingApplyNoModifications -> {
-                composeRuntimeError("pending composition has not been applied")
+                // region Tencent Code Modify
+                /* composeRuntimeError("pending composition has not been applied}")   */
+                composeRuntimeError("pending composition has not been applied frameId:${diagnosticDrawFrameId()}")
+                // end region
             }
             is Set<*> -> {
                 addPendingInvalidationsLocked(toRecord as Set<Any>, forgetConditionalScopes = true)
@@ -713,7 +717,7 @@ internal class CompositionImpl(
         // TODO: This should raise a signal to any currently running recompose calls
         // to halt and return
         guardChanges {
-            synchronized(lock) {
+            unsafeSynchronized(lock) {
                 drainPendingModificationsForCompositionLocked()
                 guardInvalidationsLocked { invalidations ->
                     val observer = observer()
@@ -730,7 +734,7 @@ internal class CompositionImpl(
     }
 
     override fun dispose() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             check(!composer.isComposing) {
                 "Composition is disposed while composing. If dispose is triggered by a call in " +
                     "@Composable function, consider wrapping it with SideEffect block."
@@ -776,7 +780,7 @@ internal class CompositionImpl(
         parent.unregisterComposition(this)
     }
 
-    override val hasInvalidations get() = synchronized(lock) { invalidations.size > 0 }
+    override val hasInvalidations get() = unsafeSynchronized(lock) { invalidations.size > 0 }
 
     /**
      * To bootstrap multithreading handling, recording modifications is now deferred between
@@ -797,7 +801,7 @@ internal class CompositionImpl(
             }
             if (pendingModifications.compareAndSet(old, new)) {
                 if (old == null) {
-                    synchronized(lock) {
+                    unsafeSynchronized(lock) {
                         drainPendingModificationsLocked()
                     }
                 }
@@ -917,7 +921,7 @@ internal class CompositionImpl(
         }
     }
 
-    override fun recordWriteOf(value: Any) = synchronized(lock) {
+    override fun recordWriteOf(value: Any) = unsafeSynchronized(lock) {
         invalidateScopeOfLocked(value)
 
         // If writing to dependency of a derived value and the value is changed, invalidate the
@@ -927,7 +931,7 @@ internal class CompositionImpl(
         }
     }
 
-    override fun recompose(): Boolean = synchronized(lock) {
+    override fun recompose(): Boolean = unsafeSynchronized(lock) {
         drainPendingModificationsForCompositionLocked()
         guardChanges {
             guardInvalidationsLocked { invalidations ->
@@ -1000,7 +1004,7 @@ internal class CompositionImpl(
     }
 
     override fun applyChanges() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             guardChanges {
                 applyChangesInLocked(changes)
                 drainPendingModificationsLocked()
@@ -1009,7 +1013,7 @@ internal class CompositionImpl(
     }
 
     override fun applyLateChanges() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             guardChanges {
                 if (lateChanges.isNotEmpty()) {
                     applyChangesInLocked(lateChanges)
@@ -1019,7 +1023,7 @@ internal class CompositionImpl(
     }
 
     override fun changesApplied() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             guardChanges {
                 composer.changesApplied()
 
@@ -1059,13 +1063,13 @@ internal class CompositionImpl(
     }
 
     override fun invalidateAll() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             slotTable.slots.forEach { (it as? RecomposeScopeImpl)?.invalidate() }
         }
     }
 
     override fun verifyConsistent() {
-        synchronized(lock) {
+        unsafeSynchronized(lock) {
             if (!isComposing) {
                 composer.verifyConsistent()
                 slotTable.verifyWellFormed()
@@ -1092,6 +1096,9 @@ internal class CompositionImpl(
     }
 
     override fun invalidate(scope: RecomposeScopeImpl, instance: Any?): InvalidationResult {
+        // region Tencent Code
+        composer.recompositionHandler.invalidate(scope, instance)
+        // endregion
         if (scope.defaultsInScope) {
             scope.defaultsInvalid = true
         }
@@ -1100,7 +1107,7 @@ internal class CompositionImpl(
             return InvalidationResult.IGNORED // The scope was removed from the composition
         if (!slotTable.ownsAnchor(anchor)) {
             // The scope might be owned by the delegate
-            val delegate = synchronized(lock) { invalidationDelegate }
+            val delegate = unsafeSynchronized(lock) { invalidationDelegate }
             if (delegate?.tryImminentInvalidation(scope, instance) == true)
                 return InvalidationResult.IMMINENT // The scope was owned by the delegate
 
@@ -1127,7 +1134,7 @@ internal class CompositionImpl(
         anchor: Anchor,
         instance: Any?
     ): InvalidationResult {
-        val delegate = synchronized(lock) {
+        val delegate = unsafeSynchronized(lock) {
             val delegate = invalidationDelegate?.let { changeDelegate ->
                 // Invalidations are delegated when recomposing changes to movable content that
                 // is destined to be moved. The movable content is composed in the destination

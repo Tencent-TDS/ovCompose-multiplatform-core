@@ -24,6 +24,7 @@ import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.monitor.ApplyScrollableMonitor
 import androidx.compose.foundation.gestures.snapping.SnapPositionInLayout
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,6 +34,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutPinnedItemList
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
 import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -86,6 +88,9 @@ fun rememberPagerState(
         )
     }.apply {
         pageCountState.value = pageCount
+        // region Tencent Code
+        ApplyScrollableMonitor(this)
+        // endregion
     }
 }
 
@@ -107,7 +112,7 @@ internal class PagerStateImpl(
             save = {
                 listOf(
                     it.currentPage,
-                    it.currentPageOffsetFraction,
+                    (it.currentPageOffsetFraction).coerceIn(MinPageOffset, MaxPageOffset),
                     it.pageCount
                 )
             },
@@ -206,6 +211,12 @@ abstract class PagerState(
 
         val consumedInt = consumed.roundToInt()
 
+        // region Tencent Code Modify
+        accumulator = consumed - consumedInt
+        // nothing to scroll
+        if (delta.absoluteValue < 1e-4f) return delta
+        // end region
+
         val layoutInfo = pagerLayoutInfoState.value
 
         if (layoutInfo.tryToApplyScrollWithoutRemeasure(-consumedInt)) {
@@ -221,7 +232,9 @@ abstract class PagerState(
             scrollPosition.applyScrollDelta(consumedInt)
             remeasurement?.forceRemeasure()
         }
-        accumulator = consumed - consumedInt
+        // region Tencent Code Modify
+        /*accumulator = consumed - consumedInt*/
+        // end region
 
         // Avoid floating-point rounding error
         return if (changed) consumed else delta
@@ -579,6 +592,12 @@ abstract class PagerState(
     override fun dispatchRawDelta(delta: Float): Float {
         return scrollableState.dispatchRawDelta(delta)
     }
+
+    // region Tencent Code
+    @InternalComposeApi
+    override val currentScrollPriority: MutatePriority?
+        get() = scrollableState.currentScrollPriority
+    // endregion
 
     override val isScrollInProgress: Boolean
         get() = scrollableState.isScrollInProgress

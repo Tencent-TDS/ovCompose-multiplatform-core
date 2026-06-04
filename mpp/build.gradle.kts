@@ -6,9 +6,10 @@ plugins {
 
 buildscript {
     repositories {
-        mavenCentral()
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/internal")
-        maven("https://maven.pkg.jetbrains.space/public/p/space/maven")
+        maven("https://mirrors.tencent.com/nexus/repository/maven-public")
+        maven("https://packages.jetbrains.team/maven/p/cmp/dev")
+        // 解决传递依赖 org.jetbrains:space-sdk-jvm:83821-beta 的下载问题
+        maven("https://packages.jetbrains.team/maven/p/crl/space-sdk")
     }
     dependencies {
         val buildHelpersVersion = System.getProperty("BUILD_HELPERS_VERSION") ?: "0.1.16"
@@ -31,6 +32,7 @@ val mainComponents =
         ComposeComponent(":compose:animation:animation"),
         ComposeComponent(":compose:animation:animation-core"),
         ComposeComponent(":compose:animation:animation-graphics"),
+        ComposeComponent(":compose:export:export"),
         ComposeComponent(":compose:foundation:foundation"),
         ComposeComponent(":compose:foundation:foundation-layout"),
         ComposeComponent(":compose:material:material"),
@@ -48,14 +50,18 @@ val mainComponents =
             supportedPlatforms = ComposePlatforms.JVM_BASED
         ),
         ComposeComponent(":compose:ui:ui-text"),
-        ComposeComponent(":compose:ui:ui-tooling", supportedPlatforms = ComposePlatforms.JVM_BASED),
+//        ComposeComponent(":compose:ui:ui-tooling", supportedPlatforms = ComposePlatforms.JVM_BASED),
+//        ComposeComponent(
+//            ":compose:ui:ui-tooling-data",
+//            supportedPlatforms = ComposePlatforms.JVM_BASED
+//        ),
+//        ComposeComponent(
+//            ":compose:ui:ui-tooling-preview",
+//            supportedPlatforms = ComposePlatforms.JVM_BASED
+//        ),
         ComposeComponent(
-            ":compose:ui:ui-tooling-data",
-            supportedPlatforms = ComposePlatforms.JVM_BASED
-        ),
-        ComposeComponent(
-            ":compose:ui:ui-tooling-preview",
-            supportedPlatforms = ComposePlatforms.JVM_BASED
+            ":compose:ui:ui-arkui",
+            supportedPlatforms = ComposePlatforms.OHOS
         ),
         ComposeComponent(
             ":compose:ui:ui-uikit",
@@ -71,19 +77,19 @@ val iconsComponents =
     )
 
 fun ComposePublishingTask.mainPublications() {
-    publish(
-        ":compose:desktop:desktop",
-        onlyWithPlatforms = setOf(ComposePlatforms.Desktop),
-        publications = listOf(
-            "KotlinMultiplatform",
-            "Jvm",
-            "Jvmlinux-x64",
-            "Jvmlinux-arm64",
-            "Jvmmacos-x64",
-            "Jvmmacos-arm64",
-            "Jvmwindows-x64"
-        )
-    )
+//    publish(
+//        ":compose:desktop:desktop",
+//        onlyWithPlatforms = setOf(ComposePlatforms.Desktop),
+//        publications = listOf(
+//            "KotlinMultiplatform",
+//            "Jvm",
+//            "Jvmlinux-x64",
+//            "Jvmlinux-arm64",
+//            "Jvmmacos-x64",
+//            "Jvmmacos-arm64",
+//            "Jvmwindows-x64"
+//        )
+//    )
 
     mainComponents.forEach { publishMultiplatform(it) }
 }

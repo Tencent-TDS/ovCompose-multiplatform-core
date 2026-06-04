@@ -79,6 +79,14 @@ internal class AndroidTextPaint(flags: Int, density: Float) : TextPaint(flags) {
         }
     }
 
+    // region Tencent Code
+    fun getTextBounds(text: String): android.graphics.Rect {
+        val rect = android.graphics.Rect()
+        composePaint.asFrameworkPaint().getTextBounds(text, 0, text.length, rect)
+        return rect
+    }
+    // end region
+
     fun setColor(color: Color) {
         if (color.isSpecified) {
             composePaint.color = color

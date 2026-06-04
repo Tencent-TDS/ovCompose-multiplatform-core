@@ -17,6 +17,7 @@
 package androidx.compose.animation.core
 
 import androidx.compose.animation.core.internal.JvmDefaultWithCompatibility
+import androidx.compose.runtime.monitor.ComposeDiagnosticMonitor
 import kotlin.math.roundToLong
 
 /**
@@ -241,6 +242,11 @@ class TargetBasedAnimation<T, V : AnimationVector> internal constructor(
         initialVelocityVector?.copy() ?: typeConverter.convertToVector(initialValue)
             .newInstance()
 
+    // region Tencent Code
+    private val stack: RuntimeException? =
+        if (ComposeDiagnosticMonitor.isFixAnimationNaN) RuntimeException() else null
+    // end region
+
     override val isInfinite: Boolean get() = animationSpec.isInfinite
     override fun getValueFromNanos(playTimeNanos: Long): T {
         return if (!isFinishedFromNanos(playTimeNanos)) {
@@ -250,10 +256,22 @@ class TargetBasedAnimation<T, V : AnimationVector> internal constructor(
             ).let {
                 // TODO: Remove after b/232030217
                 for (i in 0 until it.size) {
-                    check(!it.get(i).isNaN()) {
-                        "AnimationVector cannot contain a NaN. $it. Animation: $this," +
-                            " playTimeNanos: $playTimeNanos"
+                    // region Tencent Code
+                    if (stack == null) {
+                        check(!it.get(i).isNaN()) {
+                            "AnimationVector cannot contain a NaN. $it. Animation: $this," +
+                                    " playTimeNanos: $playTimeNanos"
+                        }
+                    } else {
+                        if (it[i].isNaN()) {
+                            ComposeDiagnosticMonitor.reportAnimationNaNError(
+                                "AnimationVector cannot contain a NaN. $it. Animation: $this," +
+                                        " playTimeNanos: $playTimeNanos", stack
+                            )
+                            it[i] = 0f
+                        }
                     }
+                    // end region
                 }
                 typeConverter.convertFromVector(it)
             }

@@ -318,7 +318,10 @@ private class PainterNode(
 
         // Compute the offset to translate the content based on the given alignment
         // and size to draw based on the ContentScale parameter
-        val scaledSize = if (size.width != 0f && size.height != 0f) {
+        // region Tencent Code Modify
+        val scaledSize = if (size.width != 0f && size.height != 0f && srcSize.width != 0f && srcSize.height != 0f) {
+        // val scaledSize = if (size.width != 0f && size.height != 0f) {
+        // endregion
             srcSize * contentScale.computeScaleFactor(srcSize, size)
         } else {
             Size.Zero

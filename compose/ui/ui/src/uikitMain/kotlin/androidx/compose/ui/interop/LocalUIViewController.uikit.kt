@@ -16,6 +16,10 @@
 
 package androidx.compose.ui.interop
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.staticCompositionLocalOf
 import platform.UIKit.UIViewController
 
@@ -24,6 +28,20 @@ import platform.UIKit.UIViewController
  * Maybe useful for features, like VideoPlayer and Bottom menus.
  * Please use it careful and don't remove another views.
  */
-val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
+// region Tencent Code
+object LocalUIViewController {
+    @OptIn(InternalComposeApi::class)
+    inline val current: UIViewController
+        @ReadOnlyComposable
+        @Composable
+        get() = currentComposer.consume(LocalLazyUIViewController).value
+
+    infix fun providesLazy(value: Lazy<UIViewController>) = LocalLazyUIViewController.provides(value)
+    infix fun provides(value: UIViewController) = LocalLazyUIViewController.provides(lazy { value })
+}
+
+val LocalLazyUIViewController = staticCompositionLocalOf<Lazy<UIViewController>> {
     error("CompositionLocal UIViewController not provided")
 }
+// endregion
+

@@ -26,8 +26,10 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.ShortRect
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
+import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastForEachReversed
@@ -91,6 +93,9 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
     beforeContentPadding: Int,
     afterContentPadding: Int,
     coroutineScope: CoroutineScope,
+    // region Tencent Code
+    beyondBoundsItemCount: Int,
+    // endregion
 ): LazyStaggeredGridMeasureResult {
     val context = LazyStaggeredGridMeasureContext(
         state = state,
@@ -106,7 +111,10 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
         reverseLayout = reverseLayout,
         mainAxisSpacing = mainAxisSpacing,
         measureScope = this,
-        coroutineScope = coroutineScope
+        coroutineScope = coroutineScope,
+        // region Tencent Code
+        beyondBoundsItemCount = beyondBoundsItemCount,
+        // endregion
     )
 
     val initialItemIndices: IntArray
@@ -189,13 +197,19 @@ internal class LazyStaggeredGridMeasureContext(
     val afterContentPadding: Int,
     val reverseLayout: Boolean,
     val mainAxisSpacing: Int,
-    val coroutineScope: CoroutineScope
+    val coroutineScope: CoroutineScope,
+    // region Tencent Code
+    val beyondBoundsItemCount: Int,
+    // endregion
 ) {
     val measuredItemProvider = object : LazyStaggeredGridMeasureProvider(
         isVertical = isVertical,
         itemProvider = itemProvider,
         measureScope = measureScope,
         resolvedSlots = resolvedSlots,
+        // region Tencent Code
+        mainAxisAvailableSize = mainAxisAvailableSize,
+        // endregion
     ) {
         override fun createItem(
             index: Int,
@@ -469,13 +483,15 @@ private fun LazyStaggeredGridMeasureContext.measure(
             if (itemIndex < 0) continue
 
             val spanRange = itemProvider.getSpanRange(itemIndex, laneIndex)
+            // region Tencent Code
+            val offset = currentItemOffsets.maxInRange(spanRange)
             val measuredItem = measuredItemProvider.getAndMeasure(
                 itemIndex,
-                spanRange
+                spanRange,
+                offset
             )
-
+            // endregion
             laneInfo.setLane(itemIndex, spanRange.laneInfo)
-            val offset = currentItemOffsets.maxInRange(spanRange)
             spanRange.forEach { lane ->
                 currentItemOffsets[lane] = offset + measuredItem.sizeWithSpacings
                 currentItemIndices[lane] = itemIndex
@@ -528,9 +544,11 @@ private fun LazyStaggeredGridMeasureContext.measure(
             val spanRange = itemProvider.getSpanRange(itemIndex, currentLaneIndex)
 
             laneInfo.setLane(itemIndex, spanRange.laneInfo)
-            val measuredItem = measuredItemProvider.getAndMeasure(itemIndex, spanRange)
-
+            // region Tencent Code
             val offset = currentItemOffsets.maxInRange(spanRange)
+            val measuredItem = measuredItemProvider.getAndMeasure(itemIndex, spanRange, offset)
+            // endregion
+
             val gaps = if (spanRange.isFullSpan) {
                 laneInfo.getGaps(itemIndex) ?: IntArray(laneCount)
             } else {
@@ -648,12 +666,14 @@ private fun LazyStaggeredGridMeasureContext.measure(
 
                 val spanRange = itemProvider.getSpanRange(previousIndex, laneIndex)
                 laneInfo.setLane(previousIndex, spanRange.laneInfo)
+                // region Tencent Code
+                val offset = firstItemOffsets.maxInRange(spanRange)
                 val measuredItem = measuredItemProvider.getAndMeasure(
                     index = previousIndex,
                     spanRange
                 )
+                // endregion
 
-                val offset = firstItemOffsets.maxInRange(spanRange)
                 val gaps = if (spanRange.isFullSpan) laneInfo.getGaps(previousIndex) else null
                 spanRange.forEach { lane ->
                     if (firstItemOffsets[lane] != offset) {
@@ -769,7 +789,13 @@ private fun LazyStaggeredGridMeasureContext.measure(
             }
 
         var extraItemOffset = itemScrollOffsets[0]
+        // region Tencent Code Modify
+        /*
         val extraItemsBefore = calculateExtraItems(
+         */
+        val extraItemsBefore = calculateExtraItemsBefore(
+            firstItemIndices = firstItemIndices,
+        // endregion
             position = {
                 extraItemOffset -= it.sizeWithSpacings
                 it.position(
@@ -799,7 +825,13 @@ private fun LazyStaggeredGridMeasureContext.measure(
         )
 
         extraItemOffset = itemScrollOffsets[0]
+        // region Tencent Code Modify
+        /*
         val extraItemsAfter = calculateExtraItems(
+         */
+        val extraItemsAfter = calculateExtraItemsAfter(
+            visibleItems = visibleItems,
+        // endregion
             position = {
                 it.position(
                     mainAxis = extraItemOffset,
@@ -810,7 +842,12 @@ private fun LazyStaggeredGridMeasureContext.measure(
             },
             filter = { itemIndex ->
                 if (itemIndex >= itemCount) {
+                    // region Tencent Code Modify
+                    /*
                     return@calculateExtraItems false
+                     */
+                    return@calculateExtraItemsAfter false
+                    // endregion
                 }
                 val lane = laneInfo.getLane(itemIndex)
                 when (lane) {
@@ -850,6 +887,12 @@ private fun LazyStaggeredGridMeasureContext.measure(
         // only scroll forward if the last item is not on screen or fully visible
         val canScrollForward = currentItemOffsets.any { it > mainAxisAvailableSize } ||
             currentItemIndices.all { it < itemCount - 1 }
+
+        // region Tencent Code
+        positionedItems.fastForEachIndexed { index, item ->
+            item.positionInside { positionedItems.getOrNull(index + it) }
+        }
+        // endregion
 
         return LazyStaggeredGridMeasureResult(
             firstVisibleItemIndices = firstItemIndices,
@@ -940,6 +983,92 @@ private inline fun LazyStaggeredGridMeasureContext.calculateExtraItems(
 
     return result ?: emptyList()
 }
+
+// region Tencent Code
+@ExperimentalFoundationApi
+private inline fun LazyStaggeredGridMeasureContext.calculateExtraItemsBefore(
+    firstItemIndices: IntArray,
+    position: (LazyStaggeredGridMeasuredItem) -> Unit,
+    filter: (itemIndex: Int) -> Boolean,
+    beforeVisibleBounds: Boolean
+): List<LazyStaggeredGridMeasuredItem> {
+    var result: MutableList<LazyStaggeredGridMeasuredItem>? = null
+
+    var start = Int.MAX_VALUE
+    if (beyondBoundsItemCount > 0) {
+        val currentFirstItemIndex = firstItemIndices.min()
+        start = maxOf(0, currentFirstItemIndex - beyondBoundsItemCount)
+        for (index in currentFirstItemIndex - 1 downTo start) {
+            // Extra items are uniformly placed on lane 0
+            val spanRange = itemProvider.getSpanRange(index, 0)
+            if (result == null) {
+                result = mutableListOf()
+            }
+            val measuredItem = measuredItemProvider.getAndMeasure(index, spanRange)
+            position(measuredItem)
+            result.add(measuredItem)
+        }
+    }
+
+    pinnedItems.fastForEach(beforeVisibleBounds) { index ->
+        if (index < start && filter(index)) {
+            val spanRange = itemProvider.getSpanRange(index, 0)
+            if (result == null) {
+                result = mutableListOf()
+            }
+            val measuredItem = measuredItemProvider.getAndMeasure(index, spanRange)
+            position(measuredItem)
+            result?.add(measuredItem)
+        }
+    }
+
+    return result ?: emptyList()
+}
+// endregion
+
+// region Tencent Code
+@ExperimentalFoundationApi
+private inline fun LazyStaggeredGridMeasureContext.calculateExtraItemsAfter(
+    visibleItems: List<LazyStaggeredGridMeasuredItem>,
+    position: (LazyStaggeredGridMeasuredItem) -> Unit,
+    filter: (itemIndex: Int) -> Boolean,
+    beforeVisibleBounds: Boolean
+): List<LazyStaggeredGridMeasuredItem> {
+    var result: MutableList<LazyStaggeredGridMeasuredItem>? = null
+
+    var end = Int.MIN_VALUE
+    if (beyondBoundsItemCount > 0) {
+        // After analysis, the visibleItems are strictly ordered, so we can directly take the last one
+        val currentLastItemIndex = visibleItems.last().index
+        end = minOf(currentLastItemIndex + beyondBoundsItemCount, this.itemProvider.itemCount - 1)
+
+        for (index in currentLastItemIndex + 1..end) {
+            // Extra items are uniformly placed on lane 0
+            val spanRange = itemProvider.getSpanRange(index, 0)
+            if (result == null) {
+                result = mutableListOf()
+            }
+            val measuredItem = measuredItemProvider.getAndMeasure(index, spanRange)
+            position(measuredItem)
+            result.add(measuredItem)
+        }
+    }
+
+    pinnedItems.fastForEach(beforeVisibleBounds) { index ->
+        if (index > end && filter(index)) {
+            val spanRange = itemProvider.getSpanRange(index, 0)
+            if (result == null) {
+                result = mutableListOf()
+            }
+            val measuredItem = measuredItemProvider.getAndMeasure(index, spanRange)
+            position(measuredItem)
+            result?.add(measuredItem)
+        }
+    }
+
+    return result ?: emptyList()
+}
+// endregion
 
 private inline fun <T> List<T>.fastForEach(reverse: Boolean = false, action: (T) -> Unit) {
     if (reverse) fastForEachReversed(action) else fastForEach(action)
@@ -1042,12 +1171,20 @@ private fun LazyStaggeredGridMeasureContext.ensureIndicesInRange(
 private fun LazyStaggeredGridMeasureContext.findPreviousItemIndex(item: Int, lane: Int): Int =
     laneInfo.findPreviousItemIndex(item, lane)
 
+// region Tencent Code
+private const val LARGE_SHORT = Short.MAX_VALUE - 10
+private val LARGE_RECT = ShortRect(-LARGE_SHORT, -LARGE_SHORT, LARGE_SHORT, LARGE_SHORT)
+// endregion
+
 @OptIn(ExperimentalFoundationApi::class)
 internal abstract class LazyStaggeredGridMeasureProvider(
     private val isVertical: Boolean,
     private val itemProvider: LazyStaggeredGridItemProvider,
     private val measureScope: LazyLayoutMeasureScope,
-    private val resolvedSlots: LazyStaggeredGridSlots
+    private val resolvedSlots: LazyStaggeredGridSlots,
+    // region Tencent Code
+    private val mainAxisAvailableSize: Int,
+    // endregion
 ) {
     private fun childConstraints(slot: Int, span: Int): Constraints {
         // resolved slots contain [offset, size] pair per each slot.
@@ -1067,7 +1204,18 @@ internal abstract class LazyStaggeredGridMeasureProvider(
         }
     }
 
-    fun getAndMeasure(index: Int, span: SpanRange): LazyStaggeredGridMeasuredItem {
+    // region Tencent Code
+    private val viewport: ShortRect by lazy {
+        if (isVertical) LARGE_RECT.copy(top = 0, bottom = mainAxisAvailableSize)
+        else LARGE_RECT.copy(left = 0, right = mainAxisAvailableSize)
+    }
+
+    fun getAndMeasure(
+        index: Int,
+        span: SpanRange,
+        offset: Int = Int.MIN_VALUE,
+    ): LazyStaggeredGridMeasuredItem {
+    // endregion
         val key = itemProvider.getKey(index)
         val contentType = itemProvider.getContentType(index)
 
@@ -1075,7 +1223,27 @@ internal abstract class LazyStaggeredGridMeasureProvider(
         val spanStart = span.start.coerceAtMost(slotCount - 1)
         val spanSize = span.size.coerceAtMost(slotCount - spanStart)
 
-        val placeables = measureScope.measure(index, childConstraints(spanStart, spanSize))
+        // region Tencent Code
+        val extra = itemProvider.getExtra(index)
+        val constraints = childConstraints(spanStart, spanSize)
+        val placeables = if (extra is LazyLayoutMeasurePolicy) {
+            with(extra) {
+                measureScope.measure(index, isVertical, constraints) visible@{ origin ->
+                    if (offset == Int.MIN_VALUE) return@visible ShortRect.Zero
+                    val visible = if (isVertical) {
+                        viewport.translate(0, origin.top - offset)
+                    } else {
+                        viewport.translate(origin.left - offset, 0)
+                    }
+                    // inflate 1 pixel to avoid edge cases.
+                    origin.intersect(visible).inflate(1)
+                }
+            }
+        } else {
+            measureScope.measure(index, constraints)
+        }
+        // endregion
+
         return createItem(
             index,
             spanStart,
@@ -1195,6 +1363,54 @@ internal class LazyStaggeredGridMeasuredItem(
             }
         }
     }
+
+    // region Tencent Code
+    @OptIn(ExperimentalFoundationApi::class)
+    fun partiallyVisibleInside(viewportStartOffset: Int, viewportEndOffset: Int, delta: Int): Boolean {
+        fun partiallyVisibleItem(item: OffsetPlaceable): Boolean {
+            val mainAxisOffset = mainAxisOffset + item.offset.mainAxis
+            val sizeWithSpacings = item.mainAxisSize
+            if (mainAxisOffset <= viewportStartOffset) {
+                // we compare with viewportStartOffset in order to know when the item will became
+                // not visible anymore, and with 0 to know when the firstVisibleItemIndices will
+                // change. when we have a beforeContentPadding those values will not be the same.
+                val canApply = if (delta < 0) { // scrolling forward
+                    mainAxisOffset + sizeWithSpacings - viewportStartOffset > -delta
+                } else { // scrolling backward
+                    viewportStartOffset - mainAxisOffset > delta
+                }
+                if (!canApply) return false
+            }
+            // item is partially visible at the bottom.
+            if (mainAxisOffset + sizeWithSpacings >= viewportEndOffset) {
+                val canApply = if (delta < 0) { // scrolling forward
+                    mainAxisOffset + sizeWithSpacings - viewportEndOffset > -delta
+                } else { // scrolling backward
+                    viewportEndOffset - mainAxisOffset > delta
+                }
+                if (!canApply) return false
+            }
+            return true
+        }
+        return placeables.fastAll {
+            it !is OffsetPlaceable || partiallyVisibleItem(it)
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    fun positionInside(getChild: (index: Int) -> LazyStaggeredGridMeasuredItem?) {
+        placeables.fastForEach { child ->
+            if (child is OffsetPlaceable) {
+                // the first one use current offset.
+                if(child.index == 0) return@fastForEach
+                val item = getChild(child.index) ?: return@fastForEach
+                val mainAxis = mainAxisOffset + child.offset.mainAxis
+                // update mainAxisOffset for the placeholder item.
+                item.position(mainAxis, 0, Int.MAX_VALUE)
+            }
+        }
+    }
+    // endregion
 
     fun applyScrollDelta(delta: Int) {
         if (nonScrollableItem) {

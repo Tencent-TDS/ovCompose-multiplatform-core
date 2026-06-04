@@ -21,7 +21,9 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import platform.UIKit.UIKeyboardAppearance
+import platform.UIKit.UIKeyboardAppearanceDark
 import platform.UIKit.UIKeyboardAppearanceDefault
+import platform.UIKit.UIKeyboardAppearanceLight
 import platform.UIKit.UIKeyboardType
 import platform.UIKit.UIKeyboardTypeASCIICapable
 import platform.UIKit.UIKeyboardTypeDecimalPad
@@ -99,7 +101,14 @@ internal fun getUITextInputTraits(currentImeOptions: ImeOptions?) =
                 else -> UIKeyboardTypeDefault
             }
 
-        override fun keyboardAppearance(): UIKeyboardAppearance = UIKeyboardAppearanceDefault
+        override fun keyboardAppearance(): UIKeyboardAppearance {
+            return when (currentImeOptions?.platformImeOptions?.isLight) {
+                true -> UIKeyboardAppearanceLight
+                false -> UIKeyboardAppearanceDark
+                else -> UIKeyboardAppearanceDefault
+            }
+        }
+
         override fun returnKeyType(): UIReturnKeyType =
             when (currentImeOptions?.imeAction) {
                 ImeAction.Default -> UIReturnKeyType.UIReturnKeyDefault

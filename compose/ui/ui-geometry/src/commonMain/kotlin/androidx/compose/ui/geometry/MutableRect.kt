@@ -57,6 +57,20 @@ class MutableRect(
     val isEmpty: Boolean
         get() = left >= right || top >= bottom
 
+    /** Translates the rect by the provided [Offset]. */
+    fun translate(offset: Offset) = translate(offset.x, offset.y)
+
+    /**
+     * Updates this rectangle with translateX added to the x components and translateY added to the
+     * y components.
+     */
+    fun translate(translateX: Float, translateY: Float) {
+        left += translateX
+        top += translateY
+        right += translateX
+        bottom += translateY
+    }
+
     /**
      * Modifies `this` to be the intersection of this and the rect formed
      * by [left], [top], [right], and [bottom].

@@ -147,7 +147,8 @@ fun Text(
             fontFamily = fontFamily,
             textDecoration = textDecoration,
             fontStyle = fontStyle,
-            letterSpacing = letterSpacing
+            letterSpacing = letterSpacing,
+            color = overrideColorOrUnspecified
         ),
         onTextLayout = onTextLayout,
         overflow = overflow,
@@ -315,7 +316,8 @@ fun Text(
             fontFamily = fontFamily,
             textDecoration = textDecoration,
             fontStyle = fontStyle,
-            letterSpacing = letterSpacing
+            letterSpacing = letterSpacing,
+            color = overrideColorOrUnspecified
         ),
         onTextLayout = onTextLayout,
         overflow = overflow,

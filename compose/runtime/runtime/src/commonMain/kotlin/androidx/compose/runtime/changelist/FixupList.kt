@@ -23,6 +23,7 @@ import androidx.compose.runtime.SlotWriter
 import androidx.compose.runtime.changelist.Operation.InsertNodeFixup
 import androidx.compose.runtime.changelist.Operation.PostInsertNodeFixup
 import androidx.compose.runtime.changelist.Operation.UpdateNode
+import androidx.compose.runtime.monitor.diagnosticDrawFrameId
 import androidx.compose.runtime.runtimeCheck
 
 internal class FixupList : OperationsDebugStringFormattable {
@@ -68,9 +69,16 @@ internal class FixupList : OperationsDebugStringFormattable {
     }
 
     fun endNodeInsert() {
-        runtimeCheck(pendingOperations.isNotEmpty()) {
+        // region Tencent Code Modify
+        /*
+        * runtimeCheck(pendingOperations.isNotEmpty()) {
             "Cannot end node insertion, there are no pending operations that can be realized."
         }
+        */
+        runtimeCheck(pendingOperations.isNotEmpty()) {
+            "Cannot end node insertion, there are no pending operations that can be realized. frameId:${diagnosticDrawFrameId()}"
+        }
+        // end region
         pendingOperations.popInto(operations)
     }
 

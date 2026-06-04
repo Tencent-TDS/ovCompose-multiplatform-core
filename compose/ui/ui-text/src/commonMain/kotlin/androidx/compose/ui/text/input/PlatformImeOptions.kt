@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text.input
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 
 /**
@@ -23,3 +24,7 @@ import androidx.compose.runtime.Immutable
  */
 @Immutable
 expect class PlatformImeOptions
+
+// region Tencent Code
+expect fun createPlatformImeOptions(isLight: Boolean): PlatformImeOptions?
+// endregion

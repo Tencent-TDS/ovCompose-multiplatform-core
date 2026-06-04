@@ -472,7 +472,7 @@ private fun DrawScope.drawCircularIndicator(
     // To draw this circle we need a rect with edges that line up with the midpoint of the stroke.
     // To do this we need to remove half the stroke width from the total diameter for both sides.
     val diameterOffset = stroke.width / 2
-    val arcDimen = size.width - 2 * diameterOffset
+    val arcDimen = max(size.width - 2 * diameterOffset,0f)
     drawArc(
         color = color,
         startAngle = startAngle,

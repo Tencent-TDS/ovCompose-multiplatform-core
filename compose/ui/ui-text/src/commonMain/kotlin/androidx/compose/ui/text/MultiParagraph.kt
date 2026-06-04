@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LocalPath
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -33,12 +34,12 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.platform.drawMultiParagraph
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TinyBoxInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastFlatMap
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
-import kotlin.math.max
 
 /**
  * Lays out and renders multiple paragraphs at once. Unlike [Paragraph], supports multiple
@@ -442,9 +443,9 @@ class MultiParagraph(
                 " or start > end!"
         }
 
-        if (start == end) return Path()
+        if (start == end) return LocalPath()
 
-        val path = Path()
+        val path = LocalPath()
         findParagraphsByRange(paragraphInfoList, TextRange(start, end)) { paragraphInfo ->
             with(paragraphInfo) {
                 path.addPath(
@@ -509,6 +510,22 @@ class MultiParagraph(
             paragraph.getBoundingBox(offset.toLocalIndex()).toGlobal()
         }
     }
+
+    // region Tencent Code
+    /**
+     * Used for centering text.
+     * Returns the rectangle coordinates tightly enclosing the text and the baseline coordinate.
+     */
+    fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo {
+        if (lineIndex < 0 || lineIndex >= lineCount) {
+            return TinyBoxInfo()
+        }
+        val paragraphIndex = findParagraphByLineIndex(paragraphInfoList, lineIndex)
+        return with(paragraphInfoList[paragraphIndex]) {
+            paragraph.getLineTinyBoxInfo(lineIndex.toLocalLineIndex())
+        }
+    }
+    // end region
 
     /**
      * Fills the bounding boxes for characters provided in the [range] into [array]. The array is

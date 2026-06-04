@@ -219,7 +219,12 @@ inline fun DrawScope.clipRect(
     bottom: Float = size.height,
     clipOp: ClipOp = ClipOp.Intersect,
     block: DrawScope.() -> Unit
-) = withTransform({ clipRect(left, top, right, bottom, clipOp) }, block)
+) = withTransform({ clipRect(left, top, right, bottom, clipOp) }, {
+    block()
+    // region Tencent Code
+    drawContext.canvas.clipEnd()
+    // end region
+})
 
 /**
  * Reduces the clip region to the intersection of the current clip and the
@@ -235,7 +240,12 @@ inline fun DrawScope.clipPath(
     path: Path,
     clipOp: ClipOp = ClipOp.Intersect,
     block: DrawScope.() -> Unit
-) = withTransform({ clipPath(path, clipOp) }, block)
+) = withTransform({ clipPath(path, clipOp) }, {
+    block()
+    // region Tencent Code
+    drawContext.canvas.clipEnd()
+    // end region
+})
 
 /**
  * Provides access to draw directly with the underlying [Canvas]. This is helpful for situations
@@ -356,6 +366,19 @@ interface DrawScope : Density {
      */
     val layoutDirection: LayoutDirection
 
+    var drawInSkia : Boolean
+    /**
+     * Attach ArkUIView to RenderNode tree
+     *
+     * @param node the ExternalRenderNode created from certain ArkUIView to be attached
+     * @param topLeft Offset from the local origin of 0, 0 relative to the current translation
+     * @param size Dimensions of the rectangle to draw
+     */
+    fun drawRenderNode(
+        node: Any,
+        topLeft: Offset = Offset.Zero,
+        size: Size = this.size.offsetSize(topLeft)
+    )
     /**
      * Draws a line between the given points using the given paint. The line is
      * stroked.

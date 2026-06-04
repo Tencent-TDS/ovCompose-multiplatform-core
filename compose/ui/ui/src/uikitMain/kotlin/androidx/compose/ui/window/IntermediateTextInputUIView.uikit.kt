@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
@@ -66,6 +67,7 @@ import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UIView
 import platform.darwin.NSInteger
+import kotlin.math.ceil
 
 /**
  * Hidden UIView to interact with iOS Keyboard and TextInput system.
@@ -307,18 +309,6 @@ internal class IntermediateTextInputUIView(
         return toPosition.position - from.position
     }
 
-    override fun positionWithinRange(
-        range: UITextRange,
-        atCharacterOffset: NSInteger
-    ): UITextPosition? =
-        TODO("positionWithinRange range: $range, atCharacterOffset: $atCharacterOffset")
-
-    override fun positionWithinRange(
-        range: UITextRange,
-        farthestInDirection: UITextLayoutDirection
-    ): UITextPosition? =
-        TODO("positionWithinRange, farthestInDirection: ${farthestInDirection.directionToStr()}")
-
     override fun characterRangeByExtendingPosition(
         position: UITextPosition,
         inDirection: UITextLayoutDirection
@@ -477,13 +467,37 @@ internal class IntermediateTextInputUIView(
     fun showTextMenu(targetRect: org.jetbrains.skia.Rect, textActions: TextActions) {
         _currentTextMenuActions = textActions
         val menu: UIMenuController = UIMenuController.sharedMenuController()
-        val cgRect = CGRectMake(
+
+        // region Tencent Code Modify
+        /* val cgRect = CGRectMake(
+             x = targetRect.left.toDouble(),
+             y = targetRect.top.toDouble(),
+             width = targetRect.width.toDouble(),
+             height = targetRect.height.toDouble()
+         )*/
+
+        val targetCGRect = CGRectMake(
             x = targetRect.left.toDouble(),
             y = targetRect.top.toDouble(),
             width = targetRect.width.toDouble(),
             height = targetRect.height.toDouble()
         )
-        val isTargetVisible = CGRectIntersectsRect(bounds, cgRect)
+        val cgRect = if (ComposeTabService.composeIOSKeyboardDictationLayoutEnable) {
+            this.superview?.convertRect(rect = targetCGRect, toView = this)
+                ?: targetCGRect
+        } else {
+            targetCGRect
+        }
+        val final = cgRect.useContents {
+            CGRectMake(
+                if (origin.x < 0) ceil(origin.x) + 0 else origin.x,
+                if (origin.y < 0) ceil(origin.y) + 0 else origin.y,
+                if (origin.x < 0) size.width - origin.x else size.width,
+                if (origin.y < 0) size.height - origin.y else size.height
+            )
+        }
+        // endregion
+        val isTargetVisible = CGRectIntersectsRect(bounds, final)
         if (isTargetVisible) {
             if (menu.isMenuVisible()) {
                 menu.setTargetRect(cgRect, this)
@@ -529,6 +543,15 @@ internal class IntermediateTextInputUIView(
 
     override fun tokenizer(): UITextInputTokenizerProtocol =
         UITextInputStringTokenizer(textInput = this)
+
+    // region Tencent Code
+    override fun positionWithinRange(
+        range: UITextRange,
+        farthestInDirection: UITextLayoutDirection
+    ): UITextPosition? {
+        return null
+    }
+    // endregion
 }
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()

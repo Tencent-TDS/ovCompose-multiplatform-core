@@ -695,10 +695,24 @@ internal suspend inline fun AwaitPointerEventScope.awaitPointerSlopOrCancellatio
                     return null
                 }
             } else {
+                // region Tencent Code
+                val touchDirectionFactor = viewConfiguration.touchDirectionFactor
+                val hasCrossDirection = pointerDirectionConfig.calculateDeltaChangeDirection(
+                    totalPositionChange,
+                    touchDirectionFactor
+                )
+                // wait until final pass while the event does not cross the corresponding direction.
+                if (!hasCrossDirection) {
+                    awaitPointerEvent(PointerEventPass.Final)
+                    if (dragEvent.isConsumed) {
+                        return null
+                    }
+                }
                 val postSlopOffset = pointerDirectionConfig.calculatePostSlopOffset(
                     totalPositionChange,
                     touchSlop
                 )
+                // region Tencent Code
 
                 onPointerSlopReached(
                     dragEvent,
@@ -720,6 +734,14 @@ internal suspend inline fun AwaitPointerEventScope.awaitPointerSlopOrCancellatio
  */
 internal interface PointerDirectionConfig {
     fun calculateDeltaChange(offset: Offset): Float
+
+    // region Tencent Code
+    fun calculateDeltaChangeDirection(
+        totalPositionChange: Offset,
+        touchDirectionFactor: Float
+    ): Boolean
+    // endregion
+
     fun calculatePostSlopOffset(
         totalPositionChange: Offset,
         touchSlop: Float
@@ -731,6 +753,13 @@ internal interface PointerDirectionConfig {
  */
 internal val HorizontalPointerDirectionConfig = object : PointerDirectionConfig {
     override fun calculateDeltaChange(offset: Offset): Float = abs(offset.x)
+
+    // region Tencent Code
+    override fun calculateDeltaChangeDirection(
+        totalPositionChange: Offset,
+        touchDirectionFactor: Float
+    ): Boolean = abs(totalPositionChange.x) >= abs(totalPositionChange.y) * touchDirectionFactor
+    // endregion
 
     override fun calculatePostSlopOffset(
         totalPositionChange: Offset,
@@ -748,6 +777,13 @@ internal val HorizontalPointerDirectionConfig = object : PointerDirectionConfig 
 internal val VerticalPointerDirectionConfig = object : PointerDirectionConfig {
     override fun calculateDeltaChange(offset: Offset): Float = abs(offset.y)
 
+    // region Tencent Code
+    override fun calculateDeltaChangeDirection(
+        totalPositionChange: Offset,
+        touchDirectionFactor: Float
+    ): Boolean = abs(totalPositionChange.y) >= abs(totalPositionChange.x) * touchDirectionFactor
+    // endregion
+
     override fun calculatePostSlopOffset(
         totalPositionChange: Offset,
         touchSlop: Float
@@ -763,6 +799,13 @@ internal val VerticalPointerDirectionConfig = object : PointerDirectionConfig {
  */
 internal val BidirectionalPointerDirectionConfig = object : PointerDirectionConfig {
     override fun calculateDeltaChange(offset: Offset): Float = offset.getDistance()
+
+    // region Tencent Code
+    override fun calculateDeltaChangeDirection(
+        totalPositionChange: Offset,
+        touchDirectionFactor: Float
+    ): Boolean = true
+    // endregion
 
     override fun calculatePostSlopOffset(
         totalPositionChange: Offset,

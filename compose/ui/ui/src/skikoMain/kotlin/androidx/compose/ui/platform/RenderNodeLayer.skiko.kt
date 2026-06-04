@@ -92,6 +92,8 @@ internal class RenderNodeLayer(
         }
     }
 
+    override val underlyingMatrix: Matrix get() = matrix
+
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
         return if (inverse) {
             inverseMatrix
@@ -224,7 +226,6 @@ internal class RenderNodeLayer(
             performDrawLayer(pictureCanvas.asComposeCanvas(), bounds)
             picture = pictureRecorder.finishRecordingAsPicture()
         }
-
         canvas.save()
         canvas.concat(matrix)
         canvas.translate(position.x.toFloat(), position.y.toFloat())
@@ -271,11 +272,15 @@ internal class RenderNodeLayer(
             } else {
                 canvas.save()
             }
-            canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
-                alpha
-            } else {
-                1.0f
+            // region Tencent Code
+            if (canvas.canvasType == CanvasType.Skia) {
+                canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
+                    alpha
+                } else {
+                    1.0f
+                }
             }
+            // endregion
 
             drawBlock(canvas)
             canvas.restore()

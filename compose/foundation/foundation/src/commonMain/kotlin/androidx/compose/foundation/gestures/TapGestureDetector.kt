@@ -17,6 +17,7 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
+import androidx.compose.runtime.CrashReporter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -30,15 +31,18 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.isOutOfBounds
-import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
+import kotlinx.coroutines.CompletionHandlerException
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 
 /**
  * Receiver scope for [detectTapGestures]'s `onPress` lambda. This offers
@@ -62,6 +66,22 @@ interface PressGestureScope : Density {
 }
 
 private val NoPressGesture: suspend PressGestureScope.(Offset) -> Unit = { }
+
+// region Tencent Code
+private fun PointerInputScope.increaseDoubleTapCount() {
+    val tapCounter = viewConfiguration.tapCounter
+    if (tapCounter != null) {
+        tapCounter.doubleTapCount += 1
+    }
+}
+
+private fun PointerInputScope.increaseSingleTapCount() {
+    val tapCounter = viewConfiguration.tapCounter
+    if (tapCounter != null) {
+        tapCounter.singleTapCount += 1
+    }
+}
+// end Region
 
 /**
  * Detects tap, double-tap, and long press gestures and calls [onTap], [onDoubleTap], and
@@ -98,6 +118,24 @@ suspend fun PointerInputScope.detectTapGestures(
     // special signal to indicate to the sending side that it shouldn't intercept and consume
     // cancel/up events as we're only require down events
     val pressScope = PressGestureScopeImpl(this@detectTapGestures)
+
+    // region Tencent Code
+    @Suppress("NAME_SHADOWING")
+    val onDoubleTap: ((Offset) -> Unit)? = if (onDoubleTap != null) {
+        {
+            increaseDoubleTapCount()
+            onDoubleTap.invoke(it)
+        }
+    } else null
+
+    @Suppress("NAME_SHADOWING")
+    val onTap: ((Offset) -> Unit)? = if (onTap != null) {
+        {
+            increaseSingleTapCount()
+            onTap.invoke(it)
+        }
+    } else null
+    // end Region
 
     awaitEachGesture {
         val down = awaitFirstDown()
@@ -342,6 +380,20 @@ internal class PressGestureScopeImpl(
     private var isCanceled = false
     private val mutex = Mutex(locked = false)
 
+    // region Tencent Code: Handle 'kotlin.IllegalStateException: This mutex is not locked'
+    @OptIn(InternalCoroutinesApi::class)
+    private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, e ->
+        if (e is CompletionHandlerException) {
+            val rootCause = e.rootCause()
+            if (rootCause is IllegalStateException &&
+                rootCause.message?.contains("This mutex is not locked") == true
+            ) {
+                CrashReporter.reportThrowable(e)
+            }
+        }
+    }
+    // endregion
+
     /**
      * Called when a gesture has been canceled.
      */
@@ -362,7 +414,11 @@ internal class PressGestureScopeImpl(
      * Called when a new gesture has started.
      */
     suspend fun reset() {
-        mutex.lock()
+        // region Tencent Code
+        withContext(exceptionHandler) {
+            mutex.lock()
+        }
+        // endregion
         isReleased = false
         isCanceled = false
     }
@@ -375,9 +431,23 @@ internal class PressGestureScopeImpl(
 
     override suspend fun tryAwaitRelease(): Boolean {
         if (!isReleased && !isCanceled) {
-            mutex.lock()
-            mutex.unlock()
+            // region Tencent Code
+            withContext(exceptionHandler) {
+                mutex.lock()
+                mutex.unlock()
+            }
+            // endregion
         }
         return isReleased
     }
 }
+
+// region Tencent Code
+private fun Throwable.rootCause(): Throwable? {
+    var t: Throwable? = this
+    while (t?.cause != null) {
+        t = t.cause
+    }
+    return t
+}
+// endregion

@@ -16,6 +16,10 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.FastTraceTag
+import androidx.compose.foundation.OVMPFastLogPhase
+import androidx.compose.foundation.fastLog
+import androidx.compose.foundation.fastLogAllocTraceId
 import androidx.compose.foundation.text.modifiers.SelectableTextAnnotatedStringElement
 import androidx.compose.foundation.text.modifiers.SelectionController
 import androidx.compose.foundation.text.modifiers.TextAnnotatedStringElement
@@ -24,7 +28,9 @@ import androidx.compose.foundation.text.selection.LocalSelectionRegistrar
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.SelectionRegistrar
 import androidx.compose.foundation.text.selection.hasSelection
+import androidx.compose.foundation.utf16Head4AsLong
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +47,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.TextLayoutResult
@@ -89,6 +96,20 @@ fun BasicText(
     minLines: Int = 1,
     color: ColorProducer? = null
 ) {
+    // region Tencent Code
+    val traceId = if (ComposeTabService.composeFastLogEnable) {
+        val id = fastLogAllocTraceId()
+        fastLog(
+            FastTraceTag.Text,
+            id,
+            text.utf16Head4AsLong(),
+            OVMPFastLogPhase.TextFunc.value,
+            text.hashCode().toLong(),
+            text.length.toLong(),
+        )
+        id
+    } else 0L
+    // end region
     validateMinMaxLines(
         minLines = minLines,
         maxLines = maxLines
@@ -111,9 +132,28 @@ fun BasicText(
         null
     }
     val finalModifier = if (selectionController != null || onTextLayout != null) {
+        // region Tencent Code Modify
+        /*
         modifier
-            // TODO(b/274781644): Remove this graphicsLayer
-            .graphicsLayer()
+        .textModifier(
+            AnnotatedString(text = text),
+            style = style,
+            onTextLayout = onTextLayout,
+            overflow = overflow,
+            softWrap = softWrap,
+            maxLines = maxLines,
+            minLines = minLines,
+            fontFamilyResolver = LocalFontFamilyResolver.current,
+            placeholders = null,
+            onPlaceholderLayout = null,
+            selectionController = selectionController,
+            color = color
+        )
+         */
+        modifier.run {
+            if (isDebugInspectorInfoEnabled) modifier.graphicsLayer()
+            else this
+        }
             .textModifier(
                 AnnotatedString(text = text),
                 style = style,
@@ -128,10 +168,11 @@ fun BasicText(
                 selectionController = selectionController,
                 color = color
             )
+        // endregion
     } else {
-        modifier
-            // TODO(b/274781644): Remove this graphicsLayer
-            .graphicsLayer() then TextStringSimpleElement(
+        // region Tencent Code Modify
+        /*
+        modifier then TextStringSimpleElement(
             text = text,
             style = style,
             fontFamilyResolver = LocalFontFamilyResolver.current,
@@ -141,6 +182,22 @@ fun BasicText(
             minLines = minLines,
             color = color
         )
+         */
+        modifier.run {
+            if (isDebugInspectorInfoEnabled) modifier.graphicsLayer()
+            else this
+        } then TextStringSimpleElement(
+            text = text,
+            traceId = traceId,
+            style = style,
+            fontFamilyResolver = LocalFontFamilyResolver.current,
+            overflow = overflow,
+            softWrap = softWrap,
+            maxLines = maxLines,
+            minLines = minLines,
+            color = color
+        )
+        // end region
     }
     Layout(finalModifier, EmptyMeasurePolicy)
 }
@@ -206,10 +263,29 @@ fun BasicText(
     }
     if (!text.hasInlineContent()) {
         // this is the same as text: String, use all the early exits
+        // region Tencent Code Modify
+        /*
+        modifier = modifier
+                .textModifier(
+                    text = text,
+                    style = style,
+                    onTextLayout = onTextLayout,
+                    overflow = overflow,
+                    softWrap = softWrap,
+                    maxLines = maxLines,
+                    minLines = minLines,
+                    fontFamilyResolver = LocalFontFamilyResolver.current,
+                    placeholders = null,
+                    onPlaceholderLayout = null,
+                    selectionController = selectionController,
+                    color = color
+                )
+         */
         Layout(
-            modifier = modifier
-                // TODO(b/274781644): Remove this graphicsLayer
-                .graphicsLayer()
+            modifier = modifier.run {
+                if (isDebugInspectorInfoEnabled) modifier.graphicsLayer()
+                else this
+            }
                 .textModifier(
                     text = text,
                     style = style,
@@ -226,6 +302,7 @@ fun BasicText(
                 ),
             EmptyMeasurePolicy
         )
+        // endregion
     } else {
         // do the inline content allocs
         val (placeholders, inlineComposables) = text.resolveInlineContent(
@@ -234,11 +311,9 @@ fun BasicText(
         val measuredPlaceholderPositions = remember<MutableState<List<Rect?>?>> {
             mutableStateOf(null)
         }
-        Layout(
-            content = { InlineChildren(text = text, inlineContents = inlineComposables) },
-            modifier = modifier
-                // TODO(b/274781644): Remove this graphicsLayer
-                .graphicsLayer()
+        // region Tencent Code Modify
+        /*
+        modifier = modifier
                 .textModifier(
                 text = text,
                 style = style,
@@ -255,6 +330,30 @@ fun BasicText(
             ),
             measurePolicy = TextMeasurePolicy { measuredPlaceholderPositions.value }
         )
+         */
+        Layout(
+            content = { InlineChildren(text = text, inlineContents = inlineComposables) },
+            modifier = modifier.run {
+                if (isDebugInspectorInfoEnabled) modifier.graphicsLayer()
+                else this
+            }
+                .textModifier(
+                    text = text,
+                    style = style,
+                    onTextLayout = onTextLayout,
+                    overflow = overflow,
+                    softWrap = softWrap,
+                    maxLines = maxLines,
+                    minLines = minLines,
+                    fontFamilyResolver = LocalFontFamilyResolver.current,
+                    placeholders = placeholders,
+                    onPlaceholderLayout = { measuredPlaceholderPositions.value = it },
+                    selectionController = selectionController,
+                    color = color
+                ),
+            measurePolicy = TextMeasurePolicy { measuredPlaceholderPositions.value }
+        )
+        // endregion
     }
 }
 

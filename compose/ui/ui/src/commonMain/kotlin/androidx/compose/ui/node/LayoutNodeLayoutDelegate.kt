@@ -434,6 +434,13 @@ internal class LayoutNodeLayoutDelegate(
         private fun markSubtreeAsNotPlaced() {
             if (isPlaced) {
                 isPlaced = false
+
+                // region Tencent Code
+                layoutNode.forEachCoordinatorIncludingInner {
+                    it.layer?.setPlaced(false)
+                }
+                // endregion
+
                 forEachChildDelegate {
                     it.markSubtreeAsNotPlaced()
                 }
@@ -454,6 +461,9 @@ internal class LayoutNodeLayoutDelegate(
                 }
                 // invalidate all the nodes layers that were invalidated while the node was not placed
                 forEachCoordinatorIncludingInner {
+                    // region Tencent Code
+                    it.layer?.setPlaced(true)
+                    // endregion
                     if (it.lastLayerDrawingWasSkipped) {
                         it.invalidateLayer()
                     }
@@ -734,6 +744,7 @@ internal class LayoutNodeLayoutDelegate(
             }
             layoutState = LayoutState.LayingOut
 
+            val firstPlacement = !placedOnce
             lastPosition = position
             lastZIndex = zIndex
             lastLayerBlock = layerBlock
@@ -741,6 +752,7 @@ internal class LayoutNodeLayoutDelegate(
             onNodePlacedCalled = false
 
             val owner = layoutNode.requireOwner()
+            owner.rectManager.onLayoutPositionChanged(layoutNode, position, firstPlacement)
             if (!layoutPending && isPlaced) {
                 outerCoordinator.placeSelfApparentToRealOffset(position, zIndex, layerBlock)
                 onNodePlaced()

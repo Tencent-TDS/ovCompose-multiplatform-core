@@ -216,6 +216,11 @@ interface GraphicsLayerScope : Density {
      */
     val size: Size
         get() = Size.Unspecified
+
+    /**
+     * Optimize for graphics transforms.
+     */
+    var optimizeForTransform: Boolean
 }
 
 /**
@@ -242,6 +247,9 @@ internal object Fields {
     const val Clip: Int = 0b1 shl 14
     const val CompositingStrategy: Int = 0b1 shl 15
     const val RenderEffect: Int = 0b1 shl 17
+    // region Tencent Code
+    const val OptimizeForTransform: Int = 0b1 shl 18
+    // endregion
 
     const val MatrixAffectingFields = ScaleX or
         ScaleY or
@@ -387,6 +395,16 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
             }
         }
 
+    // region Tencent Code
+    override var optimizeForTransform: Boolean = false
+        set(value) {
+            if (field != value) {
+                mutatedFields = mutatedFields or Fields.OptimizeForTransform
+                field = value
+            }
+        }
+    // endregion
+
     fun reset() {
         scaleX = 1f
         scaleY = 1f
@@ -406,6 +424,9 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
         renderEffect = null
         compositingStrategy = CompositingStrategy.Auto
         size = Size.Unspecified
+        // region Tencent Code
+        optimizeForTransform = false
+        // endregion
         // mutatedFields should be reset last as all the setters above modify it.
         mutatedFields = 0
     }

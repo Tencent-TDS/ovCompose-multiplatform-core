@@ -18,7 +18,7 @@
 pluginManagement {
     repositories {
         maven {
-            url "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/"
+            url "https://packages.jetbrains.team/maven/p/cmp/dev/"
         }
         gradlePluginPortal()
     }

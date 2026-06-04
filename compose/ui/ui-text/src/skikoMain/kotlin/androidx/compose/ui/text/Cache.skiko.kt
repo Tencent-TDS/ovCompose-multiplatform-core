@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.text
 
+import androidx.compose.runtime.platformSynchronizedObject
+import androidx.compose.runtime.synchronized
 import org.jetbrains.skiko.currentNanoTime
 
 // Extremely simple Cache interface which is enough for ui.text needs
@@ -27,7 +29,9 @@ internal interface Cache<K, V> {
 /**
  * Cache with weak keys.
  */
-internal expect class WeakKeysCache<K : Any, V>() : Cache<K, V>
+internal expect class WeakKeysCache<K : Any, V>() : Cache<K, V> {
+    override fun get(key: K, loader: (K) -> V): V
+}
 
 /**
  * Cache with expiring entries after `expireAfter` after last access.
@@ -39,15 +43,34 @@ internal class ExpireAfterAccessCache<K, V>(
     internal val map = HashMap<K, V>()
     internal val accessTime = LinkedHashMap<K, Long>()
 
+    // region Tencent Code Modify
+    private val lock = platformSynchronizedObject()
+    // end region
+
     override fun get(key: K, loader: (K) -> V): V {
-        accessTime.remove(key)
-        return map.getOrPut(key) {
-            loader(key)
-        }.also {
-            val now = currentNanos()
-            accessTime[key] = now
-            checkEvicted(now)
+        // region Tencent Code Modify
+        /*
+        *  accessTime.remove(key)
+        *    return map.getOrPut(key) {
+        *        loader(key)
+        *    }.also {
+        *        val now = currentNanos()
+        *        accessTime[key] = now
+        *        checkEvicted(now)
+        *    }
+        */
+        val result = synchronized(lock) {
+            accessTime.remove(key)
+            map.getOrPut(key) {
+                loader(key)
+            }.also {
+                val now = currentNanos()
+                accessTime[key] = now
+                checkEvicted(now)
+            }
         }
+        return result
+        // end region
     }
 
     private fun checkEvicted(now: Long) {

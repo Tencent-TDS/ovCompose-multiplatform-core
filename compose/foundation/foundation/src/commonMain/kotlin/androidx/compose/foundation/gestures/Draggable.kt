@@ -26,6 +26,8 @@ import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CurrentPlatform
+import androidx.compose.runtime.PlatformType
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -48,6 +50,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalPlatformVelocityProvider
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
@@ -490,6 +493,13 @@ internal abstract class AbstractDraggableNode(
                                 val maximumVelocity = currentValueOf(LocalViewConfiguration)
                                     .maximumFlingVelocity.toFloat()
                                 val event = if (isDragSuccessful) {
+                                    // region Tencent Code
+                                    if (CurrentPlatform == PlatformType.IOS) {
+                                        val velocityProvider = currentValueOf(LocalPlatformVelocityProvider)
+                                        velocityTracker.updateVelocityProvider(velocityProvider)
+                                    }
+                                    // end region
+
                                     val velocity = velocityTracker.calculateVelocity(
                                         Velocity(maximumVelocity, maximumVelocity)
                                     )
@@ -571,8 +581,15 @@ private suspend fun AwaitPointerEventScope.awaitDownAndSlop(
     velocityTracker: VelocityTracker,
     pointerDirectionConfig: PointerDirectionConfig
 ): Pair<PointerInputChange, Offset>? {
-    val initialDown =
+    // region Tencent Code
+    val awaitDragOnPointerEventPassInitial =
+        viewConfiguration.awaitDragOnPointerEventPassInitial
+    val initialDown = if (awaitDragOnPointerEventPassInitial) {
         awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+    } else {
+        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Main)
+    }
+    // endregion
     return if (!canDrag(initialDown)) {
         null
     } else if (startDragImmediately()) {
@@ -581,7 +598,13 @@ private suspend fun AwaitPointerEventScope.awaitDownAndSlop(
         // since we start immediately we don't wait for slop and the initial delta is 0
         initialDown to Offset.Zero
     } else {
-        val down = awaitFirstDown(requireUnconsumed = false)
+        // region Tencent Code
+        val down = if (awaitDragOnPointerEventPassInitial) {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Main)
+        } else {
+            initialDown
+        }
+        // endregion
         velocityTracker.addPointerInputChange(down)
         var initialDelta = Offset.Zero
         val postPointerSlop = { event: PointerInputChange, offset: Offset ->

@@ -57,10 +57,11 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -76,6 +77,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":collection:collection"))
                 implementation(project(":annotation:annotation"))
             }
             jvmMain.dependencies {
@@ -86,24 +88,25 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             jbMain.dependsOn(commonMain)
-            desktopMain.dependsOn(jbMain)
+//            desktopMain.dependsOn(jbMain)
             jsNativeMain.dependsOn(jbMain)
-            jsMain.dependsOn(jsNativeMain)
+//            jsMain.dependsOn(jsNativeMain)
             nativeMain.dependsOn(jsNativeMain)
+            ohosArm64Main.dependsOn(nativeMain)
 
-            jsMain {
-                dependsOn(jsNativeMain)
-            }
+//            jsMain {
+//                dependsOn(jsNativeMain)
+//            }
 
-            wasmJsMain {
-                dependsOn(jsNativeMain)
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+//            wasmJsMain {
+//                dependsOn(jsNativeMain)
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
 
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
@@ -120,14 +123,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.espressoCore)
             }
 
-            desktopTest {
-                dependencies {
-                    implementation(libs.junit)
-                    implementation(libs.truth)
-                    implementation(libs.kotlinTest)
-                }
-            }
-            desktopTest.kotlin.srcDirs("src/test/kotlin")
+//            desktopTest {
+//                dependencies {
+//                    implementation(libs.junit)
+//                    implementation(libs.truth)
+//                    implementation(libs.kotlinTest)
+//                }
+//            }
+//            desktopTest.kotlin.srcDirs("src/test/kotlin")
         }
     }
     dependencies {

@@ -191,6 +191,12 @@ class TextInputSession(
         platformTextInputService.notifyFocusedRect(rect)
     }
 
+    // region Tencent Code
+    fun notifyTextFieldRectInRoot(rect: Rect): Boolean = ensureOpenSession {
+        platformTextInputService.notifyTextFieldRectInRoot(rect)
+    }
+    // endregion
+
     /**
      * Notify the input service of layout and position changes.
      *
@@ -346,6 +352,14 @@ interface PlatformTextInputService {
     // TODO(b/262648050) Try to find a better API.
     fun notifyFocusedRect(rect: Rect) {
     }
+
+    // region Tencent Code
+    /**
+     * Notify the TextField rect in root.
+     */
+    fun notifyTextFieldRectInRoot(rect: Rect) {
+    }
+    // endregion
 
     /**
      * Notify the input service of layout and position changes.

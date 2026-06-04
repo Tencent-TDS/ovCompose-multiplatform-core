@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.MutableRect
@@ -39,6 +40,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -46,6 +48,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.minus
 import androidx.compose.ui.unit.plus
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -109,7 +113,12 @@ internal abstract class NodeCoordinator(
     }
 
     private fun hasNode(type: NodeKind<*>): Boolean {
-        return headNode(type.includeSelfInTraversal)?.has(type) == true
+        // region Tencent Code: Avoid both boxing Boolean values and invoking equals on them.
+        // return headNode(type.includeSelfInTraversal)?.has(type) == true
+
+        val node = headNode(type.includeSelfInTraversal) ?: return false
+        return node.has(type)
+        // endregion
     }
 
     fun head(type: NodeKind<*>): Modifier.Node? {
@@ -321,7 +330,13 @@ internal abstract class NodeCoordinator(
                 .notifyChildrenUsingCoordinatesWhilePlacing()
             val layer = layer
             if (layer != null) {
-                layer.move(position)
+                // region Tencent Code
+                if (ComposeTabService.reduceUpdateParentLayer) {
+                    updateLayerPositionWithNoUpdateParentLayer(layer)
+                } else {
+                    updateLayerPosition(layer)
+                }
+                // endregion
             } else {
                 wrappedBy?.invalidateLayer()
             }
@@ -342,9 +357,19 @@ internal abstract class NodeCoordinator(
     /**
      * Draws the content of the LayoutNode
      */
+    // region Tencent Code
     fun draw(canvas: Canvas) {
         val layer = layer
         if (layer != null) {
+            val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+            if (!drawInSkia && this.isAttached) {
+                if (ComposeTabService.reduceUpdateParentLayer) {
+                    updateLayerHierarchy(layer)
+                    updateLayerPositionWithNoUpdateParentLayer(layer)
+                } else {
+                    updateLayerPosition(layer)
+                }
+            }
             layer.drawLayer(canvas)
         } else {
             val x = position.x.toFloat()
@@ -354,6 +379,7 @@ internal abstract class NodeCoordinator(
             canvas.translate(-x, -y)
         }
     }
+    // endregion
 
     private fun drawContainedDrawModifiers(canvas: Canvas) {
         val head = head(Nodes.Draw)
@@ -409,13 +435,29 @@ internal abstract class NodeCoordinator(
                     invalidateParentLayer
                 ).apply {
                     resize(measuredSize)
-                    move(position)
+                    // region Tencent Code
+                    if (ComposeTabService.reduceUpdateParentLayer) {
+                        updateLayerPositionWithNoUpdateParentLayer(this)
+                    } else {
+                        updateLayerPosition(this)
+                    }
+                    // 设置此 Layer 对应的组件 semanticsId，用于 LayoutInspector solo screenshot
+                    if (isDebugInspectorInfoEnabled) {
+                        setOwnerSemanticsId(layoutNode.semanticsId)
+                    }
+                    // endregion
                 }
                 updateLayerParameters()
                 layoutNode.innerLayerCoordinatorIsDirty = true
                 invalidateParentLayer()
             } else if (updateParameters) {
-                updateLayerParameters()
+                val positionalPropertiesChanged = updateLayerParameters()
+                if (positionalPropertiesChanged) {
+                    layoutNode
+                        .requireOwner()
+                        .rectManager
+                        .onLayoutLayerPositionalPropertiesChanged(layoutNode)
+                }
             }
         } else {
             layer?.let {
@@ -431,7 +473,83 @@ internal abstract class NodeCoordinator(
         }
     }
 
-    private fun updateLayerParameters(invokeOnLayoutChange: Boolean = true) {
+    override fun inspectionLayerId(): Long {
+
+        // 如果自己有 layer，直接返回
+        layer?.layerProxyId()?.let { 
+            if (it != 0L) {
+                return it
+            }
+        }
+        
+        // 向上查找 wrappedBy 链
+        var coordinator: NodeCoordinator? = wrappedBy
+        while (coordinator != null) {
+            val layerId = coordinator.layer?.layerProxyId()
+            if (layerId != null && layerId != 0L) {
+                return layerId
+            }
+            coordinator = coordinator.wrappedBy
+        }
+        
+        // 如果 wrappedBy 链没有找到 layer，尝试通过 layoutNode.parent 链查找
+        // 这是为了处理 wrappedBy 链可能断开的情况（如 SubcomposeLayout 的 virtual node）
+        var parentNode: LayoutNode? = layoutNode.parent
+        while (parentNode != null) {
+            // 检查 parent 的所有 coordinator（从 outer 到 inner）
+            var parentCoordinator: NodeCoordinator? = parentNode.outerCoordinator
+            while (parentCoordinator != null) {
+                val layerId = parentCoordinator.layer?.layerProxyId()
+                if (layerId != null && layerId != 0L) {
+                    return layerId
+                }
+                parentCoordinator = parentCoordinator.wrapped
+            }
+            parentNode = parentNode.parent
+        }
+        
+        return 0L
+    }
+    
+    /**
+     * 获取 inspectionLayerId 对应的 Layer 在 window 坐标系中的位置。
+     * 用于计算节点相对于 Layer 的 frame。
+     */
+    override fun inspectionLayerPositionInWindow(): Offset {
+
+        // 如果自己有 layer
+        if (layer?.layerProxyId() != 0L && layer != null) {
+            return localToWindow(Offset.Zero)
+        }
+        
+        // 向上查找 wrappedBy 链
+        var coordinator: NodeCoordinator? = wrappedBy
+        while (coordinator != null) {
+            val layerId = coordinator.layer?.layerProxyId()
+            if (layerId != null && layerId != 0L) {
+                return coordinator.localToWindow(Offset.Zero)
+            }
+            coordinator = coordinator.wrappedBy
+        }
+        
+        // 通过 parent 链查找
+        var parentNode: LayoutNode? = layoutNode.parent
+        while (parentNode != null) {
+            var parentCoordinator: NodeCoordinator? = parentNode.outerCoordinator
+            while (parentCoordinator != null) {
+                val layerId = parentCoordinator.layer?.layerProxyId()
+                if (layerId != null && layerId != 0L) {
+                    return parentCoordinator.localToWindow(Offset.Zero)
+                }
+                parentCoordinator = parentCoordinator.wrapped
+            }
+            parentNode = parentNode.parent
+        }
+        
+        return Offset.Zero
+    }
+
+    private fun updateLayerParameters(invokeOnLayoutChange: Boolean = true): Boolean {
         val layer = layer
         if (layer != null) {
             val layerBlock = checkNotNull(layerBlock) {
@@ -445,6 +563,7 @@ internal abstract class NodeCoordinator(
             }
             val layerPositionalProperties = layerPositionalProperties
                 ?: LayerPositionalProperties().also { layerPositionalProperties = it }
+            tmpLayerPositionalProperties.copyFrom(layerPositionalProperties)
             layerPositionalProperties.copyFrom(graphicsLayerScope)
             layer.updateLayerProperties(
                 graphicsLayerScope,
@@ -453,11 +572,15 @@ internal abstract class NodeCoordinator(
             )
             isClipping = graphicsLayerScope.clip
             lastLayerAlpha = graphicsLayerScope.alpha
+            val positionalPropertiesChanged =
+                !tmpLayerPositionalProperties.hasSameValuesAs(layerPositionalProperties)
             if (invokeOnLayoutChange) {
                 layoutNode.owner?.onLayoutChange(layoutNode)
             }
+            return positionalPropertiesChanged
         } else {
             check(layerBlock == null) { "null layer with a non-null layerBlock" }
+            return false
         }
     }
 
@@ -471,6 +594,17 @@ internal abstract class NodeCoordinator(
      */
     internal var lastLayerDrawingWasSkipped = false
         private set
+
+    // region Tencent Code
+    private val parentLayerNode: NodeCoordinator?
+        get() {
+            return if (wrappedBy?.layer == null) {
+                wrappedBy?.parentLayerNode
+            } else {
+                wrappedBy
+            }
+        }
+    // endregion
 
     var layer: OwnedLayer? = null
         private set
@@ -731,6 +865,13 @@ internal abstract class NodeCoordinator(
         val owner = layoutNode.requireOwner()
         return owner.calculatePositionInWindow(positionInRoot)
     }
+
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: Rect): Rect {
+        val owner = layoutNode.requireOwner()
+        return owner.boundsBoxInContainerWindow(bounds)
+    }
+    // endregion
 
     private fun LayoutCoordinates.toCoordinator() =
         (this as? LookaheadLayoutCoordinates)?.coordinator ?: this as NodeCoordinator
@@ -1129,6 +1270,59 @@ internal abstract class NodeCoordinator(
         }
     }
 
+    // region Tencent Code
+    private fun updateLayerHierarchy(layer: OwnedLayer) {
+        // TODO: parent layer may be changed according to the layer block updates
+        //  of layout nodes.
+        layer.updateParentLayer(parentLayerNode?.layer)
+    }
+
+    private fun updateLayerPositionWithNoUpdateParentLayer(layer: OwnedLayer) {
+        val parentLayerNode = this.parentLayerNode
+        val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+        if (!drawInSkia) {
+            // TODO: parent layer may be changed according to the layer block updates
+            //  of layout nodes.
+            // iOS Binding: position relative to parent layer in iOS.
+            if (parentLayerNode == null) {
+                layer.move(position)
+            } else {
+                // TODO: Work out a better way to keep track on position changes.
+                //  Position of UIViewLayer is relative to its parent layer
+                //  Any changes happened to the nodes between parent layer and current layer
+                //  will not be notified.
+                val layerPosition = parentLayerNode.localPositionOf(wrappedBy!!, position.toOffset())
+                layer.move(layerPosition.round())
+            }
+        } else {
+            layer.move(position)
+        }
+    }
+
+    private fun updateLayerPosition(layer: OwnedLayer) {
+        val parentLayerNode = this.parentLayerNode
+        val drawInSkia = layoutNode.owner?.drawInSkia ?: false
+        if (!drawInSkia) {
+            // TODO: parent layer may be changed according to the layer block updates
+            //  of layout nodes.
+            layer.updateParentLayer(parentLayerNode?.layer)
+            // iOS Binding: position relative to parent layer in iOS.
+            if (parentLayerNode == null) {
+                layer.move(position)
+            } else {
+                // TODO: Work out a better way to keep track on position changes.
+                //  Position of UIViewLayer is relative to its parent layer
+                //  Any changes happened to the nodes between parent layer and current layer
+                //  will not be notified.
+                val layerPosition = parentLayerNode.localPositionOf(wrappedBy!!, position.toOffset())
+                layer.move(layerPosition.round())
+            }
+        } else {
+            layer.move(position)
+        }
+    }
+    // endregion
+
     /**
      * [LayoutNode.hitTest] and [LayoutNode.hitTestSemantics] are very similar, but the data
      * used in their implementations are different. This extracts the differences between the
@@ -1191,6 +1385,9 @@ internal abstract class NodeCoordinator(
                                 .notifyChildrenUsingCoordinatesWhilePlacing()
                         }
                         layoutNode.owner?.requestOnPositionedCallback(layoutNode)
+                        val owner = layoutNode.requireOwner()
+                        owner.rectManager.onLayoutLayerPositionalPropertiesChanged(layoutNode)
+                        owner.requestOnPositionedCallback(layoutNode)
                     }
                 }
             }

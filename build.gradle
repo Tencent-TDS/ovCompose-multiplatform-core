@@ -19,7 +19,10 @@ import androidx.build.SdkHelperKt
 
 buildscript {
     SdkHelperKt.setSupportRootFolder(project, project.projectDir)
-    SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
+    // region @Tencent: Any Android SDK will work since we don't want to build the Android code actually.
+    //              Please configure your local installed Android SDK path in the local.properties.
+    // SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
+    // endregion
 
     // Needed for atomicfu plugin
     apply(from: "buildSrc/repos.gradle")
@@ -28,6 +31,9 @@ buildscript {
         classpath(libs.atomicFuPluginz)
         // This should be removed once https://github.com/Kotlin/kotlinx-atomicfu/issues/399 is fixed
         classpath("org.jetbrains.kotlin:atomicfu:${libs.versions.kotlin.get()}")
+        // region Tencent Code
+        classpath(libs.k2config.gradle.plugin)
+        // endregion
     }
 }
 

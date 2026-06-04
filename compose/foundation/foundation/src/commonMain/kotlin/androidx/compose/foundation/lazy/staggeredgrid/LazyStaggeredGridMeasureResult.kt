@@ -207,6 +207,9 @@ internal class LazyStaggeredGridMeasureResult(
                 }
                 if (!canApply) return false
             }
+            // region Tencent Code
+            if (!it.partiallyVisibleInside(viewportStartOffset, viewportEndOffset, delta)) return false
+            // endregion
         }
         repeat(firstVisibleItemScrollOffsets.size) { index ->
             firstVisibleItemScrollOffsets[index] -= delta

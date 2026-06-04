@@ -16,6 +16,8 @@
 
 package androidx.compose.runtime
 
+import kotlinx.coroutines.CancellationException
+
 /**
  * Stable is used to communicate some guarantees to the compose compiler about how a certain type
  * or function will behave.
@@ -47,3 +49,16 @@ package androidx.compose.runtime
 @Retention(AnnotationRetention.BINARY)
 @StableMarker
 annotation class Stable
+
+var ComposeEnableCachedThrowable = true
+// region Tencent Code
+fun enableCachedThrowable(enable: Boolean) {
+    ComposeEnableCachedThrowable = enable
+}
+
+object ThrowableCache {
+    private val cachedCancellationException = CancellationException("Global cache jobCancellationException")
+
+    val jobCancellationException: CancellationException? = if (ComposeEnableCachedThrowable) cachedCancellationException else null
+}
+// endregion

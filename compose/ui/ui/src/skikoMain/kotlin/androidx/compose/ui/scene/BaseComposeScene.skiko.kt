@@ -38,6 +38,9 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.TraceScene
+import androidx.compose.ui.platform.performTraceOpen
+import androidx.compose.ui.platform.traceSync
 import kotlin.coroutines.CoroutineContext
 import kotlin.concurrent.Volatile
 
@@ -159,19 +162,44 @@ internal abstract class BaseComposeScene(
         // dispatched, in order to allow registering for these events before they are sent.
         // Otherwise, events like a synthetic mouse-enter sent due to a new element appearing under
         // the pointer would be missed by e.g. InteractionSource.collectHoverAsState
-        recomposer.performScheduledTasks()
-        frameClock.sendFrame(nanoTime)           // Recomposition
-        doLayout()                               // Layout
-        recomposer.performScheduledEffects()     // Composition effects (e.g. LaunchedEffect)
-        inputHandler.updatePointerPosition()     // Synthetic move event
-        snapshotInvalidationTracker.onDraw()
-        draw(canvas)                             // Draw
+        // region Tencent Code
+        if (!performTraceOpen()) {
+            recomposer.performScheduledTasks()
+            frameClock.sendFrame(nanoTime)           // Recomposition
+            doLayout()                               // Layout
+            recomposer.performScheduledEffects()     // Composition effects (e.g. LaunchedEffect)
+            inputHandler.updatePointerPosition()     // Synthetic move event
+            snapshotInvalidationTracker.onDraw()
+            draw(canvas)                             // Draw
+        } else {
+            traceSync(TraceScene.ScheduledTasks.value) {
+                recomposer.performScheduledTasks()
+            }
+            traceSync(TraceScene.Recomposition.value) {
+                frameClock.sendFrame(nanoTime)
+            }
+            traceSync(TraceScene.Layout.value) {
+                doLayout()
+            }
+            traceSync(TraceScene.Effects.value) {
+                recomposer.performScheduledEffects()
+            }
+            traceSync(TraceScene.PointerInput.value) {
+                inputHandler.updatePointerPosition()
+            }
+            snapshotInvalidationTracker.onDraw()
+            traceSync(TraceScene.Draw.value) {
+                draw(canvas)
+            }
+        }
+        // endregion
     }
 
     override fun sendPointerEvent(
         eventType: PointerEventType,
         position: Offset,
         scrollDelta: Offset,
+        pinchScale: Float,
         timeMillis: Long,
         type: PointerType,
         buttons: PointerButtons?,
@@ -183,6 +211,7 @@ internal abstract class BaseComposeScene(
             eventType = eventType,
             position = position,
             scrollDelta = scrollDelta,
+            pinchScale = pinchScale,
             timeMillis = timeMillis,
             type = type,
             buttons = buttons,
@@ -200,6 +229,7 @@ internal abstract class BaseComposeScene(
         buttons: PointerButtons,
         keyboardModifiers: PointerKeyboardModifiers,
         scrollDelta: Offset,
+        pinchScale: Float,
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
@@ -210,6 +240,7 @@ internal abstract class BaseComposeScene(
             buttons = buttons,
             keyboardModifiers = keyboardModifiers,
             scrollDelta = scrollDelta,
+            pinchScale = pinchScale,
             timeMillis = timeMillis,
             nativeEvent = nativeEvent,
             button = button

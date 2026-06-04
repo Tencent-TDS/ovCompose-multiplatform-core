@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text.platform
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.*
@@ -26,12 +27,10 @@ import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import kotlin.math.abs
-import org.jetbrains.skia.Paint
 import org.jetbrains.skia.paragraph.LineMetrics
 import org.jetbrains.skia.paragraph.Paragraph
 
@@ -155,18 +154,39 @@ internal class ParagraphLayouter(
         }
     }
 
+    // region Tencent Code
+    private inline fun Paragraph.safeLayout(width: Float): Paragraph {
+        val fixANR = ComposeTabService.skiaSwitchStateANRFixEnable
+        return if (fixANR) {
+             layout2(width)
+        } else {
+            layout(width)
+        }
+    }
+    // end region
+
     fun layoutParagraph(width: Float): Paragraph {
         val paragraph = paragraphCache
         return if (paragraph != null) {
             if (!this.width.sameValueAs(width)) {
                 this.width = width
-                paragraph.layout(width)
+                // region Tencent Code Modify
+                /*
+                * paragraph.layout(width)
+                */
+                paragraph.safeLayout(width)
+                // end region
             }
             paragraph
         } else {
             builder.build().apply {
                 paragraphCache = this
-                layout(width)
+                // region Tencent Code Modify
+                /*
+                * paragraph.layout(width)
+                */
+                safeLayout(width)
+                // end region
             }
         }
     }

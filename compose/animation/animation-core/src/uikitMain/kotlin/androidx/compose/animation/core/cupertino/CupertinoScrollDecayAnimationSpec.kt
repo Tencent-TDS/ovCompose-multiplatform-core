@@ -19,6 +19,8 @@ package androidx.compose.animation.core.cupertino
 import androidx.compose.animation.core.FloatDecayAnimationSpec
 import androidx.compose.animation.core.convertNanosToSeconds
 import androidx.compose.animation.core.convertSecondsToNanos
+import androidx.compose.runtime.ComposeTabService
+import platform.UIKit.UIScrollViewDecelerationRateFast
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
@@ -32,7 +34,9 @@ import platform.UIKit.UIScrollViewDecelerationRateNormal
  * Default value is equal to one used by default UIScrollView behavior.
  */
 class CupertinoScrollDecayAnimationSpec(
-    private val decelerationRate: Float = UIScrollViewDecelerationRateNormal.toFloat()
+    // region Tencent Code Modify
+    private val decelerationRate: Float = getSafeDecelerationRate(ComposeTabService.iOSFlingConfig.decelerationRate)
+    // endregion
 ) : FloatDecayAnimationSpec {
 
     private val coefficient: Float = 1000f * ln(decelerationRate)
@@ -74,4 +78,14 @@ class CupertinoScrollDecayAnimationSpec(
 
         return initialVelocity * decelerationRate.pow(1000f * playTimeSeconds)
     }
+
+    // region Tencent Code
+    companion object {
+        private inline fun getSafeDecelerationRate(configRate: Float?) =
+            configRate?.takeUnless { it.isNaN() }?.coerceIn(
+                UIScrollViewDecelerationRateFast.toFloat(),
+                UIScrollViewDecelerationRateNormal.toFloat()
+            ) ?: UIScrollViewDecelerationRateNormal.toFloat()
+    }
+    // endregion
 }

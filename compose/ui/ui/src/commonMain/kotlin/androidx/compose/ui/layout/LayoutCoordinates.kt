@@ -66,6 +66,13 @@ interface LayoutCoordinates {
      */
     fun localToWindow(relativeToLocal: Offset): Offset
 
+    // region Tencent Code
+    /**
+     * clip [bounds] in native container window, when compose scroll in a scrollable component
+     */
+    fun boundsBoxInContainerWindow(bounds: Rect): Rect
+    // endregion
+
     /**
      * Converts a local position within this layout into an offset from the root composable.
      */
@@ -109,6 +116,25 @@ interface LayoutCoordinates {
      * or [AlignmentLine.Unspecified] if the line is not provided.
      */
     operator fun get(alignmentLine: AlignmentLine): Int
+
+    // region Tencent Code
+    /**
+     * 用于 Layout Inspector 追踪的 Layer 唯一 ID。
+     */
+    fun inspectionLayerId(): Long {
+        return 0L
+    }
+    
+    /**
+     * 获取 inspectionLayerId 对应的 Layer 在 window 坐标系中的位置。
+     * 用于计算节点相对于 Layer 的 frame。
+     * 
+     * @return Layer 左上角在 window 中的位置，如果没有 Layer 则返回 Offset.Zero
+     */
+    fun inspectionLayerPositionInWindow(): Offset {
+        return Offset.Zero
+    }
+    // endregion
 }
 
 /**
@@ -152,6 +178,16 @@ fun LayoutCoordinates.boundsInWindow(): Rect {
     val bottom = maxOf(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y)
     return Rect(left, top, right, bottom)
 }
+
+// region Tencent Code
+/**
+ * The boundaries of this layout relative to the container window's origin.
+ */
+fun LayoutCoordinates.boundsInContainerWindow(): Rect {
+    val rect = boundsInWindow()
+    return boundsBoxInContainerWindow(rect)
+}
+// endregion
 
 /**
  * Returns the position of the top-left in the parent's content area or (0, 0)

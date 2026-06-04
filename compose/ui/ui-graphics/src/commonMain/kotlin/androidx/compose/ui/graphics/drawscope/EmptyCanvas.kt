@@ -41,6 +41,10 @@ import androidx.compose.ui.unit.IntSize
  */
 internal class EmptyCanvas : Canvas {
 
+    override fun drawRenderNode(node: Any, rect: Rect) {
+        throw UnsupportedOperationException()
+    }
+
     override fun save() {
         throw UnsupportedOperationException()
     }

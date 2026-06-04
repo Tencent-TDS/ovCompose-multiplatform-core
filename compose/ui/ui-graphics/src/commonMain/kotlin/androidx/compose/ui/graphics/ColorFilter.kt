@@ -143,6 +143,12 @@ class ColorMatrixColorFilter internal constructor(
         return targetColorMatrix
     }
 
+    // region TencentCode
+    fun noCopyColorMatrix() : ColorMatrix {
+        return obtainColorMatrix()
+    }
+    //endRegion
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ColorMatrixColorFilter) return false

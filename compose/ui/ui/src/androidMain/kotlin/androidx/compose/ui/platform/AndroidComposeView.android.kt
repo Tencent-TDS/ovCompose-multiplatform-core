@@ -55,6 +55,7 @@ import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.collection.ArraySet
+import androidx.collection.mutableObjectListOf
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -149,6 +150,7 @@ import androidx.compose.ui.platform.MotionEventVerifierApi29.isValidMotionEvent
 import androidx.compose.ui.semantics.EmptySemanticsElement
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.findClosestParentNode
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
@@ -231,6 +233,7 @@ internal class AndroidComposeView(
     private val _windowInfo: WindowInfoImpl = WindowInfoImpl()
     override val windowInfo: WindowInfo
         get() = _windowInfo
+    override val rectManager: RectManager = RectManager()
 
     // TODO(b/177931787) : Consider creating a KeyInputManager like we have for FocusManager so
     //  that this common logic can be used by all owners.
@@ -521,7 +524,7 @@ internal class AndroidComposeView(
     /**
      * List of lambdas to be called when [onEndApplyChanges] is called.
      */
-    private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
+    private val endApplyChangesListeners = mutableObjectListOf<(() -> Unit)?>()
 
     /**
      * Runnable used to update the pointer position after layout. If
@@ -733,7 +736,7 @@ internal class AndroidComposeView(
         }
         // Listeners can add more items to the list and we want to ensure that they
         // are executed after being added, so loop until the list is empty
-        while (endApplyChangesListeners.isNotEmpty()) {
+        while (endApplyChangesListeners.isNotEmpty() && endApplyChangesListeners[0] != null) {
             val size = endApplyChangesListeners.size
             for (i in 0 until size) {
                 val listener = endApplyChangesListeners[i]
@@ -1770,6 +1773,10 @@ internal class AndroidComposeView(
         recalculateWindowPosition()
         return windowToViewMatrix.map(positionInWindow)
     }
+
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: androidx.compose.ui.geometry.Rect) = bounds
+    // endregion
 
     override fun calculatePositionInWindow(localPosition: Offset): Offset {
         recalculateWindowPosition()

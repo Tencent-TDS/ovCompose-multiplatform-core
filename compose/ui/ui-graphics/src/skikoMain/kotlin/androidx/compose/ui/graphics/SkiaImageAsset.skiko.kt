@@ -65,13 +65,72 @@ internal actual fun ActualImageBitmap(
  * @Throws UnsupportedOperationException if this [ImageBitmap] is not backed by an
  * org.jetbrains.skia.Image
  */
-fun ImageBitmap.asSkiaBitmap(): Bitmap =
-    when (this) {
-        is SkiaBackedImageBitmap -> bitmap
+fun ImageBitmap.asSkiaBitmap(): Bitmap  =
+    when (val skiaBackedImageBitmap = this.toSkiaBackedImageBitmap()) {
+        is SkiaBackedImageBitmap -> skiaBackedImageBitmap.bitmap
         else -> throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Image")
     }
 
-private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
+// region Tencent Code
+/**
+ * create [SkiaDirectImageBitmap] with [Image]
+ */
+fun createSkiaDirectImageBitmap(image: Image): ImageBitmap = SkiaDirectImageBitmap(image)
+
+/**
+ * [SkiaDirectImageBitmap] is only used to wrap [Image],reducing the creation of [Bitmap]
+ */
+internal class SkiaDirectImageBitmap(val image: Image) : ImageBitmap {
+    override val colorSpace = image.colorSpace.toComposeColorSpace()
+    override val config = image.colorType.toComposeConfig()
+    override val hasAlpha = !image.isOpaque
+    override val height get() = image.height
+    override val width get() = image.width
+    override fun prepareToDraw() = Unit
+    private val bitmap by lazy { image.toBitmap() }
+
+    override fun readPixels(
+        buffer: IntArray,
+        startX: Int,
+        startY: Int,
+        width: Int,
+        height: Int,
+        bufferOffset: Int,
+        stride: Int
+    ) {
+        // similar to https://cs.android.com/android/platform/superproject/+/42c50042d1f05d92ecc57baebe3326a57aeecf77:frameworks/base/graphics/java/android/graphics/Bitmap.java;l=2007
+        val lastScanline: Int = bufferOffset + (height - 1) * stride
+        require(startX >= 0 && startY >= 0)
+        require(width > 0 && startX + width <= this.width)
+        require(height > 0 && startY + height <= this.height)
+        require(abs(stride) >= width)
+        require(bufferOffset >= 0 && bufferOffset + width <= buffer.size)
+        require(lastScanline >= 0 && lastScanline + width <= buffer.size)
+
+        // similar to https://cs.android.com/android/platform/superproject/+/9054ca2b342b2ea902839f629e820546d8a2458b:frameworks/base/libs/hwui/jni/Bitmap.cpp;l=898;bpv=1
+        val colorInfo = ColorInfo(
+            ColorType.BGRA_8888,
+            ColorAlphaType.UNPREMUL,
+            org.jetbrains.skia.ColorSpace.sRGB
+        )
+        val imageInfo = ImageInfo(colorInfo, width, height)
+        val bytesPerPixel = 4
+        val bytes = bitmap.readPixels(imageInfo, stride * bytesPerPixel, startX, startY)!!
+        bytes.putBytesInto(buffer, bufferOffset, bytes.size / bytesPerPixel)
+    }
+
+    override fun toSkiaBackedImageBitmap(): ImageBitmap = image.toBitmap().asComposeImageBitmap()
+}
+
+/**
+ * GPU纹理复用的Bitmap类型
+ */
+internal class SkiaReuseBackedImageBitmap(bitmap :Bitmap) : SkiaBackedImageBitmap(bitmap)
+
+fun createSkiaReuseImageBitmap(bitmap: Bitmap): ImageBitmap = SkiaReuseBackedImageBitmap(bitmap)
+
+internal open class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
+// endregion
     override val colorSpace = bitmap.colorSpace.toComposeColorSpace()
     override val config = bitmap.colorType.toComposeConfig()
     override val hasAlpha = !bitmap.isOpaque
@@ -108,6 +167,10 @@ private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
         val bytes = bitmap.readPixels(imageInfo, stride * bytesPerPixel, startX, startY)!!
         bytes.putBytesInto(buffer, bufferOffset, bytes.size / bytesPerPixel)
     }
+
+    // region Tencent Code
+    override fun toSkiaBackedImageBitmap(): ImageBitmap? = this
+    // endregion
 }
 
 internal expect fun ByteArray.putBytesInto(array: IntArray, offset: Int, length: Int)

@@ -51,12 +51,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.platform.simpleIdentityToString
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.generateSemanticsId
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewFactoryHolder
@@ -93,6 +96,11 @@ internal class LayoutNode(
     InteroperableComposeUiNode,
     Owner.OnLayoutCompletedListener {
 
+    internal var offsetFromRoot: IntOffset = IntOffset.Max
+    internal var lastSize: IntSize = IntSize.Zero
+    internal var outerToInnerOffset: IntOffset = IntOffset.Max
+    internal var outerToInnerOffsetDirty: Boolean = true
+
     @set:ExperimentalComposeUiApi
     @get:ExperimentalComposeUiApi
     @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
@@ -100,6 +108,8 @@ internal class LayoutNode(
     override var compositeKeyHash: Int = 0
 
     internal var isVirtualLookaheadRoot: Boolean = false
+
+    var drawInSkia: Boolean = false
 
     /**
      * This lookaheadRoot references the closest root to the LayoutNode, not the top-level
@@ -215,7 +225,10 @@ internal class LayoutNode(
     internal val parent: LayoutNode?
         get() {
             var parent = _foldedParent
-            while (parent?.isVirtual == true) {
+            // region Tencent Code: Avoid boxing.
+            // while (parent?.isVirtual == true) {
+            while (parent != null && parent.isVirtual) {
+            // endregion
                 parent = parent._foldedParent
             }
             return parent
@@ -295,7 +308,6 @@ internal class LayoutNode(
         if (DebugChanges) {
             println("$instance added to $this at index $index")
         }
-
         instance._foldedParent = this
         _foldedChildren.add(index, instance)
         onZSortedChildrenInvalidated()
@@ -332,6 +344,7 @@ internal class LayoutNode(
         }
         for (i in index + count - 1 downTo index) {
             val child = _foldedChildren.removeAt(i)
+
             onChildRemoved(child)
             if (DebugChanges) {
                 println("$child removed from $this at index $i")
@@ -457,7 +470,9 @@ internal class LayoutNode(
 
         // Use the inner coordinator of first non-virtual parent
         outerCoordinator.wrappedBy = parent?.innerCoordinator
-
+        // region Tencent Code
+        this.drawInSkia = owner.drawInSkia
+        // endregion
         this.owner = owner
         this.depth = (parent?.depth ?: -1) + 1
         if (nodes.has(Nodes.Semantics)) {
@@ -923,7 +938,23 @@ internal class LayoutNode(
         lookaheadPassDelegate!!.replace()
     }
 
-    internal fun draw(canvas: Canvas) = outerCoordinator.draw(canvas)
+    // region Tencent Code Modify
+    /*internal fun draw(canvas: Canvas) = outerCoordinator.draw(canvas)*/
+
+    /**
+     * LayoutNode 绘制
+     * 通过现有 semanticsId 标识组件
+     */
+    internal fun draw(canvas: Canvas) {
+        if (isDebugInspectorInfoEnabled) {
+            canvas.onBeginComponentDraw(semanticsId)
+        }
+        outerCoordinator.draw(canvas)
+        if (isDebugInspectorInfoEnabled) {
+            canvas.onEndComponentDraw(semanticsId)
+        }
+    }
+    // endregion
 
     /**
      * Carries out a hit test on the [PointerInputModifier]s associated with this [LayoutNode] and
@@ -1042,6 +1073,7 @@ internal class LayoutNode(
      * measurement need to be re-done. Such events include modifier change, attach/detach, etc.
      */
     internal fun invalidateMeasurements() {
+        outerToInnerOffsetDirty = true
         if (lookaheadRoot != null) {
             requestLookaheadRemeasure()
         } else {
@@ -1078,6 +1110,7 @@ internal class LayoutNode(
      * Used to request a new layout pass from the owner.
      */
     internal fun requestRelayout(forceRequest: Boolean = false) {
+        outerToInnerOffsetDirty = true
         if (!isVirtual) {
             owner?.onRequestRelayout(this, forceRequest = forceRequest)
         }
@@ -1420,33 +1453,63 @@ internal class LayoutNode(
      * LookaheadScope. After the lookahead is finished, [Measuring] and then [LayingOut] will
      * happen as needed.
      */
-    internal enum class LayoutState {
+    // region Tencent Code: Optimize LayoutState to Int values for performance reasons.
+    // internal enum class LayoutState {
+    //     /**
+    //      * Node is currently being measured.
+    //      */
+    //     Measuring,
+    //
+    //     /**
+    //      * Node is being measured in lookahead.
+    //      */
+    //     LookaheadMeasuring,
+    //
+    //     /**
+    //      * Node is currently being laid out.
+    //      */
+    //     LayingOut,
+    //
+    //     /**
+    //      * Node is being laid out in lookahead.
+    //      */
+    //     LookaheadLayingOut,
+    //
+    //     /**
+    //      * Node is not currently measuring or laying out. It could be pending measure or pending
+    //      * layout depending on the [measurePending] and [layoutPending] flags.
+    //      */
+    //     Idle,
+    // }
+
+    internal object LayoutState {
         /**
          * Node is currently being measured.
          */
-        Measuring,
+        const val Measuring: Int = 0
 
         /**
          * Node is being measured in lookahead.
          */
-        LookaheadMeasuring,
+        const val LookaheadMeasuring: Int = 1
 
         /**
          * Node is currently being laid out.
          */
-        LayingOut,
+        const val LayingOut: Int = 2
 
         /**
          * Node is being laid out in lookahead.
          */
-        LookaheadLayingOut,
+        const val LookaheadLayingOut: Int = 3
 
         /**
          * Node is not currently measuring or laying out. It could be pending measure or pending
          * layout depending on the [measurePending] and [layoutPending] flags.
          */
-        Idle,
+        const val Idle: Int = 4
     }
+    // endregion
 
     internal enum class UsageByParent {
         InMeasureBlock,

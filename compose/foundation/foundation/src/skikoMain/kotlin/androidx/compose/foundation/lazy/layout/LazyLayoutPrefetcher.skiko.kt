@@ -27,5 +27,13 @@ internal actual fun LazyLayoutPrefetcher(
     itemContentFactory: LazyLayoutItemContentFactory,
     subcomposeLayoutState: SubcomposeLayoutState
 ) {
-    // there is no prefetch implementation on desktop yet
+    LazyLayoutPreFetcherProxy(prefetchState, itemContentFactory, subcomposeLayoutState)
 }
+
+@ExperimentalFoundationApi
+@Composable
+internal expect fun LazyLayoutPreFetcherProxy(
+    prefetchState: LazyLayoutPrefetchState,
+    itemContentFactory: LazyLayoutItemContentFactory,
+    subcomposeLayoutState: SubcomposeLayoutState
+)

@@ -124,7 +124,14 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
     nextOffset = charIterator.next()
 
     while (nextOffset != BreakIterator.DONE) {
-        if (currentText.codePointAt(currentOffset).isWhitespace() && !currentText.codePointAt(
+        // region Tencent Code Modify
+        /*
+        * if (currentText.codePointAt(currentOffset)
+                .isWhitespace() && !currentText.codePointAt(
+                ...
+        */
+        if (nextOffset < currentText.length && currentText.codePointAt(currentOffset)
+                .isWhitespace() && !currentText.codePointAt(
                 nextOffset
             ).isWhitespace()
         ) {
@@ -132,6 +139,7 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
         } else {
             currentOffset = nextOffset
         }
+        //end region
 
         nextOffset = charIterator.next()
     }

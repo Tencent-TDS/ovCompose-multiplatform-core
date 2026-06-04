@@ -198,6 +198,7 @@ private class PointerInputChangeEventProducer {
                     it.type,
                     it.historical,
                     it.scrollDelta,
+                    it.pinchScale,
                     it.originalEventPosition
                 )
             )

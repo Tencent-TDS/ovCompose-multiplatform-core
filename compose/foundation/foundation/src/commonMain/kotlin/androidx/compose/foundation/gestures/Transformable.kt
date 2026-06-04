@@ -25,12 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastFold
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.PI
 import kotlin.math.abs
@@ -40,6 +43,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.max
 
 /**
  * Enable transformation gestures of the modified UI element.
@@ -92,7 +96,34 @@ fun Modifier.transformable(
     canPan: (Offset) -> Boolean,
     lockRotationOnZoomPan: Boolean = false,
     enabled: Boolean = true
-) = this then TransformableElement(state, canPan, lockRotationOnZoomPan, enabled)
+) = (this then TransformableElement(state, canPan, lockRotationOnZoomPan, enabled))
+    .pointerInput(enabled) {
+        if (!enabled) return@pointerInput
+        val channel = Channel<Float>(capacity = Channel.UNLIMITED)
+        coroutineScope {
+            launch(start = CoroutineStart.UNDISPATCHED) {
+                while (isActive) {
+                    val event = channel.receive()
+                    try {
+                        state.zoomBy(event)
+                    } catch (_: CancellationException) {
+                        // ignore the cancellation and start over again.
+                    }
+                }
+            }
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    if (event.type == PointerEventType.Pinch) {
+                        val pinchScale = event.changes.fastFold(1f) { acc, c ->
+                            acc * c.pinchScale
+                        }
+                        channel.trySend(pinchScale)
+                    }
+                }
+            }
+        }
+    }
 
 private class TransformableElement(
     private val state: TransformableState,

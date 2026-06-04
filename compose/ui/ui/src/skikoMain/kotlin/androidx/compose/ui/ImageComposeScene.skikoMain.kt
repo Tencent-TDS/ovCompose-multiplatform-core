@@ -250,6 +250,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         eventType: PointerEventType,
         position: Offset,
         scrollDelta: Offset = Offset(0f, 0f),
+        pinchScale: Float = 1f,
         timeMillis: Long = currentNanoTime() / 1_000_000L,
         type: PointerType = PointerType.Mouse,
         buttons: PointerButtons? = null,
@@ -257,7 +258,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         nativeEvent: Any? = null,
         button: PointerButton? = null
     ): Unit = scene.sendPointerEvent(
-        eventType, position, scrollDelta, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
+        eventType, position, scrollDelta, pinchScale, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
     )
 
     /**
@@ -287,11 +288,12 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         buttons: PointerButtons = PointerButtons(),
         keyboardModifiers: PointerKeyboardModifiers = PointerKeyboardModifiers(),
         scrollDelta: Offset = Offset(0f, 0f),
+        pinchScale: Float = 1f,
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
     ): Unit = scene.sendPointerEvent(
-        eventType, pointers, buttons, keyboardModifiers, scrollDelta, timeMillis, nativeEvent, button
+        eventType, pointers, buttons, keyboardModifiers, scrollDelta, pinchScale, timeMillis, nativeEvent, button
     )
 
     /**

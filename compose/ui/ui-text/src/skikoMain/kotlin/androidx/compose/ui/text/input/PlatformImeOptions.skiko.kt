@@ -16,10 +16,24 @@
 
 package androidx.compose.ui.text.input
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 
 /**
  * Used to configure the platform specific IME options.
  */
+// region Tencent Code Modify
+/**
+ * actual class PlatformImeOptions
+ */
 @Immutable
-actual class PlatformImeOptions
+actual class PlatformImeOptions(
+    val isLight: Boolean
+)
+// endregion
+
+// region Tencent Code
+actual fun createPlatformImeOptions(isLight: Boolean): PlatformImeOptions? {
+    return PlatformImeOptions(isLight)
+}
+// endregion

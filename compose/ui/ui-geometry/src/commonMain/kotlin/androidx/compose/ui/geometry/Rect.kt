@@ -172,6 +172,21 @@ data class Rect(
         )
     }
 
+    // region Tencent Code
+    /**
+     * Calculates the smallest rectangle that contains both this rectangle and the [other] rectangle.
+     * This is also known as the bounding box of the two rectangles.
+     */
+    fun union(otherLeft: Float, otherTop: Float, otherRight: Float, otherBottom: Float): Rect {
+        return Rect(
+            left = min(this.left, otherLeft),
+            top = min(this.top, otherTop),
+            right = max(this.right, otherRight),
+            bottom = max(this.bottom, otherBottom)
+        )
+    }
+    // endregion
+
     /** Whether `other` has a nonzero area of overlap with this rectangle. */
     fun overlaps(other: Rect): Boolean {
         if (right <= other.left || other.right <= left)

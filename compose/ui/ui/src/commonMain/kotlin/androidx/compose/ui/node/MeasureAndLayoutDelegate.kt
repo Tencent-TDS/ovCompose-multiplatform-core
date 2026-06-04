@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.node
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.layout.OnGloballyPositionedModifier
 import androidx.compose.ui.node.LayoutNode.LayoutState.Idle
@@ -174,6 +175,9 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
     }
 
@@ -222,6 +226,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**
@@ -274,6 +282,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**
@@ -316,6 +328,10 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                     }
                 }
             }
+
+            // region Tencent Code
+            else -> throw IllegalArgumentException("Invalid state: ${layoutNode.layoutState}")
+            // endregion
         }
 
     /**
@@ -451,6 +467,11 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
     }
 
     private inline fun performMeasureAndLayout(block: () -> Unit) {
+        // region Tencent Code
+        if (ComposeTabService.duringMeasureLayoutCrashFixEnable && duringMeasureLayout) {
+            return
+        }
+        // end region
         require(root.isAttached) { "performMeasureAndLayout called with unattached root" }
         require(root.isPlaced) { "performMeasureAndLayout called with unplaced root" }
         require(!duringMeasureLayout) { "performMeasureAndLayout called during measure layout" }
@@ -529,6 +550,12 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                             layoutNode.replace()
                         }
                         onPositionedDispatcher.onNodePositioned(layoutNode)
+                        // Since there has been an update to a coordinator somewhere in the
+                        // modifier chain of this layout node, we might have onRectChanged
+                        // callbacks that need to be notified of that change. As a result, even
+                        // if the outer rect of this layout node hasn't changed, we want to
+                        // invalidate the callbacks for them
+                        layoutNode.requireOwner().rectManager.invalidateCallbacksFor(layoutNode)
                         consistencyChecker?.assertConsistent()
                     }
                 }

@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.text.platform
 
+import androidx.compose.runtime.ComposeTabService
 import org.jetbrains.skia.Typeface as SkTypeface
 import androidx.compose.ui.text.Cache
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -59,6 +60,25 @@ class SystemFont(
     override fun toString(): String {
         return "SystemFont(identity='$identity', weight=$weight, style=$style)"
     }
+
+    // region Tencent Code
+    // Two functions were override to improve the performance of Compose recombination.
+    override fun equals(other: Any?): Boolean {
+        if (other === this) return true
+        if (other !is SystemFont) return false
+        if (identity != other.identity) return false
+        if (weight != other.weight) return false
+        if (style != other.style) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = identity.hashCode()
+        result = 31 * result + weight.hashCode()
+        result = 31 * result + style.hashCode()
+        return result
+    }
+    // end region
 }
 
 /**
@@ -222,6 +242,12 @@ internal class FontCache {
     ): FontLoadResult {
         val aliases = ensureRegistered(fontFamily)
         val style = fontStyle.toSkFontStyle().withWeight(fontWeight.weight)
+        // region Tencent Code
+        val fixANR = ComposeTabService.skiaSwitchStateANRFixEnable
+        if (fixANR) {
+            return FontLoadResult(fonts.findTypefaces2(aliases.toTypedArray(), style).first(), aliases)
+        }
+        // end region
         return FontLoadResult(fonts.findTypefaces(aliases.toTypedArray(), style).first(), aliases)
     }
 
@@ -265,6 +291,7 @@ internal enum class Platform {
     TvOS,
     WatchOS,
     Android, // use case: a web app running in Chrome Android
+    OHOS
 }
 
 internal expect fun currentPlatform(): Platform
@@ -308,6 +335,13 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
                 FontFamily.Serif.name to listOf("Roboto Serif", "Noto Serif"),
                 FontFamily.Monospace.name to listOf("Roboto Mono", "Noto Sans Mono"),
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
+            )
+        Platform.OHOS ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("HarmonyOS Sans SC", "HMOS Color Emoji"),
+                FontFamily.Serif.name to listOf("HarmonyOS Sans SC", "HMOS Color Emoji"),
+                FontFamily.Monospace.name to listOf("Noto Sans Mono", "HMOS Color Emoji"),
+                FontFamily.Cursive.name to listOf("HarmonyOS Sans SC", "HMOS Color Emoji")
             )
         Platform.Unknown ->
             mapOf(

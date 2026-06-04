@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -88,6 +89,7 @@ import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ScrollWheel
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -129,6 +131,7 @@ import org.hamcrest.CoreMatchers.instanceOf
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -2308,6 +2311,7 @@ class ScrollableTest {
     }
 
     @Test
+    @Ignore("b/175010956") // re-enable when we come back to fling continuation fix
     fun nestedScrollable_shouldImmediateScrollIfChildIsFlinging() {
         var innerDelta = 0f
         var middleDelta = 0f
@@ -2387,6 +2391,48 @@ class ScrollableTest {
 
         rule.runOnIdle {
             assertThat(outerDelta).isEqualTo(previousOuter + touchSlop / 2)
+        }
+    }
+
+    @Test
+    fun nestedScrollable_noFlingContinuationInCrossAxis_shouldAllowClicksOnCrossAxis_scrollable() {
+        var clicked = 0
+        rule.setContentAndGetScope {
+            LazyColumn(Modifier.testTag("column")) {
+                item {
+                    Box(modifier = Modifier
+                        .size(20.dp)
+                        .background(Color.Red)
+                        .clickable { clicked++ })
+                }
+                item {
+                    LazyRow(Modifier.testTag("list")) {
+                        items(100) {
+                            Box(modifier = Modifier
+                                .size(20.dp)
+                                .background(Color.Blue))
+                        }
+                    }
+                }
+            }
+        }
+
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag("list", useUnmergedTree = true).performTouchInput {
+            swipeLeft()
+        }
+
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.onNodeWithTag("column").performTouchInput {
+            click(Offset(10f, 10f))
+        }
+
+        rule.mainClock.autoAdvance = true
+
+        rule.runOnIdle {
+            assertThat(clicked).isEqualTo(1)
         }
     }
 

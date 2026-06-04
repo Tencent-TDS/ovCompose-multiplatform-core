@@ -60,10 +60,10 @@ dependencies {
 if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
     }
 
     kotlin {
@@ -96,11 +96,11 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-graphics"))
             }
 
-            wasmJsMain {
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+//            wasmJsMain {
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
         }
     }
 }

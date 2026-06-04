@@ -16,6 +16,7 @@
 
 package androidx.compose.ui
 
+import kotlin.time.TimeSource
 import kotlinx.atomicfu.atomic
 
 internal actual fun areObjectsOfSameType(a: Any, b: Any): Boolean {
@@ -28,4 +29,8 @@ private val threadCounter = atomic(0L)
 private var threadId: Long = threadCounter.addAndGet(1)
 
 internal actual fun getCurrentThreadId(): Long = threadId
+
+internal actual fun currentTimeMillis(): Long {
+    return TimeSource.Monotonic.markNow().elapsedNow().inWholeMilliseconds
+}
 

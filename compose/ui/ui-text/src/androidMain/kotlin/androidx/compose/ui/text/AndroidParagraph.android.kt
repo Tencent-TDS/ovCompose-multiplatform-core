@@ -76,6 +76,7 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TinyBoxInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
@@ -505,6 +506,21 @@ internal class AndroidParagraph(
 
         textPaint.blendMode = currBlendMode
     }
+
+    // region Tencent Code
+    override fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo {
+        val rect = textPaint.getTextBounds(layout.text.toString())
+        return TinyBoxInfo(
+            bounds = Rect(
+                left = rect.left.toFloat(),
+                top = rect.top.toFloat(),
+                right = rect.right.toFloat(),
+                bottom = rect.bottom.toFloat(),
+            ),
+            baseline = getLineBaseline(lineIndex)
+        )
+    }
+    // end region
 
     private fun paint(canvas: Canvas) {
         val nativeCanvas = canvas.nativeCanvas

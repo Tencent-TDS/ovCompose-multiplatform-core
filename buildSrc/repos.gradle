@@ -57,18 +57,35 @@ def addMavenRepositories(RepositoryHandler handler) {
             artifact()
         }
     }
+    handler.maven {
+        url("https://mirrors.tencent.com/nexus/repository/maven-public")
+    }
+    handler.maven {
+        url("https://mirrors.tencent.com/nexus/repository/maven-public")
+    }
+    handler.maven {
+        url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+    }
     def isJBFork = true
     if (isJBFork) {
-        handler.mavenCentral()
-        // Keep mavenLocal() repository below mavenCentral to avoid issues with stdlib imports
         handler.mavenLocal()
-        handler.google()
-        handler.gradlePluginPortal()
         handler.maven {
-               url("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+            url("https://mirrors.tencent.com/nexus/repository/maven-public")
         }
         handler.maven {
-               url("https://maven.pkg.jetbrains.space/public/p/kotlinx-coroutines/maven")
+            url("https://plugins.gradle.org/m2/")
+        }
+        handler.maven {
+            url = "https://packages.jetbrains.team/maven/p/cmp/dev"
+        }
+        handler.maven {
+            url = "https://packages.jetbrains.team/maven/p/kt/dev"
+            content {
+                includeGroupByRegex("org\\.jetbrains\\.kotlin.*")
+            }
+        }
+        handler.maven {
+            url = "https://central.sonatype.com/repository/maven-snapshots"
         }
         // TODO(b/280646217): Remove after official release to gmaven.
         handler.maven {
@@ -77,6 +94,7 @@ def addMavenRepositories(RepositoryHandler handler) {
                 includeModule("com.android.tools", "r8")
             }
         }
+
     }
     // Ordering appears to be important: b/229733266
     def androidPluginRepoOverride = System.getenv("GRADLE_PLUGIN_REPO")

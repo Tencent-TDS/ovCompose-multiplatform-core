@@ -356,6 +356,16 @@ value class PointerEventType private constructor(internal val value: Int) {
          * This event indicates that the [PointerInputChange.scrollDelta]'s [Offset] is non-zero.
          */
         val Scroll = PointerEventType(6)
+
+        val ScrollStart = PointerEventType(7)
+
+        val ScrollEnd = PointerEventType(8)
+
+        /**
+         * A pinch event was sent. This can happen, for example, due to a touchpad.
+         * This event indicates that the [PointerInputChange.pinchScale]'s [Offset] is non-zero.
+         */
+        val Pinch = PointerEventType(9)
     }
 
     override fun toString(): String = when (this) {
@@ -365,6 +375,9 @@ value class PointerEventType private constructor(internal val value: Int) {
         Enter -> "Enter"
         Exit -> "Exit"
         Scroll -> "Scroll"
+        ScrollStart -> "ScrollStart"
+        ScrollEnd -> "ScrollEnd"
+        Pinch -> "Pinch"
         else -> "Unknown"
     }
 }
@@ -424,13 +437,15 @@ class PointerInputChange(
     val previousPressed: Boolean,
     isInitiallyConsumed: Boolean,
     val type: PointerType = PointerType.Touch,
-    val scrollDelta: Offset = Offset.Zero
+    val scrollDelta: Offset = Offset.Zero,
+    val pinchScale: Float = 1f
 ) {
     constructor(
         id: PointerId,
         uptimeMillis: Long,
         position: Offset,
         pressed: Boolean,
+        pressure: Float,
         previousUptimeMillis: Long,
         previousPosition: Offset,
         previousPressed: Boolean,
@@ -442,13 +457,41 @@ class PointerInputChange(
         uptimeMillis,
         position,
         pressed,
+        pressure,
+        previousUptimeMillis,
+        previousPosition,
+        previousPressed,
+        isInitiallyConsumed,
+        type,
+        scrollDelta,
+        1f
+    )
+
+    constructor(
+        id: PointerId,
+        uptimeMillis: Long,
+        position: Offset,
+        pressed: Boolean,
+        previousUptimeMillis: Long,
+        previousPosition: Offset,
+        previousPressed: Boolean,
+        isInitiallyConsumed: Boolean,
+        type: PointerType = PointerType.Touch,
+        scrollDelta: Offset = Offset.Zero,
+        pinchScale: Float = 1f
+    ) : this(
+        id,
+        uptimeMillis,
+        position,
+        pressed,
         pressure = 1.0f,
         previousUptimeMillis,
         previousPosition,
         previousPressed,
         isInitiallyConsumed,
         type,
-        scrollDelta
+        scrollDelta,
+        pinchScale
     )
 
     @Deprecated(
@@ -482,7 +525,8 @@ class PointerInputChange(
         previousPressed,
         consumed.downChange || consumed.positionChange,
         type,
-        Offset.Zero
+        Offset.Zero,
+        1f
     )
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -499,6 +543,7 @@ class PointerInputChange(
         type: PointerType,
         historical: List<HistoricalChange>,
         scrollDelta: Offset,
+        pinchScale: Float,
         originalEventPosition: Offset,
     ) : this(
         id,
@@ -511,7 +556,8 @@ class PointerInputChange(
         previousPressed,
         isInitiallyConsumed,
         type,
-        scrollDelta
+        scrollDelta,
+        pinchScale
     ) {
         _historical = historical
         this.originalEventPosition = originalEventPosition
@@ -596,6 +642,7 @@ class PointerInputChange(
         type,
         this.historical,
         this.scrollDelta,
+        this.pinchScale,
         this.originalEventPosition,
     ).also {
         this.consumed = consumed
@@ -620,7 +667,8 @@ class PointerInputChange(
         previousPosition: Offset = this.previousPosition,
         previousPressed: Boolean = this.previousPressed,
         type: PointerType = this.type,
-        scrollDelta: Offset = this.scrollDelta
+        scrollDelta: Offset = this.scrollDelta,
+        pinchScale: Float = this.pinchScale
     ): PointerInputChange = copy(
         id = id,
         currentTime = currentTime,
@@ -632,7 +680,8 @@ class PointerInputChange(
         previousPressed = previousPressed,
         type = type,
         historical = this.historical,
-        scrollDelta = scrollDelta
+        scrollDelta = scrollDelta,
+        pinchScale = pinchScale
     )
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -656,7 +705,8 @@ class PointerInputChange(
         previousPressed: Boolean = this.previousPressed,
         consumed: ConsumedData,
         type: PointerType = this.type,
-        scrollDelta: Offset = this.scrollDelta
+        scrollDelta: Offset = this.scrollDelta,
+        pinchScale: Float = this.pinchScale
     ): PointerInputChange = PointerInputChange(
         id,
         currentTime,
@@ -670,6 +720,7 @@ class PointerInputChange(
         type,
         this.historical,
         scrollDelta,
+        pinchScale,
         this.originalEventPosition,
     ).also {
         this.consumed = consumed
@@ -695,7 +746,8 @@ class PointerInputChange(
         previousPosition: Offset = this.previousPosition,
         previousPressed: Boolean = this.previousPressed,
         type: PointerType = this.type,
-        scrollDelta: Offset = this.scrollDelta
+        scrollDelta: Offset = this.scrollDelta,
+        pinchScale: Float = this.pinchScale
     ): PointerInputChange = PointerInputChange(
         id,
         currentTime,
@@ -709,6 +761,7 @@ class PointerInputChange(
         type,
         historical = this.historical,
         scrollDelta,
+        pinchScale,
         this.originalEventPosition,
     ).also {
         it.consumed = this.consumed
@@ -734,7 +787,8 @@ class PointerInputChange(
         previousPressed: Boolean = this.previousPressed,
         type: PointerType = this.type,
         historical: List<HistoricalChange>,
-        scrollDelta: Offset = this.scrollDelta
+        scrollDelta: Offset = this.scrollDelta,
+        pinchScale: Float = this.pinchScale
     ): PointerInputChange = copy(
         id = id,
         currentTime = currentTime,
@@ -746,7 +800,8 @@ class PointerInputChange(
         previousPressed = previousPressed,
         type = type,
         historical = historical,
-        scrollDelta = scrollDelta
+        scrollDelta = scrollDelta,
+        pinchScale = pinchScale
     )
 
     /**
@@ -771,7 +826,8 @@ class PointerInputChange(
         previousPressed: Boolean = this.previousPressed,
         type: PointerType = this.type,
         historical: List<HistoricalChange> = this.historical,
-        scrollDelta: Offset = this.scrollDelta
+        scrollDelta: Offset = this.scrollDelta,
+        pinchScale: Float = this.pinchScale
     ): PointerInputChange = PointerInputChange(
         id,
         currentTime,
@@ -785,6 +841,7 @@ class PointerInputChange(
         type,
         historical,
         scrollDelta,
+        pinchScale,
         originalEventPosition,
     ).also {
         it.consumed = this.consumed
@@ -807,6 +864,7 @@ class PointerInputChange(
             append("type=$type, ")
             append("historical=$historical,")
             append("scrollDelta=$scrollDelta)")
+            append("pinchScale=$pinchScale)")
         }
     }
 }

@@ -18,8 +18,11 @@ package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
+import androidx.compose.foundation.gestures.extention.DefaultScrollingStateListener
+import androidx.compose.foundation.gestures.monitor.ApplyScrollableMonitor
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -72,6 +75,12 @@ interface ScrollableState {
      * @return the amount of delta consumed
      */
     fun dispatchRawDelta(delta: Float): Float
+
+    // region TencentCode: for monitoring.
+    @InternalComposeApi
+    val currentScrollPriority: MutatePriority?
+        get() = null
+    // endregion
 
     /**
      * Whether this [ScrollableState] is currently scrolling by gesture, fling or programmatically or
@@ -144,6 +153,11 @@ fun ScrollableState(consumeScrollDelta: (Float) -> Float): ScrollableState {
 fun rememberScrollableState(consumeScrollDelta: (Float) -> Float): ScrollableState {
     val lambdaState = rememberUpdatedState(consumeScrollDelta)
     return remember { ScrollableState { lambdaState.value.invoke(it) } }
+        // region Tencent Code
+        .also {
+            ApplyScrollableMonitor(it)
+        }
+        // endregion
 }
 
 /**
@@ -177,10 +191,24 @@ private class DefaultScrollableState(val onDelta: (Float) -> Float) : Scrollable
     ): Unit = coroutineScope {
         scrollMutex.mutateWith(scrollScope, scrollPriority) {
             isScrollingState.value = true
+            // region Tencent Code
+            currentScrollPriority = scrollPriority
+            DefaultScrollingStateListener?.startScrolling(
+                scrollPriority, this@DefaultScrollableState
+            )
+            // endregion
+
             try {
                 block()
             } finally {
                 isScrollingState.value = false
+                // region Tencent Code
+                DefaultScrollingStateListener?.stopScrolling(
+                    scrollPriority,
+                    this@DefaultScrollableState
+                )
+                currentScrollPriority = null
+                // endregion
             }
         }
     }
@@ -188,6 +216,12 @@ private class DefaultScrollableState(val onDelta: (Float) -> Float) : Scrollable
     override fun dispatchRawDelta(delta: Float): Float {
         return onDelta(delta)
     }
+
+    // region Tencent Code
+    @OptIn(InternalComposeApi::class)
+    override var currentScrollPriority: MutatePriority? = null
+        private set
+    // endregion
 
     override val isScrollInProgress: Boolean
         get() = isScrollingState.value

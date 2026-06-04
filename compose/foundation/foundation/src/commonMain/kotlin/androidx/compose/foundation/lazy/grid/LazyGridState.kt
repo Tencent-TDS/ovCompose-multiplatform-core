@@ -22,6 +22,7 @@ import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.monitor.ApplyScrollableMonitor
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.layout.AwaitFirstLayoutModifier
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
 import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
 import androidx.compose.foundation.lazy.layout.animateScrollToItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
@@ -71,7 +73,11 @@ fun rememberLazyGridState(
             initialFirstVisibleItemIndex,
             initialFirstVisibleItemScrollOffset
         )
+    // region Tencent Code
+    }.also {
+        ApplyScrollableMonitor(it)
     }
+    // endregion
 }
 
 /**
@@ -292,6 +298,12 @@ class LazyGridState constructor(
 
     override fun dispatchRawDelta(delta: Float): Float =
         scrollableState.dispatchRawDelta(delta)
+
+    // region Tencent Code
+    @InternalComposeApi
+    override val currentScrollPriority: MutatePriority?
+        get() = scrollableState.currentScrollPriority
+    // endregion
 
     override val isScrollInProgress: Boolean
         get() = scrollableState.isScrollInProgress

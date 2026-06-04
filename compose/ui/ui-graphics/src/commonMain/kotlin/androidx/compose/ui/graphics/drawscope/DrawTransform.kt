@@ -175,4 +175,9 @@ interface DrawTransform {
      * @param matrix transformation matrix used to transform the drawing environment
      */
     fun transform(matrix: Matrix)
+
+    /**
+     * mark clip end
+     */
+    fun clipEnd();
 }

@@ -19,6 +19,7 @@ package androidx.compose.ui.graphics.drawscope
 import androidx.annotation.FloatRange
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.BlendMode
@@ -48,6 +49,10 @@ import androidx.compose.ui.unit.LayoutDirection
  * into the specified canvas and bounds via [CanvasDrawScope.draw]
  */
 class CanvasDrawScope : DrawScope {
+
+    // region Tencent Code
+    override var drawInSkia: Boolean = false
+    // endregion
 
     @PublishedApi internal val drawParams = DrawParams()
 
@@ -94,7 +99,21 @@ class CanvasDrawScope : DrawScope {
      * and re-used across subsequent calls
      */
     private var strokePaint: Paint? = null
-
+    /**
+     * @see [DrawScope.drawRenderNode]
+     */
+    override fun drawRenderNode(
+        node: Any,
+        topLeft: Offset,
+        size: Size
+    ) = drawParams.canvas.drawRenderNode(
+        node,
+        Rect(
+            left = topLeft.x,
+            top = topLeft.y,
+            right = topLeft.x + size.width,
+            bottom = topLeft.y + size.height)
+    )
     /**
      * @see [DrawScope.drawLine]
      */
@@ -782,5 +801,9 @@ private fun DrawContext.asDrawTransform(): DrawTransform = object : DrawTransfor
 
     override fun transform(matrix: Matrix) {
         this@asDrawTransform.canvas.concat(matrix)
+    }
+
+    override fun clipEnd() {
+        this@asDrawTransform.canvas.clipEnd()
     }
 }

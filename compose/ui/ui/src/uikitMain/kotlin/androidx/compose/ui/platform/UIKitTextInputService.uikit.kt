@@ -16,22 +16,27 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.scene.getConstraintsToFillParent
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.KeyboardEventHandler
-import androidx.compose.ui.scene.getConstraintsToFillParent
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.toCGRect
 import androidx.compose.ui.unit.Density
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.*
 
 internal class UIKitTextInputService(
@@ -42,8 +47,8 @@ internal class UIKitTextInputService(
     private val keyboardEventHandler: KeyboardEventHandler,
 ) : PlatformTextInputService, TextToolbar {
 
+    private var currentOnEditCommand: ((List<EditCommand>) -> Unit)? = null
     private val rootView get() = rootViewProvider()
-    private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
@@ -69,7 +74,7 @@ internal class UIKitTextInputService(
      * state change in the Compose side, updateState calls the 4 methods because the new value holds
      * these changes.
      */
-    private var _tempCurrentInputSession: EditProcessor? = null
+    private var sessionEditProcessor: EditProcessor? = null
 
     /**
      * Workaround to prevent IME action from being called multiple times with hardware keyboards.
@@ -102,10 +107,10 @@ internal class UIKitTextInputService(
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
+        sessionEditProcessor = EditProcessor().apply {
             reset(value, null)
         }
+        currentOnEditCommand = onEditCommand
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
@@ -115,9 +120,16 @@ internal class UIKitTextInputService(
         ).also {
             rootView.addSubview(it)
             it.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activateConstraints(
-                getConstraintsToFillParent(it, rootView)
-            )
+            // region Tencent Code Modify
+            /*NSLayoutConstraint.activateConstraints(
+              getConstraintsToFillParent(it, rootView)
+              )*/
+            if (!ComposeTabService.composeIOSKeyboardDictationLayoutEnable) {
+                NSLayoutConstraint.activateConstraints(
+                    getConstraintsToFillParent(it, rootView)
+                )
+            }
+            // endregion
         }
         textUIView?.input = createSkikoInput(value)
         textUIView?.inputTraits = getUITextInputTraits(imeOptions)
@@ -126,8 +138,7 @@ internal class UIKitTextInputService(
     }
 
     override fun stopInput() {
-        currentInput = null
-        _tempCurrentInputSession = null
+        sessionEditProcessor = null
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
@@ -149,13 +160,49 @@ internal class UIKitTextInputService(
     }
 
     override fun hideSoftwareKeyboard() {
+        // region Tencent Code
+        if (ComposeTabService.composeIOSTextFieldStateCleanEnable) {
+            sessionEditProcessor?.let { processor ->
+                processor.reset(
+                    processor.toTextFieldValue()
+                        .copy(selection = TextRange.Zero, composition = null), null
+                )
+            }
+        }
+        // endregion
         textUIView?.let {
             focusStack?.popUntilNext(it)
         }
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
+        val internalOldValue = sessionEditProcessor?.toTextFieldValue()
+
+        // region Tencent Code
+        // 以下修改因为 it.reset(newValue, null) 中的 value.copy(composition = null) 导致 composition被清空
+        // 当内部有 composition（正在进行 IME 输入）但 newValue 没有 composition 时， 说明 Compose 端的状态同步滞后了。
+        // 此时需要把正确的状态（包括 composition）同步给 Compose 端。
+        val hasComposition = internalOldValue?.composition != null
+        if (ComposeTabService.iosUIKitInputCorrectCompositionEnabled && hasComposition && newValue.composition == null && internalOldValue != null) {
+            // 发送命令纠正 Compose 状态
+            val composition = internalOldValue.composition!!
+            val compositionText = internalOldValue.text.substring(composition.start, composition.end)
+            val textBeforeComposition = internalOldValue.text.substring(0, composition.start)
+            // 恢复正确的状态
+            val commands = mutableListOf<EditCommand>()
+            commands.add(DeleteAllCommand())
+            if (textBeforeComposition.isNotEmpty()) {
+                commands.add(CommitTextCommand(textBeforeComposition, 1))
+            }
+            commands.add(SetComposingTextCommand(compositionText, 1))
+
+            // 直接调用 currentOnEditCommand 来更新 Compose 端的状态
+            // 注意：不要调用 sendEditCommand，会更新 sessionEditProcessor
+            currentOnEditCommand?.invoke(commands)
+            return
+        }
+        // endregion
+        
         val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
         val selectionChanged =
             textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
@@ -165,9 +212,8 @@ internal class UIKitTextInputService(
         if (selectionChanged) {
             textUIView?.selectionWillChange()
         }
-        _tempCurrentInputSession?.reset(newValue, null)
-        currentInput?.let { input ->
-            input.value = newValue
+        sessionEditProcessor?.let {
+            it.reset(newValue, null)
             _tempCursorPos = null
         }
         if (textChanged) {
@@ -180,6 +226,10 @@ internal class UIKitTextInputService(
             updateView()
             textUIView?.reloadInputViews()
         }
+    }
+
+    override fun notifyTextFieldRectInRoot(rect: Rect) {
+        textUIView?.setFrame(rect.toCGRect(UIScreen.mainScreen.scale))
     }
 
     fun onPreviewKeyEvent(event: KeyEvent): Boolean {
@@ -214,11 +264,27 @@ internal class UIKitTextInputService(
         return event.kind == SkikoKeyboardEventKind.DOWN
     }
 
+    private val editCommandsBatch = mutableListOf<EditCommand>()
+    private var editBatchDepth: Int = 0
+        set(value) {
+            field = value
+            flushEditCommandsIfNeeded()
+        }
+
     private fun sendEditCommand(vararg commands: EditCommand) {
         val commandList = commands.toList()
-        _tempCurrentInputSession?.apply(commandList)
-        currentInput?.let { input ->
-            input.onEditCommand(commandList)
+        sessionEditProcessor?.apply(commandList)
+
+        editCommandsBatch.addAll(commands)
+        flushEditCommandsIfNeeded()
+    }
+
+    fun flushEditCommandsIfNeeded(force: Boolean = false) {
+        if ((force || editBatchDepth == 0) && editCommandsBatch.isNotEmpty()) {
+            val commandList = editCommandsBatch.toList()
+            editCommandsBatch.clear()
+
+            currentOnEditCommand?.invoke(commandList)
         }
     }
 
@@ -261,7 +327,7 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = currentInput?.value
+    private fun getState(): TextFieldValue? = sessionEditProcessor?.toTextFieldValue()
 
     override fun showMenu(
         rect: Rect,
@@ -296,6 +362,24 @@ internal class UIKitTextInputService(
      */
     override fun hide() {
         textUIView?.hideTextMenu()
+        if ((textUIView != null) && (sessionEditProcessor == null)) { // means that editing context menu shown in selection container
+            textUIView?.resignFirstResponder()
+            textUIView?.let { view ->
+                val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
+                // Set out-of-bounds non-empty frame to hide text keyboard focus frame
+                view.setFrame(outOfBoundsFrame)
+
+                mainScope.launch {
+                    delay(10L)
+                    view.removeFromSuperview()
+                }
+            }
+            textUIView = null
+        }
+    }
+
+    fun dispose() {
+        stopInput()
     }
 
     override val status: TextToolbarStatus
@@ -405,11 +489,24 @@ internal class UIKitTextInputService(
          * @param text A string to replace the text in range.
          */
         override fun replaceRange(range: IntRange, text: String) {
-            sendEditCommand(
+            // region Tencent Code Modify
+            /*           sendEditCommand(
+                           SetComposingRegionCommand(range.start, range.endInclusive + 1),
+                           SetComposingTextCommand(text, 1),
+                           FinishComposingTextCommand(),
+                       )*/
+
+            val baseCommands = listOf(
                 SetComposingRegionCommand(range.start, range.endInclusive + 1),
-                SetComposingTextCommand(text, 1),
-                FinishComposingTextCommand(),
+                SetComposingTextCommand(text, 1)
             )
+            val commands = if (ComposeTabService.iosReplaceRangeEnabled) {
+                baseCommands
+            } else {
+                baseCommands + FinishComposingTextCommand()
+            }
+            sendEditCommand(*commands.toTypedArray())
+            // endregion
         }
 
         /**

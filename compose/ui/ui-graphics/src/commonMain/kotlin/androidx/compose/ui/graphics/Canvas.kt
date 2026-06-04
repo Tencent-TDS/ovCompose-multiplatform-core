@@ -168,8 +168,21 @@ fun Canvas.scale(sx: Float, sy: Float = sx, pivotX: Float, pivotY: Float) {
  */
 expect val Canvas.nativeCanvas: NativeCanvas
 
+// region Tencent Code
+enum class CanvasType {
+    Skia,
+    Native
+}
+// endregion
+
 @JvmDefaultWithCompatibility
 interface Canvas {
+    /**
+     * Attach ArkUIView within certain [rect] to RenderNode tree
+     */
+    fun drawRenderNode(node: Any, rect: Rect) {
+        throw NotImplementedError()
+    }
 
     /**
      * Saves a copy of the current transform and clip on the save stack.
@@ -595,4 +608,25 @@ interface Canvas {
      * @see enableZ
      */
     fun disableZ()
+
+    // region Tencent Code
+    val canvasType: CanvasType
+        get() = CanvasType.Skia
+
+    fun clipEnd() = Unit
+    
+    /**
+     * 组件开始绘制回调
+     * 在绘制组件之前调用，用于将后续绘制指令绑定到该组件
+     * @param semanticsId 组件的唯一标识（LayoutNode.semanticsId）
+     */
+    fun onBeginComponentDraw(semanticsId: Int) = Unit
+    
+    /**
+     * 组件结束绘制回调
+     * 在绘制组件完成后调用
+     * @param semanticsId 组件的唯一标识（LayoutNode.semanticsId）
+     */
+    fun onEndComponentDraw(semanticsId: Int) = Unit
+    // endregion
 }

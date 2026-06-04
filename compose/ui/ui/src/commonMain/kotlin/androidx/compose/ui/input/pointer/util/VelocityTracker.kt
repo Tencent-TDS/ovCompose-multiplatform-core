@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.input.pointer.util
 
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,6 +37,16 @@ internal expect val HistorySize: Int
 // TODO(b/204895043): Keep value in sync with VelocityPathFinder.HorizonMilliSeconds
 private const val HorizonMilliseconds: Int = 100
 
+// region Tencent Code
+interface PlatformVelocityProvider {
+    /* 获取平台提供的原生初速度 */
+    fun getPlatformVelocity() : Velocity
+
+    /* 重置平台提供的原生初速度 */
+    fun resetGestureVelocity()
+}
+// end region
+
 /**
  * Computes a pointer's velocity.
  *
@@ -51,6 +62,10 @@ private const val HorizonMilliseconds: Int = 100
 class VelocityTracker {
     private val xVelocityTracker = VelocityTracker1D() // non-differential, Lsq2 1D velocity tracker
     private val yVelocityTracker = VelocityTracker1D() // non-differential, Lsq2 1D velocity tracker
+
+    // region Tencent Code
+    private var platformVelocityProvider : PlatformVelocityProvider? = null
+    // end region
 
     internal var currentPointerPositionAccumulator = Offset.Zero
     internal var lastMoveEventTimeStamp = 0L
@@ -98,15 +113,33 @@ class VelocityTracker {
         check(maximumVelocity.x > 0f && maximumVelocity.y > 0) {
             "maximumVelocity should be a positive value. You specified=$maximumVelocity"
         }
+        // region Tencent Code
+        val localPlatformVelocityProvider = platformVelocityProvider
+        if (localPlatformVelocityProvider != null) {
+            return localPlatformVelocityProvider.getPlatformVelocity()
+        }
+        // end region
+
         val velocityX = xVelocityTracker.calculateVelocity(maximumVelocity.x)
         val velocityY = yVelocityTracker.calculateVelocity(maximumVelocity.y)
         return Velocity(velocityX, velocityY)
     }
 
+    // region Tencent Code
+    fun updateVelocityProvider(velocityProvider: PlatformVelocityProvider?) {
+        if (platformVelocityProvider != velocityProvider) {
+            platformVelocityProvider = velocityProvider
+        }
+    }
+    // end region
+
     /**
      * Clears the tracked positions added by [addPosition].
      */
     fun resetTracking() {
+        // region Tencent Code
+        platformVelocityProvider?.resetGestureVelocity()
+        // end region
         xVelocityTracker.resetTracking()
         yVelocityTracker.resetTracking()
         lastMoveEventTimeStamp = 0L
@@ -160,7 +193,7 @@ class VelocityTracker1D internal constructor(
 
     private val minSampleSize: Int = when (strategy) {
         Strategy.Impulse -> 2
-        Strategy.Lsq2 -> 3
+        Strategy.Lsq2 -> if (ComposeTabService.composeIOSVelocityTrackerMiniCountFixEnable) 4 else 3
     }
 
     /**
@@ -251,14 +284,16 @@ class VelocityTracker1D internal constructor(
         } while (sampleCount < HistorySize)
 
         if (sampleCount >= minSampleSize && shouldUseDataPoints(dataPoints, time, sampleCount)) {
+            //region Tencent Code
+            val finalTime = fixIOSVelocityScrollRollback(sampleCount, time)
             // Choose computation logic based on strategy.
             return when (strategy) {
                 Strategy.Impulse -> {
-                    calculateImpulseVelocity(dataPoints, time, sampleCount, isDataDifferential)
+                    calculateImpulseVelocity(dataPoints, finalTime, sampleCount, isDataDifferential)
                 }
 
                 Strategy.Lsq2 -> {
-                    calculateLeastSquaresVelocity(dataPoints, time, sampleCount)
+                    calculateLeastSquaresVelocity(dataPoints, finalTime, sampleCount)
                 }
             } * 1000 // Multiply by "1000" to convert from units/ms to units/s
         }
@@ -267,6 +302,14 @@ class VelocityTracker1D internal constructor(
         // valid pointer position.
         return 0f
     }
+    // region Tencent Code
+    private fun fixIOSVelocityScrollRollback(sampleCount: Int, time: FloatArray): FloatArray {
+        if (ComposeTabService.composeIOSVelocityTrackerAddPointsFixEnable && sampleCount == 3 && time.size >= 3 && time[2] == time[1]) {
+            return floatArrayOf(time[0], time[1] - 1, time[2])
+        }
+        return time
+    }
+    // endregion
 
     /**
      * Computes the estimated velocity at the time of the last provided data point.
@@ -373,7 +416,7 @@ internal expect fun VelocityTracker1D.shouldUseDataPoints(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun VelocityTracker.addPointerInputChange(event: PointerInputChange) {
-    if (VelocityTrackerAddPointsFix) {
+    if (ComposeTabService.composeIOSVelocityTrackerAddPointsFixEnable || VelocityTrackerAddPointsFix) {
         addPointerInputChangeWithFix(event)
     } else {
         addPointerInputChangeLegacy(event)

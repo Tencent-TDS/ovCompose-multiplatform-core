@@ -34,6 +34,7 @@ import androidx.compose.ui.text.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.text.platform.ActualParagraph
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TinyBoxInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import kotlin.math.ceil
@@ -229,6 +230,14 @@ expect sealed interface Paragraph {
      * includes the top, bottom, left and right of a character.
      */
     fun getBoundingBox(offset: Int): Rect
+
+    // region Tencent Code
+    /**
+     * Used for centering text.
+     * Returns the rectangle coordinates tightly enclosing the text and the baseline coordinate.
+     */
+    fun getLineTinyBoxInfo(lineIndex: Int): TinyBoxInfo
+    // end region
 
     /**
      * Fills the bounding boxes for characters provided in the [range] into [array]. The array is

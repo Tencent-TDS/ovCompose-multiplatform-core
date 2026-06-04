@@ -282,6 +282,7 @@ class ComposeScene internal constructor(
         eventType: PointerEventType,
         position: Offset,
         scrollDelta: Offset = Offset(0f, 0f),
+        pinchScale: Float = 1f,
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         type: PointerType = PointerType.Mouse,
         buttons: PointerButtons? = null,
@@ -290,7 +291,7 @@ class ComposeScene internal constructor(
         button: PointerButton? = null
     ) {
         replacement.sendPointerEvent(
-            eventType, position, scrollDelta, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
+            eventType, position, scrollDelta, pinchScale, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
         )
     }
 
@@ -321,12 +322,13 @@ class ComposeScene internal constructor(
         buttons: PointerButtons = PointerButtons(),
         keyboardModifiers: PointerKeyboardModifiers = PointerKeyboardModifiers(),
         scrollDelta: Offset = Offset(0f, 0f),
+        pinchScale: Float = 1f,
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
     ) {
         replacement.sendPointerEvent(
-            eventType, pointers, buttons, keyboardModifiers, scrollDelta, timeMillis, nativeEvent, button
+            eventType, pointers, buttons, keyboardModifiers, scrollDelta, pinchScale, timeMillis, nativeEvent, button
         )
     }
 

@@ -57,6 +57,34 @@ internal expect fun ActualLinearGradientShader(
     tileMode: TileMode
 ): Shader
 
+// region Tencent Code
+fun LinearGradientShader(
+    from: Offset,
+    to: Offset,
+    colors: List<Color>,
+    colorStops: List<Float>? = null,
+    tileMode: TileMode = TileMode.Clamp,
+    forceUseSkia: Boolean = false
+): Shader = ActualLinearGradientShader(
+    from,
+    to,
+    colors,
+    colorStops,
+    tileMode,
+    forceUseSkia
+)
+
+internal expect fun ActualLinearGradientShader(
+    from: Offset,
+    to: Offset,
+    colors: List<Color>,
+    colorStops: List<Float>?,
+    tileMode: TileMode,
+    forceUseSkia: Boolean = false
+): Shader
+
+// endregion
+
 /**
  * Creates a radial gradient centered at `center` that ends at `radius`
  * distance from the center.

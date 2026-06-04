@@ -110,6 +110,7 @@ internal fun PointerInputEvent(
     timeMillis: Long,
     nativeEvent: Any?,
     scrollDelta: Offset,
+    pinchScale: Float,
     buttons: PointerButtons,
     keyboardModifiers: PointerKeyboardModifiers,
     changedButton: PointerButton?
@@ -128,6 +129,7 @@ internal fun PointerInputEvent(
             issuesEnterExit = it.type == PointerType.Mouse,
             historical = it.historical,
             scrollDelta = scrollDelta,
+            pinchScale = pinchScale,
             originalEventPosition = it.position
         )
     },

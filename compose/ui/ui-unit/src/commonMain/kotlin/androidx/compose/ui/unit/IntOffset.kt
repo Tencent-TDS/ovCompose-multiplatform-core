@@ -43,7 +43,7 @@ fun IntOffset(x: Int, y: Int): IntOffset =
  */
 @Immutable
 @kotlin.jvm.JvmInline
-value class IntOffset internal constructor(@PublishedApi internal val packedValue: Long) {
+value class IntOffset(val packedValue: Long) {
 
     /**
      * The horizontal aspect of the position in [Int] pixels.
@@ -132,6 +132,7 @@ value class IntOffset internal constructor(@PublishedApi internal val packedValu
 
     companion object {
         val Zero = IntOffset(0, 0)
+        val Max = IntOffset(0x7FFF_FFFF_7FFF_FFFF)
     }
 }
 
@@ -177,3 +178,12 @@ operator fun IntOffset.minus(offset: Offset): Offset =
  */
 @Stable
 inline fun Offset.round(): IntOffset = IntOffset(x.roundToInt(), y.roundToInt())
+
+// region Tencent Code
+/**
+ * Round a [Offset] down to the nearest [Int] coordinates.
+ */
+@Stable
+inline fun Offset.safeRound(): IntOffset =
+    IntOffset(if (x.isNaN()) 0 else x.roundToInt(), if (y.isNaN()) 0 else y.roundToInt())
+// endregion

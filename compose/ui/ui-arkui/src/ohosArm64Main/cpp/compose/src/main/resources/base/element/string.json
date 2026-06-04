@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "page_show",
+      "value": "page from package"
+    },
+    {
+      "name": "text_toolbar_cut",
+      "value": "Cut"
+    },
+    {
+      "name": "text_toolbar_copy",
+      "value": "Copy"
+    },
+    {
+      "name": "text_toolbar_select_all",
+      "value": "Select All"
+    }
+  ]
+}

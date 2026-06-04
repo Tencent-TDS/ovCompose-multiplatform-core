@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
  */
 internal class TextStringSimpleElement(
     private val text: String,
+    private val traceId: Long = 0L,  // region Tencent Code: traceId for fastlog
     private val style: TextStyle,
     private val fontFamilyResolver: FontFamily.Resolver,
     private val overflow: TextOverflow = TextOverflow.Clip,
@@ -43,6 +44,7 @@ internal class TextStringSimpleElement(
 
     override fun create(): TextStringSimpleNode = TextStringSimpleNode(
         text,
+        traceId,  // region Tencent Code
         style,
         fontFamilyResolver,
         overflow,
@@ -53,6 +55,9 @@ internal class TextStringSimpleElement(
     )
 
     override fun update(node: TextStringSimpleNode) {
+        // region Tencent Code
+        node.traceId = traceId
+        // end region
         node.doInvalidations(
             drawChanged = node.updateDraw(
                 color,
@@ -77,6 +82,7 @@ internal class TextStringSimpleElement(
 
         if (other !is TextStringSimpleElement) return false
 
+        // traceId 不参与 equals，因为每次 recomposition 都会变
         // these three are most likely to actually change
         if (color != other.color) return false
         if (text != other.text) return false /* expensive to check, do after color */
@@ -93,6 +99,7 @@ internal class TextStringSimpleElement(
     }
 
     override fun hashCode(): Int {
+        // traceId 不参与 hashCode
         var result = text.hashCode()
         result = 31 * result + style.hashCode()
         result = 31 * result + fontFamilyResolver.hashCode()

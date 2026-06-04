@@ -24,11 +24,13 @@ import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.monitor.ApplyScrollableMonitor
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -74,7 +76,11 @@ import kotlinx.coroutines.launch
 fun rememberScrollState(initial: Int = 0): ScrollState {
     return rememberSaveable(saver = ScrollState.Saver) {
         ScrollState(initial = initial)
+    // region Tencent Code
+    }.also {
+        ApplyScrollableMonitor(it)
     }
+    // endregion
 }
 
 /**
@@ -157,6 +163,12 @@ class ScrollState(initial: Int) : ScrollableState {
 
     override fun dispatchRawDelta(delta: Float): Float =
         scrollableState.dispatchRawDelta(delta)
+
+    // region Tencent Code
+    @InternalComposeApi
+    override val currentScrollPriority: MutatePriority?
+        get() = scrollableState.currentScrollPriority
+    // endregion
 
     override val isScrollInProgress: Boolean
         get() = scrollableState.isScrollInProgress
