@@ -17,6 +17,7 @@
 
 #include "arkui_utils_export.h"
 #include "arkui_view_controller_wrapper.h"
+#include "leftover_c_abi_null_guard.h"
 #include "napi/native_api.h"
 #include "xcomponent_common.h"
 #include "xcomponent_holder.h"
@@ -37,23 +38,39 @@ napi_value androidx_compose_ui_arkui_utils_wrapped(napi_env env, void *nativeCon
 
 Boolean androidx_compose_ui_arkui_utils_xcomponent_prepareDraw(void *render) {
     LOGI("androidx_compose_ui_arkui_xcomponent_c_prepareDraw render(%{public}p)", render);
+    if (!leftover_prepareDraw(render)) {
+        LOGE("androidx_compose_ui_arkui_utils_xcomponent_prepareDraw: render is null");
+        return false;
+    }
     auto xComponentRender = reinterpret_cast<androidx::compose::ui::arkui::utils::XComponentRender *>(render);
     return xComponentRender->EglPrepareDraw();
 }
 
 Boolean androidx_compose_ui_arkui_utils_xcomponent_finishDraw(void *render) {
     LOGI("androidx_compose_ui_arkui_xcomponent_c_finishDraw render(%{public}p)", render);
+    if (!leftover_finishDraw(render)) {
+        LOGE("androidx_compose_ui_arkui_utils_xcomponent_finishDraw: render is null");
+        return false;
+    }
     auto xComponentRender = reinterpret_cast<androidx::compose::ui::arkui::utils::XComponentRender *>(render);
     return xComponentRender->EglFinishDraw();
 }
 
 void androidx_compose_ui_arkui_utils_xcomponent_registerFrameCallback(void *render) {
     LOGI("androidx_compose_ui_arkui_utils_xcomponent_registerFrameCallback render(%{public}p)", render);
+    if (!leftover_c_abi_if_non_null(render)) {
+        LOGE("androidx_compose_ui_arkui_utils_xcomponent_registerFrameCallback: render is null");
+        return;
+    }
     auto xComponentRender = reinterpret_cast<androidx::compose::ui::arkui::utils::XComponentRender *>(render);
     xComponentRender->RegisterFrameCallback();
 }
 void androidx_compose_ui_arkui_utils_xcomponent_unregisterFrameCallback(void *render) {
     LOGI("androidx_compose_ui_arkui_xcomponent_c_unregisterFrameCallback render(%{public}p)", render);
+    if (!leftover_c_abi_if_non_null(render)) {
+        LOGE("androidx_compose_ui_arkui_utils_xcomponent_unregisterFrameCallback: render is null");
+        return;
+    }
     auto xComponentRender = reinterpret_cast<androidx::compose::ui::arkui::utils::XComponentRender *>(render);
     xComponentRender->UnregisterFrameCallback();
 }

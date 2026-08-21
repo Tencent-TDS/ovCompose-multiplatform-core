@@ -16,6 +16,7 @@
  */
 
 #include "arkui_view_controller.h"
+#include "leftover_c_abi_null_guard.h"
 #include "libkn_api.h"
 #include "xcomponent_log.h"
 #include "xcomponent_render.h"
@@ -285,6 +286,10 @@ void ArkUIViewController_cancelSyncRefresh(ArkUIViewController *controller, uint
 
 const char *ArkUIViewController_sendMessage(ArkUIViewController *controller, const std::string &type,
                                             const std::string &message) {
+    if (!leftover_c_abi_if_non_null(controller)) {
+        LOGE("ArkUIViewController_sendMessage: controller is null");
+        return nullptr;
+    }
     return androidx_compose_ui_arkui_ArkUIViewController_sendMessage(controller, type.c_str(), message.c_str());
 }
 
